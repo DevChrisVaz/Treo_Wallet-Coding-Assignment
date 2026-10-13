@@ -1,0 +1,6 @@
+# Excepciones justificadas del lint del contrato.
+openapi.yaml:
+  # El health check no recibe parámetros ni cuerpo, así que no tiene errores de cliente (4xx)
+  # que documentar. Si el servicio no está disponible, la petición no llega a la API.
+  operation-4xx-response:
+    - '#/paths/~1health/get/responses'

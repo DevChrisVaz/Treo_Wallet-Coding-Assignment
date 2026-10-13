@@ -16,6 +16,9 @@ info:
       `code` y `requestId`. Los clientes deciden por `code`, nunca por `type` ni por `title`.
     - Cada respuesta incluye el header `X-Request-Id`. Si la petición trae uno, se reutiliza.
     - Un recurso que no existe y uno que pertenece a otro usuario responden igual: `404 NOT_FOUND`.
+  license:
+    name: Propietario (prueba técnica)
+    identifier: LicenseRef-Proprietary
 servers:
   - url: http://localhost:3000
     description: Desarrollo local
