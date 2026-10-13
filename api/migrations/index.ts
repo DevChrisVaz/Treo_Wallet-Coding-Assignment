@@ -6,6 +6,7 @@ import { SessionsAndCodes1760400003000 } from './1760400003000-sessions-and-code
 import { Beneficiaries1760500000000 } from './1760500000000-beneficiaries.js';
 import { Transfers1760500001000 } from './1760500001000-transfers.js';
 import { LedgerEntries1760500002000 } from './1760500002000-ledger-entries.js';
+import { LedgerZeroSum1760500003000 } from './1760500003000-ledger-zero-sum.js';
 
 /**
  * Migraciones en orden de aplicación. Se listan explícitamente (sin globs) para que funcionen igual
@@ -19,4 +20,5 @@ export const migrations: (new () => MigrationInterface)[] = [
   Beneficiaries1760500000000,
   Transfers1760500001000,
   LedgerEntries1760500002000,
+  LedgerZeroSum1760500003000,
 ];

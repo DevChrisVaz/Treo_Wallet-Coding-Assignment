@@ -49,7 +49,14 @@ describe('PLT-04 nombres de constraints e índices', () => {
         `SELECT conname AS name, contype AS kind, conrelid::regclass::text AS tbl
            FROM pg_constraint WHERE connamespace = 'app'::regnamespace`,
       );
-      const expectedPrefix: Record<string, string> = { p: 'pk_', f: 'fk_', u: 'uq_', c: 'ck_' };
+      // Los constraint triggers (contype t) también son constraints: llevan prefijo tg_.
+      const expectedPrefix: Record<string, string> = {
+        p: 'pk_',
+        f: 'fk_',
+        u: 'uq_',
+        c: 'ck_',
+        t: 'tg_',
+      };
       const badConstraints = constraints.rows
         .filter((row) => !TOOL_TABLES.some((table) => row.tbl.endsWith(table)))
         .filter((row) => !row.name.startsWith(expectedPrefix[row.kind] ?? '?'));
