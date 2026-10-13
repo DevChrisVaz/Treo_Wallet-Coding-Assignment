@@ -4,7 +4,7 @@
 - [x] 1.2 [mobile] Instalar `@devchrisvaz/wallet-contract` con `file:../contract` y `@devchrisvaz/wallet-design-tokens` con `file:../design-tokens`, y `mobile/.npmrc` con `install-links=true`; comprobar en Expo Go que Metro resuelve `createApiClient`, `formatMXN` y el subpath `./native` (campo `exports` o respaldo `main`/`types`) (MOB-15, DSG-01)
 - [x] 1.3 [mobile] Configurar jest-expo y Testing Library con mocks de `expo-secure-store`, NetInfo y `AppState` (MOB-02, MOB-10, MOB-16)
 - [x] 1.4 [mobile] Leer y validar `EXPO_PUBLIC_API_URL` al arrancar y mostrar una pantalla de error de configuración si falta o es inválida, con su prueba (MOB-17)
-- [ ] 1.5 [mobile] Prohibir `@react-native-async-storage/async-storage` con la regla `no-restricted-imports` de ESLint y agregar una prueba que falle si algún módulo lo importa (MOB-02)
+- [x] 1.5 [mobile] Prohibir `@react-native-async-storage/async-storage` con la regla `no-restricted-imports` de ESLint y agregar una prueba que falle si algún módulo lo importa (MOB-02)
 - [ ] 1.6 [mobile] Cargar Work Sans con `@expo-google-fonts/work-sans` (400, 500, 600) manteniendo la pantalla de carga hasta `useFonts`, y exponer el tema de `@devchrisvaz/wallet-design-tokens/native` a la app (DSG-01, DSG-05)
 - [ ] 1.7 [mobile] Componentes del inventario de `design-system` en `components/ui` (Wordmark, Button, TextField, AmountField, OtpField, Select en hoja inferior, AccountCard, MovementRow, StatusBadge, InlineAlert, EmptyState, Skeleton, Receipt, DailyLimitMeter) con `StyleSheet` y solo tokens, con estados y `accessibilityState`; pruebas (DSG-03, DSG-06, DSG-09, DSG-10, DSG-11)
 
