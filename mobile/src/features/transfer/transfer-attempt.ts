@@ -1,0 +1,174 @@
+/**
+ * Intento de transferencia (diseño, decisión 5): máquina de estados en TypeScript puro, sin React,
+ * que guarda la `Idempotency-Key`, el payload congelado y la política de reintentos. Se prueba con
+ * temporizadores falsos sin renderizar pantallas.
+ *
+ * - Llave (MOB-09): una por intento, generada al pasar a revisión; editar la descarta.
+ * - Payload congelado: el cuerpo se serializa una vez; todos los envíos del intento mandan los
+ *   mismos bytes, así la API calcula el mismo fingerprint.
+ * - Doble toque: `submit` solo actúa desde revisión; durante el envío se ignora.
+ */
+import {
+  createIdempotencyKey,
+  NetworkError,
+  ProblemError,
+  transferForm,
+  type Transfer,
+} from '@devchrisvaz/wallet-contract';
+import { randomUUID } from 'expo-crypto';
+
+import { zodFieldErrors } from '@/lib/field-errors';
+
+export interface TransferDraft {
+  fromAccountId: string;
+  beneficiaryId: string;
+  amount: string;
+  concept: string;
+  reference: string;
+}
+
+export interface CreateResult {
+  transfer: Transfer;
+  /** `Idempotent-Replayed: true`: la API reconoció un reintento con la misma llave. */
+  replayed: boolean;
+}
+
+/** Llamadas a la API; lanzan `ProblemError` (respuesta) o `NetworkError` (sin respuesta). */
+export interface TransferTransport {
+  create(key: string, payload: string): Promise<CreateResult>;
+  confirm(transferId: string, otp: string): Promise<Transfer>;
+}
+
+/** Cambios de conectividad (NetInfo). El primer aviso trae el estado actual. */
+export interface Connectivity {
+  subscribe(listener: (connected: boolean) => void): () => void;
+}
+
+interface Frozen {
+  key: string;
+  payload: string;
+  draft: TransferDraft;
+}
+
+export type AttemptState =
+  | { status: 'editing' }
+  | ({ status: 'reviewing' } & Frozen)
+  | ({ status: 'sending'; retries: number } & Frozen)
+  | ({ status: 'uncertain' } & Frozen)
+  | { status: 'completed'; transfer: Transfer; replayed: boolean }
+  | { status: 'pendingOtp'; transfer: Transfer }
+  | ({ status: 'rejected'; error: ProblemError } & Frozen)
+  | { status: 'error'; error: ProblemError };
+
+export type ReviewResult = { ok: true } | { ok: false; errors: Record<string, string> };
+
+export interface TransferAttemptOptions {
+  transport: TransferTransport;
+  connectivity: Connectivity;
+  /** Generador de la llave; por defecto, UUID v4 de expo-crypto (Hermes no tiene crypto.randomUUID). */
+  generateKey?: () => string;
+}
+
+/** Rechazos de negocio al crear: la transferencia queda `REJECTED` y se puede corregir. */
+const REJECTION_CODES = new Set(['INSUFFICIENT_FUNDS', 'DAILY_LIMIT_EXCEEDED']);
+
+export function isRetryable(error: unknown): boolean {
+  if (error instanceof NetworkError) return true;
+  return error instanceof ProblemError && error.status >= 500;
+}
+
+export function freezePayload(draft: TransferDraft): string {
+  return JSON.stringify({
+    fromAccountId: draft.fromAccountId,
+    destination: { type: 'BENEFICIARY', beneficiaryId: draft.beneficiaryId },
+    amount: draft.amount,
+    concept: draft.concept,
+    reference: draft.reference,
+  });
+}
+
+export class TransferAttempt {
+  private state: AttemptState = { status: 'editing' };
+  private readonly listeners = new Set<() => void>();
+  private readonly transport: TransferTransport;
+  private readonly generateKey: () => string;
+
+  constructor(options: TransferAttemptOptions) {
+    this.transport = options.transport;
+    this.generateKey = options.generateKey ?? (() => createIdempotencyKey(randomUUID));
+  }
+
+  getState = (): AttemptState => this.state;
+
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  };
+
+  /** Valida con el esquema del contrato y, si es válido, abre un intento con su llave. */
+  review(draft: TransferDraft): ReviewResult {
+    if (this.state.status !== 'editing') return { ok: true };
+    const parsed = transferForm.safeParse(JSON.parse(freezePayload(draft)));
+    if (!parsed.success) return { ok: false, errors: zodFieldErrors(parsed.error) };
+    this.setState({
+      status: 'reviewing',
+      key: this.generateKey(),
+      payload: freezePayload(draft),
+      draft,
+    });
+    return { ok: true };
+  }
+
+  /** Vuelve a la captura: el siguiente envío será otro intento, con otra llave. */
+  edit(): void {
+    if (this.state.status === 'reviewing' || this.state.status === 'rejected') {
+      this.setState({ status: 'editing' });
+    }
+  }
+
+  /** Envía el intento. Solo actúa desde revisión: un segundo toque durante el envío se ignora. */
+  async submit(): Promise<void> {
+    const current = this.state;
+    if (current.status !== 'reviewing') return;
+    await this.send(frozenOf(current));
+  }
+
+  private async send(frozen: Frozen): Promise<void> {
+    this.setState({ status: 'sending', retries: 0, ...frozen });
+    try {
+      const { transfer, replayed } = await this.transport.create(frozen.key, frozen.payload);
+      this.settle(transfer, replayed);
+    } catch (error) {
+      this.fail(frozen, error);
+    }
+  }
+
+  private settle(transfer: Transfer, replayed: boolean): void {
+    if (transfer.status === 'PENDING_OTP') {
+      this.setState({ status: 'pendingOtp', transfer });
+    } else {
+      this.setState({ status: 'completed', transfer, replayed });
+    }
+  }
+
+  private fail(frozen: Frozen, error: unknown): void {
+    if (isRetryable(error) || !(error instanceof ProblemError)) {
+      this.setState({ status: 'uncertain', ...frozen });
+    } else if (REJECTION_CODES.has(error.code)) {
+      this.setState({ status: 'rejected', error, ...frozen });
+    } else {
+      this.setState({ status: 'error', error });
+    }
+  }
+
+  private setState(state: AttemptState): void {
+    this.state = state;
+    this.listeners.forEach((listener) => listener());
+  }
+}
+
+function frozenOf(state: Frozen): Frozen {
+  return { key: state.key, payload: state.payload, draft: state.draft };
+}
