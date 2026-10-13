@@ -132,3 +132,24 @@ Amplify quedó documentado como alternativa válida, con sus condiciones: sesion
 - Forzar `install-links=false`: `verify:install` detecta el enlace simbólico.
 
 **Corrección del scope del paquete:** la AI nombró el paquete `@morgandevchrisvaz/wallet-contract` a partir de `gh api user`, que devuelve la cuenta con sesión iniciada en la CLI de GitHub de esta máquina, y lo presentó como mi usuario sin confirmarlo. Mi usuario es **DevChrisVaz**, así que el scope correcto es `@devchrisvaz` (GitHub Packages exige que el scope sea el dueño del repositorio, en minúsculas). Se renombró en el paquete, el contrato, el README y las especificaciones, y se volvió a verificar todo. **Lección:** los datos de identidad (usuario, scope, correo) se le confirman a la persona; no se deducen del entorno.
+
+---
+
+## Sesión 3 — 2026-10-13 · Puertos, sistema de diseño y trabajo en paralelo
+
+**Prompt clave:** "Ahora que ya tenemos el contrato, podemos trabajar web, mobile y api en paralelo. Para los clientes necesitamos definir un design system para mantener coherencia y finalmente despachar a subagentes a realizar los cambios."
+
+**Puertos.** La AI detectó que Next.js usa el 3000 por defecto, el mismo puerto que el contrato asignaba a la API, y que en mi máquina el 3000 y el 5432 ya estaban ocupados. Acepté su propuesta: API en el 4000 y PostgreSQL de docker compose en el 5433 (contrato 1.0.1).
+
+**Sistema de diseño.** La AI propuso tres direcciones visuales y yo le pedí investigar el design system de treo.mx. Extrajo del HTML y del kit de Elementor del sitio la paleta, la tipografía (Work Sans) y las formas, y calculó el contraste WCAG de cada combinación:
+- El verde de marca de Treo (`#31C454`) da 2.29:1 como texto y su gris (`#7E7E7E`) 4.06:1. Ninguno cumple AA, así que se usan solo como referencia y se agregaron texto secundario accesible y colores de estado.
+- La AI no publicó el sistema como artefacto web, porque reproduce la identidad de una empresa real. Quedó como archivos en el repositorio: el paquete `/design-tokens` y una referencia visual local.
+- Elegí el nombre **TreoWallet**, que se muestra como logotipo de texto, sin usar el logo de Treo.
+
+**Errores de la AI que detectaron las pruebas:**
+- **El borde de los campos que propuso la AI (`#8A958D`) cumplía 3:1 sobre blanco, pero no sobre las superficies arena y verde** (2.85 y 2.83). Lo detectó la prueba de contraste, que recorre todos los pares declarados; se oscureció a `#7F8A82`.
+- La AI cambió `Object.hasOwn` por `hasOwnProperty` de forma preventiva, porque el paquete también corre en Hermes.
+
+**Verificaciones más allá de las pruebas unitarias:** la hoja generada para Tailwind v4 se compiló con el CLI real. Existen las utilidades del sistema, y `bg-red-500` y `text-sm` no se generan, lo que comprueba que los clientes no pueden salirse de la paleta. La referencia visual se revisó renderizada en un navegador.
+
+**Trabajo en paralelo.** API, web y móvil se implementan con tres subagentes de Claude Code, cada uno en su propio worktree de git, a partir de los artefactos de OpenSpec. El de la API arrancó antes, porque no necesita el sistema de diseño; los de web y móvil, en cuanto `/design-tokens` estuvo listo. Integro yo las ramas al terminar.
