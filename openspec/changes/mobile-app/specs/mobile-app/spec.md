@@ -13,7 +13,7 @@ La app SHALL permitir iniciar sesión con email y contraseña contra la API y, a
 
 #### Scenario: Credenciales inválidas
 - **WHEN** la API responde `401` con `code` `INVALID_CREDENTIALS`
-- **THEN** la app muestra "Email o contraseña incorrectos" sin indicar cuál de los dos falló
+- **THEN** la app muestra "El correo o la contraseña no coinciden." (mensaje de `INVALID_CREDENTIALS` del paquete de diseño) sin indicar cuál de los dos falló
 - **AND** la contraseña capturada se borra del formulario
 
 #### Scenario: Correo sin verificar
@@ -60,7 +60,7 @@ Cuando una petición autenticada recibe `401 UNAUTHENTICATED`, la app SHALL reno
 #### Scenario: Sesión revocada
 - **WHEN** la renovación responde `401` con `code` `SESSION_REVOKED`
 - **THEN** la app borra el refresh token del almacenamiento seguro y el access token de memoria
-- **AND** muestra la pantalla de inicio de sesión con el mensaje "Tu sesión expiró"
+- **AND** muestra la pantalla de inicio de sesión con el mensaje "Cerramos tu sesión por seguridad. Inicia sesión de nuevo." (mensaje de `SESSION_REVOKED` del paquete de diseño)
 
 ### Requirement: MOB-04 Cierre de sesión
 La app SHALL permitir cerrar sesión. Al hacerlo, SHALL pedir a la API la revocación del refresh token y MUST borrar los tokens locales aunque la API no responda.

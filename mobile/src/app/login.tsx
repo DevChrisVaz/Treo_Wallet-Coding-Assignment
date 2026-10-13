@@ -1,22 +1,5 @@
-import { StyleSheet, View } from 'react-native';
+import { LoginScreen } from '@/features/auth/login-screen';
 
-import { Wordmark } from '@/components/ui';
-import { theme } from '@/theme';
-
-/** Inicio de sesión (la pantalla completa llega con la tarea 3.1). */
 export default function LoginRoute() {
-  return (
-    <View style={styles.container}>
-      <Wordmark />
-    </View>
-  );
+  return <LoginScreen />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.surface.default,
-  },
-});

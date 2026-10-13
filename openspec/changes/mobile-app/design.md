@@ -225,6 +225,9 @@ El change `design-system` se escribió después de esta especificación y fija l
 | Requisito | Texto anterior del escenario | Texto que muestra la app |
 |---|---|---|
 | MOB-14 | "Saldo insuficiente para esta transferencia" | "No tienes saldo suficiente para esta transferencia." |
+| MOB-01 | "Email o contraseña incorrectos" | "El correo o la contraseña no coinciden." |
+| MOB-01 | (correo sin verificar) | "Confirma tu correo con el código que te enviamos. La verificación se completa en la web de TreoWallet." (texto del paquete más la indicación de la web) |
+| MOB-03 | "Tu sesión expiró" | "Cerramos tu sesión por seguridad. Inicia sesión de nuevo." |
 
 Los mensajes se deciden con un `switch` exhaustivo sobre `ProblemCode` (comprobado con una mutación de tipos: quitar un `case` rompe `tsc`) y `problemMessages satisfies Record<ProblemCode, string>` comprueba que el paquete tenga un texto para cada code. La app agrega solo los datos variables: lo que queda del límite (`remaining` con `formatMXN`), los intentos restantes y el `requestId` como "Folio para soporte" en `INTERNAL_ERROR` (un code desconocido llega como `INTERNAL_ERROR`). Sin respuesta de la API (`NetworkError`), el texto es propio de la app porque no hay `code`: "No pudimos conectar con TreoWallet. Revisa tu conexión e intenta de nuevo."
 

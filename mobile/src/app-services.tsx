@@ -25,18 +25,20 @@ const ServicesContext = createContext<AppServices | null>(null);
 interface AppProvidersProps {
   baseUrl: string;
   fetch?: FetchFn;
+  /** Servicios ya creados (pruebas que necesitan inspeccionar la sesión). */
+  services?: AppServices;
   children: ReactNode;
 }
 
-function createServices(baseUrl: string, fetch: FetchFn | undefined): AppServices {
+export function createServices(baseUrl: string, fetch: FetchFn | undefined): AppServices {
   const session = new Session();
   const options = { baseUrl, session, ...(fetch ? { fetch } : {}) };
   const refresher = createSessionRefresher(options);
   return { baseUrl, session, refresher, api: createWalletApi({ ...options, refresher }) };
 }
 
-export function AppProviders({ baseUrl, fetch, children }: AppProvidersProps) {
-  const [services] = useState(() => createServices(baseUrl, fetch));
+export function AppProviders({ baseUrl, fetch, services: given, children }: AppProvidersProps) {
+  const [services] = useState(() => given ?? createServices(baseUrl, fetch));
   return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
 }
 
