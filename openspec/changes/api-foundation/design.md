@@ -309,3 +309,23 @@ Proyecto nuevo, sin datos previos. Despliegue local: `docker compose up -d` (Pos
 ## Open Questions
 
 - Valor concreto de `CLABE_BANK_CODE`: debe ser un código que no esté asignado a ningún banco en el catálogo de Banxico. Es un valor de configuración; se verifica y se fija en `.env.example` durante la implementación sin cambiar specs ni tareas.
+  - **Resuelta en la implementación:** `CLABE_BANK_CODE=999`. Ninguna institución del catálogo de participantes del SPEI de Banxico (`banxico.org.mx/cep-scl/listaInstituciones.do`, consultado el 2026-10-13) termina en 999; las únicas con terminación ≥ 900 son 901, 902 y 903. Plaza fija: `180`.
+
+## Notas de implementación
+
+Decisiones tomadas al implementar que precisan o ajustan este diseño, sin cambiar requisitos:
+
+- **Node 24 en herramientas y CI** (el diseño decía Node 20): Vitest 5 exige Node ≥ 22 y Node 20 terminó su soporte. `engines.node` sigue en `>=20` y el build corre en Node 20.
+- **TypeORM 1.x**: las migraciones se listan explícitamente (sin globs) y los helpers de SQL crudo usan el resultado estructurado de `QueryRunner.query`, porque con el driver de PostgreSQL un `UPDATE … RETURNING` devuelve `[filas, afectadas]`.
+- **Línea de log por petición con un middleware propio en lugar de `pino-http`**: registra solo método, ruta sin query string, status, duración, `requestId` y usuario. `pino-http` serializa todos los headers y duplicaba el `requestId` (binding del logger hijo y `mixin`). El resto del diseño de logs se mantiene (`pino`, `redact` con un censor que enmascara datos personales, `bigint` como string). Los errores se serializan por lista blanca (sin `detail`, `parameters` ni `query`, que traen valores); el SQLSTATE viaja como `errorCode` porque `code` es una llave redactada.
+- **Columnas `text` con `CHECK` con nombre** para `users.full_name`, `users.phone` (`ck_users_phone_e164`), `accounts.name` (`ck_accounts_name_length`) y `accounts.clabe`: con `varchar(n)` o `char(n)` un valor demasiado largo falla con `22001` antes de la constraint y no se puede traducir por nombre. CURP y RFC siguen como `char(18)` y `char(13)`.
+- **Constraints adicionales:** `ck_audit_log_metadata_object`, `ck_users_phone_e164`, `ck_accounts_name_length`, `ck_refresh_tokens_token_hash_hex`, `ck_refresh_tokens_revocation`, `ck_refresh_tokens_expiry`, `ck_one_time_codes_code_hash_hex` e `ix_refresh_tokens_user`.
+- **Privilegio por columna en `accounts`:** `wallet_app` tiene `UPDATE (balance_cents)` y no `UPDATE` de toda la tabla. La Tesorería se crea con un id fijo (`00000000-0000-0000-0000-000000000001`) para que el arnés de pruebas la recree.
+- **Tabla de rutas con protección por defecto** en lugar de un middleware global: cada ruta de un módulo pasa por `authenticate` salvo que se declare pública, y una ruta pública fuera de la lista permitida (`/health`, `/auth/*`, `/docs`, `/openapi.yaml`) impide arrancar. Con un middleware global, una ruta inexistente respondía 401 en lugar del 404 que pide PLT-01.
+- **Verificación con email desconocido o ya verificado:** responde `422 VERIFICATION_CODE_INVALID` con `attemptsRemaining: 2`, idéntico al primer código incorrecto de un registro real. Riesgo residual: tras varios intentos, el contador de un email real baja y el de uno desconocido no; lo mitiga el límite de 10 verificaciones por IP por hora.
+- **Actor de la auditoría:** `USER` cuando la petición está autenticada (verificación exitosa, login exitoso, logout); `ANONYMOUS` en registro, reenvío, intentos de código, logins fallidos y reuso de refresh, con el usuario afectado como entidad. El escritor rechaza metadatos con llaves de datos personales o secretos (`email`, `curp`, `rfc`, `phone`, `clabe`, `name`, `password`, `token`, `code`, `otp`).
+- **El HMAC del código de un solo uso incluye propósito y sujeto** (`purpose:subject:code`), para que un hash no sirva en otro desafío.
+- **Rate limiting** con `express-rate-limit` y un almacén en memoria de ventana fija que toma la hora del puerto `Clock`, para probar el reinicio de la ventana sin esperar.
+- **Secretos en base64**: `JWT_SECRET` y `OTP_HMAC_SECRET` deben decodificar a 32 bytes o más. Se agregaron `SMTP_USER` y `SMTP_PASSWORD` opcionales para SES por SMTP.
+- **`db:bootstrap`** pasa las contraseñas a psql por variables de entorno (`\getenv`, psql ≥ 15). Si psql no está instalado usa el de la imagen de docker compose; en CI usa el psql del runner. `db:revert -- --all` revierte todas las migraciones (ida-vuelta-ida).
+- **La tarea 9.2** se confirmó simulando el workflow en un clon limpio; la corrida real en GitHub queda pendiente hasta publicar el repositorio.
