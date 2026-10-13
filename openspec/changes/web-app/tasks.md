@@ -16,7 +16,7 @@
 
 ## 3. Proxy de lecturas
 
-- [ ] 3.1 [web] Route handler `GET /bff/api/[...path]` con lista blanca de rutas, solo GET, host fijo de `API_BASE_URL` y paso de parámetros de consulta; pruebas de ruta permitida, ruta fuera de lista y método distinto de GET (WEB-09)
+- [x] 3.1 [web] Route handler `GET /bff/api/[...path]` con lista blanca de rutas, solo GET, host fijo de `API_BASE_URL` y paso de parámetros de consulta; pruebas de ruta permitida, ruta fuera de lista y método distinto de GET (WEB-09)
 - [ ] 3.2 [web] `GET /bff/api/session` que responde con el usuario guardado en la sesión o `401`, sin exponer tokens; pruebas (WEB-01, WEB-22)
 
 ## 4. Autenticación
