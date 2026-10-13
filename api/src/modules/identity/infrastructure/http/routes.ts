@@ -1,8 +1,13 @@
 import { Router } from 'express';
 import { parseBody } from '../../../../platform/http/validation.js';
 import type { RegisterUser } from '../../application/register-user.js';
+import type { ResendVerification } from '../../application/resend-verification.js';
 import type { VerifyEmail } from '../../application/verify-email.js';
-import { registerRequestSchema, verifyEmailRequestSchema } from './schemas.js';
+import {
+  registerRequestSchema,
+  resendVerificationRequestSchema,
+  verifyEmailRequestSchema,
+} from './schemas.js';
 
 /** Mismo cuerpo en todas las respuestas 202, para no permitir la enumeración de cuentas. */
 export const ACCEPTED_BODY = {
@@ -12,6 +17,7 @@ export const ACCEPTED_BODY = {
 export interface IdentityHandlers {
   readonly registerUser: RegisterUser;
   readonly verifyEmail: VerifyEmail;
+  readonly resendVerification: ResendVerification;
 }
 
 /** Rutas de identidad: validan la entrada, llaman al caso de uso y traducen el resultado. */
@@ -27,6 +33,12 @@ export function identityRouter(handlers: IdentityHandlers): Router {
   router.post('/auth/verify-email', async (req, res) => {
     const input = parseBody(verifyEmailRequestSchema, req.body);
     res.status(200).json(await handlers.verifyEmail.execute(input));
+  });
+
+  router.post('/auth/verify-email/resend', async (req, res) => {
+    const input = parseBody(resendVerificationRequestSchema, req.body);
+    await handlers.resendVerification.execute(input);
+    res.status(202).json(ACCEPTED_BODY);
   });
 
   return router;

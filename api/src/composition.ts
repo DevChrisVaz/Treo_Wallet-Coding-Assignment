@@ -5,6 +5,7 @@ import { PgAuditWriter } from './modules/audit/infrastructure/pg-audit-writer.js
 import { OneTimeCodeService } from './modules/identity/application/one-time-codes.js';
 import type { PasswordHasher } from './modules/identity/application/ports.js';
 import { RegisterUser } from './modules/identity/application/register-user.js';
+import { ResendVerification } from './modules/identity/application/resend-verification.js';
 import { SessionService } from './modules/identity/application/sessions.js';
 import { VerifyEmail } from './modules/identity/application/verify-email.js';
 import { JoseAccessTokens } from './modules/identity/infrastructure/jose-access-tokens.js';
@@ -54,6 +55,7 @@ export interface Container {
   readonly identity: {
     readonly registerUser: RegisterUser;
     readonly verifyEmail: VerifyEmail;
+    readonly resendVerification: ResendVerification;
   };
 }
 
@@ -115,6 +117,14 @@ export async function createContainer(
         accessTokens,
         audit,
         clock,
+      }),
+      resendVerification: new ResendVerification({
+        transactions,
+        users,
+        codes,
+        audit,
+        mailer,
+        logger,
       }),
     },
   };
