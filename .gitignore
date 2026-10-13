@@ -37,3 +37,6 @@ Thumbs.db
 # Enunciado de la prueba técnica: documento de Treo, no se publica en el repositorio
 # (el nombre del archivo usa un acento descompuesto en Unicode, por eso el comodín en lugar de "é")
 Prueba T*cnica*.md
+
+# Worktrees de los subagentes de Claude Code (ramas aisladas, no se versionan aquí)
+.claude/worktrees/
