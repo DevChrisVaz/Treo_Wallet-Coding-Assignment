@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createApiClient } from '../src/index';
 import { accountsOverview, fakeFetch } from './support/fake-fetch';
 
@@ -65,5 +65,54 @@ describe('createApiClient', () => {
       client.GET('/no-existe');
 
     expect(typeof callUnknownRoute).toBe('function');
+  });
+});
+
+describe('X-Request-Id', () => {
+  it('CTR-05 reutiliza el request ID que provee el consumidor', async () => {
+    const { fetch, requests } = fakeFetch(() => Response.json(accountsOverview));
+    const client = createApiClient({
+      baseUrl: 'http://api.test',
+      fetch,
+      getRequestId: () => 'abc-123',
+    });
+
+    await client.GET('/accounts');
+
+    expect(requests[0]?.headers.get('X-Request-Id')).toBe('abc-123');
+  });
+
+  it('CTR-05 genera un ID distinto en cada petición cuando el consumidor no provee uno', async () => {
+    const { fetch, requests } = fakeFetch(() => Response.json(accountsOverview));
+    const client = createApiClient({
+      baseUrl: 'http://api.test',
+      fetch,
+      getRequestId: () => undefined,
+    });
+
+    await client.GET('/accounts');
+    await client.GET('/accounts');
+
+    const [first, second] = requests.map((r) => r.headers.get('X-Request-Id'));
+    expect(first).toBeTruthy();
+    expect(second).toBeTruthy();
+    expect(first).not.toBe(second);
+  });
+
+  it('CTR-05 genera IDs aunque el entorno no tenga crypto.randomUUID (Hermes)', async () => {
+    vi.stubGlobal('crypto', {});
+    try {
+      const { fetch, requests } = fakeFetch(() => Response.json(accountsOverview));
+      const client = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+      await client.GET('/accounts');
+      await client.GET('/accounts');
+
+      const [first, second] = requests.map((r) => r.headers.get('X-Request-Id'));
+      expect(first).toBeTruthy();
+      expect(first).not.toBe(second);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

@@ -9,7 +9,7 @@
 - [x] 2.1 [contract] Generar los tipos con openapi-typescript en `src/generated/api.d.ts` mediante el script `generate`, y versionarlos (CTR-03)
 - [x] 2.2 [contract] Exportar `PROBLEM_CODES` (arreglo de constantes) y el tipo `ProblemCode`, más alias de tipos de los esquemas principales (`Account`, `Movement`, `Transfer`, `Beneficiary`, `Problem`…) (CTR-03, CTR-07)
 - [x] 2.3 [contract] Implementar `createApiClient({ baseUrl, getAccessToken, getRequestId })` sobre openapi-fetch, con pruebas de `fetch` simulado: respuesta tipada, header `Authorization: Bearer` y ningún almacenamiento del token (CTR-04)
-- [ ] 2.4 [contract] Middleware de `X-Request-Id` que reutiliza el ID provisto o genera uno por petición, con pruebas de ambos casos (CTR-05)
+- [x] 2.4 [contract] Middleware de `X-Request-Id` que reutiliza el ID provisto o genera uno por petición, con pruebas de ambos casos (CTR-05)
 - [ ] 2.5 [contract] Implementar `createIdempotencyKey(generator?)` (usa `crypto.randomUUID` o el generador inyectado y falla con mensaje claro si no hay ninguno) y comprobar que `createTransfer` exige la llave en tipos; pruebas: el reintento conserva la llave y sin generador lanza error (CTR-06)
 - [ ] 2.6 [contract] Implementar `ProblemError` y `NetworkError`: interpretar `application/problem+json` con sus extensiones, convertir 4xx/5xx sin problem+json en `INTERNAL_ERROR` sin exponer el cuerpo, y distinguir fallos sin respuesta; pruebas de `INSUFFICIENT_FUNDS` con `transferId`, red caída y 502 HTML (CTR-07)
 
