@@ -3,7 +3,11 @@
  * cuerpo exacto) y responde con la secuencia de respuestas configurada por ruta. Ninguna prueba
  * depende de la API real.
  */
-export type FakeReply = Response | 'network-error' | 'hang' | (() => Response | Promise<Response>);
+export type FakeReply =
+  | Response
+  | 'network-error'
+  | 'hang'
+  | ((request: RecordedRequest) => Response | Promise<Response>);
 
 export interface RecordedRequest {
   method: string;
@@ -54,14 +58,18 @@ export function createFakeApi() {
   const routes: Route[] = [];
   const requests: RecordedRequest[] = [];
 
-  async function reply(next: FakeReply, request: Request): Promise<Response> {
+  async function reply(
+    next: FakeReply,
+    request: Request,
+    recorded: RecordedRequest,
+  ): Promise<Response> {
     if (next === 'network-error') throw new TypeError('Network request failed');
     if (next === 'hang') {
       return new Promise<Response>((_, reject) => {
         request.signal.addEventListener('abort', () => reject(new TypeError('Aborted')));
       });
     }
-    return typeof next === 'function' ? next() : next.clone();
+    return typeof next === 'function' ? next(recorded) : next.clone();
   }
 
   const fetch = async (request: Request): Promise<Response> => {
@@ -80,7 +88,7 @@ export function createFakeApi() {
     );
     if (!route) throw new Error(`Ruta sin respuesta simulada: ${request.method} ${url.pathname}`);
     const next = route.replies.length > 1 ? route.replies.shift() : route.replies[0];
-    return reply(next as FakeReply, request);
+    return reply(next as FakeReply, request, recorded);
   };
 
   return {
