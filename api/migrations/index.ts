@@ -4,6 +4,7 @@ import { Users1760400001000 } from './1760400001000-users.js';
 import { Accounts1760400002000 } from './1760400002000-accounts.js';
 import { SessionsAndCodes1760400003000 } from './1760400003000-sessions-and-codes.js';
 import { Beneficiaries1760500000000 } from './1760500000000-beneficiaries.js';
+import { Transfers1760500001000 } from './1760500001000-transfers.js';
 
 /**
  * Migraciones en orden de aplicación. Se listan explícitamente (sin globs) para que funcionen igual
@@ -15,4 +16,5 @@ export const migrations: (new () => MigrationInterface)[] = [
   Accounts1760400002000,
   SessionsAndCodes1760400003000,
   Beneficiaries1760500000000,
+  Transfers1760500001000,
 ];
