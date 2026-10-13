@@ -1,0 +1,5 @@
+{
+  "main": "../dist/native.cjs",
+  "module": "../dist/native.mjs",
+  "types": "../dist/native.d.cts"
+}

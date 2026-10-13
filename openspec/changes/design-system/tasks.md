@@ -1,6 +1,6 @@
 ## 1. Proyecto
 
-- [ ] 1.1 [design-tokens] Crear `design-tokens/` (paquete `@devchrisvaz/wallet-design-tokens`, `"private": true`, sin dependencias de runtime, `main`/`module`/`types`/`exports` con los subpaths `.`, `./native`, `./tokens.css` y `./tailwind.css`), TypeScript 5.9 estricto, tsup, Vitest, ESLint y Prettier (DSG-01)
+- [x] 1.1 [design-tokens] Crear `design-tokens/` (paquete `@devchrisvaz/wallet-design-tokens`, `"private": true`, sin dependencias de runtime, `main`/`module`/`types`/`exports` con los subpaths `.`, `./native`, `./tokens.css` y `./tailwind.css`), TypeScript 5.9 estricto, tsup, Vitest, ESLint y Prettier (DSG-01)
 
 ## 2. Tokens
 

@@ -1,0 +1,68 @@
+{
+  "name": "@devchrisvaz/wallet-design-tokens",
+  "version": "1.0.0",
+  "description": "Sistema de diseño de TreoWallet: tokens semánticos, salidas para Tailwind v4 y React Native, estados, movimientos y textos de la interfaz.",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./native": {
+      "import": {
+        "types": "./dist/native.d.ts",
+        "default": "./dist/native.mjs"
+      },
+      "require": {
+        "types": "./dist/native.d.cts",
+        "default": "./dist/native.cjs"
+      }
+    },
+    "./tokens.css": "./generated/tokens.css",
+    "./tailwind.css": "./generated/tailwind.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "generated",
+    "native"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "prepare": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "tsup": "^8.5.1",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.71.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.4"
+  }
+}
