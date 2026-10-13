@@ -7,6 +7,9 @@
  * - Payload congelado: el cuerpo se serializa una vez; todos los envíos del intento mandan los
  *   mismos bytes, así la API calcula el mismo fingerprint.
  * - Doble toque: `submit` solo actúa desde revisión; durante el envío se ignora.
+ * - Reintentos (MOB-10): sin respuesta (red o tiempo de espera) o `5xx`, con espera de 1, 2, 4, 8
+ *   y 16 s (±20 %) y máximo 5 reintentos, siempre con la misma llave y el mismo payload. Los `4xx`
+ *   son definitivos; un `429` espera el reintento manual (la petición no llegó a ejecutarse).
  */
 import {
   createIdempotencyKey,
@@ -17,6 +20,7 @@ import {
 } from '@devchrisvaz/wallet-contract';
 import { randomUUID } from 'expo-crypto';
 
+import { retryAfterSeconds } from '@/api/client';
 import { zodFieldErrors } from '@/lib/field-errors';
 
 export interface TransferDraft {
@@ -54,6 +58,8 @@ export type AttemptState =
   | { status: 'editing' }
   | ({ status: 'reviewing' } & Frozen)
   | ({ status: 'sending'; retries: number } & Frozen)
+  | ({ status: 'waitingRetry'; retry: number; delayMs: number } & Frozen)
+  | ({ status: 'rateLimited'; retryAfterSeconds: number | undefined } & Frozen)
   | ({ status: 'uncertain' } & Frozen)
   | { status: 'completed'; transfer: Transfer; replayed: boolean }
   | { status: 'pendingOtp'; transfer: Transfer }
@@ -67,6 +73,18 @@ export interface TransferAttemptOptions {
   connectivity: Connectivity;
   /** Generador de la llave; por defecto, UUID v4 de expo-crypto (Hermes no tiene crypto.randomUUID). */
   generateKey?: () => string;
+  /** Fuente de la variación de la espera; por defecto, `Math.random`. */
+  random?: () => number;
+}
+
+export const MAX_RETRIES = 5;
+const BASE_DELAY_MS = 1000;
+const JITTER = 0.2;
+
+/** Espera antes del reintento `retry` (1 a 5): 1, 2, 4, 8 o 16 s, con ±20 % de variación. */
+export function retryDelay(retry: number, random: () => number = Math.random): number {
+  const base = BASE_DELAY_MS * 2 ** (retry - 1);
+  return Math.round(base * (1 - JITTER + 2 * JITTER * random()));
 }
 
 /** Rechazos de negocio al crear: la transferencia queda `REJECTED` y se puede corregir. */
@@ -92,10 +110,19 @@ export class TransferAttempt {
   private readonly listeners = new Set<() => void>();
   private readonly transport: TransferTransport;
   private readonly generateKey: () => string;
+  private readonly random: () => number;
+  private timer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(options: TransferAttemptOptions) {
     this.transport = options.transport;
     this.generateKey = options.generateKey ?? (() => createIdempotencyKey(randomUUID));
+    this.random = options.random ?? Math.random;
+  }
+
+  /** Cancela el reintento pendiente (la pantalla se cerró). */
+  dispose(): void {
+    clearTimeout(this.timer);
+    this.timer = undefined;
   }
 
   getState = (): AttemptState => this.state;
@@ -132,17 +159,32 @@ export class TransferAttempt {
   async submit(): Promise<void> {
     const current = this.state;
     if (current.status !== 'reviewing') return;
-    await this.send(frozenOf(current));
+    await this.send(frozenOf(current), 0);
   }
 
-  private async send(frozen: Frozen): Promise<void> {
-    this.setState({ status: 'sending', retries: 0, ...frozen });
+  /** Reintento manual con la misma llave y el mismo payload. */
+  async retry(): Promise<void> {
+    const current = this.state;
+    if (current.status !== 'rateLimited') return;
+    await this.send(frozenOf(current), 0);
+  }
+
+  private async send(frozen: Frozen, retries: number): Promise<void> {
+    this.dispose();
+    this.setState({ status: 'sending', retries, ...frozen });
     try {
       const { transfer, replayed } = await this.transport.create(frozen.key, frozen.payload);
       this.settle(transfer, replayed);
     } catch (error) {
-      this.fail(frozen, error);
+      this.fail(frozen, error, retries);
     }
+  }
+
+  private scheduleRetry(frozen: Frozen, retries: number): void {
+    const retry = retries + 1;
+    const delayMs = retryDelay(retry, this.random);
+    this.setState({ status: 'waitingRetry', retry, delayMs, ...frozen });
+    this.timer = setTimeout(() => void this.send(frozen, retry), delayMs);
   }
 
   private settle(transfer: Transfer, replayed: boolean): void {
@@ -153,9 +195,17 @@ export class TransferAttempt {
     }
   }
 
-  private fail(frozen: Frozen, error: unknown): void {
-    if (isRetryable(error) || !(error instanceof ProblemError)) {
+  private fail(frozen: Frozen, error: unknown, retries: number): void {
+    if (isRetryable(error) && retries < MAX_RETRIES) {
+      this.scheduleRetry(frozen, retries);
+    } else if (isRetryable(error) || !(error instanceof ProblemError)) {
       this.setState({ status: 'uncertain', ...frozen });
+    } else if (error.status === 429) {
+      this.setState({
+        status: 'rateLimited',
+        retryAfterSeconds: retryAfterSeconds(error),
+        ...frozen,
+      });
     } else if (REJECTION_CODES.has(error.code)) {
       this.setState({ status: 'rejected', error, ...frozen });
     } else {
