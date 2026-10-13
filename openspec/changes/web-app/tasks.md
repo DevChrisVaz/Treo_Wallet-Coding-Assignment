@@ -1,9 +1,10 @@
 ## 1. Proyecto y configuración
 
-- [ ] 1.1 [web] Crear `/web` con Next.js (App Router), TypeScript estricto y ESLint, con lockfile propio, `.npmrc` con `install-links=true` y la dependencia `"@devchrisvaz/wallet-contract": "file:../contract"` (WEB-07, WEB-21)
+- [ ] 1.1 [web] Crear `/web` con Next.js (App Router), TypeScript estricto y ESLint, con lockfile propio, `.npmrc` con `install-links=true` y las dependencias `"@devchrisvaz/wallet-contract": "file:../contract"` y `"@devchrisvaz/wallet-design-tokens": "file:../design-tokens"` (WEB-07, WEB-21, DSG-01)
 - [ ] 1.2 [web] Módulo de entorno del servidor validado con Zod al arrancar (`API_BASE_URL`, `ALLOWED_ORIGINS`, `SESSION_COOKIE_SECURE`, `SESSION_IDLE_MINUTES`) y `serverActions.allowedOrigins` tomado de `ALLOWED_ORIGINS`, con prueba de configuración (WEB-06, WEB-09)
-- [ ] 1.3 [web] Tailwind con paleta de contraste ≥ 4.5:1 y layout base con foco visible y enlace "Saltar al contenido" (WEB-23)
+- [ ] 1.3 [web] Tailwind v4 con `@devchrisvaz/wallet-design-tokens/tailwind.css` (sin la paleta por defecto), Work Sans con `next/font/google` y layout base con el `Wordmark`, foco visible y enlace "Saltar al contenido" (WEB-23, DSG-01, DSG-02, DSG-05, DSG-06)
 - [ ] 1.4 [web] Configurar Vitest, Testing Library, jsdom y `vitest-axe`, y la regla de ESLint que prohíbe `parseFloat` y `Number(` en el código de montos (WEB-21, WEB-23)
+- [ ] 1.5 [web] Componentes del inventario de `design-system` en `components/ui` (Button, TextField, AmountField, OtpField, Select, AccountCard, MovementRow, StatusBadge, InlineAlert, EmptyState, Skeleton, Receipt, DailyLimitMeter) usando solo tokens, con sus variantes y estados y pruebas con `vitest-axe` (WEB-20, WEB-23, DSG-03, DSG-06, DSG-09, DSG-10, DSG-11)
 
 ## 2. Sesión en el servidor
 
@@ -29,13 +30,13 @@
 
 ## 5. Base del cliente
 
-- [ ] 5.1 [web] `unwrap`, `ProblemError` y el mapa exhaustivo `Record<ProblemCode, mensaje>` con uso de extensiones (`attemptsRemaining`, `remaining`, `requestId`); pruebas de mensajes (WEB-08, WEB-19)
+- [ ] 5.1 [web] `unwrap`, `ProblemError` y mensajes con `problemMessage` del paquete de diseño, con comprobación de exhaustividad contra `ProblemCode` del contrato y uso de extensiones (`attemptsRemaining`, `remaining`, `requestId`); pruebas de mensajes (WEB-08, WEB-19, DSG-12)
 - [ ] 5.2 [web] Proveedor de TanStack Query, claves de consulta, manejo de `401` en lecturas y componentes compartidos de carga, vacío y error con "Reintentar" (WEB-20, WEB-22)
 
 ## 6. Cuentas e historial
 
-- [ ] 6.1 [web] Pantalla de resumen: cuentas con nombre, CLABE y saldo con `formatMXN`, y "Te quedan $X hoy" desde `dailyLimit.remaining`; estados de carga, vacío y error; pruebas (WEB-13, WEB-20, WEB-21)
-- [ ] 6.2 [web] Pantalla de historial: selector de cuenta, filtros de fecha y tipo, consulta infinita con "Cargar más", reinicio al cambiar filtros o ante `INVALID_CURSOR`; estados; pruebas (WEB-14, WEB-20)
+- [ ] 6.1 [web] Pantalla de resumen: cuentas con nombre, CLABE y saldo con `formatMXN`, y "Te quedan $X hoy" desde `dailyLimit.remaining`; estados de carga, vacío y error, con `AccountCard` y `DailyLimitMeter`; pruebas (WEB-13, WEB-20, WEB-21, DSG-09, DSG-11)
+- [ ] 6.2 [web] Pantalla de historial: selector de cuenta, filtros de fecha y tipo, consulta infinita con "Cargar más", reinicio al cambiar filtros o ante `INVALID_CURSOR`; filas con `MovementRow` (etiqueta, signo y color por dirección); estados; pruebas (WEB-14, WEB-20, DSG-09, DSG-10)
 
 ## 7. Beneficiarios
 
@@ -49,7 +50,7 @@
 - [ ] 8.3 [web] Formulario de transferencia: origen, destino propio sin la cuenta origen o beneficiario, monto como texto validado con `AmountInput` (rechazo de más de 2 decimales y limpieza de separadores), concepto y referencia; pruebas de redondeo y de propia cuenta (WEB-16, WEB-21)
 - [ ] 8.4 [web] Pantalla de confirmación: envío con botón deshabilitado, reintento con la misma llave ante error de red o `5xx`, manejo de `200` con `Idempotent-Replayed` y de rechazos (`INSUFFICIENT_FUNDS` con saldo disponible, `DAILY_LIMIT_EXCEEDED`, `SAME_ACCOUNT_TRANSFER`); pruebas de doble clic (WEB-16, WEB-17, WEB-19)
 - [ ] 8.5 [web] Pantalla de OTP: código de 6 dígitos, intentos restantes, reenvío, `deliveryStatus` `FAILED`, `TRANSFER_EXPIRED`, `OTP_ATTEMPTS_EXHAUSTED` y revalidación fallida, con botón deshabilitado al confirmar; pruebas (WEB-18)
-- [ ] 8.6 [web] Comprobante con estado, monto, origen, destino, concepto, referencia, fecha e id, e invalidación de cuentas e historial; pruebas (WEB-16)
+- [ ] 8.6 [web] Comprobante (`Receipt` con `StatusBadge`) con estado, monto, origen, destino, concepto, referencia, fecha e id, e invalidación de cuentas e historial; pruebas (WEB-16, DSG-10, DSG-11)
 - [ ] 8.7 [web] Prueba del flujo completo con Testing Library (formulario → confirmación → OTP → comprobante) y del caso de saldo insuficiente, con el módulo de acciones simulado (WEB-16, WEB-17, WEB-18)
 
 ## 9. Accesibilidad
@@ -59,6 +60,6 @@
 
 ## 10. CI y documentación
 
-- [ ] 10.1 [web] Workflow `.github/workflows/web.yml` disparado por `web/**`, `contract/**` y el propio workflow: compilar `/contract`, `npm ci`, lint, typecheck, pruebas y `next build` (WEB-01, WEB-23)
+- [ ] 10.1 [web] Workflow `.github/workflows/web.yml` disparado por `web/**`, `contract/**`, `design-tokens/**` y el propio workflow: compilar `/contract` y `/design-tokens`, `npm ci`, lint, typecheck, pruebas y `next build` (WEB-01, WEB-23)
 - [ ] 10.2 [web] Verificación manual documentada de que una mutación con un `Origin` ajeno es rechazada (WEB-06)
 - [ ] 10.3 [web] README de `/web`: requisitos, variables de entorno, cómo correr en local contra la API y Mailpit, cómo correr las pruebas, nota sobre `install-links` y verificaciones manuales (WEB-02, WEB-06, WEB-23)

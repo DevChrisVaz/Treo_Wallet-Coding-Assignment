@@ -4,7 +4,7 @@ context: |
   Prueba técnica de Treo (fintech): billetera digital en pesos mexicanos (MXN) con transferencias
   entre cuentas de la misma plataforma. Rol: fullstack con enfoque en backend.
 
-  Repositorio único con cuatro proyectos independientes. No es monorepo: no hay workspaces, cada
+  Repositorio único con cinco proyectos independientes. No es monorepo: no hay workspaces, cada
   proyecto tiene su propio lockfile y su propio CI, y se separarán en repositorios propios.
     - /contract: paquete @devchrisvaz/wallet-contract. Contiene openapi.yaml (OpenAPI 3.1,
       fuente de verdad, contrato primero), tipos generados (openapi-typescript), cliente tipado
@@ -18,6 +18,12 @@ context: |
       Server Actions; lecturas con un proxy GET con lista blanca; sesión guardada en el servidor
       (Map en local, Redis en AWS). Los tokens nunca llegan al navegador.
     - /mobile: Expo (React Native) con TypeScript; tokens en expo-secure-store, nunca en AsyncStorage.
+    - /design-tokens: paquete @devchrisvaz/wallet-design-tokens, sistema de diseño de TreoWallet
+      (identidad de treo.mx con ajustes WCAG AA): tokens semánticos del tema claro, salidas para
+      Tailwind v4 (web) y React Native (móvil), estados, movimientos y textos de error en es-MX.
+      Se consume igual que el contrato, con "file:../design-tokens" e install-links=true.
+
+  Puertos locales: API 4000, web 3000, PostgreSQL de docker compose 5433, Mailpit 1025 y 8025.
 
   Dinero: BIGINT en centavos en la base; value object Money con BigInt en el dominio; strings
   decimales en JSON (entrada con 0 a 2 decimales, salida siempre con 2); nunca floats; nunca se
@@ -30,9 +36,9 @@ context: |
 
 rules:
   proposal:
-    - 'Indicar qué proyectos toca el change (/contract, /api, /web, /mobile, /docs) y qué historias de usuario del enunciado (HU1 a HU6) cubre.'
+    - 'Indicar qué proyectos toca el change (/contract, /design-tokens, /api, /web, /mobile, /docs) y qué historias de usuario del enunciado (HU1 a HU6) cubre.'
   specs:
-    - 'Cada requisito inicia con su ID en el encabezado, con la forma "### Requirement: PREFIJO-NN Título". Prefijos: IDN, ACC, BEN, TRF, HIS, AUD, PLT, CTR, WEB, MOB. Los IDs no se reutilizan ni se renumeran.'
+    - 'Cada requisito inicia con su ID en el encabezado, con la forma "### Requirement: PREFIJO-NN Título". Prefijos: IDN, ACC, BEN, TRF, HIS, AUD, PLT, CTR, WEB, MOB, DSG. Los IDs no se reutilizan ni se renumeran.'
     - 'El cuerpo de cada requisito usa SHALL o MUST en inglés dentro de prosa en español, por ejemplo "La API SHALL rechazar la transferencia".'
     - 'Los escenarios usan WHEN y THEN (y AND cuando haga falta) y cada uno debe poder comprobarse con una prueba.'
     - 'Los casos borde del enunciado (doble clic en Enviar, pérdida de red a mitad de una transferencia en móvil, redondeo, límite diario que cruza medianoche y transferencia a la propia cuenta) deben aparecer como escenarios explícitos en la capability que corresponda.'
@@ -43,7 +49,7 @@ rules:
     - 'Toda constraint e índice lleva nombre explícito con prefijo (pk_, fk_, uq_, ck_, ix_, tg_); los errores de PostgreSQL se traducen por ese nombre.'
     - 'Los diagramas se escriben en Mermaid.'
   tasks:
-    - 'Cada tarea lleva la etiqueta de su proyecto y los IDs de requisito que cubre, con la forma "- [ ] 2.3 [api] Descripción (TRF-03, TRF-04)". Etiquetas válidas: [contract], [api], [web], [mobile], [docs].'
+    - 'Cada tarea lleva la etiqueta de su proyecto y los IDs de requisito que cubre, con la forma "- [ ] 2.3 [api] Descripción (TRF-03, TRF-04)". Etiquetas válidas: [contract], [design-tokens], [api], [web], [mobile], [docs].'
     - 'Cada tarea es pequeña y verificable y corresponde a uno o más commits; un commit nunca cubre dos tareas.'
     - 'Los commits usan Conventional Commits con el proyecto como scope y los trailers "Task: <change>#<n.m>" y "Refs: <IDs>".'
     - 'El título de cada prueba empieza con el ID del requisito que verifica (por ejemplo "TRF-03 devuelve el estado actual ante la misma llave").'

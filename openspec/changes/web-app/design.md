@@ -18,7 +18,7 @@ Restricciones que dan forma al diseño:
 - Validación idéntica en el formulario y en el servidor, tomada del contrato.
 
 **Non-Goals:**
-- Diseño visual elaborado o un sistema de diseño propio: estilos mínimos con contraste suficiente.
+- Un sistema de diseño propio: la web usa el del change `design-system` (`@devchrisvaz/wallet-design-tokens`), compartido con la app móvil.
 - Renderizado de datos en Server Components: todas las pantallas con datos son componentes cliente.
 - Internacionalización: la interfaz es solo en español (es-MX).
 - Pruebas end-to-end en navegador: se cubren con Testing Library y pruebas unitarias del BFF.
@@ -144,7 +144,7 @@ Safari rechaza las cookies `Secure` en `http://localhost`; por eso los atributos
 
 ### D12. Formularios y estilos
 - `react-hook-form` con el resolver de Zod usando los esquemas del contrato; la misma validación corre en la Server Action (WEB-07).
-- Tailwind CSS con una paleta que cumple contraste 4.5:1. *Alternativa descartada:* CSS Modules; Tailwind es más rápido para pantallas simples.
+- Tailwind CSS v4 con los tokens del sistema de diseño: `@import "tailwindcss";` seguido de `@import "@devchrisvaz/wallet-design-tokens/tailwind.css";`, que define las variables `--dt-*` y quita la paleta por defecto de Tailwind (solo existen utilidades como `bg-surface`, `text-fg`, `bg-action`, `rounded-pill`). Work Sans con `next/font/google` (400, 500, 600). Las pantallas se construyen con los componentes del inventario de `design-system` (D7 de ese change) en `components/ui`, y los mensajes de error salen de `problemMessage` del mismo paquete. *Alternativa descartada:* CSS Modules; Tailwind es más rápido para pantallas simples.
 
 ### D13. Mapa de pantallas
 ```mermaid

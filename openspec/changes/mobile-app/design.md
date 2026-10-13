@@ -191,6 +191,13 @@ La URL de la API se lee de `EXPO_PUBLIC_API_URL` (Expo la incorpora al bundle) y
 - El título de cada prueba empieza con el ID del requisito (`MOB-10 …`).
 - **CI** (`.github/workflows/mobile.yml`): se dispara con cambios en `mobile/**`, `contract/**` o el propio workflow; compila el paquete de contrato, ejecuta `npm ci` en `/mobile` y corre lint, `tsc --noEmit` y pruebas. No compila binarios.
 
+### 13. Estilos con el sistema de diseño compartido
+- `StyleSheet` con el tema de `@devchrisvaz/wallet-design-tokens/native` (instalado con `file:../design-tokens` e `install-links=true`, igual que el contrato): colores semánticos, tipografía con la familia por peso, espaciado, radios, elevación y movimiento. Ningún color ni tamaño se escribe a mano.
+- Work Sans con `@expo-google-fonts/work-sans` (400, 500, 600); la pantalla de carga de Expo se mantiene hasta que `useFonts` termina.
+- Las pantallas se construyen con los componentes del inventario de `design-system` (D7 de ese change) en `components/ui`; los mensajes de error, las etiquetas de estados y de movimientos salen del mismo paquete (`problemMessage`, `transferStatus`, `movementType`), así que la app dice lo mismo que la web.
+- La pantalla de privacidad (decisión 8) usa `surface.inverse` con el `Wordmark` en `text.onInverse`.
+- *Alternativa descartada:* NativeWind para reutilizar las clases de Tailwind de la web. Agrega una capa de compilación a Metro y el tema numérico de React Native ya cubre lo necesario.
+
 ## Risks / Trade-offs
 
 - [`Intl.NumberFormat` en Hermes no formatea strings de forma exacta] → `formatMXN` del paquete trae una alternativa (parte entera como `BigInt` más centavos) y sus propias pruebas; en el móvil se agrega una prueba de formato.

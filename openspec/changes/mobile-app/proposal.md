@@ -23,9 +23,9 @@ El enunciado pide una app móvil en React Native de alcance reducido que consuma
 
 ## Impact
 
-- **Proyectos:** `/mobile` (nuevo). Consume `/contract` como artefacto (`file:../contract`); no modifica `/api`, `/web` ni `/contract`.
+- **Proyectos:** `/mobile` (nuevo). Consume `/contract` y `/design-tokens` como artefactos (`file:../contract`, `file:../design-tokens`); no modifica `/api`, `/web`, `/contract` ni `/design-tokens`.
 - **Historias de usuario cubiertas:** HU1 (solo inicio de sesión; el registro se hace en la web), HU2 (saldo de las cuentas), HU4 (transferencia a un beneficiario ya registrado), HU5 (últimos 20 movimientos, sin filtros) y HU6 (confirmación por OTP de montos mayores a 10,000.00 MXN y mensaje de límite diario). HU3 (alta de beneficiarios) queda fuera del móvil por el alcance reducido del enunciado.
 - **Endpoints del contrato usados** (`contract/openapi.yaml`): `login`, `refreshSession`, `logout`, `getCurrentUser`, `listAccounts`, `listAccountMovements`, `listBeneficiaries`, `createTransfer`, `getTransfer`, `confirmTransfer`, `resendTransferOtp`.
 - **Dependencias nuevas:** Expo (SDK vigente), `expo-secure-store`, `@react-native-community/netinfo`, TanStack Query y jest-expo para pruebas.
-- **CI:** nuevo `.github/workflows/mobile.yml`, disparado por cambios en `mobile/**` y `contract/**`.
+- **CI:** nuevo `.github/workflows/mobile.yml`, disparado por cambios en `mobile/**`, `contract/**` y `design-tokens/**`.
 - **Entorno local:** la API debe estar accesible desde el dispositivo o simulador mediante la IP de la LAN; Mailpit (levantado por `/api`) recibe los OTP.
