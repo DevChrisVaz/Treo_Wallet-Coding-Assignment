@@ -22,7 +22,7 @@
 - [x] 3.1 [mobile] Pantalla de inicio de sesión con estados de envío, error genérico, bloqueo por `429` con cuenta regresiva de `Retry-After` y mensaje de correo sin verificar; pruebas de cada estado (MOB-01)
 - [x] 3.2 [mobile] Pantalla de saldo con TanStack Query: cuentas con nombre, últimos 4 dígitos de la CLABE y saldo con `formatMXN`, monto restante del límite diario, estados de carga, vacío y error y refresco al deslizar, con `AccountCard` y `DailyLimitMeter`; pruebas (MOB-05, MOB-15, DSG-09, DSG-11)
 - [x] 3.3 [mobile] Pantalla de últimos 20 movimientos de la cuenta elegida (`listAccountMovements` con `limit=20`) con `MovementRow` (etiqueta, signo y color por dirección del paquete de diseño) y saldo resultante, y estados de carga, vacío y error; pruebas (MOB-06, MOB-15, DSG-09, DSG-10)
-- [ ] 3.4 [mobile] Prueba de formato de montos en `es-MX` a partir de strings (`"1234567.89"`, `"0.10"`, `"-150.00"`) usando `formatMXN` (MOB-15)
+- [x] 3.4 [mobile] Prueba de formato de montos en `es-MX` a partir de strings (`"1234567.89"`, `"0.10"`, `"-150.00"`) usando `formatMXN` (MOB-15)
 
 ## 4. Flujo de transferencia
 
