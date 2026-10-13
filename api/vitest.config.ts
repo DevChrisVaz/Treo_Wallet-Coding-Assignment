@@ -21,6 +21,7 @@ export default defineConfig({
         test: {
           name: 'integration',
           include: ['test/integration/**/*.test.ts'],
+          globalSetup: ['test/integration/global-setup.ts'],
           // Las pruebas de integración comparten una base de datos real: un archivo a la vez.
           fileParallelism: false,
           testTimeout: 30_000,

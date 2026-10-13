@@ -23,3 +23,10 @@ export async function sqlState(promise: Promise<unknown>): Promise<string> {
   }
   throw new Error('La sentencia no falló');
 }
+
+/** Cliente conectado; quien lo pide lo cierra con `end()`. */
+export async function connect(url: string): Promise<pg.Client> {
+  const client = new pg.Client({ connectionString: url });
+  await client.connect();
+  return client;
+}
