@@ -11,7 +11,7 @@
 ## 2. Sesión y cliente HTTP
 
 - [x] 2.1 [mobile] Módulo de sesión: refresh token en `expo-secure-store` con `WHEN_UNLOCKED_THIS_DEVICE_ONLY` y access token solo en memoria; pruebas de que ningún token llega a otro almacenamiento (MOB-02)
-- [ ] 2.2 [mobile] Cliente de la API sobre `createApiClient` con middleware de `Authorization: Bearer` y tiempo de espera de 15 s por intento con `AbortController` (MOB-03, MOB-10)
+- [x] 2.2 [mobile] Cliente de la API sobre `createApiClient` con middleware de `Authorization: Bearer` y tiempo de espera de 15 s por intento con `AbortController` (MOB-03, MOB-10)
 - [ ] 2.3 [mobile] Renovación de una sola vez ante `401 UNAUTHENTICATED` con promesa compartida, guardado del nuevo refresh antes de usar el nuevo access y limpieza ante `SESSION_REVOKED`; pruebas con tres peticiones simultáneas y con sesión revocada (MOB-03)
 - [ ] 2.4 [mobile] Restaurar la sesión al arrancar a partir del refresh guardado y enviar al inicio de sesión si no existe o es revocado; pruebas de ambos caminos (MOB-02, MOB-03)
 - [ ] 2.5 [mobile] Cierre de sesión que llama a `logout` y borra los tokens locales aunque la API no responda; prueba sin red (MOB-04)
