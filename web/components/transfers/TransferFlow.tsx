@@ -13,7 +13,7 @@ import { useTransferFlow } from '@/lib/client/transfer-flow';
 import { ActionProblemError, isUncertainFailure } from '@/lib/client/unwrap';
 import { loginPath } from '@/lib/navigation';
 import { ConfirmStep } from './ConfirmStep';
-import { StepHeading } from './StepHeading';
+import { EndedStep, OtpStep } from './OtpStep';
 import { TransferForm } from './TransferForm';
 
 export interface TransferFlowProps {
@@ -118,10 +118,10 @@ export function TransferFlow({
       );
     case 'otp':
       return (
-        <section aria-labelledby="otp-title" className="grid gap-5">
+        <div className="grid gap-5">
           {state.replayed ? <InlineAlert tone="info">{REPLAYED_MESSAGE}</InlineAlert> : null}
-          <StepHeading id="otp-title">Ingresa el código</StepHeading>
-        </section>
+          <OtpStep transfer={state.transfer} onConfirmed={flow.confirmed} onEnded={flow.ended} />
+        </div>
       );
     case 'receipt':
       return (
@@ -134,6 +134,6 @@ export function TransferFlow({
         </section>
       );
     case 'ended':
-      return null;
+      return <EndedStep problem={state.problem} onRestart={flow.restart} />;
   }
 }
