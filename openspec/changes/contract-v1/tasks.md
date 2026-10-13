@@ -16,7 +16,7 @@
 ## 3. Validadores de entrada
 
 - [x] 3.1 [contract] Crear las tablas de vectores en `test/vectors/` (monto, CLABE, CURP sintética, RFC sintético, teléfono, concepto, referencia, OTP), cada una con casos válidos e inválidos y el `code` de error esperado (CTR-08, CTR-09, CTR-10, CTR-11, CTR-12)
-- [ ] 3.2 [contract] Implementar `amountInput` (solo strings, sin floats), `toCents` y `centsToDecimalString`; pruebas: montos aceptados, redondeo `"100.005"` rechazado sin redondear, número JSON rechazado, formatos inválidos, tope de 12 dígitos y conversión exacta de `"1.15"`, `"0.10"` y `"0.20"` (CTR-08)
+- [x] 3.2 [contract] Implementar `amountInput` (solo strings, sin floats), `toCents` y `centsToDecimalString`; pruebas: montos aceptados, redondeo `"100.005"` rechazado sin redondear, número JSON rechazado, formatos inválidos, tope de 12 dígitos y conversión exacta de `"1.15"`, `"0.10"` y `"0.20"` (CTR-08)
 - [ ] 3.3 [contract] Implementar `clabeCheckDigit` y el esquema `clabe`; pruebas: `032180000118359719` válida, dígito alterado, caso A = 0 → 0, 17 dígitos, letras y valor numérico (CTR-09)
 - [ ] 3.4 [contract] Implementar `curpCheckDigit`, `isValidCalendarDate` y el esquema `curp`; pruebas con CURPs sintéticas: válida, dígito alterado y fecha `990231` (CTR-10)
 - [ ] 3.5 [contract] Implementar el esquema `rfc` de persona física con validación de fecha; pruebas: válido, fecha `010229` y RFC de 12 caracteres (CTR-11)
