@@ -2,6 +2,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createHttpApp } from '../../../src/platform/http/app.js';
 import { healthRouter } from '../../../src/platform/http/health.js';
+import { expectToMatchContract } from '../../helpers/contract.js';
 import { captureLogger } from '../../helpers/logs.js';
 
 describe('PLT-10 salud del servicio', () => {
@@ -15,5 +16,6 @@ describe('PLT-10 salud del servicio', () => {
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/^application\/json/);
     expect(res.body).toEqual({ status: 'ok' });
+    expectToMatchContract(res, 'healthCheck');
   });
 });
