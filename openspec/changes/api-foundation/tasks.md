@@ -35,7 +35,7 @@
 ## 4. Auditoría
 
 - [x] 4.1 [api] Implementar el escritor de auditoría transaccional: recibe la transacción en curso, toma `requestId`, IP y user agent del contexto, valida la acción contra el catálogo e inserta sin `RETURNING`; escritura independiente para eventos sin cambio de negocio (AUD-01, AUD-03, AUD-06)
-- [ ] 4.2 [api] Pruebas de auditoría: una falla forzada al escribir el evento revierte la operación, ningún evento contiene datos personales y un login con email inexistente queda como `LOGIN_FAILED` anónimo (AUD-02, AUD-03, AUD-06)
+- [x] 4.2 [api] Pruebas de auditoría: una falla forzada al escribir el evento revierte la operación, ningún evento contiene datos personales y un login con email inexistente queda como `LOGIN_FAILED` anónimo (AUD-02, AUD-03, AUD-06)
 
 ## 5. Correo
 
