@@ -28,7 +28,7 @@ El enunciado pide un panel web completo en React que consuma la misma API que la
 ## Impact
 
 - **Código nuevo:** `/web` (Next.js App Router, TanStack Query, Zod vía paquete de contrato).
-- **Dependencias:** `@morgandevchrisvaz/wallet-contract` (cliente tipado, validadores, `formatMXN`, unión de `code`); Redis solo en la propuesta de AWS.
+- **Dependencias:** `@devchrisvaz/wallet-contract` (cliente tipado, validadores, `formatMXN`, unión de `code`); Redis solo en la propuesta de AWS.
 - **API consumida:** todas las operaciones de `contract/openapi.yaml` excepto `healthCheck`.
 - **Supuestos sobre otros changes:** `contract-v1` exporta los esquemas Zod de formularios, `createApiClient`, `formatMXN`, `ProblemCode` y `ProblemError`; `api-foundation` confía en `X-Forwarded-For` solo cuando viene del BFF; `api-ledger` implementa la semántica de idempotencia y OTP descrita en el contrato.
 - **Despliegue:** la web deja de ser estática; en AWS requiere Amplify Hosting con SSR o Next en Fargate (lo documenta el change `delivery`).

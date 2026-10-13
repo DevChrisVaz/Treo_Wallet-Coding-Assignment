@@ -1,5 +1,5 @@
 {
-  "name": "@morgandevchrisvaz/wallet-contract",
+  "name": "@devchrisvaz/wallet-contract",
   "version": "1.0.0",
   "description": "Contrato OpenAPI de la billetera: tipos generados, cliente tipado, validadores compartidos y formato de montos.",
   "license": "UNLICENSED",

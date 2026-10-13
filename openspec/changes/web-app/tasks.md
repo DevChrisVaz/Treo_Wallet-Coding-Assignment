@@ -1,6 +1,6 @@
 ## 1. Proyecto y configuración
 
-- [ ] 1.1 [web] Crear `/web` con Next.js (App Router), TypeScript estricto y ESLint, con lockfile propio, `.npmrc` con `install-links=true` y la dependencia `"@morgandevchrisvaz/wallet-contract": "file:../contract"` (WEB-07, WEB-21)
+- [ ] 1.1 [web] Crear `/web` con Next.js (App Router), TypeScript estricto y ESLint, con lockfile propio, `.npmrc` con `install-links=true` y la dependencia `"@devchrisvaz/wallet-contract": "file:../contract"` (WEB-07, WEB-21)
 - [ ] 1.2 [web] Módulo de entorno del servidor validado con Zod al arrancar (`API_BASE_URL`, `ALLOWED_ORIGINS`, `SESSION_COOKIE_SECURE`, `SESSION_IDLE_MINUTES`) y `serverActions.allowedOrigins` tomado de `ALLOWED_ORIGINS`, con prueba de configuración (WEB-06, WEB-09)
 - [ ] 1.3 [web] Tailwind con paleta de contraste ≥ 4.5:1 y layout base con foco visible y enlace "Saltar al contenido" (WEB-23)
 - [ ] 1.4 [web] Configurar Vitest, Testing Library, jsdom y `vitest-axe`, y la regla de ESLint que prohíbe `parseFloat` y `Number(` en el código de montos (WEB-21, WEB-23)

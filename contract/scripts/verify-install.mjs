@@ -10,7 +10,7 @@ import { join, resolve } from 'node:path';
 
 const contractDir = resolve(process.argv[2] ?? '.');
 const consumer = mkdtempSync(join(tmpdir(), 'wallet-contract-consumer-'));
-const packageName = '@morgandevchrisvaz/wallet-contract';
+const packageName = '@devchrisvaz/wallet-contract';
 const failures = [];
 
 try {

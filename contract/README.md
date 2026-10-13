@@ -1,4 +1,4 @@
-# @morgandevchrisvaz/wallet-contract
+# @devchrisvaz/wallet-contract
 
 Contrato de la API de la billetera y todo lo que los demás proyectos derivan de él: tipos generados, cliente HTTP tipado, validadores de entrada y formato de montos.
 
@@ -27,7 +27,7 @@ Los proyectos son independientes (sin workspaces). Mientras vivan en un solo rep
 ```jsonc
 // package.json del consumidor
 "dependencies": {
-  "@morgandevchrisvaz/wallet-contract": "file:../contract",
+  "@devchrisvaz/wallet-contract": "file:../contract",
   "zod": "^4.0.0" // peerDependency: una sola versión mayor de Zod en todo el proyecto
 }
 ```
@@ -53,7 +53,7 @@ import {
   createIdempotencyKey,
   ProblemError,
   NetworkError,
-} from '@morgandevchrisvaz/wallet-contract';
+} from '@devchrisvaz/wallet-contract';
 
 const api = createApiClient({
   baseUrl: 'http://localhost:3000',
@@ -123,13 +123,13 @@ Un `code` de error que el paquete no conoce se reporta como `INTERNAL_ERROR` (co
 
 Hoy el paquete **no se publica**: `"private": true` y los consumidores usan `file:../contract`. Cuando cada proyecto tenga su propio repositorio:
 
-1. En este paquete: quitar `"private": true`, agregar `"publishConfig": { "registry": "https://npm.pkg.github.com" }` y un workflow que publique al crear un tag `v*` (con `permissions: packages: write`). GitHub Packages exige que el scope sea el dueño del repositorio (`@morgandevchrisvaz`).
+1. En este paquete: quitar `"private": true`, agregar `"publishConfig": { "registry": "https://npm.pkg.github.com" }` y un workflow que publique al crear un tag `v*` (con `permissions: packages: write`). GitHub Packages exige que el scope sea el dueño del repositorio (`@devchrisvaz`).
 2. En cada consumidor, cambiar **una línea** del `package.json` y el `.npmrc`:
    ```jsonc
-   "@morgandevchrisvaz/wallet-contract": "^1.0.0"   // antes: "file:../contract"
+   "@devchrisvaz/wallet-contract": "^1.0.0"   // antes: "file:../contract"
    ```
    ```ini
-   @morgandevchrisvaz:registry=https://npm.pkg.github.com
+   @devchrisvaz:registry=https://npm.pkg.github.com
    //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
    ```
    y quitar `install-links=true`.

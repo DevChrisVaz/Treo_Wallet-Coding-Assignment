@@ -3,7 +3,7 @@
 Ver `proposal.md` para la motivación. Requisitos en `specs/web-app/spec.md` (WEB-01 a WEB-23).
 
 Restricciones que dan forma al diseño:
-- `/web` es un proyecto independiente: lockfile y CI propios, sin workspaces. Consume el paquete `@morgandevchrisvaz/wallet-contract` con `"file:../contract"` e `install-links=true` en su `.npmrc` (se instala como si viniera de un registro, sin enlaces simbólicos).
+- `/web` es un proyecto independiente: lockfile y CI propios, sin workspaces. Consume el paquete `@devchrisvaz/wallet-contract` con `"file:../contract"` e `install-links=true` en su `.npmrc` (se instala como si viniera de un registro, sin enlaces simbólicos).
 - La API (`contract/openapi.yaml`) es **solo Bearer** y entrega los tokens en el body. Toda la lógica de cookies vive en la web.
 - La API confía en `X-Forwarded-For` solo cuando viene del BFF o del ALB (lo implementa `api-foundation`).
 - Los montos llegan y se envían como strings decimales; el navegador nunca hace aritmética con ellos.

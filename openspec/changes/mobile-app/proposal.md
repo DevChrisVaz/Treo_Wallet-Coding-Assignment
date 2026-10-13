@@ -4,7 +4,7 @@ El enunciado pide una app móvil en React Native de alcance reducido que consuma
 
 ## What Changes
 
-- Nuevo proyecto independiente `/mobile` (Expo + TypeScript) con su propio lockfile y su propio CI. Consume el paquete `@morgandevchrisvaz/wallet-contract` mediante `file:../contract` con `install-links=true`, sin workspaces.
+- Nuevo proyecto independiente `/mobile` (Expo + TypeScript) con su propio lockfile y su propio CI. Consume el paquete `@devchrisvaz/wallet-contract` mediante `file:../contract` con `install-links=true`, sin workspaces.
 - Pantallas: inicio de sesión, saldo de las cuentas, últimos 20 movimientos de la cuenta elegida y transferencia a un beneficiario ya registrado (captura, confirmación, OTP cuando el monto supera 10,000.00 MXN y resultado con el estado real).
 - Sesión: el refresh token se guarda en el almacenamiento seguro del sistema operativo y el access token solo en memoria; el refresh se hace una sola vez aunque varias peticiones lo necesiten al mismo tiempo; cierre de sesión.
 - Red inestable: reintentos con backoff exponencial y con la misma `Idempotency-Key`, reintento al recuperar la conexión y opción manual de reintentar, mostrando siempre el estado real de la operación.

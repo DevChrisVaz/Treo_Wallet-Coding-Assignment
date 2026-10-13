@@ -86,7 +86,7 @@ flowchart TB
     CT -- "file:../contract + install-links=true" --> MOB[/mobile/]
   end
   subgraph Futuro[Repositorios separados]
-    GP[(GitHub Packages<br/>@morgandevchrisvaz/wallet-contract)] -- "^1.0.0 + token de lectura" --> API2[api] & WEB2[web] & MOB2[mobile]
+    GP[(GitHub Packages<br/>@devchrisvaz/wallet-contract)] -- "^1.0.0 + token de lectura" --> API2[api] & WEB2[web] & MOB2[mobile]
   end
 ```
 Con `install-links=true`, npm instala la carpeta como si fuera un paquete publicado: la copia e instala sus dependencias. Sin esa opción, npm crea un enlace simbólico y **no instala las dependencias** del paquete cuando la carpeta está fuera del proyecto. El paquete define un script `prepare` que construye `dist/`, y los CI de los consumidores construyen el contrato antes de instalar.
@@ -112,6 +112,6 @@ Con `install-links=true`, npm instala la carpeta como si fuera un paquete public
 
 Al separar los repositorios:
 1. Agregar `publishConfig.registry` apuntando a GitHub Packages y un workflow de publicación al crear un tag `v*` (con `permissions: packages: write`).
-2. En cada consumidor: reemplazar `"file:../contract"` por `"^<versión>"`, quitar `install-links` y agregar en `.npmrc` el scope `@morgandevchrisvaz` apuntando a `https://npm.pkg.github.com` con `${NODE_AUTH_TOKEN}`.
+2. En cada consumidor: reemplazar `"file:../contract"` por `"^<versión>"`, quitar `install-links` y agregar en `.npmrc` el scope `@devchrisvaz` apuntando a `https://npm.pkg.github.com` con `${NODE_AUTH_TOKEN}`.
 3. En los CI de los consumidores: `permissions: packages: read` y el token en `NODE_AUTH_TOKEN`; dar acceso de lectura a cada repositorio consumidor desde la configuración del paquete.
 4. Rollback: volver a la versión anterior fijada en el `package.json` del consumidor.

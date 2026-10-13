@@ -3,7 +3,7 @@
 Ver `proposal.md` (Why). El proyecto `/api` no existe todavía; este change crea su base y deja listo lo que `api-ledger` necesita para mover dinero. Restricciones que dan forma al diseño:
 
 - **Stack obligatorio del enunciado:** Node.js ≥ 20, Express, PostgreSQL ≥ 15, TypeScript estricto, TypeORM con `synchronize` desactivado y migraciones TypeORM. Donde TypeORM no alcance, este documento explica cómo se resuelve con SQL.
-- **Contrato primero:** `contract/openapi.yaml` (change `contract-v1`) es la fuente de verdad. La API lo consume desde el paquete `@morgandevchrisvaz/wallet-contract` instalado con `file:../contract` e `install-links=true`, solo para Swagger UI y pruebas de contrato. La validación de entrada se escribe a mano con Zod (decisión A1). Las operaciones de este change son `healthCheck`, `registerUser`, `verifyEmail`, `resendVerificationEmail`, `login`, `refreshSession`, `logout` y `getCurrentUser`.
+- **Contrato primero:** `contract/openapi.yaml` (change `contract-v1`) es la fuente de verdad. La API lo consume desde el paquete `@devchrisvaz/wallet-contract` instalado con `file:../contract` e `install-links=true`, solo para Swagger UI y pruebas de contrato. La validación de entrada se escribe a mano con Zod (decisión A1). Las operaciones de este change son `healthCheck`, `registerUser`, `verifyEmail`, `resendVerificationEmail`, `login`, `refreshSession`, `logout` y `getCurrentUser`.
 - **Proyecto independiente:** lockfile y CI propios; ninguna dependencia de código con `/web` ni `/mobile`.
 - **Clientes:** el BFF de `/web` llama a la API desde el servidor (reenvía `X-Forwarded-For`, `X-Request-Id` e `Idempotency-Key`); la app móvil llama directo. Para la API ambos son clientes Bearer iguales.
 

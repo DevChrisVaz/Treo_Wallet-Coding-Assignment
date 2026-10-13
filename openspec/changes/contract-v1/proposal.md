@@ -4,7 +4,7 @@ La API, la web y la app móvil son proyectos independientes (sin monorepo ni wor
 
 ## What Changes
 
-- Nuevo proyecto `/contract`: paquete `@morgandevchrisvaz/wallet-contract`, con `contract/openapi.yaml` (OpenAPI 3.1, ya escrito en la fase de especificación) como fuente de verdad.
+- Nuevo proyecto `/contract`: paquete `@devchrisvaz/wallet-contract`, con `contract/openapi.yaml` (OpenAPI 3.1, ya escrito en la fase de especificación) como fuente de verdad.
 - Tipos generados desde el contrato y un cliente HTTP tipado por rutas, con middlewares neutrales: request ID, header `Idempotency-Key`, inyección del Bearer por un hook y conversión de `application/problem+json` en un error tipado por `code`.
 - Validadores de entrada compartidos para los clientes: monto (sin floats, sin redondeo, con conversión a centavos), CLABE y CURP con dígito verificador, RFC de persona física, teléfono, concepto, referencia, OTP y los esquemas de los formularios.
 - `formatMXN`: formato de montos en `es-MX` a partir del string decimal, exacto y sin floats, también en Hermes.

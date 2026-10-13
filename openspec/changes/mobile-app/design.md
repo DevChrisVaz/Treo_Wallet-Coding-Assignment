@@ -1,6 +1,6 @@
 ## Context
 
-Ver `proposal.md` (Why). La app móvil es el cuarto proyecto independiente del repositorio: no comparte código fuente con `/web` ni con `/api`, solo consume el artefacto `@morgandevchrisvaz/wallet-contract` (contrato OpenAPI 3.1, tipos, cliente tipado, validadores Zod y `formatMXN`). Habla directamente con la API usando `Authorization: Bearer`, a diferencia de la web, que pasa por un BFF.
+Ver `proposal.md` (Why). La app móvil es el cuarto proyecto independiente del repositorio: no comparte código fuente con `/web` ni con `/api`, solo consume el artefacto `@devchrisvaz/wallet-contract` (contrato OpenAPI 3.1, tipos, cliente tipado, validadores Zod y `formatMXN`). Habla directamente con la API usando `Authorization: Bearer`, a diferencia de la web, que pasa por un BFF.
 
 Operaciones del contrato (`contract/openapi.yaml`) que usa la app: `login`, `refreshSession`, `logout`, `getCurrentUser`, `listAccounts`, `listAccountMovements` (con `limit=20` y sin filtros), `listBeneficiaries`, `createTransfer`, `getTransfer`, `confirmTransfer` y `resendTransferOtp`.
 
@@ -37,7 +37,7 @@ El proyecto se crea con Expo (SDK vigente al crearlo), TypeScript estricto y Exp
 
 ### 2. Consumo del contrato como artefacto
 
-`package.json` declara `"@morgandevchrisvaz/wallet-contract": "file:../contract"` y `mobile/.npmrc` fija `install-links=true`. Con eso npm instala una copia del paquete (con sus dependencias) en `node_modules` en lugar de un enlace simbólico, y Metro lo resuelve como cualquier paquete del registro, sin `watchFolders` ni configuración de monorepo. Al separar los repositorios se cambia esa línea por la versión publicada en GitHub Packages.
+`package.json` declara `"@devchrisvaz/wallet-contract": "file:../contract"` y `mobile/.npmrc` fija `install-links=true`. Con eso npm instala una copia del paquete (con sus dependencias) en `node_modules` en lugar de un enlace simbólico, y Metro lo resuelve como cualquier paquete del registro, sin `watchFolders` ni configuración de monorepo. Al separar los repositorios se cambia esa línea por la versión publicada en GitHub Packages.
 
 - *Alternativa descartada:* workspaces o enlaces simbólicos. Rompen la independencia del proyecto y obligan a configurar Metro para seguir enlaces.
 - Si Metro no resuelve el campo `exports` del paquete, se usa el respaldo `main`/`types` que el paquete también publica (riesgo verificado en la primera tarea).

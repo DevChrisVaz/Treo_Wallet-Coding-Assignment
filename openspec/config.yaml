@@ -6,7 +6,7 @@ context: |
 
   Repositorio único con cuatro proyectos independientes. No es monorepo: no hay workspaces, cada
   proyecto tiene su propio lockfile y su propio CI, y se separarán en repositorios propios.
-    - /contract: paquete @morgandevchrisvaz/wallet-contract. Contiene openapi.yaml (OpenAPI 3.1,
+    - /contract: paquete @devchrisvaz/wallet-contract. Contiene openapi.yaml (OpenAPI 3.1,
       fuente de verdad, contrato primero), tipos generados (openapi-typescript), cliente tipado
       (openapi-fetch), validadores Zod (zod como peerDependency) y formatMXN. Debe funcionar en Node
       y en Hermes. Los consumidores lo instalan con "file:../contract" e install-links=true; se

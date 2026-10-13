@@ -2,7 +2,7 @@
 
 La billetera necesita una base de backend confiable antes de mover dinero: identidad verificada, errores y logs consistentes, roles de base de datos de privilegio mínimo y una bitácora de auditoría inmutable. Sin esa base, `api-ledger` (transferencias, saldos e historial) no tendría dónde apoyarse para garantizar que "el dinero siempre cuadra" ni para auditarlo.
 
-**Proyectos que toca:** `/api` (y su workflow de CI en `.github/workflows/api.yml`). Consume `contract/openapi.yaml` a través del paquete `@morgandevchrisvaz/wallet-contract` (definido en `contract-v1`) solo para Swagger UI y pruebas de contrato.
+**Proyectos que toca:** `/api` (y su workflow de CI en `.github/workflows/api.yml`). Consume `contract/openapi.yaml` a través del paquete `@devchrisvaz/wallet-contract` (definido en `contract-v1`) solo para Swagger UI y pruebas de contrato.
 
 **Historias de usuario del enunciado que cubre:**
 - **HU1** (registro e inicio de sesión), completa: registro con verificación por correo, login, refresh rotativo, logout.
