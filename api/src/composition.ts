@@ -36,6 +36,7 @@ import type { Mailer } from './platform/mail/mailer.js';
 import { SmtpMailer } from './platform/mail/smtp-mailer.js';
 import { createAppDataSource } from './platform/persistence/data-sources.js';
 import { PgErrorTranslator } from './platform/persistence/pg-errors.js';
+import { registerLedgerTranslations } from './modules/transfers/infrastructure/error-translations.js';
 import { TypeormTransactionRunner } from './platform/persistence/transaction.js';
 import type { Clock } from './shared/clock.js';
 import type { TransactionRunner } from './shared/transaction.js';
@@ -90,6 +91,7 @@ export async function createContainer(
   const audit = overrides.audit ?? new PgAuditWriter(dataSource, clock);
   const transactions = new TypeormTransactionRunner(dataSource);
   const errors = new PgErrorTranslator(logger);
+  registerLedgerTranslations(errors);
 
   const users = overrides.users ?? new PgUserRepository(dataSource);
   const codes = new OneTimeCodeService(new PgOneTimeCodeStore(), clock, config.otpHmacSecret);
