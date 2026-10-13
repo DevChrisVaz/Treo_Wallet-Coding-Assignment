@@ -3,6 +3,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { currentRequestContext } from '../../../src/platform/context/request-context.js';
 import { createHttpApp } from '../../../src/platform/http/app.js';
+import { captureLogger } from '../../helpers/logs.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -11,7 +12,11 @@ function appWithEcho() {
   router.get('/echo', (_req, res) => {
     res.json({ requestId: currentRequestContext()?.requestId ?? null });
   });
-  return createHttpApp({ trustedProxies: ['loopback'], routers: [router] });
+  return createHttpApp({
+    trustedProxies: ['loopback'],
+    routers: [router],
+    logger: captureLogger().logger,
+  });
 }
 
 describe('PLT-05 identificador de petición', () => {

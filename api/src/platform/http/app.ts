@@ -1,5 +1,7 @@
 import express, { type Express, type Router } from 'express';
+import type { DomainError } from '../../shared/errors.js';
 import type { AppLogger } from '../../shared/logger.js';
+import { errorHandler, notFoundHandler } from './error-handler.js';
 import { requestContext } from './request-id.js';
 import { requestLogger } from './request-logger.js';
 
@@ -8,7 +10,9 @@ export interface HttpAppOptions {
   readonly trustedProxies: readonly string[];
   /** Routers de los módulos; solo traducen HTTP y delegan en casos de uso (PLT-18). */
   readonly routers: readonly Router[];
-  readonly logger?: AppLogger;
+  readonly logger: AppLogger;
+  /** Traduce errores de infraestructura (p. ej. de PostgreSQL) a errores de dominio (PLT-04). */
+  readonly translateError?: (error: unknown) => DomainError | undefined;
 }
 
 /** Arma la aplicación Express con los middlewares transversales de la plataforma. */
@@ -16,7 +20,9 @@ export function createHttpApp(options: HttpAppOptions): Express {
   const app = express();
   app.disable('x-powered-by');
   app.use(requestContext);
-  if (options.logger) app.use(requestLogger(options.logger));
+  app.use(requestLogger(options.logger));
   for (const router of options.routers) app.use(router);
+  app.use(notFoundHandler);
+  app.use(errorHandler(options.logger, options.translateError));
   return app;
 }
