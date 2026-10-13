@@ -11,7 +11,7 @@
 
 - [x] 2.1 [api] Migración de `beneficiaries` con `uq_beneficiaries_user_clabe`, `uq_beneficiaries_user_alias`, `ck_beneficiaries_clabe_valid`, constraints de nombre y alias, llaves foráneas con nombre, grants `SELECT, INSERT` para `wallet_app` y `down` (BEN-08)
 - [x] 2.2 [api] Migración de `transfers` con todas sus constraints con nombre (`uq_transfers_user_idempotency_key`, `ck_transfers_distinct_accounts`, `ck_transfers_amount_positive`, `ck_transfers_reference_range`, `ck_transfers_concept_trimmed` y las de consistencia por tipo y estado), grants `SELECT, INSERT, UPDATE` y `down` (TRF-02, TRF-07, TRF-09)
-- [ ] 2.3 [api] Migración de `ledger_entries` con `uq_ledger_entries_transfer_account`, `ck_ledger_entries_amount_nonzero`, `ck_ledger_entries_type`, índices `ix_ledger_entries_account_created` e `ix_ledger_entries_account_type_created`, grants `SELECT, INSERT` y `down` (TRF-21, HIS-09)
+- [x] 2.3 [api] Migración de `ledger_entries` con `uq_ledger_entries_transfer_account`, `ck_ledger_entries_amount_nonzero`, `ck_ledger_entries_type`, índices `ix_ledger_entries_account_created` e `ix_ledger_entries_account_type_created`, grants `SELECT, INSERT` y `down` (TRF-21, HIS-09)
 - [ ] 2.4 [api] Triggers diferidos `tg_ledger_entries_zero_sum` (2 asientos, suma 0, transferencia `COMPLETED`) y `tg_transfers_completed_has_entries`, lanzando `check_violation` con el nombre de la constraint (TRF-21)
 - [ ] 2.5 [api] Triggers `tg_ledger_entries_immutable` y `tg_ledger_entries_no_truncate` (TRF-23)
 - [ ] 2.6 [api] Migración de `daily_transfer_usage` con `pk_daily_transfer_usage`, `ck_daily_transfer_usage_within_limit`, `ck_daily_transfer_usage_non_negative`, grants `SELECT, INSERT, UPDATE` y `down` (TRF-11, TRF-13)
