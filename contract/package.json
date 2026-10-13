@@ -41,7 +41,8 @@
     "format:check": "prettier --check .",
     "lint:contract": "redocly lint openapi.yaml",
     "check:version": "node scripts/check-version.mjs",
-    "generate": "openapi-typescript openapi.yaml -o src/generated/api.d.ts"
+    "generate": "openapi-typescript openapi.yaml -o src/generated/api.d.ts",
+    "check:exports": "node scripts/check-exports.mjs"
   },
   "dependencies": {
     "openapi-fetch": "^0.17.0"

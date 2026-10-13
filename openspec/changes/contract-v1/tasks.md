@@ -31,7 +31,7 @@
 
 ## 5. Build y distribución
 
-- [ ] 5.1 [contract] Configurar el build ESM + CJS + declaraciones, el subpath `./openapi.yaml` y el script `prepare` que construye `dist/` (CTR-15, CTR-16)
+- [x] 5.1 [contract] Configurar el build ESM + CJS + declaraciones, el subpath `./openapi.yaml` y el script `prepare` que construye `dist/` (CTR-15, CTR-16)
 - [ ] 5.2 [contract] Script `check:no-node-imports` sobre `dist/` y prueba de humo que importa el paquete construido con `import` y con `require` en Node 20 (CTR-15)
 - [ ] 5.3 [contract] Script `verify:install` que crea un proyecto temporal, instala `file:<ruta>/contract` con `install-links=true` sin credenciales y comprueba que el paquete es una copia (no un enlace simbólico) con sus dependencias resueltas (CTR-16)
 
