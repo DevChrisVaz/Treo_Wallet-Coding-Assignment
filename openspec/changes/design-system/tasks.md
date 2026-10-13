@@ -4,7 +4,7 @@
 
 ## 2. Tokens
 
-- [ ] 2.1 [design-tokens] Primitivos de Treo y tokens semánticos del tema claro (superficie, texto, acción, borde, acento, estado, dinero), agrupados por tema; prueba de que ningún token de texto usa `#31C454` y de que el tema solo referencia primitivos (DSG-02, DSG-03, DSG-07)
+- [x] 2.1 [design-tokens] Primitivos de Treo y tokens semánticos del tema claro (superficie, texto, acción, borde, acento, estado, dinero), agrupados por tema; prueba de que ningún token de texto usa `#31C454` y de que el tema solo referencia primitivos (DSG-02, DSG-03, DSG-07)
 - [ ] 2.2 [design-tokens] Prueba de contraste WCAG sobre la lista de pares texto/superficie (≥ 4.5) y de límites de interfaz (≥ 3); verificada con una mutación que baja un token por debajo del umbral (DSG-04)
 - [ ] 2.3 [design-tokens] Escala tipográfica (Work Sans 400/500/600, pilas de respaldo, familia por peso para React Native), espaciado, radios, elevación, foco, área táctil y movimiento; pruebas de tamaño mínimo de 12 px y de familia por peso (DSG-05, DSG-06)
 
