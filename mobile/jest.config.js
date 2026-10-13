@@ -3,6 +3,7 @@ const preset = require('jest-expo/jest-preset');
 module.exports = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  clearMocks: true,
   transform: { '\\.mjs$': preset.transform['\\.[jt]sx?$'] },
   transformIgnorePatterns: [
     '/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@devchrisvaz))',
