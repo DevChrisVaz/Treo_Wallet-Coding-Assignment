@@ -208,3 +208,12 @@ La URL de la API se lee de `EXPO_PUBLIC_API_URL` (Expo la incorpora al bundle) y
 - [HTTP sin TLS hacia la IP local] → aceptable solo en desarrollo con Expo Go; en producción la URL es HTTPS (ver `docs/aws-deploy.md`).
 - [Reloj del dispositivo desfasado] → la cuenta regresiva del OTP es orientativa; la API decide el vencimiento y la app reacciona a `TRANSFER_EXPIRED`.
 - [Duplicar la política de reintentos respecto a la web] → es intencional: los proyectos no comparten código; la política vive en el diseño y en las pruebas de cada cliente.
+
+## Notas de implementación
+
+Hallazgos y ajustes que surgieron al implementar.
+
+### N1. Resolución de los paquetes locales (tarea 1.2)
+
+- Sin dispositivo ni simulador, la resolución con Metro se comprobó con `npx expo export --platform android` y `--platform ios` (Expo SDK 57), que ejecuta Metro y compila el bundle a bytecode de Hermes. Los mapas de fuentes muestran que Metro toma `@devchrisvaz/wallet-contract/dist/index.mjs` y `openapi-fetch/dist/index.mjs` (condición `import` del campo `exports`, porque la app usa sentencias `import`) y `@devchrisvaz/wallet-design-tokens/dist/native.cjs` para el subpath `./native`. No hizo falta `watchFolders` ni el respaldo `native/`.
+- **Hueco en `/contract` (no bloquea):** la salida CommonJS del paquete (`dist/index.cjs`) falla al llamar a `createApiClient`: tsup la compila con `__toESM(require("openapi-fetch"), 1)`, que en modo Node toma como `default` todo el objeto de exports de openapi-fetch, y la llamada lanza `TypeError: (0 , import_openapi_fetch.default) is not a function` (se reproduce cargando `dist/index.cjs` con `require` en Node y llamando a `createApiClient`). La prueba de humo del paquete solo comprueba que `createApiClient` sea una función. Metro no se ve afectado porque resuelve la salida ESM; en Jest, que resuelve con la condición `require`, `jest.config.js` mapea el paquete a `dist/index.mjs` y lo transforma con el mismo Babel de jest-expo, igual que Metro. No se modifica `/contract`: queda reportado para corregirlo allí (por ejemplo, con la opción de interoperabilidad de tsup y una prueba de humo que llame al cliente).

@@ -18,10 +18,9 @@
     "format:check": "prettier --check .",
     "test": "jest"
   },
-  "jest": {
-    "preset": "jest-expo"
-  },
   "dependencies": {
+    "@devchrisvaz/wallet-contract": "file:../contract",
+    "@devchrisvaz/wallet-design-tokens": "file:../design-tokens",
     "expo": "~57.0.28",
     "expo-constants": "~57.0.21",
     "expo-font": "~57.0.4",
@@ -33,7 +32,8 @@
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "~4.26.0"
+    "react-native-screens": "~4.26.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/jest": "29.5.14",
