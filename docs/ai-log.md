@@ -107,3 +107,26 @@ Registro honesto de cómo se usó la AI en esta prueba: qué herramienta, los pr
 Amplify quedó documentado como alternativa válida, con sus condiciones: sesiones en DynamoDB, header firmado y Next 15.
 
 **Lección:** una justificación que suena razonable no basta. Las afirmaciones de la AI sobre servicios en la nube se verifican con la documentación antes de aceptarlas.
+
+---
+
+## Sesión 2 — 2026-10-13 · Implementación de `contract-v1`
+
+**Prompt clave:** "Procedamos con contract-v1" → `/opsx:apply contract-v1`, con TDD: cada prueba se escribió primero y se vio fallar antes de implementar. Un commit por tarea, con los trailers `Task:` y `Refs:`.
+
+**Decisiones de versiones tomadas al implementar:**
+- **TypeScript 5.9, no 7.** TypeScript 7 (el port nativo) ya es la versión `latest`, pero openapi-typescript pide `^5.x` y typescript-eslint `<6.1`.
+- **Herramientas en Node 24.** Vitest 5 ya no soporta Node 20, y además Node 20 llegó al fin de su soporte en abril de 2026. El paquete construido sí se prueba en Node 20, 22 y 24 con la prueba de humo, así que se cumple "Node 20 o superior".
+
+**Errores de la AI que detectaron las pruebas o la verificación:**
+- **`exports` apuntaba a un `index.d.mts` que tsup no genera.** Lo corrigió al revisar la salida del build y, para que no vuelva a pasar inadvertido, agregó `check:exports`, que falla si cualquier ruta declarada en `package.json` no existe.
+- **Un commit con un archivo sin formatear.** El comando de verificación terminaba en `prettier --check . | tail -1`, y la tubería ocultaba el código de salida de Prettier. Se corrigió ese commit, que aún no se había compartido, y desde entonces se verifica sin canalizar la salida.
+- **Un número JSON se reportaba como `REQUIRED` en lugar de `INVALID_TYPE`.** Zod 4 no incluye el valor recibido en sus errores de tipo. La prueba con vectores lo detectó; la solución fue revisar presencia y tipo de forma explícita (`textField`), sin deducirlos del mensaje.
+
+**Lo que la AI propuso cambiar respecto a la especificación, y acepté:**
+- **La tarea 4.2 pedía una "prueba estática"** que buscara `Number`, `parseFloat` o `Intl` en el código de `formatMXN`. Eso solo prueba el texto del archivo, no su comportamiento. Se reemplazó por dos pruebas de comportamiento: un monto por encima de 2^53 (un float lo alteraría) y el mismo resultado con `Intl` ausente. Se actualizó la descripción de la tarea en `tasks.md`.
+
+**Cómo se verificó que las pruebas sí detectan errores** (mutaciones temporales, revertidas después):
+- Ampliar la referencia a 8 dígitos en el yaml, o contar el concepto con `.length` en lugar de puntos de código: la prueba de paridad falla.
+- Implementar `formatMXN` con `Intl` y `Number`: fallan la prueba de precisión y la de entorno sin `Intl`.
+- Forzar `install-links=false`: `verify:install` detecta el enlace simbólico.
