@@ -66,7 +66,7 @@
 ## 8. Seed y documentación
 
 - [x] 8.1 [api] Implementar `db:seed` con la conexión `migrator` que crea los usuarios demo verificados (Ana y Luis) con sus dos cuentas, de forma idempotente (PLT-13)
-- [ ] 8.2 [api] Escribir el README de `/api`: requisitos, `.env`, comandos en orden, credenciales demo, bandeja de Mailpit, `/docs`, cómo correr pruebas y estructura por capas (PLT-13, PLT-18)
+- [x] 8.2 [api] Escribir el README de `/api`: requisitos, `.env`, comandos en orden, credenciales demo, bandeja de Mailpit, `/docs`, cómo correr pruebas y estructura por capas (PLT-13, PLT-18)
 
 ## 9. Integración continua
 
