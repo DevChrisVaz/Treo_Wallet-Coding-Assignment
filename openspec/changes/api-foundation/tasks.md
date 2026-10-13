@@ -40,7 +40,7 @@
 ## 5. Correo
 
 - [x] 5.1 [api] Implementar el puerto `Mailer` con el adaptador SMTP y las plantillas en español (código de verificación, aviso de intento de registro, registro no completado) y el envío después del COMMIT que registra las fallas con el destinatario enmascarado (PLT-16)
-- [ ] 5.2 [api] Pruebas de correo: `Mailer` en memoria para casos de uso, adaptador SMTP contra Mailpit consultando su API y registro exitoso con el servidor SMTP caído (PLT-16)
+- [x] 5.2 [api] Pruebas de correo: `Mailer` en memoria para casos de uso, adaptador SMTP contra Mailpit consultando su API y registro exitoso con el servidor SMTP caído (PLT-16)
 
 ## 6. Validaciones de dominio
 
