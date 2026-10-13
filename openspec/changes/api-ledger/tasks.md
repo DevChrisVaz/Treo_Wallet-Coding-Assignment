@@ -21,7 +21,7 @@
 
 ## 3. Servicio de asientos y fondeo
 
-- [ ] 3.1 [api] Servicio de asientos que, dentro de una transacción con cuentas ya bloqueadas, inserta los dos asientos con su tipo y `balance_after`, actualiza saldos y completa la transferencia (TRF-21, TRF-22)
+- [x] 3.1 [api] Servicio de asientos que, dentro de una transacción con cuentas ya bloqueadas, inserta los dos asientos con su tipo y `balance_after`, actualiza saldos y completa la transferencia (TRF-21, TRF-22)
 - [ ] 3.2 [api] Fondeo desde la Tesorería con el servicio de asientos (kind `FUNDING`, movimiento `DEPOSIT`, evento `FUNDING_POSTED` con actor `SYSTEM` en la misma transacción) (ACC-15)
 - [ ] 3.3 [api] Script `npm run db:fund -- --account <id|clabe> --amount <monto>` sobre el servicio de fondeo, con validación del monto por `Money.parse` y error sin escrituras si es inválido (ACC-15)
 - [ ] 3.4 [api] Consultas de conciliación (saldo = suma de asientos, suma global cero, cadena de `balance_after`) como helper de pruebas, con prueba de integración tras fondear y transferir (ACC-14, TRF-22)
