@@ -16,7 +16,7 @@
 - [x] 2.5 [api] Triggers `tg_ledger_entries_immutable` y `tg_ledger_entries_no_truncate` (TRF-23)
 - [x] 2.6 [api] Migración de `daily_transfer_usage` con `pk_daily_transfer_usage`, `ck_daily_transfer_usage_within_limit`, `ck_daily_transfer_usage_non_negative`, grants `SELECT, INSERT, UPDATE` y `down` (TRF-11, TRF-13)
 - [x] 2.7 [api] Pruebas de integración de la base: inserción directa de asientos desbalanceados rechazada al `COMMIT`, transferencia `COMPLETED` sin asientos rechazada, `ck_transfers_distinct_accounts` y `ck_beneficiaries_clabe_valid` activos (TRF-21, TRF-07, BEN-08)
-- [ ] 2.8 [api] Pruebas de privilegios: `UPDATE`, `DELETE` y `TRUNCATE` sobre `ledger_entries` como `wallet_app` fallan con `42501`, y `DELETE` como dueño falla por el trigger (TRF-23)
+- [x] 2.8 [api] Pruebas de privilegios: `UPDATE`, `DELETE` y `TRUNCATE` sobre `ledger_entries` como `wallet_app` fallan con `42501`, y `DELETE` como dueño falla por el trigger (TRF-23)
 - [ ] 2.9 [api] Registrar en el traductor de errores las constraints de este change según la tabla del diseño (sección 12), con pruebas de cada mapeo (TRF-07, TRF-10, TRF-11, BEN-07)
 
 ## 3. Servicio de asientos y fondeo
