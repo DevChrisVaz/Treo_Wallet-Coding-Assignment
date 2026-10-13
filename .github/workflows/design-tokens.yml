@@ -1,0 +1,90 @@
+name: design-tokens
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'design-tokens/**'
+      - '.github/workflows/design-tokens.yml'
+  pull_request:
+    paths:
+      - 'design-tokens/**'
+      - '.github/workflows/design-tokens.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: design-tokens-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: design-tokens
+
+jobs:
+  verify:
+    name: Lint, tipos, pruebas, salidas y build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: design-tokens/package-lock.json
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Formato
+        run: npm run format:check
+
+      - name: Pruebas (incluye contraste WCAG, DSG-04)
+        run: npm test
+
+      - name: Salidas generadas al día (DSG-08)
+        run: |
+          npm run generate
+          git diff --exit-code -- generated preview
+
+      - name: Rutas del paquete (DSG-01)
+        run: npm run check:exports
+
+      - name: Sin módulos internos de Node (Hermes)
+        run: npm run check:no-node-imports
+
+      - name: Instalación local como copia, sin dependencias (DSG-01)
+        run: npm run verify:install
+
+      - name: Empaquetado
+        run: npm pack --dry-run
+
+  smoke:
+    name: Prueba de humo en Node ${{ matrix.node }}
+    needs: verify
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: design-tokens/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: '"." y "./native" con import y require, y hojas CSS (DSG-08)'
+        run: npm run smoke

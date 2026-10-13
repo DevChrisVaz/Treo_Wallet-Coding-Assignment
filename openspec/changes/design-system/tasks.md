@@ -22,5 +22,5 @@
 ## 5. Build, verificación y CI
 
 - [x] 5.1 [design-tokens] Build ESM + CJS + tipos, `check:exports`, `check:no-node-imports`, prueba de humo (`import` y `require`, más lectura de las hojas CSS) y `verify:install` (DSG-01, DSG-08)
-- [ ] 5.2 [design-tokens] `.github/workflows/design-tokens.yml` (ante cambios en `design-tokens/**`): lint, typecheck, formato, pruebas, regeneración de salidas con `git diff --exit-code`, build, verificaciones del paquete y prueba de humo en Node 20, 22 y 24; simulado en un clon limpio (DSG-01, DSG-08)
+- [x] 5.2 [design-tokens] `.github/workflows/design-tokens.yml` (ante cambios en `design-tokens/**`): lint, typecheck, formato, pruebas, regeneración de salidas con `git diff --exit-code`, build, verificaciones del paquete y prueba de humo en Node 20, 22 y 24; simulado en un clon limpio (DSG-01, DSG-08)
 - [ ] 5.3 [docs] `design-tokens/README.md`: tokens con su contraste, cómo lo consume cada cliente (Tailwind v4 e imports de React Native), inventario de componentes, convenciones de dinero, textos y cómo agregar un tema oscuro (DSG-01, DSG-07, DSG-11)
