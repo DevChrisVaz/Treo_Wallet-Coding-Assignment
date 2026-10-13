@@ -1,9 +1,8 @@
-import { PageShell } from '@/components/layout/PageShell';
+import type { Metadata } from 'next';
+import { AccountsOverviewScreen } from '@/components/accounts/AccountsOverviewScreen';
+
+export const metadata: Metadata = { title: 'Tus cuentas · TreoWallet' };
 
 export default function HomePage() {
-  return (
-    <PageShell>
-      <h1 className="text-h1">Tus cuentas</h1>
-    </PageShell>
-  );
+  return <AccountsOverviewScreen />;
 }

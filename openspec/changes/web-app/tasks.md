@@ -35,7 +35,7 @@
 
 ## 6. Cuentas e historial
 
-- [ ] 6.1 [web] Pantalla de resumen: cuentas con nombre, CLABE y saldo con `formatMXN`, y "Te quedan $X hoy" desde `dailyLimit.remaining`; estados de carga, vacío y error, con `AccountCard` y `DailyLimitMeter`; pruebas (WEB-13, WEB-20, WEB-21, DSG-09, DSG-11)
+- [x] 6.1 [web] Pantalla de resumen: cuentas con nombre, CLABE y saldo con `formatMXN`, y "Te quedan $X hoy" desde `dailyLimit.remaining`; estados de carga, vacío y error, con `AccountCard` y `DailyLimitMeter`; pruebas (WEB-13, WEB-20, WEB-21, DSG-09, DSG-11)
 - [ ] 6.2 [web] Pantalla de historial: selector de cuenta, filtros de fecha y tipo, consulta infinita con "Cargar más", reinicio al cambiar filtros o ante `INVALID_CURSOR`; filas con `MovementRow` (etiqueta, signo y color por dirección); estados; pruebas (WEB-14, WEB-20, DSG-09, DSG-10)
 
 ## 7. Beneficiarios
