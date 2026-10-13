@@ -2,7 +2,7 @@
 
 - [x] 1.1 [web] Crear `/web` con Next.js (App Router), TypeScript estricto y ESLint, con lockfile propio, `.npmrc` con `install-links=true` y las dependencias `"@devchrisvaz/wallet-contract": "file:../contract"` y `"@devchrisvaz/wallet-design-tokens": "file:../design-tokens"` (WEB-07, WEB-21, DSG-01)
 - [x] 1.2 [web] Módulo de entorno del servidor validado con Zod al arrancar (`API_BASE_URL`, `ALLOWED_ORIGINS`, `SESSION_COOKIE_SECURE`, `SESSION_IDLE_MINUTES`) y `serverActions.allowedOrigins` tomado de `ALLOWED_ORIGINS`, con prueba de configuración (WEB-06, WEB-09)
-- [ ] 1.3 [web] Tailwind v4 con `@devchrisvaz/wallet-design-tokens/tailwind.css` (sin la paleta por defecto), Work Sans con `next/font/google` y layout base con el `Wordmark`, foco visible y enlace "Saltar al contenido" (WEB-23, DSG-01, DSG-02, DSG-05, DSG-06)
+- [x] 1.3 [web] Tailwind v4 con `@devchrisvaz/wallet-design-tokens/tailwind.css` (sin la paleta por defecto), Work Sans con `next/font/google` y layout base con el `Wordmark`, foco visible y enlace "Saltar al contenido" (WEB-23, DSG-01, DSG-02, DSG-05, DSG-06)
 - [ ] 1.4 [web] Configurar Vitest, Testing Library, jsdom y `vitest-axe`, y la regla de ESLint que prohíbe `parseFloat` y `Number(` en el código de montos (WEB-21, WEB-23)
 - [ ] 1.5 [web] Componentes del inventario de `design-system` en `components/ui` (Button, TextField, AmountField, OtpField, Select, AccountCard, MovementRow, StatusBadge, InlineAlert, EmptyState, Skeleton, Receipt, DailyLimitMeter) usando solo tokens, con sus variantes y estados y pruebas con `vitest-axe` (WEB-20, WEB-23, DSG-03, DSG-06, DSG-09, DSG-10, DSG-11)
 

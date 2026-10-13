@@ -1,0 +1,40 @@
+@import 'tailwindcss';
+/* Tokens de TreoWallet: variables --dt-* y @theme sin la paleta ni la escala por defecto (DSG-01). */
+@import '@devchrisvaz/wallet-design-tokens/tailwind.css';
+
+/* next/font sirve Work Sans con un nombre de familia generado: se expone por su variable (DSG-05). */
+:root {
+  --dt-font-sans: var(--font-work-sans), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--dt-surface);
+    color: var(--dt-fg);
+    font-family: var(--dt-font-sans);
+    font-size: var(--dt-text-body);
+    line-height: var(--dt-text-body-line-height);
+  }
+
+  /* Anillo de foco del sistema: 2 px en border.focus con 2 px de separación (DSG-06, WEB-23). */
+  :focus-visible {
+    outline: var(--dt-focus-width) solid var(--dt-focus);
+    outline-offset: var(--dt-focus-offset);
+  }
+
+  /* Movimiento reducido: sin animaciones ni transiciones (DSG-06). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0s !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
