@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import type { RequestHandler } from 'express';
+import { routeTable } from '../../../../platform/http/auth.js';
 import { parseBody } from '../../../../platform/http/validation.js';
 import type { RegisterUser } from '../../application/register-user.js';
 import type { ResendVerification } from '../../application/resend-verification.js';
@@ -20,26 +21,29 @@ export interface IdentityHandlers {
   readonly resendVerification: ResendVerification;
 }
 
-/** Rutas de identidad: validan la entrada, llaman al caso de uso y traducen el resultado. */
-export function identityRouter(handlers: IdentityHandlers): Router {
-  const router = Router();
+/**
+ * Rutas de identidad: validan la entrada, llaman al caso de uso y traducen el resultado. Las de
+ * `/auth/*` son públicas; el resto exige access token (IDN-10).
+ */
+export function identityRoutes(handlers: IdentityHandlers, authenticateRequest: RequestHandler) {
+  const routes = routeTable(authenticateRequest);
 
-  router.post('/auth/register', async (req, res) => {
+  routes.public.post('/auth/register', async (req, res) => {
     const input = parseBody(registerRequestSchema, req.body);
     await handlers.registerUser.execute(input);
     res.status(202).json(ACCEPTED_BODY);
   });
 
-  router.post('/auth/verify-email', async (req, res) => {
+  routes.public.post('/auth/verify-email', async (req, res) => {
     const input = parseBody(verifyEmailRequestSchema, req.body);
     res.status(200).json(await handlers.verifyEmail.execute(input));
   });
 
-  router.post('/auth/verify-email/resend', async (req, res) => {
+  routes.public.post('/auth/verify-email/resend', async (req, res) => {
     const input = parseBody(resendVerificationRequestSchema, req.body);
     await handlers.resendVerification.execute(input);
     res.status(202).json(ACCEPTED_BODY);
   });
 
-  return router;
+  return routes;
 }

@@ -13,13 +13,18 @@ import { PgRefreshTokenStore } from './modules/identity/infrastructure/pg-refres
 import { OpenDefaultAccounts } from './modules/accounts/application/open-default-accounts.js';
 import { PgAccountRepository } from './modules/accounts/infrastructure/pg-account-repository.js';
 import { Argon2PasswordHasher } from './modules/identity/infrastructure/argon2-password-hasher.js';
-import { identityRouter } from './modules/identity/infrastructure/http/routes.js';
+import { identityRoutes } from './modules/identity/infrastructure/http/routes.js';
 import { PgOneTimeCodeStore } from './modules/identity/infrastructure/pg-one-time-code-store.js';
 import { PgUserRepository } from './modules/identity/infrastructure/pg-user-repository.js';
 import type { UserRepository } from './modules/identity/application/users.js';
 import { systemClock } from './platform/clock/system-clock.js';
 import type { AppConfig } from './platform/config/config.js';
 import { createHttpApp } from './platform/http/app.js';
+import {
+  assertPublicRoutesAllowed,
+  authenticate,
+  type AccessTokenVerifier,
+} from './platform/http/auth.js';
 import { docsRouter } from './platform/http/docs.js';
 import { healthRouter } from './platform/http/health.js';
 import { createLogger, type Logger } from './platform/logging/logger.js';
@@ -52,6 +57,7 @@ export interface Container {
   readonly transactions: TransactionRunner;
   readonly audit: AuditWriter;
   readonly errors: PgErrorTranslator;
+  readonly accessTokens: AccessTokenVerifier;
   readonly identity: {
     readonly registerUser: RegisterUser;
     readonly verifyEmail: VerifyEmail;
@@ -97,6 +103,7 @@ export async function createContainer(
     transactions,
     audit,
     errors,
+    accessTokens,
     identity: {
       registerUser: new RegisterUser({
         transactions,
@@ -132,6 +139,9 @@ export async function createContainer(
 
 /** La aplicación HTTP: plataforma + routers de los módulos. */
 export function createApp(container: Container): Express {
+  const authenticateRequest = authenticate(container.accessTokens, container.clock);
+  const tables = [identityRoutes(container.identity, authenticateRequest)];
+  for (const table of tables) assertPublicRoutesAllowed(table.table);
   return createHttpApp({
     trustedProxies: container.config.trustedProxies,
     logger: container.logger,
@@ -139,7 +149,7 @@ export function createApp(container: Container): Express {
     routers: [
       healthRouter(),
       docsRouter({ nodeEnv: container.config.nodeEnv }),
-      identityRouter(container.identity),
+      ...tables.map((table) => table.router),
     ],
   });
 }
