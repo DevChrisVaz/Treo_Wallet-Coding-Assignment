@@ -1,4 +1,4 @@
-import { createContainer } from './composition.js';
+import { createApp, createContainer } from './composition.js';
 import { ConfigError, loadConfig } from './platform/config/config.js';
 import {
   assertRuntimeRoleIsNotSchemaOwner,
@@ -7,14 +7,22 @@ import {
 
 /**
  * Punto de entrada del proceso: valida la configuración (PLT-08), se conecta con el rol de
- * ejecución y verifica que no sea el dueño del esquema antes de aceptar peticiones.
+ * ejecución, verifica que no sea el dueño del esquema y empieza a aceptar peticiones.
  */
 export async function main(): Promise<void> {
   const config = loadConfig(process.env);
   const dataSource = createAppDataSource(config.databaseUrl);
   await dataSource.initialize();
   await assertRuntimeRoleIsNotSchemaOwner(dataSource);
-  createContainer(config);
+  const container = await createContainer(config, { dataSource });
+  const server = createApp(container).listen(config.port, config.host, () => {
+    container.logger.info({ host: config.host, port: config.port }, 'api listening');
+  });
+  const shutdown = () => {
+    server.close(() => void dataSource.destroy().then(() => process.exit(0)));
+  };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
 main().catch((error: unknown) => {

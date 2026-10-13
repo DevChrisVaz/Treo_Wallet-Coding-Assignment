@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 import { migrations } from '../../../migrations/index.js';
-import { entities } from './entities.js';
+import { entities } from '../../entities.js';
 
 const SCHEMA = 'app';
 
