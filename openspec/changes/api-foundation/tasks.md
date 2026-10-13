@@ -61,7 +61,7 @@
 - [x] 7.10 [api] Implementar `logout` idempotente con el evento `LOGOUT`; pruebas de refresh tras logout y de logout repetido (IDN-13)
 - [x] 7.11 [api] Implementar `getCurrentUser` con CURP, RFC y teléfono enmascarados; prueba (IDN-14)
 - [x] 7.12 [api] Aplicar los límites de tasa de identidad (login por IP + email y por IP; registro, verificación y reenvío por IP); pruebas del sexto intento y de login exitoso desde otra IP (IDN-15)
-- [ ] 7.13 [api] Implementar el acceso a cuentas filtrado por dueño en el repositorio, con resultado idéntico para cuenta ajena e inexistente; prueba a nivel de repositorio (la prueba del endpoint llega con `getAccount` en `api-ledger`) (ACC-06)
+- [x] 7.13 [api] Implementar el acceso a cuentas filtrado por dueño en el repositorio, con resultado idéntico para cuenta ajena e inexistente; prueba a nivel de repositorio (la prueba del endpoint llega con `getAccount` en `api-ledger`) (ACC-06)
 
 ## 8. Seed y documentación
 
