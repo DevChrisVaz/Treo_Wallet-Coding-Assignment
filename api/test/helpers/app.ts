@@ -6,6 +6,7 @@ import {
   type ContainerOverrides,
 } from '../../src/composition.js';
 import type { AppConfig } from '../../src/platform/config/config.js';
+import { Money } from '../../src/shared/money.js';
 import { testDb } from './env.js';
 import { FakeClock } from './fake-clock.js';
 import type { IntegrationHarness } from './harness.js';
@@ -34,6 +35,14 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     },
     trustedProxies: ['loopback'],
     logLevel: 'debug',
+    transfers: {
+      dailyLimit: Money.parse('50000.00'),
+      otpThreshold: Money.parse('10000.00'),
+      otpTtlSeconds: 300,
+      otpMaxAttempts: 3,
+      otpMaxResends: 3,
+    },
+    cursorSigningSecret: Buffer.alloc(32, 17),
     ...overrides,
   };
 }

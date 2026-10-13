@@ -1,5 +1,6 @@
 import { isIP } from 'node:net';
 import * as z from 'zod';
+import { Money } from '../../shared/money.js';
 
 export const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const;
 export type LogLevel = (typeof LOG_LEVELS)[number];
@@ -28,6 +29,17 @@ export interface AppConfig {
   /** Valores para `trust proxy` de Express: palabras clave, IPs o subredes (PLT-07). */
   readonly trustedProxies: readonly string[];
   readonly logLevel: LogLevel;
+  readonly transfers: {
+    /** Límite diario de transferencias a terceros por usuario (TRF-11). */
+    readonly dailyLimit: Money;
+    /** Montos mayores a éste piden OTP (TRF-14). */
+    readonly otpThreshold: Money;
+    readonly otpTtlSeconds: number;
+    readonly otpMaxAttempts: number;
+    readonly otpMaxResends: number;
+  };
+  /** Firma HMAC de los cursores de paginación (HIS-05). */
+  readonly cursorSigningSecret: Buffer;
 }
 
 /** Error de arranque: nombra las variables inválidas, nunca sus valores. */
@@ -81,6 +93,33 @@ const port = (name: string, fallback: number) =>
     .max(65535, { error: `${name} debe estar entre 1 y 65535` })
     .default(fallback);
 
+/** Monto de configuración con el mismo formato que la entrada de la API. */
+const moneyValue = (name: string, fallback: string) =>
+  z
+    .string()
+    .default(fallback)
+    .refine(
+      (value) => {
+        try {
+          Money.parse(value);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { error: `${name} debe ser un monto positivo con 0 a 2 decimales` },
+    )
+    .transform((value) => Money.parse(value));
+
+/** Entero acotado; la base limita intentos y reenvíos a 3. */
+const boundedInt = (name: string, fallback: number, min: number, max: number) =>
+  z.coerce
+    .number({ error: `${name} debe ser un entero` })
+    .int({ error: `${name} debe ser un entero` })
+    .min(min, { error: `${name} debe estar entre ${min} y ${max}` })
+    .max(max, { error: `${name} debe estar entre ${min} y ${max}` })
+    .default(fallback);
+
 function isProxy(value: string): boolean {
   if (PROXY_KEYWORDS.has(value)) return true;
   const [address, prefix, ...rest] = value.split('/');
@@ -125,6 +164,12 @@ const envSchema = z.object({
     .refine((items) => items.every(isProxy), {
       error: 'TRUSTED_PROXIES admite loopback, linklocal, uniquelocal, IPs o subredes CIDR',
     }),
+  DAILY_TRANSFER_LIMIT: moneyValue('DAILY_TRANSFER_LIMIT', '50000.00'),
+  OTP_THRESHOLD: moneyValue('OTP_THRESHOLD', '10000.00'),
+  OTP_TTL_SECONDS: boundedInt('OTP_TTL_SECONDS', 300, 30, 3600),
+  OTP_MAX_ATTEMPTS: boundedInt('OTP_MAX_ATTEMPTS', 3, 1, 3),
+  OTP_MAX_RESENDS: boundedInt('OTP_MAX_RESENDS', 3, 0, 3),
+  CURSOR_SIGNING_SECRET: secret('CURSOR_SIGNING_SECRET'),
   LOG_LEVEL: z
     .enum(LOG_LEVELS, { error: `LOG_LEVEL debe ser uno de ${LOG_LEVELS.join(', ')}` })
     .default('info'),
@@ -165,5 +210,13 @@ export function loadConfig(env: Record<string, string | undefined>): AppConfig {
     },
     trustedProxies: e.TRUSTED_PROXIES,
     logLevel: e.LOG_LEVEL,
+    transfers: {
+      dailyLimit: e.DAILY_TRANSFER_LIMIT,
+      otpThreshold: e.OTP_THRESHOLD,
+      otpTtlSeconds: e.OTP_TTL_SECONDS,
+      otpMaxAttempts: e.OTP_MAX_ATTEMPTS,
+      otpMaxResends: e.OTP_MAX_RESENDS,
+    },
+    cursorSigningSecret: e.CURSOR_SIGNING_SECRET,
   };
 }

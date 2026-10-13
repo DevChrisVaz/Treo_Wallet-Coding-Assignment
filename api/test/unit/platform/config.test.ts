@@ -19,6 +19,7 @@ const validEnv = {
   CLABE_PLAZA_CODE: '180',
   SMTP_HOST: 'localhost',
   SMTP_FROM: 'Billetera <no-reply@wallet.local>',
+  CURSOR_SIGNING_SECRET: Buffer.alloc(32, 4).toString('base64'),
 };
 
 function errorOf(env: Record<string, string | undefined>): ConfigError {
@@ -52,6 +53,41 @@ describe('PLT-08 configuración validada al arrancar', () => {
     });
     expect(config.trustedProxies).toEqual(['loopback']);
     expect(config.logLevel).toBe('info');
+  });
+
+  it('TRF-11 aplica los valores por defecto de transferencias y límites', () => {
+    const config = loadConfig(validEnv);
+    expect(config.transfers.dailyLimit.toDecimalString()).toBe('50000.00');
+    expect(config.transfers.otpThreshold.toDecimalString()).toBe('10000.00');
+    expect(config.transfers).toMatchObject({
+      otpTtlSeconds: 300,
+      otpMaxAttempts: 3,
+      otpMaxResends: 3,
+    });
+    expect(config.cursorSigningSecret).toHaveLength(32);
+  });
+
+  it('TRF-11 rechaza montos, vigencias e intentos fuera de rango', () => {
+    const error = errorOf({
+      ...validEnv,
+      DAILY_TRANSFER_LIMIT: '50000.005',
+      OTP_THRESHOLD: '0',
+      OTP_TTL_SECONDS: '0',
+      OTP_MAX_ATTEMPTS: '4',
+      OTP_MAX_RESENDS: '-1',
+    });
+    expect(error.variables.sort()).toEqual([
+      'DAILY_TRANSFER_LIMIT',
+      'OTP_MAX_ATTEMPTS',
+      'OTP_MAX_RESENDS',
+      'OTP_THRESHOLD',
+      'OTP_TTL_SECONDS',
+    ]);
+  });
+
+  it('HIS-05 exige el secreto de firma de cursores', () => {
+    const { CURSOR_SIGNING_SECRET: _omitted, ...env } = validEnv;
+    expect(errorOf(env).variables).toEqual(['CURSOR_SIGNING_SECRET']);
   });
 
   it('PLT-08 rechaza un secreto de firma de menos de 256 bits sin mostrar su valor', () => {

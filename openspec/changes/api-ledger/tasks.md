@@ -5,7 +5,7 @@
 - [x] 1.3 [api] Utilidades de día de negocio en `America/Mexico_City`: día calendario de un instante, inicio del día siguiente en UTC y rango UTC de un intervalo de fechas inclusivo, con pruebas en las 17:59, 18:00, 23:59 y 00:00 de CDMX (TRF-12, ACC-11, HIS-06)
 - [x] 1.4 [api] Máquina de estados de la transferencia como función pura (estado + evento → estado o error) y estado `EXPIRED` calculado por vigencia, con pruebas de todas las transiciones válidas e inválidas (TRF-14, TRF-16, TRF-17, TRF-18, TRF-19)
 - [x] 1.5 [api] Fingerprint SHA-256 sobre la serialización canónica de los valores interpretados, con prueba de que `"100.5"` y `"100.50"` producen el mismo fingerprint y un monto distinto no (TRF-04)
-- [ ] 1.6 [api] Variables de configuración validadas al arrancar: `DAILY_TRANSFER_LIMIT`, `OTP_THRESHOLD`, `OTP_TTL_SECONDS`, `OTP_MAX_ATTEMPTS`, `OTP_MAX_RESENDS`, `CURSOR_SIGNING_SECRET`, con sus valores por defecto en `.env.example` (TRF-11, TRF-14, TRF-19, TRF-20, HIS-05)
+- [x] 1.6 [api] Variables de configuración validadas al arrancar: `DAILY_TRANSFER_LIMIT`, `OTP_THRESHOLD`, `OTP_TTL_SECONDS`, `OTP_MAX_ATTEMPTS`, `OTP_MAX_RESENDS`, `CURSOR_SIGNING_SECRET`, con sus valores por defecto en `.env.example` (TRF-11, TRF-14, TRF-19, TRF-20, HIS-05)
 
 ## 2. Migraciones del ledger
 
