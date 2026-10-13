@@ -30,6 +30,25 @@ export function queryRunnerOf(tx: Transaction): QueryRunner {
   return tx as unknown as QueryRunner;
 }
 
+/**
+ * Filas devueltas por una sentencia. Con el resultado estructurado de TypeORM, un `UPDATE … RETURNING`
+ * también devuelve sus filas (sin él, el driver de PostgreSQL entrega `[filas, afectadas]`).
+ */
+async function records<T>(tx: Transaction, sql: string, params: unknown[]): Promise<T[]> {
+  const result = await queryRunnerOf(tx).query(sql, params, true);
+  return result.records as T[];
+}
+
+/** Número de filas afectadas por un UPDATE o DELETE dentro de la transacción. */
+export async function executeIn(
+  tx: Transaction,
+  sql: string,
+  params: unknown[] = [],
+): Promise<number> {
+  const result = await queryRunnerOf(tx).query(sql, params, true);
+  return result.affected ?? 0;
+}
+
 const LOCK_CLAUSE = /\bFOR\s+(NO\s+KEY\s+)?UPDATE\b/i;
 
 /**
@@ -44,7 +63,7 @@ export async function queryForUpdate<T = Record<string, unknown>>(
   if (!LOCK_CLAUSE.test(sql)) {
     throw new Error('queryForUpdate requiere FOR UPDATE o FOR NO KEY UPDATE');
   }
-  return queryRunnerOf(tx).query(sql, params) as Promise<T[]>;
+  return records<T>(tx, sql, params);
 }
 
 /** Consulta sin bloqueo dentro de la transacción. */
@@ -53,5 +72,5 @@ export async function queryIn<T = Record<string, unknown>>(
   sql: string,
   params: unknown[] = [],
 ): Promise<T[]> {
-  return queryRunnerOf(tx).query(sql, params) as Promise<T[]>;
+  return records<T>(tx, sql, params);
 }

@@ -50,7 +50,7 @@
 ## 7. Identidad
 
 - [x] 7.1 [api] Implementar el hashing argon2id y el hash ficticio calculado al arrancar; prueba de que la contraseña no queda en claro en la base (IDN-04)
-- [ ] 7.2 [api] Implementar los códigos de un solo uso: emisión de 6 dígitos con HMAC-SHA256, comparación en tiempo constante, intentos persistidos en una transacción propia, vencimiento y reenvíos que reemplazan el código; pruebas de vencimiento, de código invalidado por reenvío y de hash en la base (IDN-05)
+- [x] 7.2 [api] Implementar los códigos de un solo uso: emisión de 6 dígitos con HMAC-SHA256, comparación en tiempo constante, intentos persistidos en una transacción propia, vencimiento y reenvíos que reemplazan el código; pruebas de vencimiento, de código invalidado por reenvío y de hash en la base (IDN-05)
 - [ ] 7.3 [api] Implementar `registerUser` con respuesta 202 uniforme y las ramas email nuevo, email verificado, email sin verificar y choque de CURP, RFC o teléfono, con el evento `USER_REGISTERED`; pruebas de cada rama, de datos inválidos y de dos registros simultáneos con el mismo RFC (IDN-01, IDN-02, IDN-03)
 - [ ] 7.4 [api] Implementar la apertura de "Principal" y "Ahorro" con CLABE generada como paso transaccional reutilizable (ACC-04)
 - [ ] 7.5 [api] Implementar `verifyEmail` en una sola transacción (verificar, consumir el código, abrir cuentas, crear la familia de refresh, evento `EMAIL_VERIFIED`) que responde igual ante email desconocido o código incorrecto; pruebas de éxito, tercer intento, email desconocido, verificación repetida y usuario sin verificar sin cuentas (IDN-06, ACC-04, AUD-03)
