@@ -52,7 +52,11 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "generate": "tsup && node scripts/generate.mjs && node scripts/preview.mjs"
+    "generate": "tsup && node scripts/generate.mjs && node scripts/preview.mjs",
+    "check:exports": "node scripts/check-exports.mjs",
+    "check:no-node-imports": "node scripts/check-no-node-imports.mjs",
+    "smoke": "node scripts/smoke-test.mjs",
+    "verify:install": "node scripts/verify-install.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
