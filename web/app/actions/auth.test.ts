@@ -4,7 +4,7 @@ import { USER } from '@/test/fixtures';
 import { fakeApi, jsonResponse, problemResponse } from '@/test/support/fake-api';
 import { cookieValue, cookieWrites, resetRequest } from '@/test/support/next-headers';
 import { SESSION_ID, sessionData, tokenPair } from '@/test/support/session';
-import { login, logout } from './auth';
+import { login, logout, register, resendVerification, verifyEmail } from './auth';
 
 vi.mock('next/headers', () => import('@/test/support/next-headers'));
 
@@ -118,6 +118,96 @@ describe('logout', () => {
     resetRequest({ headers: BROWSER });
     const api = fakeApi();
     expect(await logout()).toEqual({ ok: true, data: null });
+    expect(api.calls).toHaveLength(0);
+  });
+});
+
+const REGISTRATION = {
+  email: 'ana@example.com',
+  password: 'una contraseña larga',
+  fullName: 'Ana Gómez Castillo',
+  curp: 'GOMC900101HDFNLR09',
+  rfc: 'GOMC900101AB1',
+  phone: '5512345678',
+};
+
+const ACCEPTED = {
+  message: 'Si los datos son correctos, recibirás un correo con las instrucciones.',
+};
+
+describe('register', () => {
+  it('WEB-11 envía el registro validado y devuelve el mensaje genérico de la API', async () => {
+    const api = fakeApi().on('POST', '/auth/register', () => jsonResponse(202, ACCEPTED));
+    expect(await register(REGISTRATION)).toEqual({ ok: true, data: ACCEPTED });
+    expect(api.calls[0]?.body).toEqual(REGISTRATION);
+    expect(cookieWrites()).toEqual([]);
+  });
+
+  it('WEB-11 una CURP con dígito verificador inválido no llega a la API', async () => {
+    const api = fakeApi();
+    const result = await register({ ...REGISTRATION, curp: 'GOMC900101HDFNLR08' });
+    expect(result).toMatchObject({ ok: false, problem: { code: 'VALIDATION_FAILED' } });
+    expect(!result.ok && result.problem.errors?.[0]).toMatchObject({
+      pointer: '/curp',
+      code: 'INVALID_CHECK_DIGIT',
+    });
+    expect(api.calls).toHaveLength(0);
+  });
+});
+
+describe('verifyEmail', () => {
+  it('WEB-11 con el código correcto crea la sesión con los tokens recibidos', async () => {
+    const api = fakeApi().on('POST', '/auth/verify-email', () => jsonResponse(200, AUTH_SESSION));
+
+    const result = await verifyEmail({ email: 'ana@example.com', code: '123456' });
+
+    expect(result).toEqual({ ok: true, data: { user: USER } });
+    expect(api.calls[0]?.body).toEqual({ email: 'ana@example.com', code: '123456' });
+    const stored = await sessionStore().get(cookieValue('sid') ?? '');
+    expect(stored?.accessToken).toBe(AUTH_SESSION.tokens.accessToken);
+  });
+
+  it('WEB-11 un código incorrecto devuelve VERIFICATION_CODE_INVALID con los intentos restantes', async () => {
+    fakeApi().on('POST', '/auth/verify-email', () =>
+      problemResponse(422, {
+        code: 'VERIFICATION_CODE_INVALID',
+        attemptsRemaining: 2,
+        requestId: 'api-1',
+      }),
+    );
+    expect(await verifyEmail({ email: 'ana@example.com', code: '000000' })).toMatchObject({
+      ok: false,
+      problem: { code: 'VERIFICATION_CODE_INVALID', attemptsRemaining: 2 },
+    });
+    expect(cookieWrites()).toEqual([]);
+  });
+
+  it('WEB-07 un código que no tiene 6 dígitos no llega a la API', async () => {
+    const api = fakeApi();
+    const result = await verifyEmail({ email: 'ana@example.com', code: '12345' });
+    expect(result).toMatchObject({ ok: false, problem: { code: 'VALIDATION_FAILED' } });
+    expect(api.calls).toHaveLength(0);
+  });
+});
+
+describe('resendVerification', () => {
+  it('WEB-11 pide el reenvío del código para el correo', async () => {
+    const api = fakeApi().on('POST', '/auth/verify-email/resend', () =>
+      jsonResponse(202, ACCEPTED),
+    );
+    expect(await resendVerification({ email: 'ana@example.com' })).toEqual({
+      ok: true,
+      data: ACCEPTED,
+    });
+    expect(api.calls[0]?.body).toEqual({ email: 'ana@example.com' });
+  });
+
+  it('WEB-07 un correo inválido no llega a la API', async () => {
+    const api = fakeApi();
+    expect(await resendVerification({ email: 'x' })).toMatchObject({
+      ok: false,
+      problem: { code: 'VALIDATION_FAILED' },
+    });
     expect(api.calls).toHaveLength(0);
   });
 });

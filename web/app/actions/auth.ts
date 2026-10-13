@@ -1,6 +1,6 @@
 'use server';
 
-import { loginForm, type User } from '@devchrisvaz/wallet-contract';
+import { loginForm, registerForm, verifyEmailForm, type User } from '@devchrisvaz/wallet-contract';
 import type { ActionResult } from '@/lib/action-result';
 import { publicAction } from '@/lib/server/action';
 import { logUnexpectedError } from '@/lib/server/log';
@@ -18,6 +18,39 @@ export async function login(input: unknown): Promise<ActionResult<{ user: User }
     if (!auth) throw new Error('login respondió sin sesión');
     await startSession(auth, cookies);
     return { user: auth.user };
+  });
+}
+
+/**
+ * Registro (WEB-11). La API responde 202 con el mismo mensaje exista o no el correo; la interfaz
+ * muestra siempre el mismo texto y pasa a la verificación.
+ */
+export async function register(input: unknown): Promise<ActionResult<{ message: string }>> {
+  return publicAction(registerForm, input, async ({ data, api }) => {
+    const { data: accepted } = await api.POST('/auth/register', { body: data });
+    return { message: accepted?.message ?? '' };
+  });
+}
+
+/** Verifica el correo con el código de 6 dígitos e inicia la sesión con los tokens recibidos. */
+export async function verifyEmail(input: unknown): Promise<ActionResult<{ user: User }>> {
+  return publicAction(verifyEmailForm, input, async ({ data, api, cookies }) => {
+    const { data: auth } = await api.POST('/auth/verify-email', { body: data });
+    if (!auth) throw new Error('verifyEmail respondió sin sesión');
+    await startSession(auth, cookies);
+    return { user: auth.user };
+  });
+}
+
+const resendVerificationForm = verifyEmailForm.pick({ email: true });
+
+/** Pide un código nuevo; la API responde 202 siempre. */
+export async function resendVerification(
+  input: unknown,
+): Promise<ActionResult<{ message: string }>> {
+  return publicAction(resendVerificationForm, input, async ({ data, api }) => {
+    const { data: accepted } = await api.POST('/auth/verify-email/resend', { body: data });
+    return { message: accepted?.message ?? '' };
   });
 }
 
