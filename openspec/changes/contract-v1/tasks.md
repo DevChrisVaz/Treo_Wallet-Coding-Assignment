@@ -1,6 +1,6 @@
 ## 1. Proyecto y herramientas
 
-- [ ] 1.1 [contract] Crear `contract/package.json` (nombre `@morgandevchrisvaz/wallet-contract`, `version` igual a `info.version`, `zod` como `peerDependency` de una sola versión mayor, `main`/`module`/`types`/`exports`, `files`, `sideEffects: false`), `tsconfig.json` estricto, tsup, Vitest, ESLint y Prettier (CTR-15)
+- [x] 1.1 [contract] Crear `contract/package.json` (nombre `@morgandevchrisvaz/wallet-contract`, `version` igual a `info.version`, `zod` como `peerDependency` de una sola versión mayor, `main`/`module`/`types`/`exports`, `files`, `sideEffects: false`), `tsconfig.json` estricto, tsup, Vitest, ESLint y Prettier (CTR-15)
 - [ ] 1.2 [contract] Agregar `redocly.yaml` con las reglas recomendadas y la excepción para `localhost`, y el script `lint:contract`; dejar el contrato sin errores ni avisos no justificados (CTR-01)
 - [ ] 1.3 [contract] Script `check:version` que falla si `package.json#version` difiere de `info.version`, con su prueba (CTR-02)
 
