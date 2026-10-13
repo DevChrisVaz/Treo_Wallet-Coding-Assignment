@@ -12,7 +12,7 @@
 - [x] 2.2 [web] Emisión y borrado de la cookie de sesión con atributos según el entorno (`__Host-sid` con `Secure` en HTTPS, `sid` en localhost); pruebas de atributos (WEB-02)
 - [x] 2.3 [web] Contexto de petición: `X-Request-Id` reutilizado o generado y `X-Forwarded-For` con la IP del cliente; pruebas (WEB-10)
 - [x] 2.4 [web] Cliente de API `server-only` con el cliente tipado del contrato: adjunta el Bearer, renueva el access token de una sola vez por sesión y cierra la sesión ante `SESSION_REVOKED`; prueba de tres peticiones concurrentes con una sola renovación (WEB-01, WEB-04)
-- [ ] 2.5 [web] `requireSession` y envoltorio común de acciones (`ActionResult`, `VALIDATION_FAILED` sin llamar a la API, `INTERNAL_ERROR` saneado con `requestId`); pruebas (WEB-07, WEB-08)
+- [x] 2.5 [web] `requireSession` y envoltorio común de acciones (`ActionResult`, `VALIDATION_FAILED` sin llamar a la API, `INTERNAL_ERROR` saneado con `requestId`); pruebas (WEB-07, WEB-08)
 
 ## 3. Proxy de lecturas
 
