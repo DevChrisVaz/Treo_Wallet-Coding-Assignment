@@ -1,7 +1,7 @@
-import { formatMXN, type Account, type Beneficiary } from '@devchrisvaz/wallet-contract';
+import { formatMXN, toCents, type Account, type Beneficiary } from '@devchrisvaz/wallet-contract';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Button } from '@/components/ui';
+import { Button, InlineAlert } from '@/components/ui';
 import { maskClabe } from '@/lib/display';
 import { theme } from '@/theme';
 
@@ -14,6 +14,13 @@ interface ReviewViewProps {
   sending: boolean;
   onSend: () => void;
   onEdit: () => void;
+}
+
+/** Montos mayores a 10,000.00 MXN piden un código por correo (HU6). */
+const OTP_THRESHOLD_CENTS = toCents('10000.00');
+
+export function requiresOtp(amount: string): boolean {
+  return toCents(amount) > OTP_THRESHOLD_CENTS;
 }
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -46,6 +53,12 @@ export function ReviewView({
         <Row label="Concepto" value={draft.concept} />
         <Row label="Referencia" value={draft.reference} />
       </View>
+      {requiresOtp(draft.amount) ? (
+        <InlineAlert
+          tone="info"
+          message={`Como el monto es mayor a ${formatMXN('10000.00')}, te enviaremos un código de confirmación a tu correo.`}
+        />
+      ) : null}
       <Button label="Enviar" onPress={onSend} loading={sending} />
       {!sending ? <Button label="Editar" variant="ghost" onPress={onEdit} /> : null}
     </View>
