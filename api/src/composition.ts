@@ -37,6 +37,11 @@ import { SmtpMailer } from './platform/mail/smtp-mailer.js';
 import { createAppDataSource } from './platform/persistence/data-sources.js';
 import { PgErrorTranslator } from './platform/persistence/pg-errors.js';
 import { registerLedgerTranslations } from './modules/transfers/infrastructure/error-translations.js';
+import { FundAccount } from './modules/transfers/application/fund-account.js';
+import { LedgerPoster } from './modules/transfers/application/ledger-poster.js';
+import { PgAccountLocks } from './modules/transfers/infrastructure/pg-account-locks.js';
+import { PgLedgerStore } from './modules/transfers/infrastructure/pg-ledger-store.js';
+import { PgTransferStore } from './modules/transfers/infrastructure/pg-transfer-store.js';
 import { TypeormTransactionRunner } from './platform/persistence/transaction.js';
 import type { Clock } from './shared/clock.js';
 import type { TransactionRunner } from './shared/transaction.js';
@@ -72,6 +77,9 @@ export interface Container {
     readonly logout: Logout;
     readonly getCurrentUser: GetCurrentUser;
   };
+  readonly ledger: {
+    readonly fundAccount: FundAccount;
+  };
 }
 
 /**
@@ -94,6 +102,9 @@ export async function createContainer(
   registerLedgerTranslations(errors);
 
   const users = overrides.users ?? new PgUserRepository(dataSource);
+  const transferStore = new PgTransferStore();
+  const accountLocks = new PgAccountLocks(dataSource);
+  const poster = new LedgerPoster(new PgLedgerStore());
   const codes = new OneTimeCodeService(new PgOneTimeCodeStore(), clock, config.otpHmacSecret);
   const accounts = new PgAccountRepository(dataSource);
   const openAccounts = new OpenDefaultAccounts({ accounts, clabe: config.clabe, clock });
@@ -155,6 +166,16 @@ export async function createContainer(
       login: new Login({ transactions, users, hasher, sessions, accessTokens, audit, clock }),
       logout: new Logout({ transactions, store: refreshTokens, audit, clock }),
       getCurrentUser: new GetCurrentUser(users),
+    },
+    ledger: {
+      fundAccount: new FundAccount({
+        transactions,
+        transfers: transferStore,
+        locks: accountLocks,
+        poster,
+        audit,
+        clock,
+      }),
     },
   };
 }
