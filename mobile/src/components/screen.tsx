@@ -27,6 +27,7 @@ export function Screen({ children, refresh, footer }: ScreenProps) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          testID="screen-scroll"
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           refreshControl={

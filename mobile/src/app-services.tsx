@@ -1,8 +1,9 @@
 /**
- * Servicios de la app (sesión, renovador y cliente de la API) creados una vez por URL base y
- * expuestos por contexto. Las pruebas inyectan un `fetch` simulado.
+ * Servicios de la app (sesión, renovador, cliente de la API y caché de consultas) creados una vez
+ * por URL base y expuestos por contexto. Las pruebas inyectan un `fetch` simulado.
  */
 import type { ApiClient } from '@devchrisvaz/wallet-contract';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createContext, useContext, useState, useSyncExternalStore, type ReactNode } from 'react';
 
 import {
@@ -18,6 +19,7 @@ export interface AppServices {
   session: Session;
   refresher: TokenRefresher;
   api: ApiClient;
+  queryClient: QueryClient;
 }
 
 const ServicesContext = createContext<AppServices | null>(null);
@@ -30,16 +32,51 @@ interface AppProvidersProps {
   children: ReactNode;
 }
 
-export function createServices(baseUrl: string, fetch: FetchFn | undefined): AppServices {
+interface ServiceOptions {
+  /**
+   * Para pruebas: sin reintentos automáticos de las lecturas y sin temporizadores de recolección
+   * de la caché (con `gcTime` infinito, TanStack Query no programa ninguno).
+   */
+  testing?: boolean;
+}
+
+export function createServices(
+  baseUrl: string,
+  fetch: FetchFn | undefined,
+  { testing = false }: ServiceOptions = {},
+): AppServices {
   const session = new Session();
   const options = { baseUrl, session, ...(fetch ? { fetch } : {}) };
   const refresher = createSessionRefresher(options);
-  return { baseUrl, session, refresher, api: createWalletApi({ ...options, refresher }) };
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: testing ? false : 1,
+        staleTime: 30_000,
+        ...(testing ? { gcTime: Infinity } : {}),
+      },
+    },
+  });
+  // Al cerrar sesión no queda en memoria ningún dato de la persona anterior.
+  session.subscribe(() => {
+    if (session.getSnapshot().status === 'signedOut') queryClient.clear();
+  });
+  return {
+    baseUrl,
+    session,
+    refresher,
+    api: createWalletApi({ ...options, refresher }),
+    queryClient,
+  };
 }
 
 export function AppProviders({ baseUrl, fetch, services: given, children }: AppProvidersProps) {
   const [services] = useState(() => given ?? createServices(baseUrl, fetch));
-  return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
+  return (
+    <ServicesContext.Provider value={services}>
+      <QueryClientProvider client={services.queryClient}>{children}</QueryClientProvider>
+    </ServicesContext.Provider>
+  );
 }
 
 export function useServices(): AppServices {

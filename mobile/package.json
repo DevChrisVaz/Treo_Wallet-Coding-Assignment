@@ -23,6 +23,7 @@
     "@devchrisvaz/wallet-design-tokens": "file:../design-tokens",
     "@expo-google-fonts/work-sans": "^0.4.2",
     "@react-native-community/netinfo": "12.0.1",
+    "@tanstack/react-query": "^5.104.2",
     "expo": "~57.0.28",
     "expo-constants": "~57.0.21",
     "expo-font": "~57.0.4",
