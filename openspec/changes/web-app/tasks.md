@@ -45,7 +45,7 @@
 
 ## 8. Transferencias
 
-- [ ] 8.1 [web] Acciones `createTransfer(input, idempotencyKey)`, `confirmTransfer` y `resendTransferOtp`, reenviando la llave sin generarla ni reintentar; pruebas de una sola llamada con la llave recibida (WEB-10, WEB-17)
+- [x] 8.1 [web] Acciones `createTransfer(input, idempotencyKey)`, `confirmTransfer` y `resendTransferOtp`, reenviando la llave sin generarla ni reintentar; pruebas de una sola llamada con la llave recibida (WEB-10, WEB-17)
 - [ ] 8.2 [web] Hook `useIdempotencyKey` y máquina de estados del flujo (llave al pasar a confirmación, nueva al editar o tras respuesta definitiva, misma al reintentar); pruebas (WEB-17)
 - [ ] 8.3 [web] Formulario de transferencia: origen, destino propio sin la cuenta origen o beneficiario, monto como texto validado con `AmountInput` (rechazo de más de 2 decimales y limpieza de separadores), concepto y referencia; pruebas de redondeo y de propia cuenta (WEB-16, WEB-21)
 - [ ] 8.4 [web] Pantalla de confirmación: envío con botón deshabilitado, reintento con la misma llave ante error de red o `5xx`, manejo de `200` con `Idempotent-Replayed` y de rechazos (`INSUFFICIENT_FUNDS` con saldo disponible, `DAILY_LIMIT_EXCEEDED`, `SAME_ACCOUNT_TRANSFER`); pruebas de doble clic (WEB-16, WEB-17, WEB-19)

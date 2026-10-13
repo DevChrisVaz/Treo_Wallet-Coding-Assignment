@@ -38,6 +38,19 @@ export interface SessionActionContext<D> extends PublicActionContext<D> {
   session: SessionData;
 }
 
+/**
+ * Rechazo que la propia web decide sin llamar a la API (por ejemplo, una llave de idempotencia
+ * ausente). El envoltorio lo devuelve como problema con el `requestId` de la petición.
+ */
+export class ActionFailure extends Error {
+  constructor(
+    readonly fields: Pick<ActionProblem, 'type' | 'title' | 'status' | 'code'> &
+      Partial<ActionProblem>,
+  ) {
+    super(fields.code);
+  }
+}
+
 class ValidationFailed extends Error {
   constructor(readonly errors: FieldError[]) {
     super('VALIDATION_FAILED');
@@ -101,6 +114,9 @@ async function guard<T>(
           errors: error.errors,
         }),
       };
+    }
+    if (error instanceof ActionFailure) {
+      return { ok: false, problem: problem(request, error.fields) };
     }
     if (error instanceof SessionEndedError) {
       await endLocalSession();
