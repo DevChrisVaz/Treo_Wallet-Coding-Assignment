@@ -19,7 +19,8 @@ export async function registerPerson(
   const person = newRegistration(overrides);
   const res = await request(t.app).post('/auth/register').send(person);
   expect(res.status).toBe(202);
-  return { person, code: t.mailer.lastCode(person.email) };
+  // El correo llega a la dirección normalizada (IDN-02).
+  return { person, code: t.mailer.lastCode(person.email.trim().toLowerCase()) };
 }
 
 /** Registra y verifica a una persona: queda con sus dos cuentas y una sesión. */
@@ -28,7 +29,9 @@ export async function verifiedUser(
   overrides: Partial<Registration> = {},
 ): Promise<VerifiedUser> {
   const { person, code } = await registerPerson(t, overrides);
-  const res = await request(t.app).post('/auth/verify-email').send({ email: person.email, code });
+  const res = await request(t.app)
+    .post('/auth/verify-email')
+    .send({ email: person.email.trim().toLowerCase(), code });
   expectToMatchContract(res, 'verifyEmail');
   expect(res.status).toBe(200);
   return {
