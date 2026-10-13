@@ -1,5 +1,7 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { UserRepository } from '../../../src/modules/identity/application/users.js';
+import { PgUserRepository } from '../../../src/modules/identity/infrastructure/pg-user-repository.js';
 import { auditEvents, leakedValues } from '../../helpers/audit.js';
 import { buildTestApp, type TestApp } from '../../helpers/app.js';
 import { expectToMatchContract } from '../../helpers/contract.js';
@@ -127,9 +129,27 @@ describe('IDN-03 unicidad de los datos de identidad', () => {
   );
 
   it('IDN-03 dos registros simultáneos con el mismo RFC crean a lo sumo un usuario', async () => {
+    // Barrera: ninguno sigue después del pre-chequeo hasta que ambos lo pasaron, así los dos
+    // intentan el INSERT y la constraint única de la base es la que decide.
+    const real = new PgUserRepository(harness.app);
+    let arrived = 0;
+    let release!: () => void;
+    const bothChecked = new Promise<void>((resolve) => (release = resolve));
+    const users: UserRepository = Object.assign(Object.create(real) as UserRepository, {
+      identityInUse: async (...args: Parameters<UserRepository['identityInUse']>) => {
+        const inUse = await real.identityInUse(...args);
+        arrived += 1;
+        if (arrived === 2) release();
+        await bothChecked;
+        return inUse;
+      },
+    });
+    t = await buildTestApp(harness, { overrides: { users } });
+
     const first = newRegistration();
     const second = newRegistration({ rfc: first.rfc });
     const responses = await Promise.all([register(first), register(second)]);
+    expect(arrived).toBe(2);
     expect(responses.map((res) => res.status)).toEqual([202, 202]);
     expect(await usersWith('rfc', first.rfc)).toHaveLength(1);
     const notified = [first, second].filter((p: Registration) =>

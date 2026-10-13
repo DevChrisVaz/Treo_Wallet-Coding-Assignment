@@ -9,6 +9,7 @@ import { Argon2PasswordHasher } from './modules/identity/infrastructure/argon2-p
 import { identityRouter } from './modules/identity/infrastructure/http/routes.js';
 import { PgOneTimeCodeStore } from './modules/identity/infrastructure/pg-one-time-code-store.js';
 import { PgUserRepository } from './modules/identity/infrastructure/pg-user-repository.js';
+import type { UserRepository } from './modules/identity/application/users.js';
 import { systemClock } from './platform/clock/system-clock.js';
 import type { AppConfig } from './platform/config/config.js';
 import { createHttpApp } from './platform/http/app.js';
@@ -31,6 +32,8 @@ export interface ContainerOverrides {
   readonly logger: Logger;
   readonly hasher: PasswordHasher;
   readonly audit: AuditWriter;
+  /** Para pruebas de concurrencia que necesitan sincronizar dos transacciones. */
+  readonly users: UserRepository;
 }
 
 export interface Container {
@@ -65,7 +68,7 @@ export async function createContainer(
   const transactions = new TypeormTransactionRunner(dataSource);
   const errors = new PgErrorTranslator(logger);
 
-  const users = new PgUserRepository(dataSource);
+  const users = overrides.users ?? new PgUserRepository(dataSource);
   const codes = new OneTimeCodeService(new PgOneTimeCodeStore(), clock, config.otpHmacSecret);
 
   return {
