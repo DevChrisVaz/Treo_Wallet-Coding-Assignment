@@ -70,5 +70,5 @@
 
 ## 9. Integración continua
 
-- [ ] 9.1 [api] Crear `.github/workflows/api.yml` disparado por `api/**`, `contract/**` y el propio workflow, con services de PostgreSQL 16 y Mailpit, build de `/contract`, `npm ci`, lint, typecheck, `db:bootstrap` con `psql`, migraciones ida-vuelta-ida y `npm test` (PLT-17, PLT-15)
+- [x] 9.1 [api] Crear `.github/workflows/api.yml` disparado por `api/**`, `contract/**` y el propio workflow, con services de PostgreSQL 16 y Mailpit, build de `/contract`, `npm ci`, lint, typecheck, `db:bootstrap` con `psql`, migraciones ida-vuelta-ida y `npm test` (PLT-17, PLT-15)
 - [ ] 9.2 [api] Confirmar el pipeline en verde en la rama principal y que un cambio solo en `contract/**` lo dispara (PLT-17)

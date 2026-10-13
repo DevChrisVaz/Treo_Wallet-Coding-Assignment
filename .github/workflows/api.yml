@@ -1,0 +1,114 @@
+name: api
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'contract/**'
+      - '.github/workflows/api.yml'
+  pull_request:
+    paths:
+      - 'api/**'
+      - 'contract/**'
+      - '.github/workflows/api.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: api
+
+jobs:
+  verify:
+    name: Lint, tipos, migraciones y pruebas contra PostgreSQL
+    runs-on: ubuntu-latest
+
+    # Los service containers arrancan antes del checkout: no pueden montar archivos del repositorio,
+    # así que los roles y las bases se crean después con db:bootstrap (psql).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_ci_password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+      mailpit:
+        image: axllent/mailpit:v1.27
+        ports:
+          - 1025:1025
+          - 8025:8025
+
+    # Valores solo de CI: la base vive lo que dura el job.
+    env:
+      BOOTSTRAP_DATABASE_URL: postgres://postgres:postgres_ci_password@localhost:5432/postgres
+      WALLET_MIGRATOR_PASSWORD: wallet_migrator_ci_password
+      WALLET_APP_PASSWORD: wallet_app_ci_password
+      MIGRATION_DATABASE_URL: postgres://wallet_migrator:wallet_migrator_ci_password@localhost:5432/wallet
+      TEST_DATABASE_URL: postgres://wallet_app:wallet_app_ci_password@localhost:5432/wallet_test
+      TEST_MIGRATION_DATABASE_URL: postgres://wallet_migrator:wallet_migrator_ci_password@localhost:5432/wallet_test
+      SMTP_HOST: localhost
+      SMTP_PORT: '1025'
+      MAILPIT_API_URL: http://localhost:8025
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            contract/package-lock.json
+            api/package-lock.json
+
+      # file:../contract con install-links copia el paquete construido: hay que construirlo antes.
+      - name: Construir el contrato
+        working-directory: contract
+        run: |
+          npm ci
+          npm run build
+
+      - run: npm ci
+
+      - name: Lint (incluye la regla de capas, PLT-18)
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Formato
+        run: npm run format:check
+
+      - name: Roles, bases y esquema (PLT-14)
+        run: |
+          psql --version
+          npm run db:bootstrap
+
+      - name: Migraciones ida, vuelta e ida (PLT-15)
+        run: |
+          npm run db:migrate
+          npm run db:revert -- --all
+          npm run db:migrate
+          # Sin tubería: el código de salida de db:migrate no debe perderse.
+          npm run db:migrate > migrate-again.log
+          cat migrate-again.log
+          grep -q 'Sin migraciones pendientes' migrate-again.log
+
+      - name: Pruebas unitarias e integración (PLT-17)
+        run: npm test
+
+      - name: Build
+        run: npm run build
