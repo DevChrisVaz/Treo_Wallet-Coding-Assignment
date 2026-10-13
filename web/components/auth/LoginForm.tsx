@@ -10,16 +10,12 @@ import { Button } from '@/components/ui/Button';
 import { InlineAlert } from '@/components/ui/InlineAlert';
 import { TextField } from '@/components/ui/TextField';
 import { contractResolver } from '@/lib/client/form-resolver';
-import { describeProblem } from '@/lib/client/problem-messages';
+import { CONNECTION_ERROR, describeProblem } from '@/lib/client/problem-messages';
 
 interface LoginValues {
   email: string;
   password: string;
 }
-
-/** Mensaje si la Server Action no obtuvo respuesta del servidor de la web. */
-export const CONNECTION_ERROR =
-  'No pudimos conectar con TreoWallet. Revisa tu conexión e intenta de nuevo.';
 
 export interface LoginFormProps {
   /** Ruta interna a la que se vuelve después de iniciar sesión (ya saneada). */

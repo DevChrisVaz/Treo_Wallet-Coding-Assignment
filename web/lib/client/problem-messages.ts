@@ -1,6 +1,10 @@
 import { problemMessage } from '@devchrisvaz/wallet-design-tokens';
 import type { ActionProblem } from '@/lib/action-result';
 
+/** Mensaje si la Server Action no obtuvo respuesta del servidor de la web. */
+export const CONNECTION_ERROR =
+  'No pudimos conectar con TreoWallet. Revisa tu conexión e intenta de nuevo.';
+
 function minutes(count: number): string {
   return count === 1 ? '1 minuto' : `${count} minutos`;
 }
