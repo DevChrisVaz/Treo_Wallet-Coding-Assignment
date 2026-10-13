@@ -42,7 +42,9 @@
     "lint:contract": "redocly lint openapi.yaml",
     "check:version": "node scripts/check-version.mjs",
     "generate": "openapi-typescript openapi.yaml -o src/generated/api.d.ts",
-    "check:exports": "node scripts/check-exports.mjs"
+    "check:exports": "node scripts/check-exports.mjs",
+    "check:no-node-imports": "node scripts/check-no-node-imports.mjs",
+    "smoke": "node scripts/smoke-test.mjs"
   },
   "dependencies": {
     "openapi-fetch": "^0.17.0"
