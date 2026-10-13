@@ -1,0 +1,99 @@
+name: contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'contract/**'
+      - '.github/workflows/contract.yml'
+  pull_request:
+    paths:
+      - 'contract/**'
+      - '.github/workflows/contract.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contract-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: contract
+
+jobs:
+  verify:
+    name: Lint, tipos, pruebas y build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: contract/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint del contrato (CTR-01)
+        run: npm run lint:contract
+
+      - name: Tipos generados al día (CTR-03)
+        run: |
+          npm run generate
+          git diff --exit-code -- src/generated
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Formato
+        run: npm run format:check
+
+      - name: Pruebas
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Versión alineada con el contrato (CTR-02)
+        run: npm run check:version
+
+      - name: Rutas del paquete (CTR-15, CTR-16)
+        run: npm run check:exports
+
+      - name: Sin módulos internos de Node (CTR-15)
+        run: npm run check:no-node-imports
+
+      - name: Instalación local como copia, sin credenciales (CTR-16)
+        run: npm run verify:install
+
+      - name: Empaquetado
+        run: npm pack --dry-run
+
+  smoke:
+    name: Prueba de humo en Node ${{ matrix.node }}
+    needs: verify
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: contract/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: import y require del paquete construido (CTR-15)
+        run: npm run smoke
