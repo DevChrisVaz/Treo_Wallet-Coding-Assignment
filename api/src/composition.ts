@@ -5,6 +5,12 @@ import { PgAuditWriter } from './modules/audit/infrastructure/pg-audit-writer.js
 import { OneTimeCodeService } from './modules/identity/application/one-time-codes.js';
 import type { PasswordHasher } from './modules/identity/application/ports.js';
 import { RegisterUser } from './modules/identity/application/register-user.js';
+import { SessionService } from './modules/identity/application/sessions.js';
+import { VerifyEmail } from './modules/identity/application/verify-email.js';
+import { JoseAccessTokens } from './modules/identity/infrastructure/jose-access-tokens.js';
+import { PgRefreshTokenStore } from './modules/identity/infrastructure/pg-refresh-token-store.js';
+import { OpenDefaultAccounts } from './modules/accounts/application/open-default-accounts.js';
+import { PgAccountRepository } from './modules/accounts/infrastructure/pg-account-repository.js';
 import { Argon2PasswordHasher } from './modules/identity/infrastructure/argon2-password-hasher.js';
 import { identityRouter } from './modules/identity/infrastructure/http/routes.js';
 import { PgOneTimeCodeStore } from './modules/identity/infrastructure/pg-one-time-code-store.js';
@@ -47,6 +53,7 @@ export interface Container {
   readonly errors: PgErrorTranslator;
   readonly identity: {
     readonly registerUser: RegisterUser;
+    readonly verifyEmail: VerifyEmail;
   };
 }
 
@@ -70,6 +77,14 @@ export async function createContainer(
 
   const users = overrides.users ?? new PgUserRepository(dataSource);
   const codes = new OneTimeCodeService(new PgOneTimeCodeStore(), clock, config.otpHmacSecret);
+  const accounts = new PgAccountRepository(dataSource);
+  const openAccounts = new OpenDefaultAccounts({ accounts, clabe: config.clabe, clock });
+  const sessions = new SessionService(new PgRefreshTokenStore(), clock);
+  const accessTokens = new JoseAccessTokens({
+    secret: config.jwtSecret,
+    issuer: config.jwtIssuer,
+    audience: config.jwtAudience,
+  });
 
   return {
     config,
@@ -89,6 +104,16 @@ export async function createContainer(
         audit,
         mailer,
         logger,
+        clock,
+      }),
+      verifyEmail: new VerifyEmail({
+        transactions,
+        users,
+        codes,
+        openAccounts,
+        sessions,
+        accessTokens,
+        audit,
         clock,
       }),
     },
