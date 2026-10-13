@@ -18,6 +18,23 @@ export function required<T>(data: T | undefined): T {
   return data;
 }
 
+/** Los móviles muestran solo los últimos 20, sin filtros ni paginación (MOB-06). */
+export const MOVEMENTS_LIMIT = 20;
+
+export function useRecentMovements(accountId: string) {
+  const { api } = useServices();
+  return useQuery({
+    queryKey: queryKeys.movements(accountId),
+    queryFn: async ({ signal }) => {
+      const { data } = await api.GET('/accounts/{accountId}/movements', {
+        params: { path: { accountId }, query: { limit: MOVEMENTS_LIMIT } },
+        signal,
+      });
+      return required(data).items.slice(0, MOVEMENTS_LIMIT);
+    },
+  });
+}
+
 export function useAccountsOverview() {
   const { api } = useServices();
   return useQuery({

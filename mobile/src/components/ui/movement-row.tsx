@@ -11,7 +11,7 @@ export function MovementRow({ movement }: { movement: Movement }) {
     ? `${movement.counterparty.name} · ${movement.concept}`
     : movement.concept;
   return (
-    <View style={styles.row}>
+    <View testID="movement-row" style={styles.row}>
       <View style={styles.main}>
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.detail}>{detail}</Text>

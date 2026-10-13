@@ -99,7 +99,7 @@ La app SHALL mostrar los últimos 20 movimientos de la cuenta que el usuario eli
 
 #### Scenario: Salidas y entradas
 - **WHEN** la lista incluye un movimiento `TRANSFER_OUT` de `"-150.00"` y un `DEPOSIT` de `"25000.00"`
-- **THEN** la app muestra la salida como "-$150.00" con la etiqueta "Transferencia enviada" y la entrada como "$25,000.00" con la etiqueta "Depósito"
+- **THEN** la app muestra la salida como "−$150.00" (signo menos U+2212, con el color de la tinta y no el de error) con la etiqueta "Transferencia enviada" y la entrada como "+$25,000.00" (con el color de dinero entrante) con la etiqueta "Depósito"
 
 #### Scenario: Cuenta sin movimientos
 - **WHEN** la cuenta no tiene movimientos
