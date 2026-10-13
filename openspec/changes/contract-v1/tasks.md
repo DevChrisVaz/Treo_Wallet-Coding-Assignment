@@ -20,7 +20,7 @@
 - [x] 3.3 [contract] Implementar `clabeCheckDigit` y el esquema `clabe`; pruebas: `032180000118359719` válida, dígito alterado, caso A = 0 → 0, 17 dígitos, letras y valor numérico (CTR-09)
 - [x] 3.4 [contract] Implementar `curpCheckDigit`, `isValidCalendarDate` y el esquema `curp`; pruebas con CURPs sintéticas: válida, dígito alterado y fecha `990231` (CTR-10)
 - [x] 3.5 [contract] Implementar el esquema `rfc` de persona física con validación de fecha; pruebas: válido, fecha `010229` y RFC de 12 caracteres (CTR-11)
-- [ ] 3.6 [contract] Implementar los esquemas `phone`, `concept`, `reference` y `otpCode`; pruebas con los vectores de cada uno (CTR-12)
+- [x] 3.6 [contract] Implementar los esquemas `phone`, `concept`, `reference` y `otpCode`; pruebas con los vectores de cada uno (CTR-12)
 - [ ] 3.7 [contract] Implementar los esquemas de formulario `registerForm`, `verifyEmailForm`, `loginForm`, `beneficiaryForm` y `transferForm` (destino como unión discriminada) con códigos de error por campo; pruebas: destino incoherente rechazado y errores simultáneos de monto y concepto (CTR-13)
 - [ ] 3.8 [contract] Prueba de paridad: compilar los esquemas de componentes de `openapi.yaml` con Ajv (2020-12) y ejecutar las mismas tablas de vectores contra Ajv y contra Zod (CTR-13)
 
