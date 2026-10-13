@@ -38,4 +38,4 @@
 ## 6. CI y documentación
 
 - [x] 6.1 [contract] Crear `.github/workflows/contract.yml` (se ejecuta ante cambios en `contract/**`, Node 20): `npm ci`, lint del contrato, `generate` + `git diff --exit-code`, typecheck, pruebas, build, `check:version`, `check:no-node-imports`, `verify:install` y `npm pack --dry-run` (CTR-17, CTR-01, CTR-03)
-- [ ] 6.2 [contract] Escribir `contract/README.md`: propósito, exports, uso desde cada consumidor (`file:../contract` + `install-links=true`), ciclo de desarrollo local, política semver del contrato y procedimiento de publicación en GitHub Packages al separar los repositorios (CTR-02, CTR-16)
+- [x] 6.2 [contract] Escribir `contract/README.md`: propósito, exports, uso desde cada consumidor (`file:../contract` + `install-links=true`), ciclo de desarrollo local, política semver del contrato y procedimiento de publicación en GitHub Packages al separar los repositorios (CTR-02, CTR-16)
