@@ -16,7 +16,7 @@
 ## 4. Salidas por plataforma
 
 - [x] 4.1 [design-tokens] `scripts/generate.mjs`: `generated/tokens.css` (variables `--dt-*` en `:root`) y `generated/tailwind.css` (`:root` + `@theme { --color-*: initial }` + `@theme inline`); prueba de que cada token semántico aparece con el mismo valor en ambas hojas (DSG-07, DSG-08)
-- [ ] 4.2 [design-tokens] Tema de React Native en el subpath `./native` (colores, tipografía con familia por peso, espaciado, radios, elevación, movimiento); prueba de que sus valores coinciden con la fuente (DSG-08)
+- [x] 4.2 [design-tokens] Tema de React Native en el subpath `./native` (colores, tipografía con familia por peso, espaciado, radios, elevación, movimiento); prueba de que sus valores coinciden con la fuente (DSG-08)
 - [ ] 4.3 [design-tokens] Referencia visual `preview/index.html` generada desde los tokens (muestras con contraste, escala tipográfica, botones, insignias, filas de movimiento y medidor del límite), sin publicarla (DSG-11)
 
 ## 5. Build, verificación y CI
