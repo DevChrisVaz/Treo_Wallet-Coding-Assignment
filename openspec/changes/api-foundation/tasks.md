@@ -59,7 +59,7 @@
 - [x] 7.8 [api] Implementar `refreshSession`: familia, rotación con la fila bloqueada, vencimiento de 7 y 30 días, detección de reuso con revocación de la familia y evento `REFRESH_TOKEN_REUSE_DETECTED`, y ventana de gracia de 30 s; pruebas de rotación, familia vencida, reintento dentro de la ventana, reuso fuera de ella, reuso con sucesor usado y dos refresh simultáneos (IDN-11, IDN-12)
 - [x] 7.9 [api] Implementar `login` con `401 INVALID_CREDENTIALS` uniforme, verificación del hash ficticio cuando el email no existe, `403 EMAIL_NOT_VERIFIED` y los eventos `LOGIN_SUCCEEDED` y `LOGIN_FAILED`; pruebas de cada caso (IDN-08)
 - [x] 7.10 [api] Implementar `logout` idempotente con el evento `LOGOUT`; pruebas de refresh tras logout y de logout repetido (IDN-13)
-- [ ] 7.11 [api] Implementar `getCurrentUser` con CURP, RFC y teléfono enmascarados; prueba (IDN-14)
+- [x] 7.11 [api] Implementar `getCurrentUser` con CURP, RFC y teléfono enmascarados; prueba (IDN-14)
 - [ ] 7.12 [api] Aplicar los límites de tasa de identidad (login por IP + email y por IP; registro, verificación y reenvío por IP); pruebas del sexto intento y de login exitoso desde otra IP (IDN-15)
 - [ ] 7.13 [api] Implementar el acceso a cuentas filtrado por dueño en el repositorio, con resultado idéntico para cuenta ajena e inexistente; prueba a nivel de repositorio (la prueba del endpoint llega con `getAccount` en `api-ledger`) (ACC-06)
 

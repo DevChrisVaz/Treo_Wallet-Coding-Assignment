@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express';
 import { routeTable } from '../../../../platform/http/auth.js';
 import { parseBody } from '../../../../platform/http/validation.js';
+import type { GetCurrentUser } from '../../application/get-current-user.js';
 import type { Login } from '../../application/login.js';
 import type { Logout } from '../../application/logout.js';
 import type { RefreshSession } from '../../application/refresh-session.js';
@@ -28,6 +29,7 @@ export interface IdentityHandlers {
   readonly refreshSession: RefreshSession;
   readonly login: Login;
   readonly logout: Logout;
+  readonly getCurrentUser: GetCurrentUser;
 }
 
 /**
@@ -68,6 +70,10 @@ export function identityRoutes(handlers: IdentityHandlers, authenticateRequest: 
     const input = parseBody(logoutRequestSchema, req.body);
     await handlers.logout.execute(input);
     res.status(204).end();
+  });
+
+  routes.get('/me', async (_req, res) => {
+    res.status(200).json(await handlers.getCurrentUser.execute(res.locals.userId as string));
   });
 
   return routes;
