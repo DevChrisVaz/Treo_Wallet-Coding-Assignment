@@ -1,4 +1,8 @@
+import { existsSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
+
+// En local, las conexiones de las pruebas de integración vienen de .env; en CI, del workflow.
+if (existsSync('.env')) process.loadEnvFile('.env');
 
 export default defineConfig({
   test: {
