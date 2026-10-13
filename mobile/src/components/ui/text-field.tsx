@@ -1,0 +1,141 @@
+import { focusRing } from '@devchrisvaz/wallet-design-tokens';
+import { useState } from 'react';
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type StyleProp,
+  type TextInputProps,
+  type TextStyle,
+} from 'react-native';
+
+import { theme } from '@/theme';
+
+type NativeInputProps = Omit<TextInputProps, 'style' | 'value' | 'onChangeText' | 'editable'>;
+
+export interface TextFieldProps extends NativeInputProps {
+  label: string;
+  value: string;
+  onChangeText: (value: string) => void;
+  variant?: 'text' | 'email' | 'password';
+  error?: string | undefined;
+  help?: string | undefined;
+  disabled?: boolean;
+  /** Texto fijo antes del valor, como el `$` del monto. */
+  prefix?: string;
+  inputStyle?: StyleProp<TextStyle>;
+}
+
+const variantProps: Record<NonNullable<TextFieldProps['variant']>, TextInputProps> = {
+  text: {},
+  email: {
+    keyboardType: 'email-address',
+    autoCapitalize: 'none',
+    autoCorrect: false,
+    autoComplete: 'email',
+    textContentType: 'emailAddress',
+  },
+  password: {
+    secureTextEntry: true,
+    autoCapitalize: 'none',
+    autoCorrect: false,
+    autoComplete: 'current-password',
+    textContentType: 'password',
+  },
+};
+
+/**
+ * Campo con etiqueta visible arriba y ayuda o error debajo, asociados al campo para los lectores de
+ * pantalla (`accessibilityHint`). Estados: reposo, foco, error y deshabilitado (DSG-11).
+ */
+export function TextField({
+  label,
+  value,
+  onChangeText,
+  variant = 'text',
+  error,
+  help,
+  disabled = false,
+  prefix,
+  inputStyle,
+  onFocus,
+  onBlur,
+  ...inputProps
+}: TextFieldProps) {
+  const [focused, setFocused] = useState(false);
+  const borderColor = error
+    ? theme.colors.status.danger.fg
+    : focused
+      ? theme.colors.border.focus
+      : theme.colors.border.input;
+  const frame = [
+    styles.frame,
+    { borderColor, borderWidth: focused || error ? focusRing.width : 1 },
+    disabled && styles.disabled,
+  ];
+  const note = error ?? help;
+
+  const input = (
+    <TextInput
+      {...variantProps[variant]}
+      {...inputProps}
+      accessibilityLabel={label}
+      accessibilityHint={note}
+      accessibilityState={{ disabled }}
+      editable={!disabled}
+      value={value}
+      onChangeText={onChangeText}
+      onFocus={(event) => {
+        setFocused(true);
+        onFocus?.(event);
+      }}
+      onBlur={(event) => {
+        setFocused(false);
+        onBlur?.(event);
+      }}
+      placeholderTextColor={theme.colors.text.muted}
+      style={[styles.input, prefix ? styles.inputWithPrefix : frame, inputStyle]}
+    />
+  );
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.label}>{label}</Text>
+      {prefix ? (
+        <View style={[frame, styles.row]}>
+          <Text style={styles.prefix}>{prefix}</Text>
+          {input}
+        </View>
+      ) : (
+        input
+      )}
+      {note ? (
+        <Text
+          accessibilityLiveRegion={error ? 'polite' : 'none'}
+          style={[styles.note, error ? styles.error : null]}
+        >
+          {note}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { gap: theme.spacing[1] },
+  label: { ...theme.typography.label, color: theme.colors.text.primary },
+  frame: {
+    minHeight: theme.touchTarget,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.surface.default,
+    paddingHorizontal: theme.spacing[3],
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[1] },
+  input: { ...theme.typography.body, color: theme.colors.text.primary },
+  inputWithPrefix: { flex: 1, minHeight: theme.touchTarget },
+  prefix: { ...theme.typography.body, ...theme.amount, color: theme.colors.text.secondary },
+  disabled: { backgroundColor: theme.colors.surface.subtle },
+  note: { ...theme.typography.caption, color: theme.colors.text.muted },
+  error: { color: theme.colors.status.danger.fg },
+});

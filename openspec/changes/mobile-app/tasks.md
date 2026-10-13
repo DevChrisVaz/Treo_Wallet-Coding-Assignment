@@ -6,7 +6,7 @@
 - [x] 1.4 [mobile] Leer y validar `EXPO_PUBLIC_API_URL` al arrancar y mostrar una pantalla de error de configuración si falta o es inválida, con su prueba (MOB-17)
 - [x] 1.5 [mobile] Prohibir `@react-native-async-storage/async-storage` con la regla `no-restricted-imports` de ESLint y agregar una prueba que falle si algún módulo lo importa (MOB-02)
 - [x] 1.6 [mobile] Cargar Work Sans con `@expo-google-fonts/work-sans` (400, 500, 600) manteniendo la pantalla de carga hasta `useFonts`, y exponer el tema de `@devchrisvaz/wallet-design-tokens/native` a la app (DSG-01, DSG-05)
-- [ ] 1.7 [mobile] Componentes del inventario de `design-system` en `components/ui` (Wordmark, Button, TextField, AmountField, OtpField, Select en hoja inferior, AccountCard, MovementRow, StatusBadge, InlineAlert, EmptyState, Skeleton, Receipt, DailyLimitMeter) con `StyleSheet` y solo tokens, con estados y `accessibilityState`; pruebas (DSG-03, DSG-06, DSG-09, DSG-10, DSG-11)
+- [x] 1.7 [mobile] Componentes del inventario de `design-system` en `components/ui` (Wordmark, Button, TextField, AmountField, OtpField, Select en hoja inferior, AccountCard, MovementRow, StatusBadge, InlineAlert, EmptyState, Skeleton, Receipt, DailyLimitMeter) con `StyleSheet` y solo tokens, con estados y `accessibilityState`; pruebas (DSG-03, DSG-06, DSG-09, DSG-10, DSG-11)
 
 ## 2. Sesión y cliente HTTP
 
