@@ -4,10 +4,11 @@ import type {
   Beneficiary,
   DailyLimit,
   Movement,
-  Problem,
+  ProblemCode,
   Transfer,
   User,
 } from '@devchrisvaz/wallet-contract';
+import type { ActionProblem } from '@/lib/action-result';
 
 /** Datos de ejemplo con la forma exacta del contrato. */
 
@@ -120,7 +121,7 @@ export function pendingOtpTransfer(overrides: Partial<Transfer> = {}): Transfer 
   });
 }
 
-export function problem(code: Problem['code'], overrides: Partial<Problem> = {}): Problem {
+export function problem(code: ProblemCode, overrides: Partial<ActionProblem> = {}): ActionProblem {
   return {
     type: `/problems/${code.toLowerCase().replace(/_/g, '-')}`,
     title: code,

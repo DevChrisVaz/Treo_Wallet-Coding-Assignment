@@ -23,7 +23,7 @@
 
 - [x] 4.1 [web] Acciones `login` y `logout` (crear sesión y cookie; revocar en la API y borrar localmente aunque la API falle); pruebas (WEB-01, WEB-05, WEB-12)
 - [x] 4.2 [web] Acciones `register`, `verifyEmail` y `resendVerification`; `verifyEmail` crea la sesión con los tokens recibidos; pruebas (WEB-11)
-- [ ] 4.3 [web] Pantalla de inicio de sesión con mensaje genérico ante `INVALID_CREDENTIALS`, paso a verificación ante `EMAIL_NOT_VERIFIED` y espera según `Retry-After`; pruebas (WEB-12)
+- [x] 4.3 [web] Pantalla de inicio de sesión con mensaje genérico ante `INVALID_CREDENTIALS`, paso a verificación ante `EMAIL_NOT_VERIFIED` y espera según `Retry-After`; pruebas (WEB-12)
 - [ ] 4.4 [web] Pantalla de registro con los validadores del contrato (incluido el dígito verificador de la CURP) y mensaje genérico tras enviar; pruebas (WEB-11)
 - [ ] 4.5 [web] Pantalla de verificación de correo con captura del código, intentos restantes y reenvío; pruebas (WEB-11)
 - [ ] 4.6 [web] Layout protegido del grupo `(app)` con redirección a `/login?next=…`, saneamiento de `next` (solo rutas relativas) y botón "Cerrar sesión"; pruebas (WEB-05, WEB-22)
