@@ -19,6 +19,9 @@ export interface HttpAppOptions {
 export function createHttpApp(options: HttpAppOptions): Express {
   const app = express();
   app.disable('x-powered-by');
+  // X-Forwarded-For solo cuenta si la conexión viene de un proxy de confianza (BFF o ALB); la IP
+  // resultante es la que usan el rate limiting y la auditoría (PLT-07).
+  app.set('trust proxy', [...options.trustedProxies]);
   app.use(requestContext);
   app.use(requestLogger(options.logger));
   // Solo objetos y arreglos JSON, con un tamaño acotado; lo demás es 400 MALFORMED_REQUEST.
