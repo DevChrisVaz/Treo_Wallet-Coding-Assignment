@@ -33,8 +33,9 @@ async function schemaSnapshot(): Promise<string[]> {
        UNION ALL
        SELECT 'index ' || indexname || ' ' || indexdef FROM pg_indexes WHERE schemaname = 'app'
        UNION ALL
-       SELECT 'trigger ' || tgname || ' ' || pg_get_triggerdef(oid) FROM pg_trigger
-        WHERE NOT tgisinternal AND tgrelid::regclass::text LIKE 'app.%'
+       SELECT 'trigger ' || t.tgname || ' ' || pg_get_triggerdef(t.oid)
+         FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
+        WHERE NOT t.tgisinternal AND c.relnamespace = 'app'::regnamespace
        ORDER BY 1`,
     );
     return rows.map((row) => row.item);
@@ -63,9 +64,10 @@ describe('PLT-04 nombres de constraints e índices', () => {
       expect(badIndexes).toEqual([]);
 
       const triggers = await client.query<{ name: string }>(
-        `SELECT tgname AS name FROM pg_trigger
-          WHERE NOT tgisinternal AND tgrelid::regclass::text LIKE 'app.%'`,
+        `SELECT t.tgname AS name FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
+          WHERE NOT t.tgisinternal AND c.relnamespace = 'app'::regnamespace`,
       );
+      expect(triggers.rows.length).toBeGreaterThanOrEqual(2);
       expect(triggers.rows.filter((row) => !row.name.startsWith('tg_'))).toEqual([]);
       expect(constraints.rows.length).toBeGreaterThan(10);
     });
