@@ -29,5 +29,11 @@ export function createTransferTransport(api: ApiClient): TransferTransport {
       });
       return required(data);
     },
+    async resend(transferId) {
+      const { data } = await api.POST('/transfers/{transferId}/otp/resend', {
+        params: { path: { transferId } },
+      });
+      return required(data);
+    },
   };
 }

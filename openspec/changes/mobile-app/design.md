@@ -229,6 +229,7 @@ El change `design-system` se escribió después de esta especificación y fija l
 | MOB-01 | (correo sin verificar) | "Confirma tu correo con el código que te enviamos. La verificación se completa en la web de TreoWallet." (texto del paquete más la indicación de la web) |
 | MOB-03 | "Tu sesión expiró" | "Cerramos tu sesión por seguridad. Inicia sesión de nuevo." |
 | MOB-06 | Salida "-$150.00", entrada "$25,000.00" | Salida "−$150.00" (U+2212, tinta) y entrada "+$25,000.00" (verde), convención de DSG-09 |
+| MOB-12 | "Código incorrecto, te queda 1 intento" | "El código no es correcto. Te queda 1 intento." |
 | MOB-08 | "Máximo 2 decimales" | "El monto admite máximo 2 decimales" (mensaje de `amountInput` del contrato, igual que en la web) |
 | MOB-08 | "la referencia solo admite de 1 a 7 dígitos" | "La referencia solo admite dígitos" (mensaje de `reference` del contrato; la ayuda del campo dice "De 1 a 7 dígitos.") |
 

@@ -195,7 +195,7 @@ Cuando la transferencia queda en `PENDING_OTP`, la app SHALL pedir el código de
 
 #### Scenario: Código incorrecto
 - **WHEN** la confirmación responde `422` con `code` `OTP_INVALID` y `attemptsRemaining` igual a 1
-- **THEN** la app muestra "Código incorrecto, te queda 1 intento" y conserva la pantalla del código
+- **THEN** la app muestra "El código no es correcto. Te queda 1 intento." (mensaje de `OTP_INVALID` del paquete de diseño más los intentos) y conserva la pantalla del código
 
 #### Scenario: Intentos agotados
 - **WHEN** la confirmación responde `422` con `code` `OTP_ATTEMPTS_EXHAUSTED`

@@ -16,6 +16,7 @@ import {
   NetworkError,
   ProblemError,
   transferForm,
+  type OtpChallenge,
   type Transfer,
 } from '@devchrisvaz/wallet-contract';
 import { randomUUID } from 'expo-crypto';
@@ -41,6 +42,7 @@ export interface CreateResult {
 export interface TransferTransport {
   create(key: string, payload: string): Promise<CreateResult>;
   confirm(transferId: string, otp: string): Promise<Transfer>;
+  resend(transferId: string): Promise<OtpChallenge>;
 }
 
 /** Cambios de conectividad (NetInfo). El primer aviso trae el estado actual. */
@@ -62,7 +64,20 @@ export type AttemptState =
   | ({ status: 'rateLimited'; retryAfterSeconds: number | undefined } & Frozen)
   | ({ status: 'uncertain' } & Frozen)
   | { status: 'completed'; transfer: Transfer; replayed: boolean }
-  | { status: 'pendingOtp'; transfer: Transfer }
+  | {
+      status: 'pendingOtp';
+      transfer: Transfer;
+      /** Error de la última confirmación (código incorrecto, 429...). */
+      otpError?: ProblemError | undefined;
+      resending?: boolean;
+      /** Error del último reenvío (por ejemplo, `RESEND_LIMIT_REACHED`). */
+      resendError?: unknown;
+    }
+  | { status: 'confirmingOtp'; transfer: Transfer; code: string; retries: number }
+  | { status: 'waitingOtpRetry'; transfer: Transfer; code: string; retry: number; delayMs: number }
+  | { status: 'otpUncertain'; transfer: Transfer; code: string }
+  | { status: 'failed'; transfer: Transfer; error: ProblemError }
+  | { status: 'expired'; transfer: Transfer; error: ProblemError }
   | ({ status: 'rejected'; error: ProblemError } & Frozen)
   | ({ status: 'error'; error: ProblemError } & Frozen);
 
@@ -89,6 +104,13 @@ export function retryDelay(retry: number, random: () => number = Math.random): n
 
 /** Rechazos de negocio al crear: la transferencia queda `REJECTED` y se puede corregir. */
 const REJECTION_CODES = new Set(['INSUFFICIENT_FUNDS', 'DAILY_LIMIT_EXCEEDED']);
+
+/** Fallas definitivas al confirmar: la transferencia queda `FAILED`. */
+const CONFIRM_FAILURE_CODES = new Set([
+  'OTP_ATTEMPTS_EXHAUSTED',
+  'INSUFFICIENT_FUNDS',
+  'DAILY_LIMIT_EXCEEDED',
+]);
 
 export function isRetryable(error: unknown): boolean {
   if (error instanceof NetworkError) return true;
@@ -194,13 +216,94 @@ export class TransferAttempt {
   }
 
   /**
-   * Reintento manual con la misma llave y el mismo payload (MOB-11): desde el estado incierto (la
-   * transferencia pudo haberse creado) o tras un `429`. Vuelve a aplicar la política automática.
+   * Reintento manual (MOB-11): desde el estado incierto (la transferencia pudo haberse creado) o
+   * tras un `429`, con la misma llave y el mismo payload; desde la confirmación incierta, con el
+   * mismo código. Vuelve a aplicar la política automática.
    */
   async retry(): Promise<void> {
     const current = this.state;
+    if (current.status === 'otpUncertain') {
+      await this.sendConfirmation(current.transfer, current.code, 0);
+      return;
+    }
     if (current.status !== 'uncertain' && current.status !== 'rateLimited') return;
     await this.send(frozenOf(current), 0);
+  }
+
+  /**
+   * Confirma con el código de 6 dígitos (MOB-12). La API la trata como idempotente por estado, así
+   * que se reintenta igual que la creación, con el mismo código.
+   */
+  async confirmOtp(code: string): Promise<void> {
+    const current = this.state;
+    if (current.status !== 'pendingOtp' || current.resending) return;
+    await this.sendConfirmation(current.transfer, code, 0);
+  }
+
+  /** Reenvía el código; el reto nuevo reinicia los intentos y el vencimiento. */
+  async resendOtp(): Promise<void> {
+    const current = this.state;
+    if (current.status !== 'pendingOtp' || current.resending) return;
+    const { transfer } = current;
+    this.setState({ status: 'pendingOtp', transfer, resending: true });
+    try {
+      const otp = await this.transport.resend(transfer.id);
+      this.setState({ status: 'pendingOtp', transfer: { ...transfer, otp } });
+    } catch (error) {
+      if (error instanceof ProblemError && error.code === 'TRANSFER_EXPIRED') {
+        this.setState({ status: 'expired', transfer, error });
+        return;
+      }
+      const exhausted = error instanceof ProblemError && error.code === 'RESEND_LIMIT_REACHED';
+      const otp =
+        transfer.otp && exhausted ? { ...transfer.otp, resendsRemaining: 0 } : transfer.otp;
+      this.setState({ status: 'pendingOtp', transfer: { ...transfer, otp }, resendError: error });
+    }
+  }
+
+  /** Tras una falla o un vencimiento, vuelve a la captura para un intento nuevo (llave nueva). */
+  restart(): void {
+    if (this.state.status === 'failed' || this.state.status === 'expired') {
+      this.setState({ status: 'editing' });
+    }
+  }
+
+  private async sendConfirmation(transfer: Transfer, code: string, retries: number): Promise<void> {
+    this.dispose();
+    this.setState({ status: 'confirmingOtp', transfer, code, retries });
+    try {
+      this.settle(await this.transport.confirm(transfer.id, code), false);
+    } catch (error) {
+      this.failConfirmation(transfer, code, error, retries);
+    }
+  }
+
+  private failConfirmation(transfer: Transfer, code: string, error: unknown, retries: number) {
+    if (isRetryable(error) && retries < MAX_RETRIES) {
+      const retry = retries + 1;
+      const delayMs = retryDelay(retry, this.random);
+      this.setState({ status: 'waitingOtpRetry', transfer, code, retry, delayMs });
+      this.waitThenRun(delayMs, () => void this.sendConfirmation(transfer, code, retry));
+    } else if (isRetryable(error) || !(error instanceof ProblemError)) {
+      this.setState({ status: 'otpUncertain', transfer, code });
+    } else if (error.code === 'OTP_INVALID') {
+      const otp = transfer.otp && {
+        ...transfer.otp,
+        attemptsRemaining: error.attemptsRemaining ?? 0,
+      };
+      this.setState({ status: 'pendingOtp', transfer: { ...transfer, otp }, otpError: error });
+    } else if (CONFIRM_FAILURE_CODES.has(error.code)) {
+      this.setState({ status: 'failed', transfer, error });
+    } else if (
+      error.code === 'TRANSFER_EXPIRED' ||
+      (error.code === 'TRANSFER_NOT_PENDING' && error.transferStatus === 'EXPIRED')
+    ) {
+      this.setState({ status: 'expired', transfer, error });
+    } else if (error.code === 'TRANSFER_NOT_PENDING') {
+      this.setState({ status: 'failed', transfer, error });
+    } else {
+      this.setState({ status: 'pendingOtp', transfer, otpError: error });
+    }
   }
 
   private async send(frozen: Frozen, retries: number): Promise<void> {

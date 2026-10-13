@@ -70,7 +70,11 @@ export function fakeTransport() {
   const transport: TransferTransport & {
     create: jest.Mock;
     confirm: jest.Mock;
+    resend: jest.Mock;
   } = {
+    resend: jest.fn(async () => {
+      throw new Error('Sin respuesta simulada para resend');
+    }),
     create: jest.fn(async () => {
       const next = createReplies.length > 1 ? createReplies.shift() : createReplies[0];
       if (!next) throw new Error('Sin respuesta simulada para create');

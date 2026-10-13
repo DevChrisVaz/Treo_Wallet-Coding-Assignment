@@ -11,6 +11,8 @@ import { theme } from '@/theme';
 
 import { FormView, type FormValues } from './form-view';
 import { AttemptActions } from './attempt-actions';
+import { OtpView } from './otp-view';
+import { OutcomeView } from './outcome-view';
 import { ReviewView } from './review-view';
 import type { AttemptState } from './transfer-attempt';
 import { useTransferAttempt } from './use-transfer-attempt';
@@ -25,6 +27,11 @@ const TITLES: Record<AttemptState['status'], string> = {
   rejected: 'Transferencia rechazada',
   error: 'No se pudo enviar',
   pendingOtp: 'Confirma con tu código',
+  confirmingOtp: 'Confirma con tu código',
+  waitingOtpRetry: 'Confirma con tu código',
+  otpUncertain: 'Estado sin confirmar',
+  failed: 'La transferencia no se realizó',
+  expired: 'El código venció',
   completed: 'Transferencia enviada',
 };
 
@@ -100,6 +107,15 @@ export function TransferFlowScreen() {
         >
           <AttemptActions attempt={attempt} state={state} />
         </ReviewView>
+      ) : state.status === 'completed' ||
+        state.status === 'failed' ||
+        state.status === 'expired' ? (
+        <OutcomeView attempt={attempt} state={state} />
+      ) : state.status === 'pendingOtp' ||
+        state.status === 'confirmingOtp' ||
+        state.status === 'waitingOtpRetry' ||
+        state.status === 'otpUncertain' ? (
+        <OtpView attempt={attempt} state={state} />
       ) : null}
     </Screen>
   );
