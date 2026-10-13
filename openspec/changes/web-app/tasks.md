@@ -40,7 +40,7 @@
 
 ## 7. Beneficiarios
 
-- [ ] 7.1 [web] Acción `createBeneficiary` con validación del contrato y sesión obligatoria; pruebas (WEB-07, WEB-15)
+- [x] 7.1 [web] Acción `createBeneficiary` con validación del contrato y sesión obligatoria; pruebas (WEB-07, WEB-15)
 - [ ] 7.2 [web] Pantallas de lista y alta con validación de formato y dígito verificador de la CLABE, mensajes para `CLABE_INVALID`, `CLABE_NOT_IN_PLATFORM`, `BENEFICIARY_IS_OWN_ACCOUNT` y `BENEFICIARY_CONFLICT`, e invalidación de la lista; estados; pruebas (WEB-15, WEB-20)
 
 ## 8. Transferencias
