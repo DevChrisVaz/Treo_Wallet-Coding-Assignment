@@ -233,7 +233,7 @@ La app SHALL decidir el mensaje que muestra a partir del `code` del problema RFC
 
 #### Scenario: Saldo insuficiente
 - **WHEN** la API responde `422` con `code` `INSUFFICIENT_FUNDS`
-- **THEN** la app muestra "Saldo insuficiente para esta transferencia"
+- **THEN** la app muestra "No tienes saldo suficiente para esta transferencia." (mensaje de `INSUFFICIENT_FUNDS` del paquete de diseño, DSG-12)
 
 #### Scenario: Límite diario excedido
 - **WHEN** la API responde `422` con `code` `DAILY_LIMIT_EXCEEDED` y `remaining` igual a `"5000.00"`
