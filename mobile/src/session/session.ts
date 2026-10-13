@@ -22,6 +22,8 @@ type Listener = () => void;
 
 export class Session {
   private accessToken: string | undefined;
+  /** Copia en memoria del refresh vigente, para renovar aunque el almacenamiento seguro falle. */
+  private refreshToken: string | undefined;
   private snapshot: SessionSnapshot = { status: 'unknown' };
   private readonly listeners = new Set<Listener>();
 
@@ -39,7 +41,9 @@ export class Session {
     };
   };
 
+  /** Refresh vigente: el de memoria o, al arrancar, el del almacenamiento seguro. */
   async readRefreshToken(): Promise<string | null> {
+    if (this.refreshToken) return this.refreshToken;
     try {
       return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY, SECURE_OPTIONS);
     } catch {
@@ -66,12 +70,14 @@ export class Session {
       // El refresh anterior ya se usó: reutilizarlo al arrancar revocaría la familia en la API.
       await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY, SECURE_OPTIONS).catch(() => undefined);
     }
+    this.refreshToken = tokens.refreshToken;
     this.accessToken = tokens.accessToken;
   }
 
   /** Borra los tokens locales (memoria y almacenamiento seguro). */
   async clear(reason: SignOutReason): Promise<void> {
     this.accessToken = undefined;
+    this.refreshToken = undefined;
     try {
       await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY, SECURE_OPTIONS);
     } catch {
