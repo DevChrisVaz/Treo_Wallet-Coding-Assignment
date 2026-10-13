@@ -25,7 +25,7 @@
 - [x] 3.4 [api] Implementar el middleware de validación con Zod en modo estricto: `400 MALFORMED_REQUEST` para JSON inválido y `422 VALIDATION_FAILED` con `errors[]` y JSON Pointers; pruebas de campo inválido y de campo no declarado (PLT-02)
 - [x] 3.5 [api] Implementar el traductor de errores de PostgreSQL por nombre de constraint (registro extensible para `api-ledger`; `40P01`, `40001` y `42501` a 500 con log de error); pruebas unitarias (PLT-04)
 - [x] 3.6 [api] Configurar `trust proxy` desde `TRUSTED_PROXIES`; pruebas de `X-Forwarded-For` ignorado desde un cliente directo y respetado desde un proxy de confianza (PLT-07)
-- [ ] 3.7 [api] Implementar la infraestructura de rate limiting en memoria con respuesta `429 RATE_LIMITED` y `Retry-After`; pruebas de límite superado y de reinicio de la ventana con reloj controlado (PLT-09)
+- [x] 3.7 [api] Implementar la infraestructura de rate limiting en memoria con respuesta `429 RATE_LIMITED` y `Retry-After`; pruebas de límite superado y de reinicio de la ventana con reloj controlado (PLT-09)
 - [ ] 3.8 [api] Implementar `GET /health` sin autenticación; prueba (PLT-10)
 - [ ] 3.9 [api] Servir `/docs` y `/openapi.yaml` desde el paquete del contrato solo fuera de producción; pruebas en desarrollo y en producción (PLT-11)
 - [ ] 3.10 [api] Crear el helper `expectToMatchContract(res, operationId)` con Ajv 2020-12 y `ajv-formats` sobre el `openapi.yaml` del paquete, y usarlo en las pruebas HTTP existentes (PLT-12)
