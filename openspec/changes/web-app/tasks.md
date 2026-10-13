@@ -51,7 +51,7 @@
 - [x] 8.4 [web] Pantalla de confirmación: envío con botón deshabilitado, reintento con la misma llave ante error de red o `5xx`, manejo de `200` con `Idempotent-Replayed` y de rechazos (`INSUFFICIENT_FUNDS` con saldo disponible, `DAILY_LIMIT_EXCEEDED`, `SAME_ACCOUNT_TRANSFER`); pruebas de doble clic (WEB-16, WEB-17, WEB-19)
 - [x] 8.5 [web] Pantalla de OTP: código de 6 dígitos, intentos restantes, reenvío, `deliveryStatus` `FAILED`, `TRANSFER_EXPIRED`, `OTP_ATTEMPTS_EXHAUSTED` y revalidación fallida, con botón deshabilitado al confirmar; pruebas (WEB-18)
 - [x] 8.6 [web] Comprobante (`Receipt` con `StatusBadge`) con estado, monto, origen, destino, concepto, referencia, fecha e id, e invalidación de cuentas e historial; pruebas (WEB-16, DSG-10, DSG-11)
-- [ ] 8.7 [web] Prueba del flujo completo con Testing Library (formulario → confirmación → OTP → comprobante) y del caso de saldo insuficiente, con el módulo de acciones simulado (WEB-16, WEB-17, WEB-18)
+- [x] 8.7 [web] Prueba del flujo completo con Testing Library (formulario → confirmación → OTP → comprobante) y del caso de saldo insuficiente, con el módulo de acciones simulado (WEB-16, WEB-17, WEB-18)
 
 ## 9. Accesibilidad
 
