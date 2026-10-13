@@ -1,5 +1,6 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -47,6 +48,7 @@ export function AppNav() {
 /** Cierra la sesión (WEB-05); aunque la acción falle, lleva al inicio de sesión. */
 export function LogoutButton() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [pending, setPending] = useState(false);
 
   async function onLogout() {
@@ -57,6 +59,8 @@ export function LogoutButton() {
       // La cookie y la sesión se borran en el servidor; si no hubo respuesta, la próxima
       // petición sin sesión válida también termina en el inicio de sesión.
     }
+    // Los datos de la sesión no deben quedar en la caché del navegador.
+    queryClient.clear();
     router.replace('/login');
     router.refresh();
   }

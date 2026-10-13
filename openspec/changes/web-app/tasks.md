@@ -31,7 +31,7 @@
 ## 5. Base del cliente
 
 - [x] 5.1 [web] `unwrap`, `ProblemError` y mensajes con `problemMessage` del paquete de diseño, con comprobación de exhaustividad contra `ProblemCode` del contrato y uso de extensiones (`attemptsRemaining`, `remaining`, `requestId`); pruebas de mensajes (WEB-08, WEB-19, DSG-12)
-- [ ] 5.2 [web] Proveedor de TanStack Query, claves de consulta, manejo de `401` en lecturas y componentes compartidos de carga, vacío y error con "Reintentar" (WEB-20, WEB-22)
+- [x] 5.2 [web] Proveedor de TanStack Query, claves de consulta, manejo de `401` en lecturas y componentes compartidos de carga, vacío y error con "Reintentar" (WEB-20, WEB-22)
 
 ## 6. Cuentas e historial
 

@@ -22,6 +22,7 @@
     "@devchrisvaz/wallet-contract": "file:../contract",
     "@devchrisvaz/wallet-design-tokens": "file:../design-tokens",
     "@hookform/resolvers": "^5.9.1",
+    "@tanstack/react-query": "^5.104.2",
     "next": "^16.4.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
