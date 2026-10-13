@@ -2,12 +2,14 @@ import type { RequestHandler } from 'express';
 import { routeTable } from '../../../../platform/http/auth.js';
 import { parseBody } from '../../../../platform/http/validation.js';
 import type { Login } from '../../application/login.js';
+import type { Logout } from '../../application/logout.js';
 import type { RefreshSession } from '../../application/refresh-session.js';
 import type { RegisterUser } from '../../application/register-user.js';
 import type { ResendVerification } from '../../application/resend-verification.js';
 import type { VerifyEmail } from '../../application/verify-email.js';
 import {
   loginRequestSchema,
+  logoutRequestSchema,
   refreshRequestSchema,
   registerRequestSchema,
   resendVerificationRequestSchema,
@@ -25,6 +27,7 @@ export interface IdentityHandlers {
   readonly resendVerification: ResendVerification;
   readonly refreshSession: RefreshSession;
   readonly login: Login;
+  readonly logout: Logout;
 }
 
 /**
@@ -59,6 +62,12 @@ export function identityRoutes(handlers: IdentityHandlers, authenticateRequest: 
   routes.public.post('/auth/login', async (req, res) => {
     const input = parseBody(loginRequestSchema, req.body);
     res.status(200).json(await handlers.login.execute(input));
+  });
+
+  routes.public.post('/auth/logout', async (req, res) => {
+    const input = parseBody(logoutRequestSchema, req.body);
+    await handlers.logout.execute(input);
+    res.status(204).end();
   });
 
   return routes;

@@ -5,6 +5,7 @@ import { PgAuditWriter } from './modules/audit/infrastructure/pg-audit-writer.js
 import { OneTimeCodeService } from './modules/identity/application/one-time-codes.js';
 import type { PasswordHasher } from './modules/identity/application/ports.js';
 import { Login } from './modules/identity/application/login.js';
+import { Logout } from './modules/identity/application/logout.js';
 import { RefreshSession } from './modules/identity/application/refresh-session.js';
 import { RegisterUser } from './modules/identity/application/register-user.js';
 import { ResendVerification } from './modules/identity/application/resend-verification.js';
@@ -66,6 +67,7 @@ export interface Container {
     readonly resendVerification: ResendVerification;
     readonly refreshSession: RefreshSession;
     readonly login: Login;
+    readonly logout: Logout;
   };
 }
 
@@ -147,6 +149,7 @@ export async function createContainer(
         clock,
       }),
       login: new Login({ transactions, users, hasher, sessions, accessTokens, audit, clock }),
+      logout: new Logout({ transactions, store: refreshTokens, audit, clock }),
     },
   };
 }
