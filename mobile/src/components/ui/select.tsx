@@ -24,6 +24,28 @@ function optionName(option: SelectOption): string {
   return option.description ? `${option.label}, ${option.description}` : option.label;
 }
 
+interface OptionRowProps {
+  option: SelectOption;
+  selected?: boolean;
+  onPress: () => void;
+}
+
+/** Opción de la lista del selector; también forma listas de elección a pantalla completa. */
+export function OptionRow({ option, selected = false, onPress }: OptionRowProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={optionName(option)}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => [styles.option, (pressed || selected) && styles.optionActive]}
+    >
+      <Text style={styles.value}>{option.label}</Text>
+      {option.description ? <Text style={styles.description}>{option.description}</Text> : null}
+    </Pressable>
+  );
+}
+
 /** Selector de cuenta o beneficiario: el campo abre la lista en una hoja inferior (DSG-11). */
 export function Select({ label, placeholder, options, value, onChange, error }: SelectProps) {
   const [open, setOpen] = useState(false);
@@ -68,30 +90,17 @@ export function Select({ label, placeholder, options, value, onChange, error }: 
               {label}
             </Text>
             <ScrollView>
-              {options.map((option) => {
-                const isSelected = option.value === value;
-                return (
-                  <Pressable
-                    key={option.value}
-                    accessibilityRole="button"
-                    accessibilityLabel={optionName(option)}
-                    accessibilityState={{ selected: isSelected }}
-                    onPress={() => {
-                      onChange(option.value);
-                      setOpen(false);
-                    }}
-                    style={({ pressed }) => [
-                      styles.option,
-                      (pressed || isSelected) && styles.optionActive,
-                    ]}
-                  >
-                    <Text style={styles.value}>{option.label}</Text>
-                    {option.description ? (
-                      <Text style={styles.description}>{option.description}</Text>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
+              {options.map((option) => (
+                <OptionRow
+                  key={option.value}
+                  option={option}
+                  selected={option.value === value}
+                  onPress={() => {
+                    onChange(option.value);
+                    setOpen(false);
+                  }}
+                />
+              ))}
             </ScrollView>
           </SafeAreaView>
         </View>

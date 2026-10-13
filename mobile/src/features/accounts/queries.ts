@@ -35,6 +35,14 @@ export function useRecentMovements(accountId: string) {
   });
 }
 
+export function useBeneficiaries() {
+  const { api } = useServices();
+  return useQuery({
+    queryKey: queryKeys.beneficiaries,
+    queryFn: async ({ signal }) => required((await api.GET('/beneficiaries', { signal })).data),
+  });
+}
+
 export function useAccountsOverview() {
   const { api } = useServices();
   return useQuery({
