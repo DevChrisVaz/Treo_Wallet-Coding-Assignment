@@ -39,7 +39,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint:contract": "redocly lint openapi.yaml"
+    "lint:contract": "redocly lint openapi.yaml",
+    "check:version": "node scripts/check-version.mjs"
   },
   "dependencies": {
     "openapi-fetch": "^0.17.0"
@@ -52,12 +53,14 @@
     "@redocly/cli": "^2.63.0",
     "@types/node": "^24.0.0",
     "eslint": "^10.12.0",
+    "globals": "^17.13.0",
     "prettier": "^3.9.10",
     "tsup": "^8.5.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.71.2",
     "vite": "^8.0.0",
     "vitest": "^5.0.4",
+    "yaml": "^2.9.1",
     "zod": "^4.6.7"
   }
 }
