@@ -31,3 +31,33 @@ describe('TRF-08 valor Money', () => {
     }
   });
 });
+
+/** Vectores de la exploración: aceptados con sus centavos, o rechazados con su código. */
+const vectors: [string, bigint | string][] = [
+  ['1250.5', 125050n],
+  ['1250.50', 125050n],
+  ['0.01', 1n],
+  ['999999999999.99', 99999999999999n],
+  ['100.005', 'TOO_MANY_DECIMALS'],
+  ['0.00', 'NOT_POSITIVE'],
+  ['0', 'NOT_POSITIVE'],
+  ['-5.00', 'INVALID_FORMAT'],
+  ['1,250.50', 'INVALID_FORMAT'],
+  ['1e3', 'INVALID_FORMAT'],
+  [' 10.00', 'INVALID_FORMAT'],
+  ['.50', 'INVALID_FORMAT'],
+  ['007.00', 'INVALID_FORMAT'],
+  ['1234567890123.00', 'TOO_LARGE'],
+];
+
+describe('TRF-08 vectores de Money.parse', () => {
+  it.each(vectors)('TRF-08 "%s" → %s', (input, expected) => {
+    if (typeof expected === 'bigint') {
+      expect(Money.parse(input).cents).toBe(expected);
+    } else {
+      expect(() => Money.parse(input)).toThrow(
+        expect.objectContaining({ name: 'MoneyParseError', code: expected }),
+      );
+    }
+  });
+});
