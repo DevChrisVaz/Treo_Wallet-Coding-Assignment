@@ -13,7 +13,7 @@
 - [x] 2.2 [api] Migración de `transfers` con todas sus constraints con nombre (`uq_transfers_user_idempotency_key`, `ck_transfers_distinct_accounts`, `ck_transfers_amount_positive`, `ck_transfers_reference_range`, `ck_transfers_concept_trimmed` y las de consistencia por tipo y estado), grants `SELECT, INSERT, UPDATE` y `down` (TRF-02, TRF-07, TRF-09)
 - [x] 2.3 [api] Migración de `ledger_entries` con `uq_ledger_entries_transfer_account`, `ck_ledger_entries_amount_nonzero`, `ck_ledger_entries_type`, índices `ix_ledger_entries_account_created` e `ix_ledger_entries_account_type_created`, grants `SELECT, INSERT` y `down` (TRF-21, HIS-09)
 - [x] 2.4 [api] Triggers diferidos `tg_ledger_entries_zero_sum` (2 asientos, suma 0, transferencia `COMPLETED`) y `tg_transfers_completed_has_entries`, lanzando `check_violation` con el nombre de la constraint (TRF-21)
-- [ ] 2.5 [api] Triggers `tg_ledger_entries_immutable` y `tg_ledger_entries_no_truncate` (TRF-23)
+- [x] 2.5 [api] Triggers `tg_ledger_entries_immutable` y `tg_ledger_entries_no_truncate` (TRF-23)
 - [ ] 2.6 [api] Migración de `daily_transfer_usage` con `pk_daily_transfer_usage`, `ck_daily_transfer_usage_within_limit`, `ck_daily_transfer_usage_non_negative`, grants `SELECT, INSERT, UPDATE` y `down` (TRF-11, TRF-13)
 - [ ] 2.7 [api] Pruebas de integración de la base: inserción directa de asientos desbalanceados rechazada al `COMMIT`, transferencia `COMPLETED` sin asientos rechazada, `ck_transfers_distinct_accounts` y `ck_beneficiaries_clabe_valid` activos (TRF-21, TRF-07, BEN-08)
 - [ ] 2.8 [api] Pruebas de privilegios: `UPDATE`, `DELETE` y `TRUNCATE` sobre `ledger_entries` como `wallet_app` fallan con `42501`, y `DELETE` como dueño falla por el trigger (TRF-23)
