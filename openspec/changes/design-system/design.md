@@ -55,7 +55,7 @@ Ver `proposal.md` (Why). Restricciones que dan forma al diseño:
 | Acción deshabilitada | `action.disabled` | `action-disabled` | `#DCE2DE` | |
 | Texto deshabilitado | `text.disabled` | `fg-disabled` | `#4B5A50` | ≥ 4.5 sobre `action.disabled` (lo verifica la prueba) |
 | Borde | `border.default` | `border` | `#DCE2DE` | decorativo |
-| Borde de campo | `border.input` | `border-input` | `#8A958D` | 3.10 (componente de interfaz) |
+| Borde de campo | `border.input` | `border-input` | `#7F8A82` | 3.58 / 3.29 sobre `surface.subtle` / 3.26 sobre `surface.brand` (componente de interfaz) |
 | Foco | `border.focus` | `focus` | `#1C4B42` | 9.84 |
 | Acento de marca | `accent.brand` | `accent` | `#31C454` | **solo decorativo**: 2.29 como texto |
 | Éxito | `status.success.fg` / `.bg` | `success` / `success-soft` | `#1E7B3A` / `#EDF7ED` | 5.32 / 4.84 |
@@ -70,7 +70,7 @@ Ajustes frente a Treo y por qué:
 - `#31C454` falla como texto (2.29:1): queda solo como acento (íconos, barra del límite diario, indicadores).
 - `#7E7E7E` falla AA (4.06:1): se reemplaza por `#4B5A50` y `#5F6B63`.
 - Treo no define colores de estado: se agregan éxito, aviso, error, información y neutro, armonizados con la paleta.
-- El borde de Treo (negro al 10 %) no llega a 3:1: el borde de los campos es `#8A958D`.
+- El borde de Treo (negro al 10 %) no llega a 3:1: el borde de los campos es `#7F8A82`. Un primer valor, `#8A958D`, cumplía sobre blanco (3.10) pero no sobre las superficies arena y verde (2.85 y 2.83); lo detectó la prueba de contraste.
 - El foco no usa el lima: sobre blanco no se distingue. Usa `#1C4B42`.
 - Sobre el lima solo va texto `#1C4B42`: el blanco sobre lima no llega a 2:1.
 

@@ -15,7 +15,7 @@ export const palette = {
   // Extensiones accesibles
   slate700: '#4B5A50', // reemplaza al #7E7E7E de Treo, que no llega a 4.5:1
   slate600: '#5F6B63',
-  slate400: '#8A958D', // borde de campos, 3:1
+  slate400: '#7F8A82', // borde de campos: ≥ 3:1 sobre blanco, arena y verde suave
   slate200: '#DCE2DE',
   success700: '#1E7B3A',
   warning700: '#8A5A00',
