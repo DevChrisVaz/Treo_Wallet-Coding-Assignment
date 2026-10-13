@@ -122,7 +122,7 @@ La app SHALL pedir la cuenta de origen, el monto, el concepto y la referencia, y
 
 #### Scenario: Monto con más de dos decimales (redondeo)
 - **WHEN** el usuario captura el monto `100.005`
-- **THEN** la app muestra el error "Máximo 2 decimales" junto al campo
+- **THEN** la app muestra el error "El monto admite máximo 2 decimales" (mensaje del validador del contrato) junto al campo
 - **AND** no envía la transferencia ni redondea el monto a `100.01`
 
 #### Scenario: Monto válido sin centavos
@@ -135,7 +135,7 @@ La app SHALL pedir la cuenta de origen, el monto, el concepto y la referencia, y
 
 #### Scenario: Referencia no numérica
 - **WHEN** el usuario captura la referencia `12A45`
-- **THEN** la app muestra un error indicando que la referencia solo admite de 1 a 7 dígitos
+- **THEN** la app muestra el error "La referencia solo admite dígitos" (mensaje del validador del contrato; la ayuda del campo indica de 1 a 7 dígitos)
 
 ### Requirement: MOB-09 Confirmación previa y envío único
 Antes de enviar, la app SHALL mostrar un resumen con la cuenta de origen, el beneficiario, el monto, el concepto, la referencia y si se pedirá un código por correo. La app MUST generar una sola `Idempotency-Key` por intento de transferencia y MUST deshabilitar el botón de enviar mientras la petición está en curso. Si el usuario vuelve a editar los datos, el siguiente envío MUST usar una llave nueva.

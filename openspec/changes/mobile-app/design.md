@@ -229,6 +229,8 @@ El change `design-system` se escribió después de esta especificación y fija l
 | MOB-01 | (correo sin verificar) | "Confirma tu correo con el código que te enviamos. La verificación se completa en la web de TreoWallet." (texto del paquete más la indicación de la web) |
 | MOB-03 | "Tu sesión expiró" | "Cerramos tu sesión por seguridad. Inicia sesión de nuevo." |
 | MOB-06 | Salida "-$150.00", entrada "$25,000.00" | Salida "−$150.00" (U+2212, tinta) y entrada "+$25,000.00" (verde), convención de DSG-09 |
+| MOB-08 | "Máximo 2 decimales" | "El monto admite máximo 2 decimales" (mensaje de `amountInput` del contrato, igual que en la web) |
+| MOB-08 | "la referencia solo admite de 1 a 7 dígitos" | "La referencia solo admite dígitos" (mensaje de `reference` del contrato; la ayuda del campo dice "De 1 a 7 dígitos.") |
 
 Los mensajes se deciden con un `switch` exhaustivo sobre `ProblemCode` (comprobado con una mutación de tipos: quitar un `case` rompe `tsc`) y `problemMessages satisfies Record<ProblemCode, string>` comprueba que el paquete tenga un texto para cada code. La app agrega solo los datos variables: lo que queda del límite (`remaining` con `formatMXN`), los intentos restantes y el `requestId` como "Folio para soporte" en `INTERNAL_ERROR` (un code desconocido llega como `INTERNAL_ERROR`). Sin respuesta de la API (`NetworkError`), el texto es propio de la app porque no hay `code`: "No pudimos conectar con TreoWallet. Revisa tu conexión e intenta de nuevo."
 
