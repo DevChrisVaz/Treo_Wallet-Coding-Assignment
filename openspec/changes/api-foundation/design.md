@@ -261,7 +261,7 @@ Puerto `Mailer` con un adaptador SMTP (`nodemailer`): Mailpit en local (SMTP 102
 
 ### 12. Configuración
 
-Un schema Zod sobre `process.env` se evalúa al arrancar y aborta con el nombre de la variable inválida, sin su valor: `NODE_ENV`, `HOST` (por defecto `0.0.0.0`, para que el móvil alcance la API por la red local), `PORT`, `DATABASE_URL` (rol de ejecución), `MIGRATION_DATABASE_URL`, `BOOTSTRAP_DATABASE_URL` (solo para el script), `JWT_SECRET` y `OTP_HMAC_SECRET` (al menos 32 bytes decodificados), `JWT_ISSUER`, `JWT_AUDIENCE`, `CLABE_BANK_CODE` y `CLABE_PLAZA_CODE` (3 dígitos cada uno), `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`, `TRUSTED_PROXIES`, `LOG_LEVEL`. El README incluye `.env.example` con valores de desarrollo.
+Un schema Zod sobre `process.env` se evalúa al arrancar y aborta con el nombre de la variable inválida, sin su valor: `NODE_ENV`, `HOST` (por defecto `0.0.0.0`, para que el móvil alcance la API por la red local), `PORT` (por defecto `4000`; Next.js usa el 3000 en local), `DATABASE_URL` (rol de ejecución), `MIGRATION_DATABASE_URL`, `BOOTSTRAP_DATABASE_URL` (solo para el script), `JWT_SECRET` y `OTP_HMAC_SECRET` (al menos 32 bytes decodificados), `JWT_ISSUER`, `JWT_AUDIENCE`, `CLABE_BANK_CODE` y `CLABE_PLAZA_CODE` (3 dígitos cada uno), `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`, `TRUSTED_PROXIES`, `LOG_LEVEL`. El README incluye `.env.example` con valores de desarrollo.
 
 ### 13. Documentación navegable
 
@@ -304,7 +304,7 @@ Un schema Zod sobre `process.env` se evalúa al arrancar y aborta con el nombre 
 
 ## Migration Plan
 
-Proyecto nuevo, sin datos previos. Despliegue local: `docker compose up -d` → `db:bootstrap` → `db:migrate` → `db:seed` → `dev`. Reversión: cada migración tiene `down`, verificado en CI con ida-vuelta-ida.
+Proyecto nuevo, sin datos previos. Despliegue local: `docker compose up -d` (PostgreSQL publicado en el puerto **5433** del host para no chocar con un PostgreSQL local en el 5432; Mailpit en 1025 y 8025; ambos configurables por variables de entorno) → `db:bootstrap` → `db:migrate` → `db:seed` → `dev`. Reversión: cada migración tiene `down`, verificado en CI con ida-vuelta-ida.
 
 ## Open Questions
 

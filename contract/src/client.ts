@@ -5,7 +5,7 @@ import type { paths } from './generated/api';
 export type ApiClient = Client<paths>;
 
 export interface ApiClientOptions {
-  /** URL base de la API, por ejemplo `http://localhost:3000`. */
+  /** URL base de la API, por ejemplo `http://localhost:4000`. */
   baseUrl: string;
   /**
    * Devuelve el access token vigente en cada petición. El cliente nunca lo guarda: el BFF lo lee

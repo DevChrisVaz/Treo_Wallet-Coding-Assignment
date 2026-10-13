@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Wallet API
-  version: 1.0.0
+  version: 1.0.1
   summary: Billetera digital en MXN con transferencias entre cuentas de la plataforma.
   description: |
     Contrato de la API (contrato primero). Es la fuente de verdad que consumen `/api`, `/web` y `/mobile`
@@ -20,7 +20,7 @@ info:
     name: Propietario (prueba técnica)
     identifier: LicenseRef-Proprietary
 servers:
-  - url: http://localhost:3000
+  - url: http://localhost:4000
     description: Desarrollo local
 tags:
   - name: health

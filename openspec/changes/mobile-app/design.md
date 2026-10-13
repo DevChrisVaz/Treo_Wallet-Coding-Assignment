@@ -178,7 +178,7 @@ La pantalla de privacidad (decisión 8) se superpone a cualquiera de estas panta
 ### 11. Configuración para desarrollo local
 
 La URL de la API se lee de `EXPO_PUBLIC_API_URL` (Expo la incorpora al bundle) y se valida al arrancar; si falta o no es una URL `http(s)`, la app muestra una pantalla de error de configuración (MOB-17). El README documenta:
-- Usar la IP de la red local del equipo (por ejemplo `http://192.168.1.50:3000`), con la API escuchando en `0.0.0.0`; en el emulador de Android, `http://10.0.2.2:3000`.
+- Usar la IP de la red local del equipo (por ejemplo `http://192.168.1.50:4000`), con la API escuchando en `0.0.0.0`; en el emulador de Android, `http://10.0.2.2:4000`.
 - Abrir la bandeja de Mailpit (`http://localhost:8025` en el equipo) para leer los OTP.
 - Usuarios del seed para la demo (Ana y Luis) y sus beneficiarios.
 

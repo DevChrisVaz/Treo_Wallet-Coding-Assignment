@@ -1,6 +1,6 @@
 extends:
   - recommended
 rules:
-  # El único servidor declarado en el contrato es el de desarrollo local (http://localhost:3000).
+  # El único servidor declarado en el contrato es el de desarrollo local (http://localhost:4000).
   # Los clientes configuran la URL de cada ambiente por su cuenta, así que esta regla no aplica.
   no-server-example.com: off

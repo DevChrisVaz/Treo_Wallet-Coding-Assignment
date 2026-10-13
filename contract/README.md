@@ -56,7 +56,7 @@ import {
 } from '@devchrisvaz/wallet-contract';
 
 const api = createApiClient({
-  baseUrl: 'http://localhost:3000',
+  baseUrl: 'http://localhost:4000',
   getAccessToken: () => session.accessToken,
 });
 const key = createIdempotencyKey(); // una vez por intento; los reintentos reutilizan la misma
