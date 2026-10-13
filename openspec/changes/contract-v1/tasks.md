@@ -27,7 +27,7 @@
 ## 4. Formato de montos
 
 - [x] 4.1 [contract] Implementar `formatMXN` con operaciones de texto (signo, agrupación de miles, 2 decimales); pruebas: `"1250.50"`, `"-150.00"`, `"0.01"` y `"9999999999999999.99"` (CTR-14)
-- [ ] 4.2 [contract] Prueba de oráculo en Node contra `Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })` con strings, y prueba estática de que `formatMXN` no usa `Number`, `parseFloat` ni `Intl` (CTR-14)
+- [x] 4.2 [contract] Prueba de oráculo en Node contra `Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })` con strings, y pruebas de comportamiento de que `formatMXN` no depende de floats (monto por encima de 2^53) ni de `Intl` (mismo resultado con `Intl` ausente). Se reemplazó la prueba estática original, que solo buscaba texto en el código fuente (CTR-14)
 
 ## 5. Build y distribución
 
