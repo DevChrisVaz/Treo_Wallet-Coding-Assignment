@@ -1,4 +1,5 @@
 import createClient, { type Client, type Middleware } from 'openapi-fetch';
+import { NetworkError, ProblemError, toProblemError } from './errors';
 import type { paths } from './generated/api';
 
 export type ApiClient = Client<paths>;
@@ -43,6 +44,21 @@ function requestIdMiddleware(getRequestId: ApiClientOptions['getRequestId']): Mi
   };
 }
 
+/**
+ * Convierte las respuestas no exitosas en `ProblemError` y los fallos sin respuesta en
+ * `NetworkError`, de modo que el consumidor distinga lo reintentable de lo definitivo.
+ */
+const errorMiddleware: Middleware = {
+  async onResponse({ response }) {
+    if (!response.ok) throw await toProblemError(response);
+    return undefined;
+  },
+  onError({ error }) {
+    if (error instanceof ProblemError) return error;
+    return new NetworkError(error);
+  },
+};
+
 /** Crea un cliente HTTP tipado por las rutas del contrato. */
 export function createApiClient(options: ApiClientOptions): ApiClient {
   const client = createClient<paths>({
@@ -51,5 +67,6 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
   });
   client.use(requestIdMiddleware(options.getRequestId));
   if (options.getAccessToken) client.use(authMiddleware(options.getAccessToken));
+  client.use(errorMiddleware);
   return client;
 }
