@@ -10,7 +10,7 @@
 
 ## 3. Datos y textos compartidos
 
-- [ ] 3.1 [design-tokens] `transferStatus`, `movementType` y `money` (signo `−` U+2212, color por dirección); pruebas de los tonos, etiquetas y direcciones de D5 (DSG-09, DSG-10)
+- [x] 3.1 [design-tokens] `transferStatus`, `movementType` y `money` (signo `−` U+2212, color por dirección); pruebas de los tonos, etiquetas y direcciones de D5 (DSG-09, DSG-10)
 - [ ] 3.2 [design-tokens] `problemMessage(code)` y la tabla de mensajes de D6, con respaldo a `INTERNAL_ERROR` para códigos desconocidos; pruebas de `INSUFFICIENT_FUNDS` y de un código desconocido (DSG-12)
 
 ## 4. Salidas por plataforma
