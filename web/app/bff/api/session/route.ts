@@ -1,4 +1,4 @@
-import { currentSession, endLocalSession } from '@/lib/server/action';
+import { currentSession, endLocalSession } from '@/lib/server/session';
 import { problemResponse } from '@/lib/server/read-proxy';
 import { requestContextFrom } from '@/lib/server/request-context';
 

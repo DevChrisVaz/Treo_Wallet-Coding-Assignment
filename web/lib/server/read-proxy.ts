@@ -1,7 +1,7 @@
 import 'server-only';
 import type { ProblemCode } from '@devchrisvaz/wallet-contract';
 import { accessTokenFor, SessionEndedError } from './api-client';
-import { endLocalSession, currentSession } from './action';
+import { currentSession, endLocalSession } from './session';
 import { serverEnv } from './env';
 import { logUnexpectedError } from './log';
 import { forwardHeaders, requestContextFrom, type RequestContext } from './request-context';

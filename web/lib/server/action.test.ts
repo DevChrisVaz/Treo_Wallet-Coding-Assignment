@@ -4,7 +4,8 @@ import { AHORRO, OVERVIEW, PRINCIPAL } from '@/test/fixtures';
 import { fakeApi, jsonResponse, problemResponse } from '@/test/support/fake-api';
 import { cookieValue, cookieWrites, resetRequest } from '@/test/support/next-headers';
 import { SESSION_ID, sessionData } from '@/test/support/session';
-import { publicAction, requireSession, sessionAction } from './action';
+import { publicAction, sessionAction } from './action';
+import { requireSession } from './session';
 import { SessionEndedError } from './api-client';
 import { sessionStore } from './session-store';
 

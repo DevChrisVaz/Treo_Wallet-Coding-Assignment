@@ -12,8 +12,8 @@ import type { ActionProblem, ActionResult } from '@/lib/action-result';
 import { publicApi, retryAfterOf, SessionEndedError, sessionApi } from './api-client';
 import { logUnexpectedError } from './log';
 import { getRequestContext, type RequestContext } from './request-context';
-import { clearSessionCookie, readSessionId } from './session-cookie';
-import { sessionStore, type SessionData } from './session-store';
+import { endLocalSession, requireSession } from './session';
+import type { SessionData } from './session-store';
 
 /*
  * Envoltorio común de las Server Actions (D4 y D5 de web-app). Cada acción es un endpoint público:
@@ -49,35 +49,6 @@ function parse<S extends Schema>(schema: S, input: unknown): Parsed<S> {
   const result = schema.safeParse(input);
   if (!result.success) throw new ValidationFailed(toFieldErrors(result.error));
   return result.data as Parsed<S>;
-}
-
-/** Sesión activa de la cookie; renueva su plazo de inactividad (WEB-03). */
-export async function currentSession(): Promise<{
-  sessionId: string;
-  session: SessionData;
-} | null> {
-  const sessionId = readSessionId(await cookies());
-  if (!sessionId) return null;
-  const store = sessionStore();
-  const session = await store.get(sessionId);
-  if (!session) return null;
-  await store.touch(sessionId, new Date());
-  return { sessionId, session };
-}
-
-/** Igual que `currentSession`, pero sin sesión falla con `UNAUTHENTICATED` (WEB-07, WEB-22). */
-export async function requireSession(): Promise<{ sessionId: string; session: SessionData }> {
-  const current = await currentSession();
-  if (!current) throw new SessionEndedError('UNAUTHENTICATED');
-  return current;
-}
-
-/** Cierra la sesión local: la elimina del servidor y borra la cookie. */
-export async function endLocalSession(jar?: CookieJar): Promise<void> {
-  const store = jar ?? (await cookies());
-  const sessionId = readSessionId(store);
-  if (sessionId) await sessionStore().delete(sessionId);
-  clearSessionCookie(store);
 }
 
 function problem(
