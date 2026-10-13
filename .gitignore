@@ -1,0 +1,39 @@
+# Dependencias y artefactos de build (todos los proyectos)
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+*.tgz
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Expo / React Native
+.expo/
+.expo-shared/
+web-build/
+ios/
+android/
+
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Logs y sistema
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Enunciado de la prueba técnica: documento de Treo, no se publica en el repositorio
+# (el nombre del archivo usa un acento descompuesto en Unicode, por eso el comodín en lugar de "é")
+Prueba T*cnica*.md
