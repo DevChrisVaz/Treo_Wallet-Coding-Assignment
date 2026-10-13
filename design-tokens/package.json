@@ -51,7 +51,8 @@
     "test": "vitest run",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "generate": "tsup && node scripts/generate.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
