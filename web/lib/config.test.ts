@@ -99,6 +99,12 @@ describe('next.config', () => {
     ]);
   });
 
+  it('WEB-09 no anuncia Next.js en los headers ni genera archivos para agentes de IA', () => {
+    const config = nextConfig(PHASE_DEVELOPMENT_SERVER);
+    expect(config.poweredByHeader).toBe(false);
+    expect(config.agentRules).toBe(false);
+  });
+
   it('WEB-06 next.config falla al arrancar si el entorno es inválido', () => {
     vi.stubEnv('ALLOWED_ORIGINS', 'no-es-un-origen');
     expect(() => nextConfig(PHASE_DEVELOPMENT_SERVER)).toThrow(/ALLOWED_ORIGINS/);

@@ -14,6 +14,8 @@ export default function nextConfig(phase: string): NextConfig {
 
   return {
     poweredByHeader: false,
+    // `next dev` escribe un AGENTS.md cuando detecta un agente de IA; el proyecto no lo versiona.
+    agentRules: false,
     experimental: {
       serverActions: {
         // Las Server Actions comparan Origin con Host; detrás de un proxy se permiten estos hosts.
