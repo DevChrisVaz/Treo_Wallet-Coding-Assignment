@@ -29,7 +29,7 @@
 - [x] 3.8 [api] Implementar `GET /health` sin autenticación; prueba (PLT-10)
 - [x] 3.9 [api] Servir `/docs` y `/openapi.yaml` desde el paquete del contrato solo fuera de producción; pruebas en desarrollo y en producción (PLT-11)
 - [x] 3.10 [api] Crear el helper `expectToMatchContract(res, operationId)` con Ajv 2020-12 y `ajv-formats` sobre el `openapi.yaml` del paquete, y usarlo en las pruebas HTTP existentes (PLT-12)
-- [ ] 3.11 [api] Crear el puerto `Clock` con implementación de sistema y una falsa para pruebas (IDN-11, IDN-12)
+- [x] 3.11 [api] Crear el puerto `Clock` con implementación de sistema y una falsa para pruebas (IDN-11, IDN-12)
 - [ ] 3.12 [api] Crear el arnés de integración: aplica migraciones en `wallet_test` con la conexión `migrator`, entrega la conexión `app` al código y reinicia los datos entre pruebas (desactivando solo los triggers de protección dentro de la transacción de reinicio) (PLT-13)
 
 ## 4. Auditoría

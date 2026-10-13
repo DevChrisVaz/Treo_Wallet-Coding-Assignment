@@ -6,16 +6,12 @@ import {
   type Options,
   type Store,
 } from 'express-rate-limit';
+import type { Clock } from '../../shared/clock.js';
 import { DomainError } from '../../shared/errors.js';
 import { sendProblem } from './error-handler.js';
 
-/** Fuente de la hora: el puerto `Clock` en la aplicación, un reloj manual en las pruebas. */
-export interface TimeSource {
-  now(): Date;
-}
-
 /**
- * Almacén en memoria de ventana fija que toma la hora de un `TimeSource`, para que las pruebas
+ * Almacén en memoria de ventana fija que toma la hora del puerto `Clock`, para que las pruebas
  * controlen el tiempo. Cada instancia de la API cuenta por su lado (en AWS: almacén compartido o
  * reglas de WAF, ver la propuesta de despliegue).
  */
@@ -23,7 +19,7 @@ export class ClockMemoryStore implements Store {
   private windowMs = 60_000;
   private readonly hits = new Map<string, { totalHits: number; resetTime: Date }>();
 
-  constructor(private readonly clock: TimeSource) {}
+  constructor(private readonly clock: Clock) {}
 
   init(options: Options): void {
     this.windowMs = options.windowMs;
@@ -79,7 +75,7 @@ export interface RateLimitOptions {
   readonly limit: number;
   /** Llave del contador: IP, IP + email, usuario autenticado… */
   readonly key: (req: Request) => string;
-  readonly clock: TimeSource;
+  readonly clock: Clock;
 }
 
 /**

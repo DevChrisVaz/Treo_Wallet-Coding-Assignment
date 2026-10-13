@@ -3,20 +3,10 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createHttpApp } from '../../../src/platform/http/app.js';
 import { byIp, rateLimit } from '../../../src/platform/http/rate-limit.js';
+import { FakeClock } from '../../helpers/fake-clock.js';
 import { captureLogger } from '../../helpers/logs.js';
 
-/** Reloj manual: la ventana del limitador avanza solo cuando la prueba lo indica. */
-function manualClock(start = '2026-10-13T17:00:00.000Z') {
-  let current = new Date(start).getTime();
-  return {
-    now: () => new Date(current),
-    advance: (ms: number) => {
-      current += ms;
-    },
-  };
-}
-
-function limitedApp(clock: ReturnType<typeof manualClock>) {
+function limitedApp(clock: FakeClock) {
   const router = Router();
   router.get(
     '/limitado',
@@ -34,7 +24,7 @@ function limitedApp(clock: ReturnType<typeof manualClock>) {
 
 describe('PLT-09 límites de tasa', () => {
   it('PLT-09 al superar el límite responde 429 RATE_LIMITED con Retry-After en segundos', async () => {
-    const clock = manualClock();
+    const clock = new FakeClock();
     const app = limitedApp(clock);
     expect((await request(app).get('/limitado')).status).toBe(204);
     clock.advance(15_000);
@@ -47,7 +37,7 @@ describe('PLT-09 límites de tasa', () => {
   });
 
   it('PLT-09 la ventana se reinicia cuando pasa el tiempo de Retry-After', async () => {
-    const clock = manualClock();
+    const clock = new FakeClock();
     const app = limitedApp(clock);
     await request(app).get('/limitado');
     await request(app).get('/limitado');
@@ -58,7 +48,7 @@ describe('PLT-09 límites de tasa', () => {
   });
 
   it('PLT-09 cada cliente tiene su propio contador', async () => {
-    const clock = manualClock();
+    const clock = new FakeClock();
     const app = limitedApp(clock);
     for (let i = 0; i < 2; i += 1) {
       await request(app).get('/limitado').set('X-Forwarded-For', '203.0.113.1');
