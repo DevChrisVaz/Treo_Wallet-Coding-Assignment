@@ -111,18 +111,43 @@ export class TransferAttempt {
   private readonly transport: TransferTransport;
   private readonly generateKey: () => string;
   private readonly random: () => number;
+  private readonly connectivity: Connectivity;
   private timer: ReturnType<typeof setTimeout> | undefined;
+  private stopListening: (() => void) | undefined;
 
   constructor(options: TransferAttemptOptions) {
     this.transport = options.transport;
+    this.connectivity = options.connectivity;
     this.generateKey = options.generateKey ?? (() => createIdempotencyKey(randomUUID));
     this.random = options.random ?? Math.random;
   }
 
-  /** Cancela el reintento pendiente (la pantalla se cerró). */
+  /** Cancela el reintento pendiente y deja de escuchar la red (la pantalla se cerró). */
   dispose(): void {
     clearTimeout(this.timer);
     this.timer = undefined;
+    this.stopListening?.();
+    this.stopListening = undefined;
+  }
+
+  /**
+   * Ejecuta `run` al vencer la espera o, antes, en cuanto la red vuelve (MOB-10): solo cuenta el
+   * paso de sin conexión a con conexión, no el aviso inicial de NetInfo con el estado actual.
+   */
+  private waitThenRun(delayMs: number, run: () => void): void {
+    this.dispose();
+    this.timer = setTimeout(() => {
+      this.dispose();
+      run();
+    }, delayMs);
+    let wasConnected: boolean | undefined;
+    this.stopListening = this.connectivity.subscribe((connected) => {
+      const recovered = connected && wasConnected === false;
+      wasConnected = connected;
+      if (!recovered) return;
+      this.dispose();
+      run();
+    });
   }
 
   getState = (): AttemptState => this.state;
@@ -184,7 +209,7 @@ export class TransferAttempt {
     const retry = retries + 1;
     const delayMs = retryDelay(retry, this.random);
     this.setState({ status: 'waitingRetry', retry, delayMs, ...frozen });
-    this.timer = setTimeout(() => void this.send(frozen, retry), delayMs);
+    this.waitThenRun(delayMs, () => void this.send(frozen, retry));
   }
 
   private settle(transfer: Transfer, replayed: boolean): void {
