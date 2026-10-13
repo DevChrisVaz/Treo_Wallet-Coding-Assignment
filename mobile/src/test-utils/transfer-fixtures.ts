@@ -60,7 +60,10 @@ export function problemError(status: number, code: string, extra: Record<string,
   return new ProblemError(status, { code, title: 't', requestId: 'req-1', ...extra });
 }
 
-/** Transporte simulado: cada llamada consume la siguiente respuesta (una función o un valor). */
+/**
+ * Transporte simulado: cada llamada consume la siguiente respuesta y la última se repite. Llamar a
+ * `onCreate`/`onConfirm` reemplaza las respuestas pendientes ("de aquí en adelante, responde así").
+ */
 export function fakeTransport() {
   const createReplies: (() => Promise<{ transfer: Transfer; replayed: boolean }>)[] = [];
   const confirmReplies: (() => Promise<Transfer>)[] = [];
@@ -82,10 +85,10 @@ export function fakeTransport() {
   return {
     transport,
     onCreate(...replies: (() => Promise<{ transfer: Transfer; replayed: boolean }>)[]) {
-      createReplies.push(...replies);
+      createReplies.splice(0, createReplies.length, ...replies);
     },
     onConfirm(...replies: (() => Promise<Transfer>)[]) {
-      confirmReplies.push(...replies);
+      confirmReplies.splice(0, confirmReplies.length, ...replies);
     },
   };
 }

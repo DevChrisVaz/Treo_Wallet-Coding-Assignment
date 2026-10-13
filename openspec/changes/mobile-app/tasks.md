@@ -29,7 +29,7 @@
 - [x] 4.1 [mobile] Módulo `transferAttempt` en TypeScript puro con los estados del diseño, llave UUID generada con `expo-crypto` al pasar a revisión y payload congelado; pruebas de llave única por intento, llave nueva al editar y doble toque con una sola petición (MOB-09)
 - [x] 4.2 [mobile] Política de reintentos en `transferAttempt`: error de red, tiempo de espera y `5xx` con espera de 1 a 16 s (±20 %) y máximo 5 reintentos, `4xx` definitivos y `429` con reintento manual; pruebas con temporizadores falsos y payload idéntico en cada reintento (MOB-10)
 - [x] 4.3 [mobile] Reintento inmediato al recuperar la conexión según NetInfo, cancelando la espera pendiente; prueba con NetInfo simulado (MOB-10)
-- [ ] 4.4 [mobile] Estado incierto tras agotar los reintentos con reintento manual usando la misma llave y el mismo payload; pruebas (MOB-11)
+- [x] 4.4 [mobile] Estado incierto tras agotar los reintentos con reintento manual usando la misma llave y el mismo payload; pruebas (MOB-11)
 - [ ] 4.5 [mobile] Pantalla para elegir un beneficiario registrado (`listBeneficiaries`) con alias, nombre y últimos 4 dígitos de la CLABE, y estado vacío que remite a la web; pruebas (MOB-07)
 - [ ] 4.6 [mobile] Formulario de transferencia con cuenta de origen, monto, concepto y referencia validados con los esquemas Zod del contrato; el monto viaja como string; pruebas de `100.005`, `1250`, `0.00` y referencia `12A45` (MOB-08)
 - [ ] 4.7 [mobile] Pantalla de confirmación con resumen, aviso de OTP para montos mayores a 10,000.00 y botón deshabilitado durante el envío; pruebas (MOB-09)

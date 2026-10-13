@@ -187,10 +187,13 @@ export class TransferAttempt {
     await this.send(frozenOf(current), 0);
   }
 
-  /** Reintento manual con la misma llave y el mismo payload. */
+  /**
+   * Reintento manual con la misma llave y el mismo payload (MOB-11): desde el estado incierto (la
+   * transferencia pudo haberse creado) o tras un `429`. Vuelve a aplicar la política automática.
+   */
   async retry(): Promise<void> {
     const current = this.state;
-    if (current.status !== 'rateLimited') return;
+    if (current.status !== 'uncertain' && current.status !== 'rateLimited') return;
     await this.send(frozenOf(current), 0);
   }
 
