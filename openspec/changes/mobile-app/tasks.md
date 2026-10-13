@@ -35,7 +35,7 @@
 - [x] 4.7 [mobile] Pantalla de confirmación con resumen, aviso de OTP para montos mayores a 10,000.00 y botón deshabilitado durante el envío; pruebas (MOB-09)
 - [x] 4.8 [mobile] Pantallas de envío, estado incierto y rechazo conectadas a `transferAttempt`, con el mensaje de cada `code` y opción de corregir con llave nueva tras un rechazo; pruebas (MOB-10, MOB-11, MOB-14)
 - [x] 4.9 [mobile] Pantalla del OTP con correo enmascarado, tiempo restante, intentos restantes, reenvío (`resendTransferOtp`), aviso cuando `deliveryStatus` es `FAILED` y confirmación con la misma política de reintentos; pruebas de `OTP_INVALID`, `OTP_ATTEMPTS_EXHAUSTED`, `TRANSFER_EXPIRED`, `RESEND_LIMIT_REACHED` y pérdida de red al confirmar (MOB-12)
-- [ ] 4.10 [mobile] Comprobante (`Receipt` con `StatusBadge`) construido con la respuesta de la API e invalidación de las consultas de cuentas y movimientos al completar; pruebas (MOB-13, DSG-10, DSG-11)
+- [x] 4.10 [mobile] Comprobante (`Receipt` con `StatusBadge`) construido con la respuesta de la API e invalidación de las consultas de cuentas y movimientos al completar; pruebas (MOB-13, DSG-10, DSG-11)
 - [ ] 4.11 [mobile] Prueba del caso borde completo: la respuesta de `createTransfer` se pierde, la red vuelve y el reintento con la misma llave recibe `200` con `Idempotent-Replayed: true` y estado `COMPLETED`, sin una segunda transferencia (MOB-10, MOB-13)
 
 ## 5. Privacidad

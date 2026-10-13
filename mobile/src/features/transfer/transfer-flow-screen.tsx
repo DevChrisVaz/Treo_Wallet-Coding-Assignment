@@ -110,7 +110,13 @@ export function TransferFlowScreen() {
       ) : state.status === 'completed' ||
         state.status === 'failed' ||
         state.status === 'expired' ? (
-        <OutcomeView attempt={attempt} state={state} />
+        <OutcomeView
+          attempt={attempt}
+          state={state}
+          fromAccountName={
+            accountList.find((account) => account.id === state.transfer.fromAccountId)?.name
+          }
+        />
       ) : state.status === 'pendingOtp' ||
         state.status === 'confirmingOtp' ||
         state.status === 'waitingOtpRetry' ||

@@ -1,8 +1,7 @@
-import { formatMXN } from '@devchrisvaz/wallet-contract';
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { Button, InlineAlert, StatusBadge } from '@/components/ui';
+import { Button, InlineAlert, Receipt, StatusBadge } from '@/components/ui';
 import { errorMessage } from '@/lib/errors';
 import { theme } from '@/theme';
 
@@ -11,7 +10,13 @@ import type { AttemptState, TransferAttempt } from './transfer-attempt';
 type OutcomeState = Extract<AttemptState, { status: 'completed' | 'failed' | 'expired' }>;
 
 /** Resultado del intento con el estado real que devolvió la API (MOB-13). */
-export function OutcomeView({ attempt, state }: { attempt: TransferAttempt; state: OutcomeState }) {
+interface OutcomeViewProps {
+  attempt: TransferAttempt;
+  state: OutcomeState;
+  fromAccountName?: string | undefined;
+}
+
+export function OutcomeView({ attempt, state, fromAccountName }: OutcomeViewProps) {
   const router = useRouter();
   const home = (
     <Button label="Ir a mis cuentas" variant="secondary" onPress={() => router.replace('/')} />
@@ -20,8 +25,13 @@ export function OutcomeView({ attempt, state }: { attempt: TransferAttempt; stat
   if (state.status === 'completed') {
     return (
       <View style={styles.container}>
-        <StatusBadge status={state.transfer.status} />
-        <Text style={styles.amount}>{formatMXN(state.transfer.amount)}</Text>
+        {state.replayed ? (
+          <InlineAlert
+            tone="info"
+            message="Tu transferencia ya se había registrado; este es su estado actual."
+          />
+        ) : null}
+        <Receipt transfer={state.transfer} fromAccountName={fromAccountName} />
         {home}
       </View>
     );
@@ -39,5 +49,4 @@ export function OutcomeView({ attempt, state }: { attempt: TransferAttempt; stat
 
 const styles = StyleSheet.create({
   container: { gap: theme.spacing[4] },
-  amount: { ...theme.typography.display, ...theme.amount, color: theme.colors.text.primary },
 });
