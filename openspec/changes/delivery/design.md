@@ -58,13 +58,44 @@ Los objetivos son **propuestas** que deben validarse con el área de riesgo; se 
 
 La web no es estática: el BFF guarda la sesión en el servidor, ejecuta Server Actions y llama a la API con el access token. Por eso **no aplica S3 + CloudFront**, que es lo que sugiere el enunciado; es una desviación justificada.
 
+**Por qué Fargate**, en orden de peso:
+
+1. **Confianza en la IP del cliente.** El rate limiting del login es por IP + email (api-foundation), y la IP real del navegador solo la conoce el BFF, que la reenvía en `X-Forwarded-For`. Con el BFF en subredes privadas de la misma VPC, la API confía en ese header **solo si la petición llega desde el CIDR de las subredes del BFF** (o del ALB), sin mecanismos adicionales. Un BFF fuera de la VPC llamaría a la API por internet, sin IPs de salida fijas, y su `X-Forwarded-For` no se distinguiría de uno falsificado.
+2. **Versión de Next.js.** La web usa Next.js 16 (App Router y Server Actions). En Fargate corre `next start` con la salida `standalone`, así que soporta cualquier versión del framework. La documentación de Amplify Hosting declara soporte de SSR para Next.js 12 a 15.
+3. **Una sola plataforma operativa.** La API ya necesita ECS, ALB, autoescalado, imágenes en ECR y su pipeline. El BFF es un segundo servicio en el mismo cluster, detrás del mismo ALB con ruteo por host, con el mismo modelo de despliegue, observabilidad y red.
+4. **Postura de red para una empresa regulada.** El BFF y la API viven en subredes privadas con grupos de seguridad y control de salida uniformes. El BFF alcanza la API por la red interna y comparte con ella ElastiCache (sesiones del BFF y contadores de rate limiting de la API).
+
+```mermaid
+flowchart LR
+  B[Navegador] -->|HTTPS| CF[CloudFront + WAF]
+  M[App móvil] -->|HTTPS| CF
+  CF -->|web.dominio| ALB[ALB]
+  CF -->|api.dominio| ALB
+  subgraph VPC [VPC: subredes privadas]
+    ALB --> BFF[Next.js BFF en Fargate]
+    ALB --> API[API en Fargate]
+    BFF -->|red interna; X-Forwarded-For confiable por CIDR| API
+    BFF --> R[(ElastiCache: sesiones)]
+    API --> R
+    API --> DB[(RDS PostgreSQL)]
+  end
+```
+
 | Alternativa | Por qué se descarta |
 |---|---|
 | S3 + CloudFront | Solo sirve sitios estáticos; el BFF necesita servidor |
-| Amplify Hosting con SSR | El cómputo SSR de Amplify lo administra AWS fuera de tu VPC, así que no llega a ElastiCache en subredes privadas, que es donde viven las sesiones del BFF. Además deja menos control de cabeceras y de `serverActions.allowedOrigins` |
-| **Next.js en Fargate detrás de CloudFront** (elegida) | Misma plataforma operativa que la API, acceso privado a Redis y a la API, CloudFront cachea los assets estáticos y termina TLS; WAF en CloudFront |
+| Amplify Hosting con SSR | Es viable, pero con condiciones que agregan piezas (ver abajo). El cómputo SSR lo administra AWS fuera de la VPC: accede a otros servicios por un *SSR Compute Role* de IAM, no por red privada, así que no alcanza ElastiCache. Su documentación declara soporte de Next.js 12 a 15 |
+| **Next.js en Fargate detrás de CloudFront** (elegida) | Confianza en `X-Forwarded-For` por red, cualquier versión de Next, misma plataforma que la API y acceso privado a Redis y a la API |
 
-Detalles: `serverActions.allowedOrigins` incluye el dominio público, porque CloudFront cambia el `Host`; el BFF reenvía `X-Forwarded-For` y la API solo confía en él cuando viene del ALB interno o del BFF.
+**Amplify Hosting no se descarta por falta de capacidades:** se integra con AWS WAF, permite headers personalizados, y `serverActions.allowedOrigins` es configuración de Next que funciona en cualquier hosting. Además ofrece entornos de vista previa por PR, casi no requiere infraestructura y cuesta menos con poco tráfico. Sería una opción válida si se cumplen tres condiciones:
+
+1. Sesiones del BFF en **DynamoDB** (con TTL), alcanzable por el SSR Compute Role, en lugar de ElastiCache. El puerto `SessionStore` de web-app permite el cambio sin tocar el resto.
+2. Un **header firmado con HMAC** entre el BFF y la API para transportar la IP del cliente, con un secreto compartido en Secrets Manager, porque la confianza por red no es posible.
+3. Fijar **Next.js 15** mientras Amplify no documente soporte para la 16.
+
+Con Fargate ninguna de las tres hace falta, y por eso se elige. Si en el futuro pesan más los entornos de vista previa o el costo con poco tráfico, Amplify es la evolución natural con esas tres condiciones.
+
+Detalles: `serverActions.allowedOrigins` incluye el dominio público, porque CloudFront cambia el `Host`; `TRUSTED_PROXIES` de la API contiene los CIDR de las subredes del BFF y del ALB.
 
 ### D4. App móvil: EAS Build y tiendas
 
@@ -207,6 +238,7 @@ Alternativa descartada: un script en Node/TypeScript (necesitaría un `package.j
 - [`trace.sh` depende de que los commits respeten los trailers] → `--check` en un paso del cierre; los huecos se corrigen o se documentan.
 - [Diferencias entre GNU y BSD en `grep`/`awk`/`sed`] → El script usa solo opciones POSIX y `grep -E`; se prueba en Linux y se documenta el requisito.
 - [Exceder el tiempo del enunciado] → Decisión consciente del usuario, declarada en el README y en el ai-log.
+- [Next en Fargate cuesta más con poco tráfico (al menos 2 tareas encendidas) y no trae entornos de vista previa por PR] → Aceptado a cambio de la confianza en `X-Forwarded-For` por red y de una sola plataforma; Amplify queda documentado en D3 como alternativa con sus tres condiciones.
 
 ## Open Questions
 

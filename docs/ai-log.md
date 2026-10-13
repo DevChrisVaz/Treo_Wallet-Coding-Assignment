@@ -89,3 +89,21 @@ Registro honesto de cómo se usó la AI en esta prueba: qué herramienta, los pr
 - El contrato no tenía un vocabulario cerrado para los errores por campo (`FieldErrorCode`) ni explicaba que los depósitos de la Tesorería no tienen comprobante.
 
 **Dependencias que agregó la AI y acepté:** `expo-crypto`, porque Hermes no trae `crypto.randomUUID` para generar la llave de idempotencia, y `expo-screen-capture`, para que Android tampoco muestre el contenido sensible al cambiar de app.
+
+### Revisión de las decisiones de AWS
+
+**Prompt clave:** "Exploremos las decisiones de AWS: ¿Por qué Fargate en vez de Amplify?"
+
+**Dónde tuve que corregir a la AI:** la propuesta original descartaba Amplify Hosting con dos argumentos. Pedí verificarlos contra la documentación actual de Amplify:
+- "El cómputo SSR de Amplify no llega a ElastiCache dentro de la VPC": **probablemente cierto**, porque Amplify accede a otros servicios por un SSR Compute Role de IAM y no por red privada. Pero **no era decisivo**: con las sesiones en DynamoDB funcionaría igual.
+- "Amplify deja menos control de cabeceras y de `serverActions.allowedOrigins`": **falso**. `allowedOrigins` es configuración de Next y funciona en cualquier hosting, Amplify permite headers personalizados y además se integra con AWS WAF.
+
+**Resultado:** se mantuvo Fargate, pero con los argumentos que sí pesan:
+1. La API puede confiar en `X-Forwarded-For` por el CIDR de la red del BFF, lo que sostiene el rate limiting del login por IP. Con Amplify haría falta un header firmado con HMAC.
+2. Amplify documenta soporte de SSR solo para Next.js 12 a 15, y la web usa la 16.
+3. Es la misma plataforma operativa que la API.
+4. Mantiene la postura de red de una empresa regulada.
+
+Amplify quedó documentado como alternativa válida, con sus condiciones: sesiones en DynamoDB, header firmado y Next 15.
+
+**Lección:** una justificación que suena razonable no basta. Las afirmaciones de la AI sobre servicios en la nube se verifican con la documentación antes de aceptarlas.
