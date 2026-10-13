@@ -2,7 +2,7 @@
 
 - [x] 1.1 [api] Crear el proyecto `/api`: `package.json` con `engines.node >= 20`, TypeScript en modo estricto, `.npmrc` con `install-links=true`, dependencia `@devchrisvaz/wallet-contract` con `file:../contract` y scripts `dev`, `build`, `start`, `lint`, `typecheck`, `test`, `test:unit`, `test:integration`, `db:bootstrap`, `db:migrate`, `db:revert`, `db:seed` (PLT-13)
 - [x] 1.2 [api] Crear la estructura `modules/{identity,accounts,audit}/{domain,application,infrastructure}` y `platform/`, la raíz de composición con inyección manual y la regla de lint de imports por capa, con un archivo de prueba de lint que demuestre que importar Express o TypeORM desde `domain` falla (PLT-18)
-- [ ] 1.3 [api] Validar la configuración al arrancar con un schema sobre `process.env` (secretos ≥ 256 bits, códigos de banco y plaza de 3 dígitos, URLs) y agregar `.env.example`; pruebas de arranque fallido sin revelar valores (PLT-08)
+- [x] 1.3 [api] Validar la configuración al arrancar con un schema sobre `process.env` (secretos ≥ 256 bits, códigos de banco y plaza de 3 dígitos, URLs) y agregar `.env.example`; pruebas de arranque fallido sin revelar valores (PLT-08)
 - [ ] 1.4 [api] Agregar `docker-compose.yml` con PostgreSQL 16 y Mailpit (SMTP 1025, bandeja 8025) (PLT-13)
 
 ## 2. Base de datos: roles, migraciones y garantías
