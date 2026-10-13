@@ -55,7 +55,7 @@
 
 ## 9. Accesibilidad
 
-- [ ] 9.1 [web] Anuncio de errores con `aria-live` y foco al mensaje de error en formularios y operaciones; pruebas con `vitest-axe` en login, registro, alta de beneficiario y transferencia (WEB-23)
+- [x] 9.1 [web] Anuncio de errores con `aria-live` y foco al mensaje de error en formularios y operaciones; pruebas con `vitest-axe` en login, registro, alta de beneficiario y transferencia (WEB-23)
 - [ ] 9.2 [web] Verificación manual del flujo de transferencia solo con teclado y del contraste con Lighthouse, documentada en el README (WEB-23)
 
 ## 10. CI y documentación
