@@ -16,9 +16,30 @@ export interface RefreshTokenRow {
   readonly familyExpiresAt: Date;
 }
 
+export type RevocationReason = 'LOGOUT' | 'REUSE_DETECTED' | 'GRACE_SUPERSEDED';
+
+export interface StoredRefreshToken extends RefreshTokenRow {
+  readonly usedAt: Date | null;
+  readonly replacedBy: string | null;
+  readonly revokedAt: Date | null;
+}
+
 /** Persistencia de refresh tokens: solo hashes, revocaciones como UPDATE. */
 export interface RefreshTokenStore {
   insert(tx: Transaction, row: RefreshTokenRow): Promise<void>;
+  /** Busca por hash y bloquea la fila: los refresh con el mismo token se procesan en fila. */
+  findByHashForUpdate(tx: Transaction, tokenHash: string): Promise<StoredRefreshToken | null>;
+  findByIdForUpdate(tx: Transaction, id: string): Promise<StoredRefreshToken | null>;
+  /** Marca el token como usado y registra a su sucesor (también reemplaza al sucesor en la gracia). */
+  markUsed(tx: Transaction, id: string, usedAt: Date, successorId: string): Promise<void>;
+  revoke(tx: Transaction, id: string, reason: RevocationReason, at: Date): Promise<void>;
+  /** Revoca todos los tokens aún no revocados de la familia; devuelve cuántos. */
+  revokeFamily(
+    tx: Transaction,
+    familyId: string,
+    reason: RevocationReason,
+    at: Date,
+  ): Promise<number>;
 }
 
 export interface IssuedRefreshToken {
@@ -49,7 +70,7 @@ export class SessionService {
     return this.issueInFamily(tx, userId, randomUUID(), now, familyExpiresAt);
   }
 
-  protected async issueInFamily(
+  async issueInFamily(
     tx: Transaction,
     userId: string,
     familyId: string,

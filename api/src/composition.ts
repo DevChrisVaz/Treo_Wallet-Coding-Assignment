@@ -4,6 +4,7 @@ import type { AuditWriter } from './modules/audit/application/audit-writer.js';
 import { PgAuditWriter } from './modules/audit/infrastructure/pg-audit-writer.js';
 import { OneTimeCodeService } from './modules/identity/application/one-time-codes.js';
 import type { PasswordHasher } from './modules/identity/application/ports.js';
+import { RefreshSession } from './modules/identity/application/refresh-session.js';
 import { RegisterUser } from './modules/identity/application/register-user.js';
 import { ResendVerification } from './modules/identity/application/resend-verification.js';
 import { SessionService } from './modules/identity/application/sessions.js';
@@ -62,6 +63,7 @@ export interface Container {
     readonly registerUser: RegisterUser;
     readonly verifyEmail: VerifyEmail;
     readonly resendVerification: ResendVerification;
+    readonly refreshSession: RefreshSession;
   };
 }
 
@@ -87,7 +89,8 @@ export async function createContainer(
   const codes = new OneTimeCodeService(new PgOneTimeCodeStore(), clock, config.otpHmacSecret);
   const accounts = new PgAccountRepository(dataSource);
   const openAccounts = new OpenDefaultAccounts({ accounts, clabe: config.clabe, clock });
-  const sessions = new SessionService(new PgRefreshTokenStore(), clock);
+  const refreshTokens = new PgRefreshTokenStore();
+  const sessions = new SessionService(refreshTokens, clock);
   const accessTokens = new JoseAccessTokens({
     secret: config.jwtSecret,
     issuer: config.jwtIssuer,
@@ -132,6 +135,14 @@ export async function createContainer(
         audit,
         mailer,
         logger,
+      }),
+      refreshSession: new RefreshSession({
+        transactions,
+        store: refreshTokens,
+        sessions,
+        accessTokens,
+        audit,
+        clock,
       }),
     },
   };
