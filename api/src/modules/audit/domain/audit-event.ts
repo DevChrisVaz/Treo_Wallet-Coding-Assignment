@@ -49,3 +49,35 @@ export interface AuditEvent {
 export function isAuditAction(value: string): value is AuditAction {
   return (AUDIT_ACTIONS as readonly string[]).includes(value);
 }
+
+/** Llaves que nunca pueden aparecer en los metadatos: datos personales y secretos (AUD-02). */
+const FORBIDDEN_METADATA_KEYS = new Set([
+  'email',
+  'phone',
+  'curp',
+  'rfc',
+  'clabe',
+  'fullname',
+  'name',
+  'password',
+  'token',
+  'accesstoken',
+  'refreshtoken',
+  'code',
+  'otp',
+]);
+
+/**
+ * Valida un evento antes de escribirlo: acción del catálogo y metadatos sin llaves de datos
+ * personales ni secretos. Lanza un error de programación (no de negocio) si no cumple.
+ */
+export function assertValidAuditEvent(event: AuditEvent): void {
+  if (!isAuditAction(event.action)) {
+    throw new Error(`Acción de auditoría fuera del catálogo: ${String(event.action)}`);
+  }
+  for (const key of Object.keys(event.metadata ?? {})) {
+    if (FORBIDDEN_METADATA_KEYS.has(key.toLowerCase())) {
+      throw new Error(`Los metadatos de auditoría no admiten la llave ${key}`);
+    }
+  }
+}
