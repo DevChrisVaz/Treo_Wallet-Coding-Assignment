@@ -11,6 +11,16 @@ describe('describeProblem', () => {
   });
 
   it.each([
+    ['VERIFICATION_CODE_INVALID', 2, 'Te quedan 2 intentos.'],
+    ['OTP_INVALID', 1, 'Te queda 1 intento.'],
+    ['OTP_INVALID', 0, 'Ya no te quedan intentos.'],
+  ] as const)('WEB-11 WEB-18 %s con %i intentos agrega "%s"', (code, attemptsRemaining, text) => {
+    expect(describeProblem(problem(code, { attemptsRemaining }))).toBe(
+      `${problemMessage(code)} ${text}`,
+    );
+  });
+
+  it.each([
     [300, 'Intenta de nuevo en 5 minutos.'],
     [61, 'Intenta de nuevo en 2 minutos.'],
     [30, 'Intenta de nuevo en 1 minuto.'],
