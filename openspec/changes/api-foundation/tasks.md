@@ -20,7 +20,7 @@
 ## 3. Plataforma HTTP
 
 - [x] 3.1 [api] Crear la app Express con el contexto de petición (`AsyncLocalStorage`) y el middleware de `X-Request-Id` (acepta `^[A-Za-z0-9_-]{1,64}$`, si no genera uno, y lo devuelve siempre); pruebas de reutilización y de identificador inválido (PLT-05)
-- [ ] 3.2 [api] Configurar el logger JSON con `redact` de secretos, serializadores de enmascarado (email, teléfono, CURP, RFC, CLABE) y de `bigint`, y la línea por petición con método, ruta, status, duración, `requestId` y usuario; pruebas que capturan los logs y buscan valores en claro (PLT-06)
+- [x] 3.2 [api] Configurar el logger JSON con `redact` de secretos, serializadores de enmascarado (email, teléfono, CURP, RFC, CLABE) y de `bigint`, y la línea por petición con método, ruta, status, duración, `requestId` y usuario; pruebas que capturan los logs y buscan valores en claro (PLT-06)
 - [ ] 3.3 [api] Implementar los errores RFC 9457: error de dominio con `code`, middleware final, manejador 404 y 500 sin detalles internos; pruebas de formato, de ruta inexistente y de excepción inesperada (PLT-01, PLT-03)
 - [ ] 3.4 [api] Implementar el middleware de validación con Zod en modo estricto: `400 MALFORMED_REQUEST` para JSON inválido y `422 VALIDATION_FAILED` con `errors[]` y JSON Pointers; pruebas de campo inválido y de campo no declarado (PLT-02)
 - [ ] 3.5 [api] Implementar el traductor de errores de PostgreSQL por nombre de constraint (registro extensible para `api-ledger`; `40P01`, `40001` y `42501` a 500 con log de error); pruebas unitarias (PLT-04)
