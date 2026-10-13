@@ -44,7 +44,7 @@
 
 ## 6. Validaciones de dominio
 
-- [ ] 6.1 [api] Implementar los validadores de dominio de CURP (estructura y dígito verificador), RFC de persona física (estructura y fecha real), teléfono a E.164 y normalización de email, y sus schemas Zod; pruebas unitarias con vectores (IDN-02)
+- [x] 6.1 [api] Implementar los validadores de dominio de CURP (estructura y dígito verificador), RFC de persona física (estructura y fecha real), teléfono a E.164 y normalización de email, y sus schemas Zod; pruebas unitarias con vectores (IDN-02)
 - [ ] 6.2 [api] Implementar el cálculo del dígito verificador y la generación de CLABE (banco y plaza de la configuración, secuencia, verificador); pruebas unitarias con los mismos vectores que `clabe_is_valid` (ACC-03, ACC-05)
 
 ## 7. Identidad

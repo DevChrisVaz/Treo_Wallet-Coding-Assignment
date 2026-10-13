@@ -1,5 +1,6 @@
 import type { FieldError, FieldErrorCode } from '@devchrisvaz/wallet-contract';
 import * as z from 'zod';
+import { normalizeEmail } from '../../shared/email.js';
 import { DomainError } from '../../shared/errors.js';
 
 export type FieldContext = z.core.$RefinementCtx<unknown>;
@@ -54,11 +55,6 @@ export function textField(
 /** Mismo patrón que el formato `email` de ajv-formats, para aceptar lo mismo que el contrato. */
 const EMAIL =
   /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i;
-
-/** Normaliza un email: sin espacios en los extremos y en minúsculas (IDN-02). */
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
 
 /** Email normalizado, de hasta 254 caracteres. */
 export function emailField() {
