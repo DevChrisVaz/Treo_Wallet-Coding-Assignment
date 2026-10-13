@@ -40,7 +40,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint:contract": "redocly lint openapi.yaml",
-    "check:version": "node scripts/check-version.mjs"
+    "check:version": "node scripts/check-version.mjs",
+    "generate": "openapi-typescript openapi.yaml -o src/generated/api.d.ts"
   },
   "dependencies": {
     "openapi-fetch": "^0.17.0"
@@ -54,6 +55,7 @@
     "@types/node": "^24.0.0",
     "eslint": "^10.12.0",
     "globals": "^17.13.0",
+    "openapi-typescript": "^7.13.0",
     "prettier": "^3.9.10",
     "tsup": "^8.5.1",
     "typescript": "~5.9.3",

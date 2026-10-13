@@ -6,7 +6,7 @@
 
 ## 2. Tipos y cliente HTTP
 
-- [ ] 2.1 [contract] Generar los tipos con openapi-typescript en `src/generated/api.d.ts` mediante el script `generate`, y versionarlos (CTR-03)
+- [x] 2.1 [contract] Generar los tipos con openapi-typescript en `src/generated/api.d.ts` mediante el script `generate`, y versionarlos (CTR-03)
 - [ ] 2.2 [contract] Exportar `PROBLEM_CODES` (arreglo de constantes) y el tipo `ProblemCode`, más alias de tipos de los esquemas principales (`Account`, `Movement`, `Transfer`, `Beneficiary`, `Problem`…) (CTR-03, CTR-07)
 - [ ] 2.3 [contract] Implementar `createApiClient({ baseUrl, getAccessToken, getRequestId })` sobre openapi-fetch, con pruebas de `fetch` simulado: respuesta tipada, header `Authorization: Bearer` y ningún almacenamiento del token (CTR-04)
 - [ ] 2.4 [contract] Middleware de `X-Request-Id` que reutiliza el ID provisto o genera uno por petición, con pruebas de ambos casos (CTR-05)
