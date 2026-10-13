@@ -69,3 +69,23 @@ Registro honesto de cómo se usó la AI en esta prueba: qué herramienta, los pr
 - **Con el BFF, la API ve la IP del BFF:** solo se confía en `X-Forwarded-For` cuando viene del BFF o del ALB.
 
 **Correcciones a la AI en esta sesión:** ninguna sobre dinero todavía; la sesión fue de diseño. Esta sección se llena durante la implementación.
+
+### Captura de las especificaciones
+
+**Cómo se hizo:** escribí primero el contrato (`contract/openapi.yaml`, validado con Redocly) y `openspec/config.yaml`. Después se redactaron los seis changes con agentes de Claude Code en paralelo, uno por change, cada uno con todas las decisiones de la exploración. Cada change pasó `openspec validate --strict`.
+
+**Correcciones que la AI hizo a su propio diseño al bajarlo al detalle:**
+- **Deadlock en el bloqueo de cuentas.** El diseño acordado usaba `SELECT … FOR UPDATE` sobre las cuentas. Al insertar la transferencia, su llave foránea toma `FOR KEY SHARE` sobre esas mismas cuentas, lo que choca con el `FOR UPDATE` de otra transacción y produce un deadlock real. Se cambió a `FOR NO KEY UPDATE`, que sigue serializando los cambios de saldo sin chocar con las llaves foráneas.
+- **Cambio de día mientras se espera el lock.** El orden de bloqueo (contador → transferencia → cuentas) obliga a saber el día antes del primer lock, pero la hora de la operación se toma después de todos. Si el día cambia mientras se espera, se hace `ROLLBACK` y se reintenta una vez.
+- **Hash de los códigos OTP.** Un código de 6 dígitos guardado con un hash simple se revierte por fuerza bruta si la tabla se filtra. Se guarda con HMAC-SHA256 y un secreto del servidor.
+
+**Lo que corregí en la revisión cruzada** (cada change estaba bien por separado, pero no coincidían entre sí):
+- La columna de saldo se llamaba distinto en `api-foundation` y en `api-ledger`; quedó `balance_cents`.
+- Faltaba el propósito `TRANSFER_CONFIRMATION` en los códigos de un solo uso.
+- `api-ledger` creaba sus propios triggers de inmutabilidad en lugar de reutilizar `forbid_mutation()`.
+- El seed no incluía beneficiarios para Ana, y la app móvil solo puede transferir a beneficiarios ya registrados.
+- La API no declaraba que escucha en `0.0.0.0`, que el móvil necesita para alcanzarla por la red local.
+- El rate limiting no contemplaba una llave por usuario, que `api-ledger` necesita para el alta de beneficiarios.
+- El contrato no tenía un vocabulario cerrado para los errores por campo (`FieldErrorCode`) ni explicaba que los depósitos de la Tesorería no tienen comprobante.
+
+**Dependencias que agregó la AI y acepté:** `expo-crypto`, porque Hermes no trae `crypto.randomUUID` para generar la llave de idempotencia, y `expo-screen-capture`, para que Android tampoco muestre el contenido sensible al cambiar de app.

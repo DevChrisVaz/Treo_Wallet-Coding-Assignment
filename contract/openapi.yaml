@@ -1,0 +1,1250 @@
+openapi: 3.1.0
+info:
+  title: Wallet API
+  version: 1.0.0
+  summary: Billetera digital en MXN con transferencias entre cuentas de la plataforma.
+  description: |
+    Contrato de la API (contrato primero). Es la fuente de verdad que consumen `/api`, `/web` y `/mobile`
+    a través del paquete `@morgandevchrisvaz/wallet-contract`.
+
+    **Convenciones**
+    - Montos: strings decimales. En la entrada se aceptan de 0 a 2 decimales (`"1250.5"`); en la salida
+      siempre van 2 (`"1250.50"`). Los números JSON se rechazan. Nunca se redondea.
+    - Fechas y horas: ISO 8601 en UTC. Los filtros por fecha (`from`, `to`) se interpretan como días
+      calendario en `America/Mexico_City`.
+    - Errores: `application/problem+json` según RFC 9457 (compatible con RFC 7807), con las extensiones
+      `code` y `requestId`. Los clientes deciden por `code`, nunca por `type` ni por `title`.
+    - Cada respuesta incluye el header `X-Request-Id`. Si la petición trae uno, se reutiliza.
+    - Un recurso que no existe y uno que pertenece a otro usuario responden igual: `404 NOT_FOUND`.
+servers:
+  - url: http://localhost:3000
+    description: Desarrollo local
+tags:
+  - name: health
+    description: Disponibilidad del servicio (PLT)
+  - name: auth
+    description: Registro, verificación de correo, sesión y tokens (IDN)
+  - name: users
+    description: Datos del usuario autenticado (IDN)
+  - name: accounts
+    description: Cuentas, saldos, límite diario e historial de movimientos (ACC, HIS)
+  - name: beneficiaries
+    description: Beneficiarios identificados por CLABE (BEN)
+  - name: transfers
+    description: Transferencias idempotentes con confirmación por OTP (TRF)
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      operationId: healthCheck
+      summary: Estado del servicio
+      security: []
+      responses:
+        '200':
+          description: El servicio está disponible.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    const: ok
+
+  /auth/register:
+    post:
+      tags: [auth]
+      operationId: registerUser
+      summary: Solicitar el registro de un usuario
+      description: |
+        Responde **202 siempre** con el mismo cuerpo, exista o no el email, para no permitir la
+        enumeración de cuentas. Si los datos son nuevos y válidos, crea el usuario sin verificar y envía
+        un código por correo. Si el email ya está verificado, envía un aviso al dueño. Si el email está
+        registrado sin verificar, reenvía el código.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/verify-email:
+    post:
+      tags: [auth]
+      operationId: verifyEmail
+      summary: Verificar el correo con el código recibido
+      description: |
+        Marca el correo como verificado, abre las dos cuentas del usuario ("Principal" y "Ahorro", con
+        saldo 0.00) y devuelve una sesión. Código de 6 dígitos, válido 15 minutos, con 3 intentos.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '200':
+          description: Correo verificado y sesión iniciada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/verify-email/resend:
+    post:
+      tags: [auth]
+      operationId: resendVerificationEmail
+      summary: Reenviar el código de verificación
+      description: |
+        Responde **202 siempre**, aunque el email no exista o se haya alcanzado el máximo de 3 reenvíos;
+        en esos casos simplemente no se envía nada. Cada reenvío invalida el código anterior.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendVerificationRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Iniciar sesión
+      description: |
+        Las credenciales inválidas responden siempre `401 INVALID_CREDENTIALS`, exista o no el email, y
+        con el mismo tiempo de respuesta. Un usuario con contraseña correcta y correo sin verificar
+        recibe `403 EMAIL_NOT_VERIFIED`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Sesión iniciada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      operationId: refreshSession
+      summary: Rotar el refresh token y obtener un nuevo access token
+      description: |
+        Cada uso emite un refresh token nuevo y marca el anterior como usado. Reusar un token ya usado
+        revoca toda su familia, salvo dentro de una ventana de gracia de 30 segundos si su sucesor no se
+        ha usado (reintento tras una pérdida de red). Un token inválido, vencido o revocado responde
+        `401 SESSION_REVOKED`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Nuevo par de tokens.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: Cerrar la sesión
+      description: Revoca la familia del refresh token. Es idempotente; un token desconocido también responde 204.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '204':
+          description: Sesión cerrada.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /me:
+    get:
+      tags: [users]
+      operationId: getCurrentUser
+      summary: Datos del usuario autenticado
+      responses:
+        '200':
+          description: Usuario autenticado. CURP, RFC y teléfono van enmascarados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /accounts:
+    get:
+      tags: [accounts]
+      operationId: listAccounts
+      summary: Cuentas del usuario con su saldo y el límite diario
+      responses:
+        '200':
+          description: Cuentas del usuario y estado del límite diario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountsOverview'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /accounts/{accountId}:
+    get:
+      tags: [accounts]
+      operationId: getAccount
+      summary: Detalle de una cuenta del usuario
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      responses:
+        '200':
+          description: Cuenta.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /accounts/{accountId}/movements:
+    get:
+      tags: [accounts]
+      operationId: listAccountMovements
+      summary: Historial de movimientos de una cuenta
+      description: |
+        Un movimiento es un asiento del ledger: solo aparece el dinero que efectivamente se movió.
+        Orden descendente por fecha. Paginación por cursor (keyset), nunca por `OFFSET`. El cursor está
+        ligado a los filtros con los que se obtuvo; si los filtros cambian, responde `400 INVALID_CURSOR`.
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - $ref: '#/components/parameters/FromDate'
+        - $ref: '#/components/parameters/ToDate'
+        - $ref: '#/components/parameters/MovementTypes'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Página de movimientos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovementPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /beneficiaries:
+    get:
+      tags: [beneficiaries]
+      operationId: listBeneficiaries
+      summary: Beneficiarios del usuario
+      responses:
+        '200':
+          description: Beneficiarios ordenados por alias.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BeneficiaryList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [beneficiaries]
+      operationId: createBeneficiary
+      summary: Registrar un beneficiario
+      description: |
+        Valida, en este orden: formato de la CLABE, dígito verificador, código de banco de la plataforma,
+        que corresponda a una cuenta de usuario existente y que no sea una cuenta propia. Es idempotente
+        por contenido: la misma CLABE con el mismo nombre y alias devuelve `200` con el beneficiario
+        existente; con otros datos, o con un alias ya usado, devuelve `409 BENEFICIARY_CONFLICT`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBeneficiaryRequest'
+      responses:
+        '201':
+          description: Beneficiario creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Beneficiary'
+        '200':
+          description: El mismo beneficiario ya existía con los mismos datos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Beneficiary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /transfers:
+    post:
+      tags: [transfers]
+      operationId: createTransfer
+      summary: Crear una transferencia
+      description: |
+        Requiere el header `Idempotency-Key` (UUID), generado una sola vez por intento.
+
+        - Monto de hasta 10,000.00 (inclusive): se ejecuta de inmediato y responde `201` con estado `COMPLETED`.
+        - Monto mayor a 10,000.00: responde `201` con estado `PENDING_OTP` y envía un código por correo.
+          Aplica también a transferencias entre cuentas propias.
+        - Rechazo de negocio (saldo insuficiente, límite diario): la transferencia se guarda como
+          `REJECTED` y responde `422` con su `transferId`.
+
+        **Reintentos con la misma llave:** si el payload es igual, responde `200` con el estado **actual**
+        de la transferencia y el header `Idempotent-Replayed: true` (o el mismo `422` si fue rechazada).
+        Si el payload es distinto, responde `422 IDEMPOTENCY_KEY_REUSED`. Las peticiones simultáneas con
+        la misma llave producen una sola transferencia. Los errores de validación no consumen la llave.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransferRequest'
+      responses:
+        '201':
+          description: Transferencia creada (`COMPLETED` o `PENDING_OTP`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '200':
+          description: Reintento con la misma llave; estado actual de la transferencia original.
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /transfers/{transferId}:
+    get:
+      tags: [transfers]
+      operationId: getTransfer
+      summary: Consultar una transferencia (sirve de comprobante)
+      parameters:
+        - $ref: '#/components/parameters/TransferId'
+      responses:
+        '200':
+          description: Transferencia. Un `PENDING_OTP` vencido se informa como `EXPIRED`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /transfers/{transferId}/confirm:
+    post:
+      tags: [transfers]
+      operationId: confirmTransfer
+      summary: Confirmar una transferencia pendiente con el OTP
+      description: |
+        Revalida saldo y límite diario bajo bloqueo antes de mover el dinero. Es idempotente por estado:
+        si la transferencia ya está `COMPLETED`, responde `200` con ella sin consumir un intento.
+        Si la revalidación falla, la transferencia pasa a `FAILED` y responde `422` con el motivo.
+        Al tercer código incorrecto pasa a `FAILED` (`OTP_ATTEMPTS_EXHAUSTED`).
+      parameters:
+        - $ref: '#/components/parameters/TransferId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmTransferRequest'
+      responses:
+        '200':
+          description: Transferencia completada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /transfers/{transferId}/otp/resend:
+    post:
+      tags: [transfers]
+      operationId: resendTransferOtp
+      summary: Reenviar el OTP de una transferencia pendiente
+      description: Máximo 3 reenvíos. Cada reenvío invalida el código anterior y reinicia los intentos.
+      parameters:
+        - $ref: '#/components/parameters/TransferId'
+      responses:
+        '202':
+          description: Código reenviado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OtpChallenge'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token JWT (HS256) con vigencia de 10 minutos.
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: UUID generado por el cliente una sola vez por intento de transferencia.
+      schema:
+        type: string
+        format: uuid
+    AccountId:
+      name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TransferId:
+      name: transferId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    FromDate:
+      name: from
+      in: query
+      required: false
+      description: Primer día incluido, como fecha calendario en America/Mexico_City.
+      schema:
+        type: string
+        format: date
+    ToDate:
+      name: to
+      in: query
+      required: false
+      description: Último día incluido, como fecha calendario en America/Mexico_City.
+      schema:
+        type: string
+        format: date
+    MovementTypes:
+      name: type
+      in: query
+      required: false
+      description: Uno o varios tipos (`?type=TRANSFER_IN&type=DEPOSIT`). Sin filtro devuelve todos.
+      style: form
+      explode: true
+      schema:
+        type: array
+        uniqueItems: true
+        items:
+          $ref: '#/components/schemas/MovementType'
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Valor opaco devuelto en `nextCursor` de la página anterior.
+      schema:
+        type: string
+        maxLength: 512
+
+  headers:
+    RequestId:
+      description: Identificador de la petición, presente en todas las respuestas y en los logs.
+      schema:
+        type: string
+    IdempotentReplayed:
+      description: Presente con valor `true` cuando la respuesta corresponde a un reintento con la misma llave.
+      schema:
+        type: string
+        const: 'true'
+    RetryAfter:
+      description: Segundos que el cliente debe esperar antes de reintentar.
+      schema:
+        type: integer
+        minimum: 1
+
+  responses:
+    Accepted:
+      description: Solicitud aceptada. El cuerpo es el mismo en todos los casos.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AcceptedResponse'
+    BadRequest:
+      description: 'Petición mal formada: MALFORMED_REQUEST, IDEMPOTENCY_KEY_MISSING, IDEMPOTENCY_KEY_INVALID, INVALID_CURSOR.'
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Unauthorized:
+      description: 'No autenticado: UNAUTHENTICATED, INVALID_CREDENTIALS, SESSION_REVOKED.'
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Forbidden:
+      description: 'Prohibido: EMAIL_NOT_VERIFIED.'
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: 'NOT_FOUND: el recurso no existe o pertenece a otro usuario (respuesta idéntica).'
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: 'Conflicto de estado: BENEFICIARY_CONFLICT, TRANSFER_NOT_PENDING, TRANSFER_EXPIRED.'
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnprocessableContent:
+      description: >-
+        Validación o regla de negocio: VALIDATION_FAILED, INSUFFICIENT_FUNDS, DAILY_LIMIT_EXCEEDED,
+        SAME_ACCOUNT_TRANSFER, IDEMPOTENCY_KEY_REUSED, CLABE_INVALID, CLABE_NOT_IN_PLATFORM,
+        BENEFICIARY_IS_OWN_ACCOUNT, OTP_INVALID, OTP_ATTEMPTS_EXHAUSTED, RESEND_LIMIT_REACHED,
+        VERIFICATION_CODE_INVALID.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+        Idempotent-Replayed:
+          $ref: '#/components/headers/IdempotentReplayed'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    TooManyRequests:
+      description: 'RATE_LIMITED.'
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InternalError:
+      description: 'INTERNAL_ERROR: sin detalles internos, solo el requestId.'
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    # ---------- Valores ----------
+    AmountInput:
+      description: Monto de entrada en MXN. De 0 a 2 decimales, sin signo, sin ceros a la izquierda, máximo 12 dígitos enteros y mayor que 0.
+      type: string
+      pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$'
+      not:
+        pattern: '^0(\.0{1,2})?$'
+      examples: ['1250.50', '1250.5', '1250', '0.01']
+    Amount:
+      description: Monto de salida en MXN, siempre con 2 decimales.
+      type: string
+      pattern: '^(0|[1-9][0-9]{0,15})\.[0-9]{2}$'
+      examples: ['1250.50']
+    SignedAmount:
+      description: Monto con signo (negativo para salidas), siempre con 2 decimales.
+      type: string
+      pattern: '^-?(0|[1-9][0-9]{0,15})\.[0-9]{2}$'
+      examples: ['-150.00', '25000.00']
+    Clabe:
+      description: CLABE de 18 dígitos. El dígito verificador (pesos 3, 7, 1) se valida fuera del schema.
+      type: string
+      pattern: '^[0-9]{18}$'
+      examples: ['032180000118359719']
+    Curp:
+      description: |
+        CURP de 18 caracteres en mayúsculas. El dígito verificador se valida fuera del schema.
+        El sexo admite `H`, `M` y, por precaución, `X`; falta confirmar contra la norma vigente de RENAPO.
+      type: string
+      pattern: '^[A-Z][AEIOUX][A-Z]{2}[0-9]{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])[HMX](AS|BC|BS|CC|CL|CM|CS|CH|DF|DG|GT|GR|HG|JC|MC|MN|MS|NT|NL|OC|PL|QT|QR|SP|SL|SR|TC|TS|TL|VZ|YN|ZS|NE)[B-DF-HJ-NP-TV-Z]{3}[0-9A-Z][0-9]$'
+    Rfc:
+      description: RFC de persona física (13 caracteres) en mayúsculas. La fecha se valida fuera del schema.
+      type: string
+      pattern: '^[A-ZÑ&]{4}[0-9]{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])[A-Z0-9]{2}[0-9A]$'
+    PhoneInput:
+      description: Teléfono nacional de 10 dígitos. Se almacena en formato E.164 (+52).
+      type: string
+      pattern: '^[0-9]{10}$'
+    Email:
+      type: string
+      format: email
+      maxLength: 254
+    Password:
+      type: string
+      minLength: 12
+      maxLength: 128
+    FullName:
+      type: string
+      minLength: 1
+      maxLength: 100
+    Concept:
+      description: Concepto de la transferencia, sin espacios al inicio ni al final.
+      type: string
+      minLength: 1
+      maxLength: 40
+      pattern: '^\S(.*\S)?$'
+    Reference:
+      description: Referencia numérica de 1 a 7 dígitos.
+      type: string
+      pattern: '^[0-9]{1,7}$'
+    SixDigitCode:
+      type: string
+      pattern: '^[0-9]{6}$'
+    Uuid:
+      type: string
+      format: uuid
+
+    # ---------- Auth ----------
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password, fullName, curp, rfc, phone]
+      properties:
+        email: { $ref: '#/components/schemas/Email' }
+        password: { $ref: '#/components/schemas/Password' }
+        fullName: { $ref: '#/components/schemas/FullName' }
+        curp: { $ref: '#/components/schemas/Curp' }
+        rfc: { $ref: '#/components/schemas/Rfc' }
+        phone: { $ref: '#/components/schemas/PhoneInput' }
+    VerifyEmailRequest:
+      type: object
+      additionalProperties: false
+      required: [email, code]
+      properties:
+        email: { $ref: '#/components/schemas/Email' }
+        code: { $ref: '#/components/schemas/SixDigitCode' }
+    ResendVerificationRequest:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email: { $ref: '#/components/schemas/Email' }
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { $ref: '#/components/schemas/Email' }
+        password:
+          type: string
+          minLength: 1
+          maxLength: 128
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          minLength: 32
+          maxLength: 256
+    LogoutRequest:
+      type: object
+      additionalProperties: false
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          minLength: 32
+          maxLength: 256
+    TokenPair:
+      type: object
+      required: [tokenType, accessToken, accessTokenExpiresAt, refreshToken, refreshTokenExpiresAt]
+      properties:
+        tokenType:
+          type: string
+          const: Bearer
+        accessToken:
+          type: string
+        accessTokenExpiresAt:
+          type: string
+          format: date-time
+        refreshToken:
+          type: string
+        refreshTokenExpiresAt:
+          type: string
+          format: date-time
+    AuthSession:
+      type: object
+      required: [user, tokens]
+      properties:
+        user: { $ref: '#/components/schemas/User' }
+        tokens: { $ref: '#/components/schemas/TokenPair' }
+    AcceptedResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          examples: ['Si los datos son correctos, recibirás un correo con las instrucciones.']
+
+    # ---------- Usuarios ----------
+    User:
+      type: object
+      required: [id, email, fullName, phoneMasked, curpMasked, rfcMasked, emailVerifiedAt, createdAt]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        email: { $ref: '#/components/schemas/Email' }
+        fullName: { $ref: '#/components/schemas/FullName' }
+        phoneMasked:
+          type: string
+          examples: ['+52******5678']
+        curpMasked:
+          type: string
+          examples: ['GOMC**************']
+        rfcMasked:
+          type: string
+          examples: ['GOMC*********']
+        emailVerifiedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    # ---------- Cuentas ----------
+    Account:
+      type: object
+      required: [id, name, clabe, balance, currency, createdAt]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        name:
+          type: string
+          examples: ['Principal', 'Ahorro']
+        clabe: { $ref: '#/components/schemas/Clabe' }
+        balance: { $ref: '#/components/schemas/Amount' }
+        currency:
+          type: string
+          const: MXN
+        createdAt:
+          type: string
+          format: date-time
+    DailyLimit:
+      description: Límite diario de transferencias a terceros, por usuario, en el día calendario de America/Mexico_City.
+      type: object
+      required: [limit, used, remaining, resetsAt, timeZone]
+      properties:
+        limit: { $ref: '#/components/schemas/Amount' }
+        used: { $ref: '#/components/schemas/Amount' }
+        remaining: { $ref: '#/components/schemas/Amount' }
+        resetsAt:
+          type: string
+          format: date-time
+        timeZone:
+          type: string
+          const: America/Mexico_City
+    AccountsOverview:
+      type: object
+      required: [accounts, dailyLimit]
+      properties:
+        accounts:
+          type: array
+          items: { $ref: '#/components/schemas/Account' }
+        dailyLimit: { $ref: '#/components/schemas/DailyLimit' }
+
+    # ---------- Movimientos ----------
+    MovementType:
+      type: string
+      enum: [DEPOSIT, TRANSFER_IN, TRANSFER_OUT, OWN_TRANSFER_IN, OWN_TRANSFER_OUT]
+    Counterparty:
+      type: object
+      required: [name, clabeLast4]
+      properties:
+        name:
+          type: string
+          description: Nombre del remitente (entradas) o alias del beneficiario o nombre de la cuenta propia (salidas).
+        clabeLast4:
+          type: [string, 'null']
+          pattern: '^[0-9]{4}$'
+    Movement:
+      type: object
+      required: [id, type, amount, balanceAfter, concept, reference, counterparty, transferId, occurredAt]
+      properties:
+        id:
+          description: Identificador opaco del asiento. Los clientes no deben interpretar su formato.
+          type: string
+        type: { $ref: '#/components/schemas/MovementType' }
+        amount: { $ref: '#/components/schemas/SignedAmount' }
+        balanceAfter: { $ref: '#/components/schemas/Amount' }
+        concept: { $ref: '#/components/schemas/Concept' }
+        reference: { $ref: '#/components/schemas/Reference' }
+        counterparty:
+          description: Nulo en los depósitos de la Tesorería.
+          oneOf:
+            - $ref: '#/components/schemas/Counterparty'
+            - type: 'null'
+        transferId:
+          description: |
+            Transferencia que originó el movimiento. En `DEPOSIT` apunta a un fondeo interno de la Tesorería
+            que no es una operación del usuario: `getTransfer` responde `404` y los clientes no deben
+            ofrecer un comprobante para ese movimiento.
+          $ref: '#/components/schemas/Uuid'
+        occurredAt:
+          type: string
+          format: date-time
+    MovementPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Movement' }
+        nextCursor:
+          type: [string, 'null']
+
+    # ---------- Beneficiarios ----------
+    CreateBeneficiaryRequest:
+      type: object
+      additionalProperties: false
+      required: [name, alias, clabe]
+      properties:
+        name: { $ref: '#/components/schemas/FullName' }
+        alias:
+          type: string
+          minLength: 1
+          maxLength: 30
+          pattern: '^\S(.*\S)?$'
+        clabe: { $ref: '#/components/schemas/Clabe' }
+    Beneficiary:
+      type: object
+      required: [id, name, alias, clabe, createdAt]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        name: { $ref: '#/components/schemas/FullName' }
+        alias:
+          type: string
+        clabe: { $ref: '#/components/schemas/Clabe' }
+        createdAt:
+          type: string
+          format: date-time
+    BeneficiaryList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Beneficiary' }
+
+    # ---------- Transferencias ----------
+    OwnAccountDestination:
+      type: object
+      additionalProperties: false
+      required: [type, accountId]
+      properties:
+        type:
+          type: string
+          const: OWN_ACCOUNT
+        accountId: { $ref: '#/components/schemas/Uuid' }
+    BeneficiaryDestination:
+      type: object
+      additionalProperties: false
+      required: [type, beneficiaryId]
+      properties:
+        type:
+          type: string
+          const: BENEFICIARY
+        beneficiaryId: { $ref: '#/components/schemas/Uuid' }
+    TransferDestination:
+      oneOf:
+        - $ref: '#/components/schemas/OwnAccountDestination'
+        - $ref: '#/components/schemas/BeneficiaryDestination'
+      discriminator:
+        propertyName: type
+        mapping:
+          OWN_ACCOUNT: '#/components/schemas/OwnAccountDestination'
+          BENEFICIARY: '#/components/schemas/BeneficiaryDestination'
+    CreateTransferRequest:
+      type: object
+      additionalProperties: false
+      required: [fromAccountId, destination, amount, concept, reference]
+      properties:
+        fromAccountId: { $ref: '#/components/schemas/Uuid' }
+        destination: { $ref: '#/components/schemas/TransferDestination' }
+        amount: { $ref: '#/components/schemas/AmountInput' }
+        concept: { $ref: '#/components/schemas/Concept' }
+        reference: { $ref: '#/components/schemas/Reference' }
+    ConfirmTransferRequest:
+      type: object
+      additionalProperties: false
+      required: [otp]
+      properties:
+        otp: { $ref: '#/components/schemas/SixDigitCode' }
+    TransferStatus:
+      type: string
+      enum: [PENDING_OTP, COMPLETED, REJECTED, FAILED, EXPIRED]
+    TransferKind:
+      type: string
+      enum: [OWN, THIRD_PARTY]
+    TransferDestinationView:
+      type: object
+      required: [type, accountId, beneficiaryId, displayName, clabeLast4]
+      properties:
+        type:
+          type: string
+          enum: [OWN_ACCOUNT, BENEFICIARY]
+        accountId:
+          type: [string, 'null']
+          format: uuid
+        beneficiaryId:
+          type: [string, 'null']
+          format: uuid
+        displayName:
+          type: string
+        clabeLast4:
+          type: string
+          pattern: '^[0-9]{4}$'
+    OtpChallenge:
+      type: object
+      required: [channel, deliveryStatus, maskedDestination, expiresAt, attemptsRemaining, resendsRemaining]
+      properties:
+        channel:
+          type: string
+          const: EMAIL
+        deliveryStatus:
+          type: string
+          enum: [SENT, FAILED]
+          description: '`FAILED` no es un error: el cliente ofrece reenviar el código.'
+        maskedDestination:
+          type: string
+          examples: ['an***@example.com']
+        expiresAt:
+          type: string
+          format: date-time
+        attemptsRemaining:
+          type: integer
+          minimum: 0
+          maximum: 3
+        resendsRemaining:
+          type: integer
+          minimum: 0
+          maximum: 3
+    Transfer:
+      type: object
+      required:
+        - id
+        - status
+        - kind
+        - fromAccountId
+        - destination
+        - amount
+        - concept
+        - reference
+        - requiresOtp
+        - otp
+        - rejectionReason
+        - failureReason
+        - createdAt
+        - completedAt
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        status: { $ref: '#/components/schemas/TransferStatus' }
+        kind: { $ref: '#/components/schemas/TransferKind' }
+        fromAccountId: { $ref: '#/components/schemas/Uuid' }
+        destination: { $ref: '#/components/schemas/TransferDestinationView' }
+        amount: { $ref: '#/components/schemas/Amount' }
+        concept: { $ref: '#/components/schemas/Concept' }
+        reference: { $ref: '#/components/schemas/Reference' }
+        requiresOtp:
+          type: boolean
+        otp:
+          description: Presente solo mientras la transferencia está en `PENDING_OTP`.
+          oneOf:
+            - $ref: '#/components/schemas/OtpChallenge'
+            - type: 'null'
+        rejectionReason:
+          description: Motivo cuando el estado es `REJECTED` (rechazo al crear).
+          type: [string, 'null']
+          enum: [INSUFFICIENT_FUNDS, DAILY_LIMIT_EXCEEDED, null]
+        failureReason:
+          description: Motivo cuando el estado es `FAILED` (falla al confirmar).
+          type: [string, 'null']
+          enum: [INSUFFICIENT_FUNDS, DAILY_LIMIT_EXCEEDED, OTP_ATTEMPTS_EXHAUSTED, null]
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: [string, 'null']
+          format: date-time
+
+    # ---------- Errores (RFC 9457) ----------
+    ProblemCode:
+      type: string
+      enum:
+        - MALFORMED_REQUEST
+        - IDEMPOTENCY_KEY_MISSING
+        - IDEMPOTENCY_KEY_INVALID
+        - INVALID_CURSOR
+        - UNAUTHENTICATED
+        - INVALID_CREDENTIALS
+        - SESSION_REVOKED
+        - EMAIL_NOT_VERIFIED
+        - NOT_FOUND
+        - BENEFICIARY_CONFLICT
+        - TRANSFER_NOT_PENDING
+        - TRANSFER_EXPIRED
+        - VALIDATION_FAILED
+        - INSUFFICIENT_FUNDS
+        - DAILY_LIMIT_EXCEEDED
+        - SAME_ACCOUNT_TRANSFER
+        - IDEMPOTENCY_KEY_REUSED
+        - CLABE_INVALID
+        - CLABE_NOT_IN_PLATFORM
+        - BENEFICIARY_IS_OWN_ACCOUNT
+        - OTP_INVALID
+        - OTP_ATTEMPTS_EXHAUSTED
+        - RESEND_LIMIT_REACHED
+        - VERIFICATION_CODE_INVALID
+        - RATE_LIMITED
+        - INTERNAL_ERROR
+    FieldErrorCode:
+      description: |
+        Vocabulario cerrado de errores por campo, compartido por la API y los validadores del paquete.
+        `INVALID_TYPE` cubre, por ejemplo, un monto enviado como número JSON en lugar de string.
+      type: string
+      enum:
+        - REQUIRED
+        - UNKNOWN_FIELD
+        - INVALID_TYPE
+        - INVALID_FORMAT
+        - TOO_SHORT
+        - TOO_LONG
+        - TOO_MANY_DECIMALS
+        - NOT_POSITIVE
+        - TOO_LARGE
+        - INVALID_CHECK_DIGIT
+        - INVALID_DATE
+    FieldError:
+      type: object
+      required: [pointer, code, message]
+      properties:
+        pointer:
+          description: JSON Pointer al campo inválido (por ejemplo `/amount`).
+          type: string
+        code: { $ref: '#/components/schemas/FieldErrorCode' }
+        message:
+          type: string
+    Problem:
+      type: object
+      required: [type, title, status, code, requestId]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          examples: ['/problems/insufficient-funds']
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+        code: { $ref: '#/components/schemas/ProblemCode' }
+        requestId:
+          type: string
+        errors:
+          description: Solo en `VALIDATION_FAILED`.
+          type: array
+          items: { $ref: '#/components/schemas/FieldError' }
+        transferId:
+          description: En `INSUFFICIENT_FUNDS`, `DAILY_LIMIT_EXCEEDED` y `OTP_ATTEMPTS_EXHAUSTED`.
+          type: string
+          format: uuid
+        transferStatus:
+          description: En `TRANSFER_NOT_PENDING`.
+          $ref: '#/components/schemas/TransferStatus'
+        remaining:
+          description: En `DAILY_LIMIT_EXCEEDED`, lo que queda del límite del día.
+          $ref: '#/components/schemas/Amount'
+        attemptsRemaining:
+          description: En `OTP_INVALID` y `VERIFICATION_CODE_INVALID`.
+          type: integer
+          minimum: 0
+      additionalProperties: true
