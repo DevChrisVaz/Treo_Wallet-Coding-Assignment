@@ -1,6 +1,6 @@
 ## 1. Dominio: dinero, tiempo y estados
 
-- [ ] 1.1 [api] Value object `Money` con `cents: bigint`: `parse` desde string decimal (0 a 2 decimales, sin ceros a la izquierda, máximo 12 dígitos enteros, mayor que cero) por manipulación de strings, `toDecimalString` con 2 decimales, suma, resta y comparación (TRF-08)
+- [x] 1.1 [api] Value object `Money` con `cents: bigint`: `parse` desde string decimal (0 a 2 decimales, sin ceros a la izquierda, máximo 12 dígitos enteros, mayor que cero) por manipulación de strings, `toDecimalString` con 2 decimales, suma, resta y comparación (TRF-08)
 - [ ] 1.2 [api] Pruebas unitarias de `Money` con los vectores de la exploración: `"1250.5"`, `"1250.50"`, `"0.01"`, `"100.005"`, `"0.00"`, `"-5.00"`, `"1,250.50"`, `"1e3"`, `" 10.00"`, `".50"`, `"007.00"`, 13 dígitos enteros (TRF-08)
 - [ ] 1.3 [api] Utilidades de día de negocio en `America/Mexico_City`: día calendario de un instante, inicio del día siguiente en UTC y rango UTC de un intervalo de fechas inclusivo, con pruebas en las 17:59, 18:00, 23:59 y 00:00 de CDMX (TRF-12, ACC-11, HIS-06)
 - [ ] 1.4 [api] Máquina de estados de la transferencia como función pura (estado + evento → estado o error) y estado `EXPIRED` calculado por vigencia, con pruebas de todas las transiciones válidas e inválidas (TRF-14, TRF-16, TRF-17, TRF-18, TRF-19)
