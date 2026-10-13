@@ -52,7 +52,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "generate": "tsup && node scripts/generate.mjs"
+    "generate": "tsup && node scripts/generate.mjs && node scripts/preview.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

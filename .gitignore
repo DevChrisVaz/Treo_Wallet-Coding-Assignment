@@ -40,3 +40,6 @@ Prueba T*cnica*.md
 
 # Worktrees de los subagentes de Claude Code (ramas aisladas, no se versionan aquí)
 .claude/worktrees/
+
+# Salida temporal de Playwright MCP (capturas y registros de la consola)
+.playwright-mcp/
