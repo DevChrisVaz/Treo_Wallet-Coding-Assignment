@@ -1,6 +1,6 @@
 ## 1. Andamiaje del proyecto
 
-- [ ] 1.1 [mobile] Crear el proyecto `/mobile` con Expo, TypeScript estricto y Expo Router; configurar ESLint y Prettier y los scripts `lint`, `typecheck` y `test` (MOB-17)
+- [x] 1.1 [mobile] Crear el proyecto `/mobile` con Expo, TypeScript estricto y Expo Router; configurar ESLint y Prettier y los scripts `lint`, `typecheck` y `test` (MOB-17)
 - [ ] 1.2 [mobile] Instalar `@devchrisvaz/wallet-contract` con `file:../contract` y `@devchrisvaz/wallet-design-tokens` con `file:../design-tokens`, y `mobile/.npmrc` con `install-links=true`; comprobar en Expo Go que Metro resuelve `createApiClient`, `formatMXN` y el subpath `./native` (campo `exports` o respaldo `main`/`types`) (MOB-15, DSG-01)
 - [ ] 1.3 [mobile] Configurar jest-expo y Testing Library con mocks de `expo-secure-store`, NetInfo y `AppState` (MOB-02, MOB-10, MOB-16)
 - [ ] 1.4 [mobile] Leer y validar `EXPO_PUBLIC_API_URL` al arrancar y mostrar una pantalla de error de configuración si falta o es inválida, con su prueba (MOB-17)
