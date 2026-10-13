@@ -6,7 +6,6 @@ import { useRef } from 'react';
 import { createTransfer } from '@/app/actions/transfers';
 import { ErrorState, LoadingState } from '@/components/states/states';
 import { InlineAlert } from '@/components/ui/InlineAlert';
-import { Receipt } from '@/components/ui/Receipt';
 import { useAccountsOverview, useBeneficiaries } from '@/lib/client/queries';
 import { queryKeys } from '@/lib/client/query-keys';
 import { useTransferFlow } from '@/lib/client/transfer-flow';
@@ -14,6 +13,7 @@ import { ActionProblemError, isUncertainFailure } from '@/lib/client/unwrap';
 import { loginPath } from '@/lib/navigation';
 import { ConfirmStep } from './ConfirmStep';
 import { EndedStep, OtpStep } from './OtpStep';
+import { ReceiptStep } from './ReceiptStep';
 import { TransferForm } from './TransferForm';
 
 export interface TransferFlowProps {
@@ -125,13 +125,10 @@ export function TransferFlow({
       );
     case 'receipt':
       return (
-        <section aria-label="Transferencia enviada" className="grid gap-5">
+        <div className="grid gap-5">
           {state.replayed ? <InlineAlert tone="info">{REPLAYED_MESSAGE}</InlineAlert> : null}
-          <Receipt
-            transfer={state.transfer}
-            fromAccount={accounts.find((account) => account.id === state.transfer.fromAccountId)}
-          />
-        </section>
+          <ReceiptStep transfer={state.transfer} accounts={accounts} onRestart={flow.restart} />
+        </div>
       );
     case 'ended':
       return <EndedStep problem={state.problem} onRestart={flow.restart} />;
