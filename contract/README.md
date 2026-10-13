@@ -2,7 +2,7 @@
 
 Contrato de la API de la billetera y todo lo que los demás proyectos derivan de él: tipos generados, cliente HTTP tipado, validadores de entrada y formato de montos.
 
-`openapi.yaml` (OpenAPI 3.1) es la **fuente de verdad**: se escribió antes que el código y lo consumen `/api`, `/web` y `/mobile`. Especificación: `openspec/changes/contract-v1/` (capability `api-contract`, requisitos CTR-01 a CTR-17).
+`openapi.yaml` (OpenAPI 3.1) es la **fuente de verdad**: se escribió antes que el código y lo consumen `/api`, `/web` y `/mobile`. Especificación vigente: `openspec/specs/api-contract/spec.md` (requisitos CTR-01 a CTR-17); propuesta, diseño y tareas en `openspec/changes/archive/2026-10-13-contract-v1/`.
 
 ## Qué exporta
 
