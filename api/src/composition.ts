@@ -160,7 +160,7 @@ export async function createContainer(
 /** La aplicación HTTP: plataforma + routers de los módulos. */
 export function createApp(container: Container): Express {
   const authenticateRequest = authenticate(container.accessTokens, container.clock);
-  const tables = [identityRoutes(container.identity, authenticateRequest)];
+  const tables = [identityRoutes(container.identity, authenticateRequest, container.clock)];
   for (const table of tables) assertPublicRoutesAllowed(table.table);
   return createHttpApp({
     trustedProxies: container.config.trustedProxies,
