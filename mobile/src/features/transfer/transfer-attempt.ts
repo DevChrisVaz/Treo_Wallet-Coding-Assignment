@@ -64,7 +64,7 @@ export type AttemptState =
   | { status: 'completed'; transfer: Transfer; replayed: boolean }
   | { status: 'pendingOtp'; transfer: Transfer }
   | ({ status: 'rejected'; error: ProblemError } & Frozen)
-  | { status: 'error'; error: ProblemError };
+  | ({ status: 'error'; error: ProblemError } & Frozen);
 
 export type ReviewResult = { ok: true } | { ok: false; errors: Record<string, string> };
 
@@ -164,9 +164,14 @@ export class TransferAttempt {
     if (this.state.status !== 'editing') return { ok: true };
     const parsed = transferForm.safeParse(JSON.parse(freezePayload(draft)));
     if (!parsed.success) return { ok: false, errors: zodFieldErrors(parsed.error) };
+    const key = this.generateKey();
+    // Sin llave, openapi-fetch omitiría el header en silencio y la API no podría deduplicar.
+    if (typeof key !== 'string' || key === '') {
+      throw new Error('No se pudo generar la Idempotency-Key del intento');
+    }
     this.setState({
       status: 'reviewing',
-      key: this.generateKey(),
+      key,
       payload: freezePayload(draft),
       draft,
     });
@@ -175,7 +180,8 @@ export class TransferAttempt {
 
   /** Vuelve a la captura: el siguiente envío será otro intento, con otra llave. */
   edit(): void {
-    if (this.state.status === 'reviewing' || this.state.status === 'rejected') {
+    const { status } = this.state;
+    if (status === 'reviewing' || status === 'rejected' || status === 'error') {
       this.setState({ status: 'editing' });
     }
   }
@@ -237,7 +243,7 @@ export class TransferAttempt {
     } else if (REJECTION_CODES.has(error.code)) {
       this.setState({ status: 'rejected', error, ...frozen });
     } else {
-      this.setState({ status: 'error', error });
+      this.setState({ status: 'error', error, ...frozen });
     }
   }
 

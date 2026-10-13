@@ -1,26 +1,26 @@
 import { formatMXN, toCents, type Account, type Beneficiary } from '@devchrisvaz/wallet-contract';
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, InlineAlert } from '@/components/ui';
+import { InlineAlert } from '@/components/ui';
 import { maskClabe } from '@/lib/display';
 import { theme } from '@/theme';
 
 import type { TransferDraft } from './transfer-attempt';
-
-interface ReviewViewProps {
-  draft: TransferDraft;
-  account: Account | undefined;
-  beneficiary: Beneficiary | undefined;
-  sending: boolean;
-  onSend: () => void;
-  onEdit: () => void;
-}
 
 /** Montos mayores a 10,000.00 MXN piden un código por correo (HU6). */
 const OTP_THRESHOLD_CENTS = toCents('10000.00');
 
 export function requiresOtp(amount: string): boolean {
   return toCents(amount) > OTP_THRESHOLD_CENTS;
+}
+
+interface ReviewViewProps {
+  draft: TransferDraft;
+  account: Account | undefined;
+  beneficiary: Beneficiary | undefined;
+  /** Avisos y acciones del estado del intento (enviar, reintentar, corregir). */
+  children: ReactNode;
 }
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -32,15 +32,8 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** Confirmación previa al envío (MOB-09). */
-export function ReviewView({
-  draft,
-  account,
-  beneficiary,
-  sending,
-  onSend,
-  onEdit,
-}: ReviewViewProps) {
+/** Resumen de la transferencia antes y durante el envío (MOB-09). */
+export function ReviewView({ draft, account, beneficiary, children }: ReviewViewProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.amount}>{formatMXN(draft.amount)}</Text>
@@ -59,8 +52,7 @@ export function ReviewView({
           message={`Como el monto es mayor a ${formatMXN('10000.00')}, te enviaremos un código de confirmación a tu correo.`}
         />
       ) : null}
-      <Button label="Enviar" onPress={onSend} loading={sending} />
-      {!sending ? <Button label="Editar" variant="ghost" onPress={onEdit} /> : null}
+      {children}
     </View>
   );
 }

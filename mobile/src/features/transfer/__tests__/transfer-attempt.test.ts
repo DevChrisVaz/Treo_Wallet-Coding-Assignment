@@ -58,6 +58,16 @@ describe('transferAttempt: llave e intento', () => {
     expect(attempt.getState()).toMatchObject({ key: 'uuid-de-expo-crypto' });
   });
 
+  test('MOB-09 si el generador no entrega una llave, falla en lugar de enviar sin Idempotency-Key', () => {
+    const attempt = new TransferAttempt({
+      transport: fakeTransport().transport,
+      connectivity: alwaysOnline,
+      generateKey: () => undefined as unknown as string,
+    });
+    expect(() => attempt.review(draft)).toThrow('Idempotency-Key');
+    expect(attempt.getState()).toEqual({ status: 'editing' });
+  });
+
   test('MOB-08 no pasa a revisión con datos que el contrato rechaza', () => {
     const { attempt, generateKey } = setup();
     expect(attempt.review({ ...draft, amount: '100.005', reference: '12A45' })).toEqual({

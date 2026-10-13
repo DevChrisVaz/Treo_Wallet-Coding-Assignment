@@ -10,8 +10,23 @@ import { errorMessage } from '@/lib/errors';
 import { theme } from '@/theme';
 
 import { FormView, type FormValues } from './form-view';
+import { AttemptActions } from './attempt-actions';
 import { ReviewView } from './review-view';
+import type { AttemptState } from './transfer-attempt';
 import { useTransferAttempt } from './use-transfer-attempt';
+
+const TITLES: Record<AttemptState['status'], string> = {
+  editing: '¿Cuánto envías?',
+  reviewing: 'Revisa tu transferencia',
+  sending: 'Enviando tu transferencia',
+  waitingRetry: 'Enviando tu transferencia',
+  rateLimited: 'Espera un momento',
+  uncertain: 'Estado sin confirmar',
+  rejected: 'Transferencia rechazada',
+  error: 'No se pudo enviar',
+  pendingOtp: 'Confirma con tu código',
+  completed: 'Transferencia enviada',
+};
 
 /**
  * Flujo de una transferencia a un beneficiario registrado. Lo que se muestra sale del estado de
@@ -53,7 +68,7 @@ export function TransferFlowScreen() {
       <View style={styles.header}>
         <Text style={styles.overline}>Transferir</Text>
         <Text style={styles.title} accessibilityRole="header">
-          {state.status === 'editing' ? '¿Cuánto envías?' : 'Revisa tu transferencia'}
+          {TITLES[state.status]}
         </Text>
         {beneficiary ? (
           <Text style={styles.subtitle}>
@@ -82,10 +97,9 @@ export function TransferFlowScreen() {
           draft={state.draft}
           account={accountList.find((account) => account.id === state.draft.fromAccountId)}
           beneficiary={beneficiary}
-          sending={state.status === 'sending' || state.status === 'waitingRetry'}
-          onSend={() => void attempt.submit()}
-          onEdit={() => attempt.edit()}
-        />
+        >
+          <AttemptActions attempt={attempt} state={state} />
+        </ReviewView>
       ) : null}
     </Screen>
   );

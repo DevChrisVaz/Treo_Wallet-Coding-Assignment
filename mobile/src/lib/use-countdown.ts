@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
 
-/** Cuenta regresiva en segundos, a partir de la hora del dispositivo (orientativa). */
-export function useCountdown() {
-  const [until, setUntil] = useState<number | null>(null);
+/**
+ * Cuenta regresiva en segundos, a partir de la hora del dispositivo (orientativa). Con
+ * `initialSeconds`, empieza al montar el componente.
+ */
+export function useCountdown(initialSeconds?: number) {
+  const [until, setUntil] = useState<number | null>(() =>
+    initialSeconds ? Date.now() + initialSeconds * 1000 : null,
+  );
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
