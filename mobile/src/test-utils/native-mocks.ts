@@ -22,6 +22,10 @@ export const secureStoreMock = {
   entries(): Record<string, string> {
     return Object.fromEntries(secureStore.__store);
   },
+  /** Escribe directo en el almacenamiento simulado, sin pasar por la API simulada. */
+  set(key: string, value: string): void {
+    secureStore.__store.set(key, value);
+  },
   reset(): void {
     secureStore.__store.clear();
     jest.mocked(secureStore.setItemAsync).mockClear();
