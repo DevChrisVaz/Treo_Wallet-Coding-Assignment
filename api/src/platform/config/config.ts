@@ -17,7 +17,14 @@ export interface AppConfig {
   readonly jwtAudience: string;
   readonly otpHmacSecret: Buffer;
   readonly clabe: { readonly bankCode: string; readonly plazaCode: string };
-  readonly smtp: { readonly host: string; readonly port: number; readonly from: string };
+  readonly smtp: {
+    readonly host: string;
+    readonly port: number;
+    readonly from: string;
+    /** Credenciales SMTP (SES en AWS); en local, Mailpit no las pide. */
+    readonly user: string | undefined;
+    readonly password: string | undefined;
+  };
   /** Valores para `trust proxy` de Express: palabras clave, IPs o subredes (PLT-07). */
   readonly trustedProxies: readonly string[];
   readonly logLevel: LogLevel;
@@ -104,6 +111,8 @@ const envSchema = z.object({
   SMTP_HOST: required('SMTP_HOST es obligatorio'),
   SMTP_PORT: port('SMTP_PORT', 1025),
   SMTP_FROM: required('SMTP_FROM es obligatorio'),
+  SMTP_USER: z.string().trim().min(1).optional(),
+  SMTP_PASSWORD: z.string().min(1).optional(),
   TRUSTED_PROXIES: z
     .string()
     .default('loopback')
@@ -147,7 +156,13 @@ export function loadConfig(env: Record<string, string | undefined>): AppConfig {
     jwtAudience: e.JWT_AUDIENCE,
     otpHmacSecret: e.OTP_HMAC_SECRET,
     clabe: { bankCode: e.CLABE_BANK_CODE, plazaCode: e.CLABE_PLAZA_CODE },
-    smtp: { host: e.SMTP_HOST, port: e.SMTP_PORT, from: e.SMTP_FROM },
+    smtp: {
+      host: e.SMTP_HOST,
+      port: e.SMTP_PORT,
+      from: e.SMTP_FROM,
+      user: e.SMTP_USER,
+      password: e.SMTP_PASSWORD,
+    },
     trustedProxies: e.TRUSTED_PROXIES,
     logLevel: e.LOG_LEVEL,
   };
