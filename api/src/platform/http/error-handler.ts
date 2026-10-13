@@ -16,9 +16,16 @@ export const notFoundHandler: RequestHandler = (req, res) => {
   sendProblem(res, new DomainError('NOT_FOUND'), req.originalUrl.split('?')[0]);
 };
 
+/** Errores de body-parser (JSON ilegible, cuerpo demasiado grande, charset): todos 4xx. */
+function isBodyParserError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const { type, status } = error as { type?: unknown; status?: unknown };
+  return typeof type === 'string' && typeof status === 'number' && status >= 400 && status < 500;
+}
+
 /**
- * Último middleware (PLT-01, PLT-03): errores de dominio a problem+json; cualquier otro error a
- * 500 INTERNAL_ERROR sin detalles, con la traza completa solo en el log, asociada al `requestId`.
+ * Último middleware (PLT-01, PLT-03): errores de dominio a problem+json; un cuerpo ilegible a
+ * 400 MALFORMED_REQUEST (PLT-02); cualquier otro error a 500 INTERNAL_ERROR sin detalles, con la traza completa solo en el log, asociada al `requestId`.
  */
 export function errorHandler(
   logger: AppLogger,
@@ -32,6 +39,14 @@ export function errorHandler(
     const instance = req.originalUrl.split('?')[0];
     if (error instanceof DomainError) {
       sendProblem(res, error, instance);
+      return;
+    }
+    if (isBodyParserError(error)) {
+      sendProblem(
+        res,
+        new DomainError('MALFORMED_REQUEST', 'El cuerpo no es JSON válido'),
+        instance,
+      );
       return;
     }
     const translated = translate(error);

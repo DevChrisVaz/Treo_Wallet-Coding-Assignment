@@ -21,6 +21,8 @@ export function createHttpApp(options: HttpAppOptions): Express {
   app.disable('x-powered-by');
   app.use(requestContext);
   app.use(requestLogger(options.logger));
+  // Solo objetos y arreglos JSON, con un tamaño acotado; lo demás es 400 MALFORMED_REQUEST.
+  app.use(express.json({ limit: '16kb', strict: true }));
   for (const router of options.routers) app.use(router);
   app.use(notFoundHandler);
   app.use(errorHandler(options.logger, options.translateError));
