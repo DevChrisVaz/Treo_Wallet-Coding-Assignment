@@ -48,7 +48,7 @@ Cada tarea agrega o corrige pruebas sin tocar código de producción. Cada prueb
 
 ## 6. Constraints de la base de datos
 
-- [ ] 6.1 [api] Cuentas: `ck_accounts_clabe_by_type` (SYSTEM con CLABE), `ck_accounts_type`, `ck_accounts_name_length`, `fk_accounts_user` y privilegios de `wallet_app` (ACC-01, ACC-03, ACC-06)
+- [x] 6.1 [api] Cuentas: `ck_accounts_clabe_by_type` (SYSTEM con CLABE), `ck_accounts_type`, `ck_accounts_name_length`, `fk_accounts_user` y privilegios de `wallet_app` (ACC-01, ACC-03, ACC-06)
 - [ ] 6.2 [api] Beneficiarios: `uq_beneficiaries_user_clabe`, `uq_beneficiaries_user_alias`, `ck_beneficiaries_name_length`, `ck_beneficiaries_alias_trimmed`, sus FK y privilegios (BEN-07, BEN-08)
 - [ ] 6.3 [api] Transferencias y uso diario: los CHECK y FK de `transfers` y `ck_daily_transfer_usage_within_limit`, `_non_negative` y `_limit_positive` (TRF-07, TRF-08, TRF-13, TRF-34)
 - [ ] 6.4 [api] Asientos y auditoría: `ck_ledger_entries_type`, `ck_ledger_entries_amount_nonzero`, `uq_ledger_entries_transfer_account`, exactamente dos asientos por transferencia y `ck_audit_log_metadata_object` (TRF-21, TRF-22, AUD-04)

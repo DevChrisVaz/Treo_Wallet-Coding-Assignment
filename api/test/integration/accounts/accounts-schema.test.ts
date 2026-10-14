@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { testDb } from '../../helpers/env.js';
-import { connect } from '../../helpers/pg.js';
+import { connect, sqlState } from '../../helpers/pg.js';
 import { clabeVectors } from '../../vectors/clabe.js';
 
 let app: pg.Client;
@@ -194,5 +194,97 @@ describe('ACC-05 dígito verificador de la CLABE en la base', () => {
     );
     expect(rows[0]?.clabe).toBe('032180000118359719');
     expect(rows[0]?.clabe).toHaveLength(18);
+  });
+});
+
+/** Fila de cuenta USER válida; cada caso cambia un solo campo para que falle solo su constraint. */
+function userAccount(overrides: Record<string, unknown> = {}) {
+  return {
+    id: randomUUID(),
+    user_id: userId,
+    type: 'USER',
+    name: `Cuenta ${randomUUID().slice(0, 8)}`,
+    clabe: validClabe(),
+    ...overrides,
+  };
+}
+
+async function insertAccount(db: pg.Client, row: Record<string, unknown>) {
+  const columns = Object.keys(row);
+  await db.query(
+    `INSERT INTO app.accounts (${columns.join(', ')})
+     VALUES (${columns.map((_, i) => `$${i + 1}`).join(', ')})`,
+    Object.values(row),
+  );
+}
+
+describe('ACC-01 y ACC-03 constraints de la tabla accounts por inserción directa', () => {
+  it('ACC-03 una cuenta SYSTEM no puede tener CLABE', async () => {
+    const error = await failure(
+      insertAccount(owner, {
+        id: randomUUID(),
+        type: 'SYSTEM',
+        name: 'Con CLABE',
+        clabe: validClabe(),
+      }),
+    );
+    expect(error).toMatchObject({ code: '23514', constraint: 'ck_accounts_clabe_by_type' });
+  });
+
+  it('ACC-01 el tipo de cuenta solo puede ser USER o SYSTEM', async () => {
+    // Sin dueño ni CLABE para que las demás constraints de tipo no se disparen antes.
+    const error = await failure(
+      insertAccount(owner, { id: randomUUID(), type: 'ADMIN', name: 'Rara' }),
+    );
+    expect(error).toMatchObject({ code: '23514', constraint: 'ck_accounts_type' });
+  });
+
+  it.each([
+    ['vacío', ''],
+    ['de 51 caracteres', 'x'.repeat(51)],
+  ])('ACC-01 rechaza un nombre %s por ck_accounts_name_length', async (_label, name) => {
+    const error = await failure(insertAccount(app, userAccount({ name })));
+    expect(error).toMatchObject({ code: '23514', constraint: 'ck_accounts_name_length' });
+  });
+
+  it.each([
+    ['de 1 caracter', 'x'],
+    ['de 50 caracteres', 'y'.repeat(50)],
+  ])('ACC-01 acepta un nombre %s', async (_label, name) => {
+    await insertAccount(app, userAccount({ name }));
+  });
+
+  it('ACC-01 el dueño de la cuenta debe existir (fk_accounts_user)', async () => {
+    const error = await failure(insertAccount(app, userAccount({ user_id: randomUUID() })));
+    expect(error).toMatchObject({ code: '23503', constraint: 'fk_accounts_user' });
+  });
+});
+
+describe('ACC-06 privilegios del rol de ejecución sobre accounts', () => {
+  it('ACC-06 wallet_app puede actualizar balance_cents', async () => {
+    const row = userAccount();
+    await insertAccount(app, row);
+    await app.query(`UPDATE accounts SET balance_cents = 100 WHERE id = $1`, [row.id]);
+  });
+
+  it.each([
+    ['name', `'Otro'`],
+    ['clabe', `'${'0'.repeat(18)}'`],
+    ['type', `'SYSTEM'`],
+    ['user_id', 'NULL'],
+    ['created_at', 'now()'],
+    ['id', 'gen_random_uuid()'],
+  ])('ACC-06 wallet_app no puede actualizar la columna %s (42501)', async (column, value) => {
+    const row = userAccount();
+    await insertAccount(app, row);
+    expect(
+      await sqlState(app.query(`UPDATE accounts SET ${column} = ${value} WHERE id = $1`, [row.id])),
+    ).toBe('42501');
+  });
+
+  it('ACC-06 wallet_app no puede borrar cuentas (42501)', async () => {
+    const row = userAccount();
+    await insertAccount(app, row);
+    expect(await sqlState(app.query(`DELETE FROM accounts WHERE id = $1`, [row.id]))).toBe('42501');
   });
 });
