@@ -34,7 +34,7 @@ Sincroniza el sistema de diseño de la web con un proyecto de Claude Design. Tod
 SK=<carpeta del skill design-sync>
 mkdir -p .ds-sync && cp -r "$SK"/package-build.mjs "$SK"/package-validate.mjs "$SK"/package-capture.mjs "$SK"/resync.mjs "$SK"/lib "$SK"/storybook .ds-sync/
 echo '{"name":"ds-sync-deps","private":true}' > .ds-sync/package.json
-(cd .ds-sync && npm i esbuild ts-morph @types/react@19.3 playwright@1.61.1)
+(cd .ds-sync && npm i esbuild ts-morph @types/react@19.3 playwright@1.61.1 pixelmatch@7 pngjs@7)
 npm ci   # dependencias de la app (typescript, postcss, @tailwindcss/postcss)
 node .design-sync/build-ui.mjs
 node .ds-sync/package-build.mjs --config .design-sync/config.json --node-modules ./node_modules --out ./ds-bundle
@@ -130,3 +130,63 @@ la pantalla (no se pueden importar: usan Server Actions, TanStack Query y next/n
   vacía `ds-bundle/`: después de cada build corre `node .design-sync/review/install.mjs`.
 - `web/.design-sync/review/serve.mjs` sirve ambos bundles en un solo origen (`/web/*`, `/mobile/*`)
   y el lienzo de paridad en `/parity.html`.
+
+## Paridad
+
+`review/parity.html` (lienzo) y `review/parity-check.mjs` (medición) comparan cada pareja de
+historias con el mismo nombre en `AppShell` (web) y `Screen` (móvil), WEB-25 / D3.
+
+- Con el servidor de revisión arriba (`node web/.design-sync/review/serve.mjs --web web/ds-bundle
+  --mobile mobile/ds-bundle --port 4310`, desde la raíz del worktree), el lienzo está en
+  `http://127.0.0.1:4310/parity.html`: por pareja, la web a 1280×800, la móvil a 390×844 con la web
+  encima (al 50 % con "Superponer") y la web a 390×844. Las historias de una sola app van con sus
+  marcos.
+- La medición, desde `web/`: `node .design-sync/review/parity-check.mjs --base
+  http://127.0.0.1:4310 [--out <dir>]`. Por omisión escribe en `.design-sync/.cache/parity/`
+  (gitignored) `<Historia>-{web,mobile,diff}.png` y `report.json` (`[{ story, diffRatio }]`). Usa
+  `pixelmatch@7` y `pngjs@7` de `.ds-sync` (ver "Preparar").
+- Las capturas quitan el margen de la celda y el `transform` de `.ds-single`: con él, lo `fixed`
+  (barra de pestañas, acciones del paso) quedaba al final del contenido en lugar de abajo del
+  teléfono. Se captura después de que cargue Work Sans.
+- `diffRatio` es una guía, no una prueba: el texto nunca coincide píxel a píxel, porque la web carga
+  Work Sans variable de Google Fonts y la app móvil los TTF estáticos de `@expo-google-fonts` (en el
+  diff se ve rojo dentro de las letras, no fuera). Revisa el `-diff.png` de cada pareja que suba.
+
+Veredictos: **idéntico** (nada distinto salvo el borde de los glifos, < 0.002), **suavizado** (misma
+estructura; solo cambia el rasterizado del texto) y **por diseño** (diferencias acordadas). En "por
+diseño", "resto" es el `diffRatio` de la misma captura sin la zona acordada (alineando lo que esta
+empuja).
+
+| Historia | diffRatio | Veredicto | Nota |
+|---|---|---|---|
+| `Home` | 0.0119 | por diseño | 4.ª pestaña Beneficiarios y "Mostrar CLABE" de la web; resto 0.0041 |
+| `HomeEmpty` | 0.0140 | por diseño | 4.ª pestaña; texto del vacío de cada app; resto 0.0016 |
+| `HomeError` | 0.0081 | por diseño | 4.ª pestaña; resto 0.0000 |
+| `HomeLoading` | 0.0081 | por diseño | 4.ª pestaña; resto 0.0000 |
+| `Login` | 0.0048 | por diseño | nota de registro (la app móvil no registra); resto 0.0008 |
+| `Movements` | 0.0439 | por diseño | fila "Filtros" (+56 px) y 4.ª pestaña; lista alineada 0.0053 |
+| `MovementsEmpty` | 0.0270 | por diseño | "Filtros", vacío filtrado de la web ("Limpiar filtros") y 4.ª pestaña; encabezado 0.0000 |
+| `TransferAmount` | 0.0219 | por diseño | select nativo de una línea con el saldo en la ayuda (móvil: dos líneas) y textos de ayuda de cada app; arriba 0.0061, abajo (+10 px) 0.0079 |
+| `TransferCompleted` | 0.0025 | suavizado | |
+| `TransferFailed` | 0.0016 | idéntico | |
+| `TransferOtp` | 0.0037 | por diseño | "Vence a las 12:05." (web) frente a la cuenta regresiva de móvil |
+| `TransferRecipient` | 0.0111 | por diseño | la web ofrece también las cuentas propias; beneficiarios alineados 0.0044 |
+| `TransferRejected` | 0.0029 | suavizado | |
+| `TransferReview` | 0.0013 | idéntico | |
+| `TransferUncertain` | 0.0013 | idéntico | |
+
+Lo que se alineó para llegar ahí (en la primera medición, con el `transform`, `TransferFailed` daba
+0.0671 y `TransferAmount` 0.0537):
+
+- Kit web: AccountCard (120 px como en móvil: borde de 2 px, 4 px entre filas, controles de 44 px
+  con margen negativo), MovementRow (el tipo pasa a dos líneas en lugar de cortarse), Receipt (sin
+  título visible, etiqueta pequeña sobre el valor, " · " entre nombre y terminación), OtpField (a
+  todo lo ancho), AmountField hero (ancho medido con un espejo, como en móvil; etiqueta y ayuda
+  centradas), campos a 4 px de su etiqueta, EmptyState (ayuda en `body`), Skeleton de tarjeta
+  (128 px), Wordmark completo en `h1`, StatusBadge de 24 px, chevron del sistema en Select,
+  ErrorState con "Reintentar" fuera de la alerta y dígitos tabulares en el límite diario.
+- Kit móvil: Receipt sin borde (D4) y con `fromAccountClabe` opcional para mostrar la terminación
+  de origen; dígitos tabulares en el código y en la CLABE de AccountCard.
+- Historias: mismos espacios en Login, el destinatario del monto y las filas de destinatario; el
+  monto tecleado igual en las dos ("1250.00"); los nombres de Beneficiarios ya no se cortan; el
+  error de Inicio en móvil con el título de la lectura, como el ErrorState de la web.
