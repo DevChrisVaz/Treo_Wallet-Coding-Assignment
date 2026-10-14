@@ -19,7 +19,7 @@ Cada tarea agrega o corrige pruebas sin tocar código de producción. Cada prueb
 - [x] 2.4 [api] Cuando todo un lote falla, el ejecutor sigue después del último candidato y no repite el lote (TRF-30, TRF-31)
 - [x] 2.5 [api] Reversión cuando falla la auditoría al programar, al confirmar con OTP y al cancelar (TRF-36, AUD-08)
 - [x] 2.6 [api] Si el aviso de falla lanza un error, el ejecutor lo registra y sigue con las demás (TRF-35)
-- [ ] 2.7 [api] La barrera de la carrera del tope de programadas falla si las peticiones no llegan juntas (TRF-29)
+- [x] 2.7 [api] La barrera de la carrera del tope de programadas falla si las peticiones no llegan juntas (TRF-29)
 
 ## 3. Identidad y sesiones
 

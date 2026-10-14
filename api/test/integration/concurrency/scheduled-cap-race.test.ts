@@ -3,21 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { buildTestApp, type TestApp } from '../../helpers/app.js';
 import { useIntegrationHarness } from '../../helpers/harness.js';
 import { ledgerUser, postTransfer, type LedgerUser } from '../../helpers/ledger-api.js';
-import { insertScheduledTransfers } from '../../helpers/scheduled.js';
+import { insertScheduledTransfers, waitForLockWaiters } from '../../helpers/scheduled.js';
 
 const harness = useIntegrationHarness();
 const ROUNDS = 3;
-
-/** Espera a que haya al menos `n` bloqueos sin conceder en la base. */
-async function waitForWaiters(n: number): Promise<void> {
-  for (let i = 0; i < 150; i++) {
-    const [{ waiting }] = await harness.migrator.query(
-      'SELECT count(*)::int AS waiting FROM pg_locks WHERE NOT granted',
-    );
-    if (waiting >= n) return;
-    await new Promise((resolve) => setTimeout(resolve, 20));
-  }
-}
 
 /**
  * Dos programaciones con llaves distintas que llegan juntas al conteo: una conexión aparte retiene
@@ -47,7 +36,8 @@ async function race(t: TestApp, owner: LedgerUser) {
         ),
       ),
     );
-    await waitForWaiters(2);
+    // Lanza si las dos peticiones no llegan juntas a esperar la fila retenida.
+    await waitForLockWaiters(harness.migrator, 2);
     await holder.commitTransaction();
     return await racing;
   } finally {
