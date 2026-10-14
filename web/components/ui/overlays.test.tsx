@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import { BottomSheet } from './BottomSheet';
+import { FlowHeader } from './FlowHeader';
 import { Stepper } from './Stepper';
 
 function Harness() {
@@ -40,6 +41,52 @@ describe('BottomSheet', () => {
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(opener).toHaveFocus();
+  });
+
+  it('DSG-17 un clic en el título no deja el foco fuera: Tab queda dentro y Escape cierra', async () => {
+    render(<Harness />);
+    const opener = screen.getByRole('button', { name: 'Filtros' });
+    await userEvent.click(opener);
+    const dialog = screen.getByRole('dialog', { name: 'Filtrar movimientos' });
+    await userEvent.click(screen.getByRole('heading', { name: 'Filtrar movimientos' }));
+    await userEvent.tab();
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(opener).toHaveFocus();
+  });
+
+  it('DSG-17 Shift+Tab desde el primer control da la vuelta al último', async () => {
+    render(<Harness />);
+    await userEvent.click(screen.getByRole('button', { name: 'Filtros' }));
+    const dialog = screen.getByRole('dialog', { name: 'Filtrar movimientos' });
+    const focusables = within(dialog).getAllByRole('button');
+    expect(focusables[0]).toHaveFocus();
+    await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+    expect(focusables[focusables.length - 1]).toHaveFocus();
+  });
+});
+
+describe('BottomSheet R16', () => {
+  it('DSG-17 limita la altura y el cuerpo del panel se desplaza', () => {
+    render(
+      <BottomSheet open onClose={() => undefined} title="Filtrar movimientos">
+        <p>Contenido largo</p>
+      </BottomSheet>,
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Filtrar movimientos' });
+    expect(dialog).toHaveClass('max-h-[85dvh]');
+    expect(screen.getByText('Contenido largo').parentElement).toHaveClass('overflow-y-auto');
+  });
+});
+
+describe('FlowHeader', () => {
+  it('DSG-17 el enlace de salir tiene nombre accesible y destino', () => {
+    render(
+      <FlowHeader title="Transferir" step={1} total={3} stepLabel="Destino" closeHref="/inicio" />,
+    );
+    const close = screen.getByRole('link', { name: 'Salir de la transferencia' });
+    expect(close).toHaveAttribute('href', '/inicio');
   });
 });
 
