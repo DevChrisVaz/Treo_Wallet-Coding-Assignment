@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 import { TextField } from '@/components/ui/TextField';
 import { scheduledTransfersKey } from '@/lib/client/scheduled-transfers';
+import { SCHEDULED_TRANSFERS_PATH } from '@/lib/navigation';
 import { formatScheduledDate } from '@/lib/scheduled-date';
 
 /*
@@ -84,7 +85,7 @@ export function ScheduledOutcome({ scheduledFor }: { scheduledFor: string }) {
   return (
     <p className="text-body text-fg-secondary">
       {scheduledSendText(scheduledFor)}. Puedes cancelarla antes de esa fecha en{' '}
-      <Link href="/transfers/scheduled" className="text-action underline underline-offset-2">
+      <Link href={SCHEDULED_TRANSFERS_PATH} className="text-action underline underline-offset-2">
         tus transferencias programadas
       </Link>
       .

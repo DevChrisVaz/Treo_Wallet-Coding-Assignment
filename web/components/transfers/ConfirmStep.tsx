@@ -31,9 +31,10 @@ function rejectionTitle(problem: ActionProblem): string | undefined {
 }
 
 /**
- * Revisión (WEB-16, WEB-17, WEB-30): el monto como protagonista, el resumen del intento (con "Cuándo"
- * si es programada, WEB-33) y el envío con el botón deshabilitado desde el primer clic. Ante un fallo de red o 5xx solo se ofrece reintentar
- * (con la misma llave); editar en ese momento podría duplicar una transferencia que sí se hizo.
+ * Revisión (WEB-16, WEB-17, WEB-30): el monto como protagonista, el resumen del intento (con
+ * "Cuándo" si es programada, WEB-33) y el envío con el botón deshabilitado desde el primer clic.
+ * Ante un fallo de red o 5xx solo se ofrece reintentar (con la misma llave); editar en ese momento
+ * podría duplicar una transferencia que sí se hizo.
  */
 export function ConfirmStep({
   draft,
