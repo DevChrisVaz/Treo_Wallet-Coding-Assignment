@@ -62,6 +62,20 @@ export async function postTransfer(
   return res;
 }
 
+/** POST /transfers/{id}/confirm verificado contra el contrato. */
+export async function confirmTransfer(
+  t: TestApp,
+  owner: VerifiedUser,
+  transferId: string,
+  body: object,
+) {
+  const res = await authed(t, owner.accessToken)
+    .post(`/transfers/${transferId}/confirm`)
+    .send(body);
+  expectToMatchContract(res, 'confirmTransfer');
+  return res;
+}
+
 export async function balanceOf(harness: IntegrationHarness, accountId: string): Promise<string> {
   const [row] = await harness.migrator.query(
     'SELECT balance_cents FROM app.accounts WHERE id = $1',

@@ -1,4 +1,4 @@
-import { queryIn } from '../../../platform/persistence/transaction.js';
+import { queryForUpdate, queryIn } from '../../../platform/persistence/transaction.js';
 import type { FailureReason, RejectionReason } from '../application/ports.js';
 import type { TransferKind } from '../domain/ledger.js';
 import type { StoredTransferStatus } from '../domain/transfer-status.js';
@@ -126,6 +126,28 @@ export class PgTransferStore implements TransferStore {
       tx,
       `UPDATE transfers SET status = 'PENDING_OTP', otp_expires_at = $2 WHERE id = $1`,
       [transferId, otpExpiresAt],
+    );
+  }
+
+  async lockOwned(
+    tx: Transaction,
+    transferId: string,
+    userId: string,
+  ): Promise<TransferRow | null> {
+    const [row] = await queryForUpdate<Row>(
+      tx,
+      `SELECT ${TRANSFER_COLUMNS} FROM transfers WHERE id = $1 AND user_id = $2 FOR UPDATE`,
+      [transferId, userId],
+    );
+    return row ? transferFromRow(row) : null;
+  }
+
+  async fail(tx: Transaction, transferId: string, reason: FailureReason): Promise<void> {
+    await queryIn(
+      tx,
+      `UPDATE transfers SET status = 'FAILED', failure_reason = $2, otp_expires_at = NULL
+        WHERE id = $1`,
+      [transferId, reason],
     );
   }
 }

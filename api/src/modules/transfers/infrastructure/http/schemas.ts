@@ -128,6 +128,17 @@ export const createTransferRequestSchema = z.strictObject({
 
 export type CreateTransferInput = z.output<typeof createTransferRequestSchema>;
 
+/** `ConfirmTransferRequest` (TRF-16): el código de 6 dígitos como string. */
+export const confirmTransferRequestSchema = z.strictObject({
+  otp: textField({
+    check: (value, ctx) => {
+      if (!/^[0-9]{6}$/.test(value)) {
+        addFieldIssue(ctx, 'INVALID_FORMAT', 'El código debe tener 6 dígitos');
+      }
+    },
+  }),
+});
+
 /** Header `Idempotency-Key` (TRF-02): obligatorio y UUID; se normaliza a minúsculas. */
 export function parseIdempotencyKey(header: string | undefined): string {
   if (header === undefined || header.trim() === '') {

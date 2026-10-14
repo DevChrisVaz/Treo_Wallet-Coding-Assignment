@@ -46,6 +46,7 @@ import { PgErrorTranslator } from './platform/persistence/pg-errors.js';
 import { registerLedgerTranslations } from './modules/transfers/infrastructure/error-translations.js';
 import { FundAccount } from './modules/transfers/application/fund-account.js';
 import { TransferDestinationResolver } from './modules/transfers/application/destination-resolver.js';
+import { ConfirmTransfer } from './modules/transfers/application/confirm-transfer.js';
 import { CreateTransfer } from './modules/transfers/application/create-transfer.js';
 import { IdempotencyGate } from './modules/transfers/application/idempotency-gate.js';
 import { TransferLocker } from './modules/transfers/application/transfer-locker.js';
@@ -105,6 +106,7 @@ export interface Container {
   readonly transfers: {
     readonly destinations: TransferDestinationResolver;
     readonly createTransfer: CreateTransfer;
+    readonly confirmTransfer: ConfirmTransfer;
   };
   readonly ledger: {
     readonly fundAccount: FundAccount;
@@ -147,6 +149,7 @@ export async function createContainer(
     maxResends: config.transfers.otpMaxResends,
   };
   const otpMail = new TransferOtpMailer(mailer, logger, otpPolicy.ttlMs);
+  const locker = new TransferLocker(dailyUsage, accountLocks, clock, config.transfers.dailyLimit);
   const refreshTokens = new PgRefreshTokenStore();
   const sessions = new SessionService(refreshTokens, clock);
   const accessTokens = new JoseAccessTokens({
@@ -231,7 +234,7 @@ export async function createContainer(
         transactions,
         destinations,
         gate: new IdempotencyGate(transferStore),
-        locker: new TransferLocker(dailyUsage, accountLocks, clock, config.transfers.dailyLimit),
+        locker,
         store: transferStore,
         audit,
         clock,
@@ -248,6 +251,18 @@ export async function createContainer(
           const remaining = limit.minus(today?.used ?? Money.ZERO);
           return remaining.isLessThan(Money.ZERO) ? Money.ZERO : remaining;
         },
+      }),
+      confirmTransfer: new ConfirmTransfer({
+        transactions,
+        locker,
+        store: transferStore,
+        codes,
+        otpPolicy,
+        poster,
+        counter: dailyUsage,
+        audit,
+        clock,
+        details: transferDetails,
       }),
     },
     ledger: {

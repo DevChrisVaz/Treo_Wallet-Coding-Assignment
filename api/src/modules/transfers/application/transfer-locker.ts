@@ -42,7 +42,9 @@ export interface AcquiredLocks {
  * 2. cuentas en orden de id con `FOR NO KEY UPDATE`, verificando la propiedad en la misma sentencia;
  * 3. hora después de los bloqueos: si ya es otro día de CDMX, `DayChangedWhileWaiting` (quien llama
  *    revierte y reintenta una vez).
- * Ningún ciclo de espera es posible: a lo más una fila contador, siempre antes que las cuentas.
+ * La confirmación bloquea la fila de la transferencia (y su código) entre el paso 1 y el 2, por eso
+ * los pasos también se exponen por separado. Ningún ciclo de espera es posible: a lo más una fila
+ * contador, siempre antes que la transferencia, y la transferencia siempre antes que las cuentas.
  */
 export class TransferLocker {
   constructor(
@@ -53,11 +55,33 @@ export class TransferLocker {
   ) {}
 
   async acquire(tx: Transaction, userId: string, route: ResolvedRoute): Promise<AcquiredLocks> {
+    const { day, counter } = await this.lockCounter(tx, userId, route.kind);
+    return { day, counter, ...(await this.lockAccounts(tx, userId, route, day, counter !== null)) };
+  }
+
+  /** Paso 1: fila contador del día de CDMX de ahora (solo THIRD_PARTY). */
+  async lockCounter(
+    tx: Transaction,
+    userId: string,
+    kind: ResolvedRoute['kind'],
+  ): Promise<Pick<AcquiredLocks, 'day' | 'counter'>> {
     const day = businessDayOf(this.clock.now());
     const counter =
-      route.kind === 'THIRD_PARTY'
-        ? await this.counter.lock(tx, userId, day, this.dailyLimit)
-        : null;
+      kind === 'THIRD_PARTY' ? await this.counter.lock(tx, userId, day, this.dailyLimit) : null;
+    return { day, counter };
+  }
+
+  /**
+   * Paso 2 y 3: cuentas en orden de id con su propiedad y hora después de los bloqueos. Si se tiene
+   * la fila contador y la hora ya es de otro día de CDMX, lanza `DayChangedWhileWaiting`.
+   */
+  async lockAccounts(
+    tx: Transaction,
+    userId: string,
+    route: ResolvedRoute,
+    day: string,
+    holdsCounter: boolean,
+  ): Promise<Pick<AcquiredLocks, 'at' | 'from' | 'to'>> {
     const ownedIds =
       route.kind === 'OWN' ? [route.fromAccountId, route.toAccountId] : [route.fromAccountId];
     const locked = await this.locks.lock(tx, [route.fromAccountId, route.toAccountId], {
@@ -68,7 +92,7 @@ export class TransferLocker {
     const to = locked.find((account) => account.id === route.toAccountId);
     if (!from || !to) throw notFound();
     const at = this.clock.now();
-    if (counter && businessDayOf(at) !== day) throw new DayChangedWhileWaiting();
-    return { day, at, counter, from, to };
+    if (holdsCounter && businessDayOf(at) !== day) throw new DayChangedWhileWaiting();
+    return { at, from, to };
   }
 }

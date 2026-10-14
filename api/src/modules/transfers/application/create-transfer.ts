@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto';
 import type { Transfer } from '@devchrisvaz/wallet-contract';
 import type { DeliveryStatus } from '../../../platform/mail/mailer.js';
 import type { Clock } from '../../../shared/clock.js';
-import { DomainError } from '../../../shared/errors.js';
-import { Money } from '../../../shared/money.js';
+import type { DomainError } from '../../../shared/errors.js';
+import type { Money } from '../../../shared/money.js';
 import type { TransactionRunner } from '../../../shared/transaction.js';
 import type { AuditWriter } from '../../audit/application/audit-writer.js';
 import type {
@@ -17,6 +17,7 @@ import type { IdempotencyGate } from './idempotency-gate.js';
 import type { RejectionReason, TransferRow, TransferStore } from './ports.js';
 import type { LedgerPoster } from './ledger-poster.js';
 import type { TransferOtpMailer } from './transfer-emails.js';
+import { balanceOrLimitError } from './transfer-errors.js';
 import {
   toTransferView,
   type TransferDetails,
@@ -63,25 +64,6 @@ type AttemptResult =
       readonly reason: RejectionReason;
       readonly remaining: Money | null;
     };
-
-function rejection(
-  reason: RejectionReason,
-  transferId: string,
-  remaining: Money | null,
-): DomainError {
-  return reason === 'INSUFFICIENT_FUNDS'
-    ? new DomainError(
-        'INSUFFICIENT_FUNDS',
-        'El saldo de la cuenta no alcanza para esta transferencia',
-        {
-          transferId,
-        },
-      )
-    : new DomainError('DAILY_LIMIT_EXCEEDED', 'La transferencia excede tu límite diario', {
-        transferId,
-        remaining: (remaining ?? Money.ZERO).toDecimalString(),
-      });
-}
 
 /**
  * `POST /transfers` (TRF-01 a TRF-14, TRF-24, TRF-25). Resuelve destino y propiedad sin consumir la
@@ -257,7 +239,7 @@ export class CreateTransfer {
     if (result.kind === 'REJECTED') {
       return {
         kind: 'REJECTED',
-        error: rejection(result.reason, result.transferId, result.remaining),
+        error: balanceOrLimitError(result.reason, result.transferId, result.remaining),
         replayed: false,
       };
     }
@@ -269,7 +251,7 @@ export class CreateTransfer {
           : null;
       return {
         kind: 'REJECTED',
-        error: rejection(existing.rejectionReason, existing.id, remaining),
+        error: balanceOrLimitError(existing.rejectionReason, existing.id, remaining),
         replayed: true,
       };
     }

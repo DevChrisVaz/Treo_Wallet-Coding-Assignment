@@ -1,11 +1,17 @@
 import type { RequestHandler } from 'express';
 import { routeTable } from '../../../../platform/http/auth.js';
 import { parseBody } from '../../../../platform/http/validation.js';
+import type { ConfirmTransfer } from '../../application/confirm-transfer.js';
 import type { CreateTransfer } from '../../application/create-transfer.js';
-import { createTransferRequestSchema, parseIdempotencyKey } from './schemas.js';
+import {
+  confirmTransferRequestSchema,
+  createTransferRequestSchema,
+  parseIdempotencyKey,
+} from './schemas.js';
 
 export interface TransferHandlers {
   readonly createTransfer: CreateTransfer;
+  readonly confirmTransfer: ConfirmTransfer;
 }
 
 /** Rutas de transferencias: solo traducen HTTP y delegan en los casos de uso (PLT-18). */
@@ -29,6 +35,16 @@ export function transferRoutes(handlers: TransferHandlers, authenticateRequest: 
         if (outcome.replayed) res.setHeader('Idempotent-Replayed', 'true');
         throw outcome.error;
     }
+  });
+
+  routes.post('/transfers/:transferId/confirm', async (req, res) => {
+    const input = parseBody(confirmTransferRequestSchema, req.body);
+    const transfer = await handlers.confirmTransfer.execute(
+      res.locals.userId as string,
+      String(req.params.transferId),
+      input.otp,
+    );
+    res.status(200).json(transfer);
   });
 
   return routes;
