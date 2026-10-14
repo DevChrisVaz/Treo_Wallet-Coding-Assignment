@@ -87,6 +87,14 @@ for (const width of [390, 1280] as const) {
       await page.keyboard.press('Escape');
     }
 
+    await page.goto('/transfers/scheduled');
+    await page.getByRole('button', { name: /^Cancelar la transferencia de/ }).click();
+    await expect(
+      page.getByRole('dialog', { name: '¿Cancelar la transferencia programada?' }),
+    ).toBeVisible();
+    expect(await axe(page), 'diálogo de cancelar una programada').toEqual([]);
+    await page.keyboard.press('Escape');
+
     await page.goto('/transfers/new');
     await page.getByRole('button', { name: /^Luis/ }).click();
     await expect(page.getByRole('heading', { level: 1, name: '¿Cuánto envías?' })).toBeVisible();

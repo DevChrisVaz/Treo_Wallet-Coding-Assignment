@@ -110,32 +110,35 @@ function CancelDialog({ transfer, cancelling, error, onConfirm, onClose }: Cance
         aria-busy={cancelling || undefined}
         tabIndex={-1}
         onKeyDown={onKeyDown}
-        className="grid w-full max-w-app gap-5 rounded-t-lg bg-surface px-5 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-sheet focus-visible:outline-none dashboard:max-w-md dashboard:rounded-lg dashboard:p-6"
+        // Como BottomSheet: hasta 85 % del alto; bajo el título fijo, el resto se desplaza (texto al 200 %).
+        className="flex max-h-[85dvh] w-full max-w-app flex-col gap-5 rounded-t-lg bg-surface px-5 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-sheet focus-visible:outline-none dashboard:max-w-md dashboard:rounded-lg dashboard:p-6"
       >
-        <h2 id={titleId} className="text-h3 text-fg">
+        <h2 id={titleId} className="shrink-0 text-h3 text-fg">
           ¿Cancelar la transferencia programada?
         </h2>
-        <p id={descriptionId} className="text-body text-fg-secondary">
-          Transferencia de {formatMXN(transfer.amount)} a {destinationOf(transfer)}, programada para
-          el {dateOf(transfer)}. Si la cancelas, no se enviará.
-        </p>
-        {error ? (
-          <InlineAlert tone="danger" focusOnMount>
-            {error}
-          </InlineAlert>
-        ) : null}
-        <div className="grid gap-3 dashboard:flex dashboard:flex-wrap">
-          <Button
-            variant="destructive"
-            loading={cancelling}
-            loadingLabel="Cancelando…"
-            onClick={onConfirm}
-          >
-            Cancelar transferencia
-          </Button>
-          <Button ref={backRef} variant="secondary" disabled={cancelling} onClick={onClose}>
-            Volver
-          </Button>
+        <div className="grid min-h-0 gap-5 overflow-y-auto">
+          <p id={descriptionId} className="text-body text-fg-secondary">
+            Transferencia de {formatMXN(transfer.amount)} a {destinationOf(transfer)}, programada
+            para el {dateOf(transfer)}. Si la cancelas, no se enviará.
+          </p>
+          {error ? (
+            <InlineAlert tone="danger" focusOnMount>
+              {error}
+            </InlineAlert>
+          ) : null}
+          <div className="grid gap-3 dashboard:flex dashboard:flex-wrap">
+            <Button
+              variant="destructive"
+              loading={cancelling}
+              loadingLabel="Cancelando…"
+              onClick={onConfirm}
+            >
+              Cancelar transferencia
+            </Button>
+            <Button ref={backRef} variant="secondary" disabled={cancelling} onClick={onClose}>
+              Volver
+            </Button>
+          </div>
         </div>
       </div>
     </div>

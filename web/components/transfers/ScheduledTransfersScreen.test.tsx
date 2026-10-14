@@ -220,6 +220,27 @@ describe('ScheduledTransfersScreen · cancelar', () => {
     expect(cancelMock).not.toHaveBeenCalled();
   });
 
+  it('WEB-28 DSG-17 como la hoja del kit, el diálogo mide hasta 85 % del alto y su contenido se desplaza bajo el título', async () => {
+    listReads([RENTA, LUZ]);
+    const user = userEvent.setup();
+    renderWithClient(<ScheduledTransfersScreen />);
+
+    const dialog = await openCancelDialog(user);
+
+    expect(dialog).toHaveClass('flex', 'flex-col', 'max-h-[85dvh]');
+    const title = within(dialog).getByRole('heading', {
+      name: '¿Cancelar la transferencia programada?',
+    });
+    expect(title).toHaveClass('shrink-0');
+    const body = within(dialog).getByText(/^Transferencia de \$1,000\.00/).parentElement;
+    expect(body).toHaveClass('min-h-0', 'overflow-y-auto');
+    // Con el texto agrandado, las acciones quedan en la parte que se desplaza: siempre se alcanzan.
+    expect(body).toContainElement(within(dialog).getByRole('button', { name: 'Volver' }));
+    expect(body).toContainElement(
+      within(dialog).getByRole('button', { name: 'Cancelar transferencia' }),
+    );
+  });
+
   it('WEB-34 al confirmar llama a cancelTransfer una sola vez, la quita de la lista y anuncia "Transferencia cancelada"', async () => {
     listReads([RENTA, LUZ], [LUZ]);
     cancelMock.mockResolvedValue({
