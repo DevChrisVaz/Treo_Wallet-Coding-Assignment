@@ -101,7 +101,7 @@ El contraste no se puede medir en jsdom; se verificó con Lighthouse (ver abajo)
 
 Lo que las pruebas automáticas no pueden comprobar en jsdom se verificó en un navegador real (Chrome, con el MCP de Chrome DevTools) el 13 de octubre de 2026.
 
-**Entorno.** Build de producción (`npm run build` y `next start -p 3100`, sin el overlay de desarrollo de Next.js, que captura el foco en `next dev`) con `SESSION_COOKIE_SECURE=false`. La API real no estaba disponible: se usó una API simulada en el puerto 4100 con las rutas, los cuerpos y los códigos de `contract/openapi.yaml` (no se versiona). **Pendiente: repetir con la API real las dos verificaciones de accesibilidad;** la de origen no depende de la API.
+**Entorno.** Build de producción (`npm run build` y `next start -p 3100`, sin el overlay de desarrollo de Next.js, que captura el foco en `next dev`) con `SESSION_COOKIE_SECURE=false`. La primera vez la API real no estaba disponible: se usó una API simulada en el puerto 4100 con las rutas, los cuerpos y los códigos de `contract/openapi.yaml` (no se versiona). Las dos verificaciones de accesibilidad se repitieron después con la API real (ver "Repetición con la API real"); la de origen no depende de la API.
 
 ### Transferencia solo con teclado (WEB-23)
 
@@ -138,6 +138,29 @@ Categoría de accesibilidad de Lighthouse, que incluye `color-contrast`. En modo
 | `/accounts/{id}/movements` con 20 movimientos       | snapshot                        | móvil       | 100           |
 
 `color-contrast` pasó en todas, sin auditorías fallidas.
+
+### Repetición con la API real
+
+El mismo día, con la API real (puerto 4000, PostgreSQL y Mailpit) y el build de producción de la web en `127.0.0.1:3100`:
+
+- **Solo con teclado:** inicio de sesión y transferencia de $5.00 de Principal a Ahorro hasta el comprobante, sin ratón. Con Tab real, "Continuar" muestra el anillo de 2 px `#1C4B42` con 2 px de separación. El anillo aparece con una transición de 150 ms (`transition-colors` también anima `outline-color`), así que una captura tomada justo al enfocar puede no mostrarlo.
+- **Lighthouse (accesibilidad):** 100, sin auditorías fallidas, en `/login`, `/`, `/accounts/{id}/movements`, `/beneficiaries` y `/transfers/new`.
+
+### Prueba de extremo a extremo contra la API real
+
+Se recorrieron en el navegador todas las funciones con los usuarios del seed:
+
+- inicio y cierre de sesión, y rutas protegidas;
+- historial con filtros y paginación;
+- beneficiarios con sus cuatro rechazos;
+- transferencias propias y a terceros, con el doble clic y el reintento tras perder la respuesta (una sola transferencia, misma llave);
+- OTP: umbral, código incorrecto, reenvíos con su tope, vencimiento y agotamiento de intentos;
+- límite diario;
+- registro con verificación por correo, y registro con un correo existente (mismo mensaje, aviso al dueño);
+- acceso a datos ajenos por URL;
+- límite de intentos de inicio de sesión.
+
+Las cifras se verificaron contra la base de datos. Encontró un error: con "Desde" posterior a "Hasta", el historial mostraba "Revisa los campos marcados." sin marcar ningún campo. Se corrigió (tarea 6.3 de `web-app`) y se comprobó en el navegador.
 
 ### Mutación con un `Origin` ajeno (WEB-06)
 
