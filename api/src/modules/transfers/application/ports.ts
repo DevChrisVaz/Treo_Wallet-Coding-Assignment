@@ -34,6 +34,8 @@ export interface TransferStore {
   findByKey(tx: Transaction, userId: string, idempotencyKey: string): Promise<TransferRow | null>;
   /** Marca la transferencia como REJECTED con su motivo (sin asientos). */
   reject(tx: Transaction, transferId: string, reason: RejectionReason): Promise<void>;
+  /** Deja la transferencia en PENDING_OTP con la vigencia de su código (sin asientos). */
+  awaitOtp(tx: Transaction, transferId: string, otpExpiresAt: Date): Promise<void>;
 }
 
 /** Bloqueo y resolución de cuentas para mover dinero. */

@@ -60,7 +60,7 @@
 
 ## 7. Transferencias: OTP
 
-- [ ] 7.1 [api] Camino con OTP (monto > umbral, también entre cuentas propias): `PENDING_OTP` sin asientos, `one_time_codes` con propósito `TRANSFER_CONFIRMATION`, `otp_expires_at`, eventos `TRANSFER_CREATED` y `TRANSFER_OTP_SENT`, respuesta con `requiresOtp` y `otp` (TRF-14, TRF-25)
+- [x] 7.1 [api] Camino con OTP (monto > umbral, también entre cuentas propias): `PENDING_OTP` sin asientos, `one_time_codes` con propósito `TRANSFER_CONFIRMATION`, `otp_expires_at`, eventos `TRANSFER_CREATED` y `TRANSFER_OTP_SENT`, respuesta con `requiresOtp` y `otp` (TRF-14, TRF-25)
 - [ ] 7.2 [api] Correo del OTP enviado después del `COMMIT` con código, monto en es-MX, nombre del destino y últimos 4 dígitos de la CLABE; `deliveryStatus` `FAILED` si el envío falla, sin código en respuesta, logs ni auditoría (TRF-15)
 - [ ] 7.3 [api] Confirmación `POST /transfers/{transferId}/confirm` (`confirmTransfer`): bloqueos contador → transferencia → cuentas, idempotente por estado, 409 si no está pendiente o venció, validación del código, revalidación de saldo y límite, `COMPLETED` o `FAILED` con motivo y eventos (TRF-16, TRF-17, TRF-18, TRF-19, TRF-25)
 - [ ] 7.4 [api] Reenvío `POST /transfers/{transferId}/otp/resend` (`resendTransferOtp`): máximo 3, invalida el código anterior, reinicia intentos y vigencia, evento `TRANSFER_OTP_RESENT`, 409 y 422 según el caso (TRF-20, TRF-25)

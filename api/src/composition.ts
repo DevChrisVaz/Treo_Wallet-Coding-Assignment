@@ -142,6 +142,7 @@ export async function createContainer(
   const destinations = new TransferDestinationResolver(accounts, beneficiaryStore);
   const transferDetails = new PgTransferDetails(dataSource);
   const otpPolicy = {
+    ttlMs: config.transfers.otpTtlSeconds * 1000,
     maxAttempts: config.transfers.otpMaxAttempts,
     maxResends: config.transfers.otpMaxResends,
   };
@@ -234,6 +235,8 @@ export async function createContainer(
         audit,
         clock,
         otpThreshold: config.transfers.otpThreshold,
+        codes,
+        otpPolicy,
         poster,
         counter: dailyUsage,
         view: async (transferId) => {

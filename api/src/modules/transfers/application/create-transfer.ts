@@ -5,6 +5,11 @@ import { DomainError } from '../../../shared/errors.js';
 import { Money } from '../../../shared/money.js';
 import type { TransactionRunner } from '../../../shared/transaction.js';
 import type { AuditWriter } from '../../audit/application/audit-writer.js';
+import type {
+  CodePolicy,
+  IssuedCode,
+  OneTimeCodeService,
+} from '../../identity/application/one-time-codes.js';
 import { transferFingerprint } from '../domain/fingerprint.js';
 import type { TransferDestinationResolver, TransferRequest } from './destination-resolver.js';
 import type { IdempotencyGate } from './idempotency-gate.js';
@@ -25,6 +30,9 @@ export interface CreateTransferDeps {
   readonly audit: AuditWriter;
   readonly clock: Clock;
   readonly otpThreshold: Money;
+  /** Códigos de un solo uso (propósito TRANSFER_CONFIRMATION) y su política. */
+  readonly codes: OneTimeCodeService;
+  readonly otpPolicy: CodePolicy;
   /** Estado actual de la transferencia como la ve su dueño (comprobante). */
   readonly poster: LedgerPoster;
   readonly counter: DailyUsageCounter;
@@ -40,7 +48,7 @@ export type CreateTransferOutcome =
 
 type AttemptResult =
   | { readonly kind: 'REPLAY'; readonly existing: TransferRow }
-  | { readonly kind: 'CREATED'; readonly transferId: string }
+  | { readonly kind: 'CREATED'; readonly transferId: string; readonly otp: IssuedCode | null }
   | {
       readonly kind: 'REJECTED';
       readonly transferId: string;
@@ -125,6 +133,7 @@ export class CreateTransfer {
   }): Promise<AttemptResult> {
     const { transactions, gate, locker, store, audit, clock, otpThreshold, poster, counter } =
       this.deps;
+    const { codes, otpPolicy } = this.deps;
     return transactions.run(async (tx): Promise<AttemptResult> => {
       const id = randomUUID();
       const claim = await gate.claim(tx, {
@@ -207,9 +216,24 @@ export class CreateTransfer {
           entity: { type: 'transfer', id },
           metadata: { kind: draft.kind, amount },
         });
-        return { kind: 'CREATED', transferId: id };
+        return { kind: 'CREATED', transferId: id, otp: null };
       }
-      throw new Error('Camino con OTP pendiente');
+      // Camino con OTP (TRF-14): sin asientos ni contador; el dinero se mueve al confirmar.
+      const otp = await codes.issue(tx, 'TRANSFER_CONFIRMATION', id, otpPolicy);
+      await store.awaitOtp(tx, id, otp.expiresAt);
+      await audit.record(tx, {
+        action: 'TRANSFER_CREATED',
+        actor: { type: 'USER', userId: draft.userId },
+        entity: { type: 'transfer', id },
+        metadata: { status: 'PENDING_OTP', kind: draft.kind, amount },
+      });
+      await audit.record(tx, {
+        action: 'TRANSFER_OTP_SENT',
+        actor: { type: 'USER', userId: draft.userId },
+        entity: { type: 'transfer', id },
+        metadata: { channel: 'EMAIL', expiresAt: otp.expiresAt.toISOString() },
+      });
+      return { kind: 'CREATED', transferId: id, otp };
     });
   }
 

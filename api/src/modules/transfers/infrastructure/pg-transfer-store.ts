@@ -120,4 +120,12 @@ export class PgTransferStore implements TransferStore {
       [transferId, reason],
     );
   }
+
+  async awaitOtp(tx: Transaction, transferId: string, otpExpiresAt: Date): Promise<void> {
+    await queryIn(
+      tx,
+      `UPDATE transfers SET status = 'PENDING_OTP', otp_expires_at = $2 WHERE id = $1`,
+      [transferId, otpExpiresAt],
+    );
+  }
 }
