@@ -25,7 +25,7 @@ export function DailyLimitMeter({ dailyLimit }: { dailyLimit: DailyLimit }) {
       >
         <div data-meter-fill className="h-full bg-accent" style={{ width: `${percent}%` }} />
       </div>
-      <p className="text-body-sm text-fg-secondary">
+      <p className="text-body-sm text-fg-secondary tabular-nums">
         Te quedan {formatMXN(dailyLimit.remaining)} hoy
       </p>
     </div>

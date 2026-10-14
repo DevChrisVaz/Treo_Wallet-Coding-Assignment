@@ -11,41 +11,63 @@ export interface ReceiptProps {
   fromAccount?: Pick<Account, 'name' | 'clabe'> | undefined;
 }
 
+/**
+ * " · " entre el nombre y la terminación de la CLABE, como en la revisión y en la app móvil (WEB-25).
+ * Es un separador decorativo, así que va en CSS (como el de una miga de pan) y no cambia el texto.
+ */
+const SEPARATOR = "after:content-['_·']";
+
+/**
+ * Dato del comprobante. En la forma de app, etiqueta pequeña sobre el valor y 12 px entre datos, como
+ * en la app móvil (WEB-25); en el dashboard, en dos columnas con divisores.
+ */
 function Row({ term, children }: { term: string; children: ReactNode }) {
   return (
-    <div className="grid gap-0.5 border-b border-border py-3 sm:grid-cols-3 sm:gap-4">
-      <dt className="text-body-sm text-fg-secondary">{term}</dt>
-      <dd className="text-body text-fg sm:col-span-2">{children}</dd>
+    <div className="grid gap-1 dashboard:grid-cols-3 dashboard:gap-4 dashboard:border-b dashboard:border-border dashboard:py-3">
+      <dt className="text-caption text-fg-secondary dashboard:text-body-sm">{term}</dt>
+      <dd className="text-body text-fg dashboard:col-span-2">{children}</dd>
     </div>
   );
 }
 
 /**
  * Comprobante (D7 de design-system, WEB-16): estado, monto, origen, destino, concepto, referencia,
- * fecha y folio (`transferId`).
+ * fecha y folio (`transferId`). El título "Comprobante" nombra la región para lectores de pantalla;
+ * a la vista, el paso del flujo ya lo dice y la tarjeta empieza con el icono y el estado, como en la
+ * app móvil (WEB-25).
  */
 export function Receipt({ transfer, fromAccount }: ReceiptProps) {
   const titleId = useId();
-  const origin = fromAccount
-    ? `${fromAccount.name} ${maskClabe(fromAccount.clabe)}`
-    : transfer.fromAccountId;
-  const destination = `${transfer.destination.displayName} •••• ${transfer.destination.clabeLast4}`;
+  const origin = fromAccount ? (
+    <>
+      <span className={SEPARATOR}>{fromAccount.name}</span> {maskClabe(fromAccount.clabe)}
+    </>
+  ) : (
+    transfer.fromAccountId
+  );
+  const destination = (
+    <>
+      <span className={SEPARATOR}>{transfer.destination.displayName}</span>
+      {` •••• ${transfer.destination.clabeLast4}`}
+    </>
+  );
 
   return (
-    <section aria-labelledby={titleId} className="grid gap-4 rounded-lg bg-surface p-6 shadow-card">
+    <section
+      aria-labelledby={titleId}
+      className="grid justify-items-start gap-3 rounded-lg bg-surface p-6 shadow-card"
+    >
+      <h2 id={titleId} className="sr-only">
+        Comprobante
+      </h2>
       <Avatar
         size="lg"
         tone={transfer.status === 'COMPLETED' ? 'success' : 'neutral'}
         icon={transfer.status === 'COMPLETED' ? 'success' : 'info'}
       />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id={titleId} className="text-h3 text-fg">
-          Comprobante
-        </h2>
-        <StatusBadge status={transfer.status} />
-      </div>
+      <StatusBadge status={transfer.status} />
       <p className="text-display text-fg tabular-nums">{formatMXN(transfer.amount)}</p>
-      <dl>
+      <dl className="grid gap-3 justify-self-stretch dashboard:gap-0">
         <Row term="Origen">{origin}</Row>
         <Row term="Destino">{destination}</Row>
         <Row term="Concepto">{transfer.concept}</Row>
@@ -56,7 +78,7 @@ export function Receipt({ transfer, fromAccount }: ReceiptProps) {
           </time>
         </Row>
         <Row term="Folio">
-          <span className="text-body-sm break-all tabular-nums">{transfer.id}</span>
+          <span className="break-words">{transfer.id}</span>
         </Row>
       </dl>
     </section>

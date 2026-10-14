@@ -31,7 +31,19 @@ describe('AccountCard', () => {
   it('DSG-11 usa la superficie elevada con radio mediano y marca la cuenta seleccionada', () => {
     render(<AccountCard account={AHORRO} selected />);
     const card = screen.getByRole('article', { name: 'Ahorro' });
-    expect(card).toHaveClass('bg-surface', 'rounded-md', 'ring-2', 'ring-action');
+    expect(card).toHaveClass('bg-surface', 'rounded-md', 'border-2', 'border-action');
+  });
+
+  it('WEB-25 sin seleccionar conserva el borde transparente: la tarjeta mide lo mismo que en móvil', () => {
+    render(<AccountCard account={AHORRO} onSelect={vi.fn()} />);
+    const card = screen.getByRole('article', { name: 'Ahorro' });
+    expect(card).toHaveClass('border-2', 'border-transparent', 'gap-1');
+    // Los controles conservan los 44 px de área táctil sin agrandar la fila.
+    expect(screen.getByRole('button', { name: 'Ahorro' })).toHaveClass('min-h-11', '-my-3');
+    expect(screen.getByRole('button', { name: 'Mostrar CLABE de Ahorro' })).toHaveClass(
+      'min-h-11',
+      '-my-3.5',
+    );
   });
 
   it('WEB-28 la tarjeta seleccionable anuncia su estado', async () => {
@@ -86,6 +98,12 @@ describe('MovementRow', () => {
     expect(row).toHaveTextContent('Saldo $26,500.00');
   });
 
+  it('WEB-25 el tipo de movimiento no se trunca: solo la contraparte y el concepto', () => {
+    renderRow({ movement: movement({ type: 'TRANSFER_IN', amount: '150.00' }) });
+    expect(screen.getByText('Transferencia recibida')).not.toHaveClass('truncate');
+    expect(screen.getByText('Luis Pérez · Renta de octubre')).toHaveClass('truncate');
+  });
+
   it('WEB-29 muestra un avatar con el icono del tipo de movimiento', () => {
     const { container } = renderRow({ movement: movement() });
     expect(container.querySelector('li span[aria-hidden="true"] svg')).not.toBeNull();
@@ -116,6 +134,17 @@ describe('Receipt', () => {
     expect(receipt).toHaveTextContent('Referencia1');
     expect(receipt).toHaveTextContent('13 oct 2026, 10:42');
     expect(receipt).toHaveTextContent('4f1b0d9c-8a7f-4e6d-9c5b-0d9c8b7a6f5e');
+  });
+
+  it('WEB-25 el título "Comprobante" nombra la región sin mostrarse, como en la app móvil', () => {
+    render(<Receipt transfer={transfer()} fromAccount={PRINCIPAL} />);
+    expect(screen.getByRole('heading', { name: 'Comprobante' })).toHaveClass('sr-only');
+  });
+
+  it('WEB-25 separa el nombre de la terminación con un " · " decorativo, como en la revisión', () => {
+    render(<Receipt transfer={transfer()} fromAccount={PRINCIPAL} />);
+    expect(screen.getByText('Principal')).toHaveClass("after:content-['_·']");
+    expect(screen.getByText('Luis')).toHaveClass("after:content-['_·']");
   });
 
   it('WEB-16 sin los datos de la cuenta de origen muestra su identificador', () => {

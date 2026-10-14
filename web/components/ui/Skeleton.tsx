@@ -5,7 +5,8 @@ export interface SkeletonProps {
 
 const VARIANTS = {
   line: 'h-4 w-full rounded-sm',
-  card: 'h-36 w-full rounded-md',
+  // 128 px, como el esqueleto de tarjeta de la app móvil (WEB-25).
+  card: 'h-32 w-full rounded-md',
 } as const;
 
 /** Esqueleto de carga: oculto para lectores de pantalla y sin pulso con movimiento reducido. */

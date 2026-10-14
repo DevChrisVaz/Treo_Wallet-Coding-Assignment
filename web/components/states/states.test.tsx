@@ -1,6 +1,6 @@
 import { ProblemError } from '@devchrisvaz/wallet-contract';
 import { problemMessage } from '@devchrisvaz/wallet-design-tokens';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -32,6 +32,18 @@ describe('ErrorState', () => {
     expect(alert).toHaveTextContent('r9');
     await user.click(screen.getByRole('button', { name: 'Reintentar' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('WEB-25 "Reintentar" va debajo de la alerta y no dentro, como en la app móvil', () => {
+    render(
+      <ErrorState
+        title="No pudimos cargar tus cuentas"
+        error={new TypeError('Failed to fetch')}
+        onRetry={vi.fn()}
+      />,
+    );
+    expect(within(screen.getByRole('alert')).queryByRole('button')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeVisible();
   });
 
   it('WEB-23 no tienen problemas de accesibilidad', async () => {

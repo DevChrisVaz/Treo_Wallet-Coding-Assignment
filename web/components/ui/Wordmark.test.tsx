@@ -12,7 +12,7 @@ describe('Wordmark', () => {
   });
 
   it('DSG-11 la variante compacta usa un tamaño menor que la completa', () => {
-    expect(renderToStaticMarkup(<Wordmark />)).toContain('text-h2');
+    expect(renderToStaticMarkup(<Wordmark />)).toContain('text-h1');
     expect(renderToStaticMarkup(<Wordmark variant="compact" />)).toContain('text-h3');
   });
 

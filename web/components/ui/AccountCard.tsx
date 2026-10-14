@@ -15,6 +15,10 @@ export interface AccountCardProps {
 /**
  * Tarjeta de cuenta (D7 de design-system): nombre, CLABE enmascarada salvo los últimos 4 dígitos y
  * saldo en `h2` con dígitos tabulares. La CLABE completa se puede mostrar para compartirla.
+ *
+ * Mide lo mismo que la tarjeta de la app móvil (WEB-25): borde de 2 px (transparente o, si está
+ * seleccionada, el anillo en verde de acción), 4 px entre filas y controles de 44 px que devuelven
+ * con margen negativo el alto que no ocupa su línea de texto.
  */
 export function AccountCard({ account, selected = false, onSelect, children }: AccountCardProps) {
   const titleId = useId();
@@ -25,7 +29,7 @@ export function AccountCard({ account, selected = false, onSelect, children }: A
   return (
     <article
       aria-labelledby={titleId}
-      className={`grid gap-2 rounded-md bg-surface p-5 shadow-card ${selected ? 'ring-2 ring-action' : ''}`.trim()}
+      className={`grid gap-1 rounded-md border-2 bg-surface p-5 shadow-card ${selected ? 'border-action' : 'border-transparent'}`}
     >
       <h3 id={titleId} className="text-label text-fg">
         {onSelect ? (
@@ -34,7 +38,7 @@ export function AccountCard({ account, selected = false, onSelect, children }: A
             aria-pressed={selected}
             aria-describedby={balanceId}
             onClick={onSelect}
-            className="min-h-11 text-left"
+            className="-my-3 min-h-11 text-left"
           >
             {account.name}
           </button>
@@ -61,7 +65,7 @@ export function AccountCard({ account, selected = false, onSelect, children }: A
           aria-controls={clabeId}
           aria-label={`${showClabe ? 'Ocultar' : 'Mostrar'} CLABE de ${account.name}`}
           onClick={() => setShowClabe((value) => !value)}
-          className="min-h-11 rounded-sm px-1 text-caption text-action underline underline-offset-2"
+          className="-my-3.5 min-h-11 rounded-sm px-1 text-caption text-action underline underline-offset-2"
         >
           {showClabe ? 'Ocultar CLABE' : 'Mostrar CLABE'}
         </button>

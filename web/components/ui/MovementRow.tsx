@@ -8,7 +8,8 @@ import { Avatar } from './Avatar';
 /**
  * Fila del historial (WEB-14, WEB-29): avatar por tipo, tipo, contraparte y concepto, hora y
  * referencia, monto con signo y saldo. La fecha completa queda para lectores de pantalla: la lista
- * la agrupa visualmente por día.
+ * la agrupa visualmente por día. Como en la app móvil (WEB-25), el tipo no se corta (pasa a una
+ * segunda línea si no cabe junto al monto) y solo la contraparte y el concepto se truncan.
  */
 export function MovementRow({ movement }: { movement: Movement }) {
   const { direction, label } = MOVEMENT_TYPE[movement.type];
@@ -21,10 +22,10 @@ export function MovementRow({ movement }: { movement: Movement }) {
         tone={direction === 'in' ? 'success' : 'neutral'}
         icon={movementIcon[movement.type]}
       />
-      <div className="grid min-w-0 flex-1 gap-0.5">
-        <p className="truncate text-label text-fg">{label}</p>
+      <div className="grid min-w-0 flex-1 gap-1">
+        <p className="text-label text-fg">{label}</p>
         <p className="truncate text-caption text-fg-secondary">{detail}</p>
-        <p className="text-caption text-fg-muted">
+        <p className="text-caption text-fg-muted tabular-nums">
           <time dateTime={movement.occurredAt}>
             <span className="sr-only">{dateTime.slice(0, dateTime.lastIndexOf(',') + 2)}</span>
             {formatTime(movement.occurredAt)}
@@ -32,7 +33,7 @@ export function MovementRow({ movement }: { movement: Movement }) {
           {' · '}Ref. {movement.reference}
         </p>
       </div>
-      <div className="grid shrink-0 justify-items-end gap-0.5 text-right">
+      <div className="grid shrink-0 justify-items-end gap-1 text-right">
         <p className={`text-label whitespace-nowrap tabular-nums ${MONEY_CLASSES[direction]}`}>
           {signedAmount(direction, movement.amount)}
         </p>
