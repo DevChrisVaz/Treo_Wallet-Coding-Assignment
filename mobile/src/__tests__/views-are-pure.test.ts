@@ -22,7 +22,10 @@ const PENDING_7_5 = ['transfer/otp-view.tsx', 'transfer/outcome-view.tsx'];
 
 describe('vistas de pantalla puras', () => {
   test('MOB-18 MOB-22 ninguna vista importa navegación, consultas, sesión ni módulos nativos', () => {
-    const offenders = viewFiles()
+    const files = viewFiles();
+    // Sin vistas encontradas la revisión pasaría sin revisar nada (p. ej., si cambia la carpeta).
+    expect(files.length).toBeGreaterThan(0);
+    const offenders = files
       .filter((file) => !PENDING_7_5.some((pending) => file.endsWith(pending)))
       .filter((file) => IMPURE.test(readFileSync(file, 'utf8')));
     expect(offenders).toEqual([]);
