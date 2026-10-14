@@ -1,4 +1,4 @@
-import { ProblemError } from '@devchrisvaz/wallet-contract';
+import { ProblemError, toProblemError } from '@devchrisvaz/wallet-contract';
 
 export type QueryParams = Record<string, string | readonly string[] | undefined>;
 
@@ -33,4 +33,32 @@ export async function bffGet<T>(path: string, params: QueryParams = {}): Promise
     // Cuerpo ilegible: se informa como error interno con el estado de la respuesta.
   }
   throw new ProblemError(response.status, body, response.headers.get('X-Request-Id'));
+}
+
+export interface DownloadedFile {
+  readonly blob: Blob;
+  readonly filename: string;
+}
+
+/** Nombre del archivo de `Content-Disposition: attachment; filename="…"`. */
+function filenameFrom(disposition: string | null): string | undefined {
+  return disposition?.match(/filename="([^"]+)"/)?.[1];
+}
+
+/**
+ * Descarga de un archivo por el proxy GET del BFF (WEB-32): los bytes como `Blob` y el nombre que
+ * propone la API. Un error con respuesta llega como `ProblemError`, con `retryAfter` si la respuesta
+ * trae `Retry-After`; un fallo de red se propaga tal cual.
+ */
+export async function bffDownload(path: string): Promise<DownloadedFile> {
+  const response = await fetch(`/bff/api/${path}`, {
+    method: 'GET',
+    credentials: 'same-origin',
+    cache: 'no-store',
+    headers: { Accept: 'application/pdf, application/problem+json' },
+  });
+  if (!response.ok) throw await toProblemError(response);
+  const filename =
+    filenameFrom(response.headers.get('Content-Disposition')) ?? `${path.split('/').at(-1)}.pdf`;
+  return { blob: await response.blob(), filename };
 }
