@@ -7,10 +7,16 @@
  * react-native-web. Los contenedores (expo-router, TanStack Query, sesión) no entran en el lienzo;
  * la barra de pestañas es el `TabBar` del kit que monta el layout de pestañas.
  * Los datos son el bloque canónico del plan, idéntico en la web.
+ *
+ * Funciones propias de la app (bonus, sin pareja web): la pantalla de bloqueo y la oferta del
+ * desbloqueo biométrico (MOB-24, MOB-25, MOB-26) y el comprobante de una transferencia programada o
+ * cancelada (MOB-23). El menú de la cuenta con el interruptor del desbloqueo es una hoja (`Modal`):
+ * está en las historias de `BottomSheet` (`AccountMenuUnlock`), como el menú de la cuenta.
  */
 import type { ReactNode } from 'react';
 import {
   HomeView,
+  LockScreenView,
   LoginView,
   MovementsView,
   ProblemError,
@@ -20,6 +26,7 @@ import {
   StyleSheet,
   TabBar,
   TransferFlowView,
+  UnlockOfferView,
   View,
 } from 'wallet-mobile-ui';
 
@@ -91,6 +98,19 @@ const failedTransfer = {
     resendsRemaining: 3,
   },
   createdAt: '2026-10-13T17:41:00Z',
+  completedAt: null,
+};
+
+// Programada (bonus de la web, WEB-33): $1,000.00 a Luis para el 20 de octubre de 2026. La app no
+// programa ni cancela (MOB-23), pero si la API devuelve una en esos estados la muestra con su etiqueta.
+const scheduledTransfer = {
+  ...completedTransfer,
+  id: '9a3b5c7d-2e4f-4a6b-8c0d-1e3f5a7b9c2d',
+  status: 'SCHEDULED' as const,
+  amount: '1000.00',
+  scheduledFor: '2026-10-20',
+  cancelledAt: null,
+  createdAt: '2026-10-13T16:50:00Z',
   completedAt: null,
 };
 
@@ -373,4 +393,61 @@ export const TransferFailed = () => (
       error: new ProblemError(422, { code: 'OTP_ATTEMPTS_EXHAUSTED', title: 'Intentos agotados', status: 422 }),
     }}
   />
+);
+
+// --- Estados de las programadas (bonus, MOB-23): sin pareja en la web --------------------------
+
+// La API respondió con una transferencia en SCHEDULED: "Programada" en el tono informativo, sin error,
+// y el título del paso dice que se programó.
+export const TransferOutcomeScheduled = () => (
+  <Flow state={{ status: 'completed', transfer: scheduledTransfer, replayed: false }} />
+);
+
+// Una repetición de la misma operación devuelve la transferencia en su estado actual: cancelada en la
+// web. "Cancelada" en el tono neutro.
+export const TransferOutcomeCancelled = () => (
+  <Flow
+    state={{
+      status: 'completed',
+      transfer: { ...scheduledTransfer, status: 'CANCELLED', cancelledAt: '2026-10-14T15:00:00Z' },
+      replayed: true,
+    }}
+  />
+);
+
+// --- Desbloqueo biométrico (bonus, MOB-24 a MOB-26): sin pareja en la web ------------------------
+
+// features/unlock/lock-screen-view.tsx: la marca y las dos opciones, sin saldos ni datos personales.
+// Ya se canceló el diálogo biométrico: "Desbloquear con huella" lo vuelve a abrir.
+export const LockScreen = () => (
+  <View style={styles.phone}>
+    <LockScreenView kind="huella" prompting={false} notice={null} onUnlock={noop} onSignOut={noop} />
+  </View>
+);
+
+// El sistema bloqueó la biometría por demasiados intentos (MOB-26): el aviso y las dos opciones.
+export const LockScreenLockout = () => (
+  <View style={styles.phone}>
+    <LockScreenView
+      kind="huella"
+      prompting={false}
+      notice={{
+        tone: 'warning',
+        message: 'Demasiados intentos. Intenta más tarde o usa tu contraseña.',
+      }}
+      onUnlock={noop}
+      onSignOut={noop}
+    />
+  </View>
+);
+
+// Inicio después de entrar con contraseña (MOB-24): la oferta va como tarjeta bajo el hero.
+export const HomeUnlockOffer = () => (
+  <TabFrame current="home">
+    <HomeView
+      {...homeProps}
+      overview={OVERVIEW}
+      offer={<UnlockOfferView kind="huella" activating={false} onActivate={noop} onDecline={noop} />}
+    />
+  </TabFrame>
 );

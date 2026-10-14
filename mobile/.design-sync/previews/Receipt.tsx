@@ -71,3 +71,32 @@ export const Rejected = () => (
     />
   </View>
 );
+
+// Bonus (MOB-23): una programada de la web, $1,000.00 a Luis para el 20 de octubre; "Programada" en
+// el tono informativo, sin error.
+const scheduled = {
+  ...completed,
+  id: '9a3b5c7d-2e4f-4a6b-8c0d-1e3f5a7b9c2d',
+  status: 'SCHEDULED' as const,
+  amount: '1000.00',
+  scheduledFor: '2026-10-20',
+  cancelledAt: null,
+  createdAt: '2026-10-13T16:50:00Z',
+  completedAt: null,
+};
+
+export const Scheduled = () => (
+  <View style={frame}>
+    <Receipt transfer={scheduled} fromAccountName="Principal" />
+  </View>
+);
+
+// Bonus (MOB-23): la misma, cancelada en la web; "Cancelada" en el tono neutro.
+export const Cancelled = () => (
+  <View style={frame}>
+    <Receipt
+      transfer={{ ...scheduled, status: 'CANCELLED', cancelledAt: '2026-10-14T15:00:00Z' }}
+      fromAccountName="Principal"
+    />
+  </View>
+);
