@@ -49,6 +49,19 @@ export async function addBeneficiary(
   return res.body.id as string;
 }
 
+/** POST /transfers verificado contra el contrato. */
+export async function postTransfer(
+  t: TestApp,
+  owner: VerifiedUser,
+  body: Record<string, unknown>,
+  key: string | null = crypto.randomUUID(),
+) {
+  const req = authed(t, owner.accessToken).post('/transfers');
+  const res = await (key ? req.set('Idempotency-Key', key) : req).send(body);
+  expectToMatchContract(res, 'createTransfer');
+  return res;
+}
+
 export async function balanceOf(harness: IntegrationHarness, accountId: string): Promise<string> {
   const [row] = await harness.migrator.query(
     'SELECT balance_cents FROM app.accounts WHERE id = $1',
