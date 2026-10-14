@@ -169,8 +169,8 @@ describe('Receipt', () => {
     const receipt = screen.getByRole('region', { name: 'Comprobante' });
     expect(within(receipt).getByText('Completada')).toHaveClass('bg-success-soft');
     expect(within(receipt).getByText('$5,000.00')).toBeVisible();
-    expect(receipt).toHaveTextContent('Principal •••• 9719');
-    expect(receipt).toHaveTextContent('Luis •••• 9735');
+    expect(receipt).toHaveTextContent('Principal · •••• 9719');
+    expect(receipt).toHaveTextContent('Luis · •••• 9735');
     expect(receipt).toHaveTextContent('Renta');
     expect(receipt).toHaveTextContent('Referencia1');
     expect(receipt).toHaveTextContent('13 oct 2026, 10:42');
@@ -182,10 +182,11 @@ describe('Receipt', () => {
     expect(screen.getByRole('heading', { name: 'Comprobante' })).toHaveClass('sr-only');
   });
 
-  it('WEB-25 separa el nombre de la terminación con un " · " decorativo, como en la revisión', () => {
+  it('WEB-25 separa el nombre de la terminación con " · ", como en la revisión', () => {
     render(<Receipt transfer={transfer()} fromAccount={PRINCIPAL} />);
-    expect(screen.getByText('Principal')).toHaveClass("after:content-['_·']");
-    expect(screen.getByText('Luis')).toHaveClass("after:content-['_·']");
+    const receipt = screen.getByRole('region', { name: 'Comprobante' });
+    expect(receipt).toHaveTextContent('Principal · •••• 9719');
+    expect(receipt).toHaveTextContent('Luis · •••• 9735');
   });
 
   it.each([

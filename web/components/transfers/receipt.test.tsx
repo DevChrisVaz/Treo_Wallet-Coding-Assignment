@@ -46,8 +46,8 @@ describe('ReceiptStep', () => {
     const receipt = screen.getByRole('region', { name: 'Comprobante' });
     expect(within(receipt).getByText('Completada')).toHaveClass('bg-success-soft', 'text-success');
     expect(receipt).toHaveTextContent('$5,000.00');
-    expect(receipt).toHaveTextContent('Principal •••• 9719');
-    expect(receipt).toHaveTextContent('Luis •••• 9735');
+    expect(receipt).toHaveTextContent('Principal · •••• 9719');
+    expect(receipt).toHaveTextContent('Luis · •••• 9735');
     expect(receipt).toHaveTextContent('Renta');
     expect(receipt).toHaveTextContent('13 oct 2026, 10:42');
     expect(receipt).toHaveTextContent(transfer().id);

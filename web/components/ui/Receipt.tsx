@@ -15,9 +15,17 @@ export interface ReceiptProps {
 
 /**
  * " · " entre el nombre y la terminación de la CLABE, como en la revisión y en la app móvil (WEB-25).
- * Es un separador decorativo, así que va en CSS (como el de una miga de pan) y no cambia el texto.
+ * Es texto (se copia y se busca igual que en la revisión); el punto es decorativo, así que un lector de
+ * pantalla lee solo el nombre y la terminación.
  */
-const SEPARATOR = "after:content-['_·']";
+function Separator() {
+  return (
+    <>
+      {' '}
+      <span aria-hidden="true">·</span>{' '}
+    </>
+  );
+}
 
 /**
  * Dato del comprobante. En la forma de app, etiqueta pequeña sobre el valor y 12 px entre datos, como
@@ -43,15 +51,18 @@ export function Receipt({ transfer, fromAccount }: ReceiptProps) {
   const titleId = useId();
   const origin = fromAccount ? (
     <>
-      <span className={SEPARATOR}>{fromAccount.name}</span> {maskClabe(fromAccount.clabe)}
+      {fromAccount.name}
+      <Separator />
+      {maskClabe(fromAccount.clabe)}
     </>
   ) : (
     transfer.fromAccountId
   );
   const destination = (
     <>
-      <span className={SEPARATOR}>{transfer.destination.displayName}</span>
-      {` •••• ${transfer.destination.clabeLast4}`}
+      {transfer.destination.displayName}
+      <Separator />
+      {`•••• ${transfer.destination.clabeLast4}`}
     </>
   );
 

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BottomSheet } from './BottomSheet';
 import { FlowHeader } from './FlowHeader';
+import { StepActions } from './StepActions';
 import { Stepper } from './Stepper';
 
 function Harness() {
@@ -143,12 +144,65 @@ describe('FlowHeader', () => {
     expect(header?.className).not.toMatch(/(^|\s)px-/);
     expect(header).toHaveClass('pt-4', 'dashboard:pt-8');
   });
+
+  it('WEB-23 al cambiar de paso el título recibe el foco; al abrir la página, no', () => {
+    const { rerender } = render(
+      <FlowHeader
+        title="¿A quién le envías?"
+        step={1}
+        total={5}
+        stepLabel="Destinatario"
+        closeHref="/"
+        titleId="t"
+        focusTitle
+      />,
+    );
+    expect(screen.getByRole('heading', { level: 1 })).not.toHaveFocus();
+    rerender(
+      <FlowHeader
+        title="¿Cuánto envías?"
+        step={2}
+        total={5}
+        stepLabel="Monto"
+        closeHref="/"
+        titleId="t"
+        focusTitle
+      />,
+    );
+    expect(screen.getByRole('heading', { level: 1, name: '¿Cuánto envías?' })).toHaveFocus();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveAttribute('id', 't');
+  });
 });
 
 describe('Stepper', () => {
-  it('WEB-30 anuncia el paso actual', () => {
+  it('WEB-30 anuncia el paso actual una sola vez', () => {
     render(<Stepper current={3} total={5} label="Revisión" />);
     expect(screen.getByText('Paso 3 de 5 · Revisión')).toHaveAttribute('aria-live', 'polite');
-    expect(screen.getByRole('group', { name: 'Paso 3 de 5: Revisión' })).toBeInTheDocument();
+    expect(screen.queryByRole('group')).not.toBeInTheDocument();
+  });
+});
+
+describe('StepActions', () => {
+  it('WEB-30 en teléfono las acciones del paso quedan fijas abajo y un espaciador reserva su alto', () => {
+    const { container } = render(
+      <StepActions stacked>
+        <button type="button">Enviar</button>
+      </StepActions>,
+    );
+    expect(screen.getByRole('button', { name: 'Enviar' }).closest('.fixed')).toHaveClass(
+      'inset-x-0',
+      'bottom-0',
+      'dashboard:static',
+    );
+    expect(container.querySelector('[aria-hidden="true"]')).toHaveClass('h-36', 'dashboard:hidden');
+  });
+
+  it('WEB-30 en una página con pestañas las acciones van en línea', () => {
+    render(
+      <StepActions fixed={false}>
+        <button type="button">Ver mis cuentas</button>
+      </StepActions>,
+    );
+    expect(screen.getByRole('button', { name: 'Ver mis cuentas' }).closest('.fixed')).toBeNull();
   });
 });
