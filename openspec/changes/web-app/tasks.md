@@ -61,5 +61,5 @@
 ## 10. CI y documentación
 
 - [x] 10.1 [web] Workflow `.github/workflows/web.yml` disparado por `web/**`, `contract/**`, `design-tokens/**` y el propio workflow: compilar `/contract` y `/design-tokens`, `npm ci`, lint, typecheck, pruebas y `next build` (WEB-01, WEB-23)
-- [ ] 10.2 [web] Verificación manual documentada de que una mutación con un `Origin` ajeno es rechazada (WEB-06)
+- [x] 10.2 [web] Verificación manual documentada de que una mutación con un `Origin` ajeno es rechazada (WEB-06)
 - [ ] 10.3 [web] README de `/web`: requisitos, variables de entorno, cómo correr en local contra la API y Mailpit, cómo correr las pruebas, nota sobre `install-links` y verificaciones manuales (WEB-02, WEB-06, WEB-23)

@@ -4,7 +4,7 @@
 
 Lo que las pruebas automáticas no pueden comprobar en jsdom se verificó en un navegador real (Chrome, con el MCP de Chrome DevTools) el 13 de octubre de 2026.
 
-**Entorno.** Build de producción (`npm run build` y `next start -p 3100`, sin el overlay de desarrollo de Next.js, que captura el foco en `next dev`) con `SESSION_COOKIE_SECURE=false`. La API real no estaba disponible: se usó una API simulada en el puerto 4100 con las rutas, los cuerpos y los códigos de `contract/openapi.yaml` (no se versiona). **Pendiente: repetir ambas verificaciones contra la API real.**
+**Entorno.** Build de producción (`npm run build` y `next start -p 3100`, sin el overlay de desarrollo de Next.js, que captura el foco en `next dev`) con `SESSION_COOKIE_SECURE=false`. La API real no estaba disponible: se usó una API simulada en el puerto 4100 con las rutas, los cuerpos y los códigos de `contract/openapi.yaml` (no se versiona). **Pendiente: repetir con la API real las dos verificaciones de accesibilidad;** la de origen no depende de la API.
 
 ### Transferencia solo con teclado (WEB-23)
 
@@ -41,3 +41,25 @@ Categoría de accesibilidad de Lighthouse, que incluye `color-contrast`. En modo
 | `/accounts/{id}/movements` con 20 movimientos       | snapshot                        | móvil       | 100           |
 
 `color-contrast` pasó en todas, sin auditorías fallidas.
+
+### Mutación con un `Origin` ajeno (WEB-06)
+
+La protección de origen de las Server Actions es del framework (compara `Origin` con `Host` y acepta los hosts de `serverActions.allowedOrigins`); las pruebas solo cubren la configuración. Se verificó a mano con `curl` contra `next start`, invocando la acción `createBeneficiary` con el header `Next-Action` y la cookie de una sesión válida, y contando en el registro de la API simulada las llamadas a `POST /beneficiaries`:
+
+```sh
+curl -X POST http://localhost:3100/beneficiaries/new \
+  -H 'Origin: https://evil.example.com' -H 'Next-Action: <id de createBeneficiary>' \
+  -H 'Content-Type: text/plain;charset=UTF-8' -H 'Cookie: sid=<id de sesión>' \
+  --data '[{"name":"Mario Soto","alias":"Mario","clabe":"032180000118359780"}]'
+```
+
+El id de la acción está en `.next/server/server-reference-manifest.json` tras el build.
+
+| `Origin`                            | `ALLOWED_ORIGINS`            | Respuesta                                                                                                                           | Llamadas a la API |
+| ----------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| `https://evil.example.com`          | vacío                        | `500`; el servidor registra "`x-forwarded-host` … does not match `origin` … Aborting the action" e "Invalid Server Actions request" | 0                 |
+| `http://localhost:3100` (el propio) | vacío                        | `200` con el beneficiario                                                                                                           | 1                 |
+| `https://wallet.example.com`        | `https://wallet.example.com` | `200` con el beneficiario                                                                                                           | 1                 |
+| `https://evil.example.com`          | `https://wallet.example.com` | `500`, acción abortada                                                                                                              | 0                 |
+
+`ALLOWED_ORIGINS` se aplica al arrancar `next start`, sin volver a compilar. La respuesta del rechazo no incluye detalles, solo un `digest`.
