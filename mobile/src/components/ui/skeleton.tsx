@@ -26,8 +26,7 @@ export function Skeleton({ variant = 'line' }: { variant?: 'line' | 'card' }) {
   return (
     <Animated.View
       testID="skeleton"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
+      aria-hidden
       style={[styles.base, variant === 'card' ? styles.card : styles.line, { opacity }]}
     />
   );

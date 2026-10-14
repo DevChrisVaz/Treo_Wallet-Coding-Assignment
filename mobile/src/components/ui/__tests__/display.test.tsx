@@ -152,10 +152,8 @@ describe('Skeleton', () => {
     const loop = jest.spyOn(Animated, 'loop');
     await render(<Skeleton variant="card" />);
     await act(async () => {});
-    expect(screen.getByTestId('skeleton', { includeHiddenElements: true })).toHaveProp(
-      'importantForAccessibility',
-      'no-hide-descendants',
-    );
+    expect(screen.queryByTestId('skeleton')).toBeNull();
+    expect(screen.getByTestId('skeleton', { includeHiddenElements: true })).toBeOnTheScreen();
     expect(loop).toHaveBeenCalled();
   });
 
