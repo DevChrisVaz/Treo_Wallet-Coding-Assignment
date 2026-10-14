@@ -19,19 +19,24 @@ export interface MovementRowProps {
  * Fila del historial (WEB-14, WEB-29): avatar por tipo, tipo, contraparte y concepto, fecha (u hora,
  * con `timeOnly`) y referencia, monto con signo y saldo. Como en la app móvil (WEB-25), el tipo no
  * se corta (pasa a una segunda línea si no cabe junto al monto) y solo la contraparte y el concepto
- * se truncan.
+ * se truncan. Con el texto agrandado (WEB-28, 200 %) la fila se reacomoda en lugar de desbordar la
+ * página: si junto al avatar no cabe la base del texto (`basis-16`, 4rem), el monto y el saldo bajan
+ * a su propia línea, alineados a la derecha, y el saldo puede partirse en dos renglones. Al 100 % la
+ * fila no cambia.
  */
 export function MovementRow({ movement, timeOnly = false }: MovementRowProps) {
   const { direction, label } = MOVEMENT_TYPE[movement.type];
   const detail = [movement.counterparty?.name, movement.concept].filter(Boolean).join(' · ');
 
   return (
-    <li className={`flex items-center gap-3 py-3${timeOnly ? '' : ' border-b border-border'}`}>
+    <li
+      className={`flex flex-wrap items-center gap-3 py-3${timeOnly ? '' : ' border-b border-border'}`}
+    >
       <Avatar
         tone={direction === 'in' ? 'success' : 'neutral'}
         icon={movementIcon[movement.type]}
       />
-      <div className="grid min-w-0 flex-1 gap-1">
+      <div className="grid min-w-0 flex-1 basis-16 gap-1">
         <p className="text-label text-fg">{label}</p>
         <p className="truncate text-caption text-fg-secondary">{detail}</p>
         <p className="text-caption text-fg-muted tabular-nums">
@@ -48,7 +53,7 @@ export function MovementRow({ movement, timeOnly = false }: MovementRowProps) {
           {' · '}Ref. {movement.reference}
         </p>
       </div>
-      <div className="grid shrink-0 justify-items-end gap-1 text-right">
+      <div className="ml-auto grid justify-items-end gap-1 text-right">
         <p className={`text-label whitespace-nowrap tabular-nums ${MONEY_CLASSES[direction]}`}>
           {signedAmount(direction, movement.amount)}
         </p>

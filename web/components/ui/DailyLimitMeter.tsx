@@ -20,7 +20,8 @@ export function DailyLimitMeter({ dailyLimit, showHeader = false }: DailyLimitMe
   return (
     <div className="grid gap-2">
       {showHeader ? (
-        <div className="flex items-baseline justify-between gap-4">
+        // Con el texto agrandado (200 %), el límite baja a otra línea en lugar de desbordar.
+        <div className="flex flex-wrap items-baseline justify-between gap-4">
           <p className="text-label text-fg">Límite diario</p>
           <p className="text-caption text-fg-muted tabular-nums">{formatMXN(dailyLimit.limit)}</p>
         </div>

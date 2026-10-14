@@ -77,7 +77,8 @@ export function AccountCard({ account, selected = false, onSelect, children }: A
           {showClabe ? 'Ocultar CLABE' : 'Mostrar CLABE'}
         </button>
       </div>
-      <p id={balanceId} className="text-h2 text-fg tabular-nums">
+      {/* Como el monto del hero: con el texto agrandado pasa de línea en lugar de desbordar. */}
+      <p id={balanceId} className="text-h2 text-fg tabular-nums [overflow-wrap:anywhere]">
         {formatMXN(account.balance)}
       </p>
       {children ? <div className="relative z-10 flex flex-wrap gap-2 pt-1">{children}</div> : null}
