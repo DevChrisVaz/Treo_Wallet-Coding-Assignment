@@ -1,9 +1,12 @@
 'use client';
 
 import { schedulableRange } from '@devchrisvaz/wallet-contract';
+import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useEffect } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 import { TextField } from '@/components/ui/TextField';
+import { scheduledTransfersKey } from '@/lib/client/scheduled-transfers';
 import { formatScheduledDate } from '@/lib/scheduled-date';
 
 /*
@@ -68,8 +71,15 @@ export function scheduledSendText(scheduledFor: string): string {
   return `Se enviará el ${formatScheduledDate(scheduledFor)}`;
 }
 
-/** Nota del resultado `SCHEDULED`: la fecha y el enlace a la página de programadas. */
+/**
+ * Nota del resultado `SCHEDULED`: la fecha y el enlace a la página de programadas. Hay una
+ * programada nueva, así que la lista en caché se vuelve a consultar (WEB-34).
+ */
 export function ScheduledOutcome({ scheduledFor }: { scheduledFor: string }) {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: scheduledTransfersKey });
+  }, [queryClient]);
   return (
     <p className="text-body text-fg-secondary">
       {scheduledSendText(scheduledFor)}. Puedes cancelarla antes de esa fecha en{' '}

@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { useForm, useWatch } from 'react-hook-form';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
+import { scheduledTransfersKey } from '@/lib/client/scheduled-transfers';
+import { renderWithClient, testQueryClient } from '@/test/support/render';
 import {
   ScheduledOutcome,
   ScheduleField,
@@ -117,7 +119,7 @@ describe('scheduledSendText', () => {
 
 describe('ScheduledOutcome', () => {
   it('WEB-33 indica la fecha y enlaza a la página de programadas', () => {
-    render(<ScheduledOutcome scheduledFor="2026-10-20" />);
+    renderWithClient(<ScheduledOutcome scheduledFor="2026-10-20" />);
     expect(screen.getByText(/Se enviará el 20 de octubre de 2026\./)).toBeVisible();
     expect(screen.getByRole('link', { name: 'tus transferencias programadas' })).toHaveAttribute(
       'href',
@@ -125,8 +127,15 @@ describe('ScheduledOutcome', () => {
     );
   });
 
+  it('WEB-34 la lista de programadas en caché se vuelve a consultar', () => {
+    const client = testQueryClient();
+    client.setQueryData(scheduledTransfersKey, { items: [] });
+    renderWithClient(<ScheduledOutcome scheduledFor="2026-10-20" />, { client });
+    expect(client.getQueryState(scheduledTransfersKey)?.isInvalidated).toBe(true);
+  });
+
   it('WEB-23 no tiene problemas de accesibilidad', async () => {
-    const { container } = render(<ScheduledOutcome scheduledFor="2026-10-20" />);
+    const { container } = renderWithClient(<ScheduledOutcome scheduledFor="2026-10-20" />);
     expect(await axe(container)).toHaveNoViolations();
   });
 });
