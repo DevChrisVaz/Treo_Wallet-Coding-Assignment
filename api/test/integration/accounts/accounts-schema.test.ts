@@ -59,10 +59,12 @@ afterAll(async () => {
 
 describe('ACC-01 cuentas de usuario y cuenta de sistema', () => {
   it('ACC-01 las migraciones crean exactamente una Tesorería SYSTEM sin dueño ni CLABE', async () => {
+    // Sin el saldo: este archivo no reinicia la base y otras pruebas fondean cuentas desde la
+    // Tesorería, así que su saldo depende del orden en que corran los archivos.
     const { rows } = await app.query(
-      `SELECT name, user_id, clabe, balance_cents FROM accounts WHERE type = 'SYSTEM'`,
+      `SELECT name, user_id, clabe FROM accounts WHERE type = 'SYSTEM'`,
     );
-    expect(rows).toEqual([{ name: 'Tesorería', user_id: null, clabe: null, balance_cents: '0' }]);
+    expect(rows).toEqual([{ name: 'Tesorería', user_id: null, clabe: null }]);
   });
 
   it('ACC-01 no admite una segunda cuenta SYSTEM', async () => {
