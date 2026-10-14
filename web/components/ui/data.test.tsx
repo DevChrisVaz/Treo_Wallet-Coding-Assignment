@@ -210,6 +210,18 @@ describe('DailyLimitMeter', () => {
     expect(screen.getByText('Te quedan $38,000.00 hoy')).toHaveClass('text-fg-secondary');
   });
 
+  it('WEB-13 por omisión no lleva encabezado propio: la pantalla de cuentas ya titula la sección', () => {
+    render(<DailyLimitMeter dailyLimit={DAILY_LIMIT} />);
+    expect(screen.queryByText('Límite diario')).toBeNull();
+    expect(screen.queryByText('$50,000.00')).toBeNull();
+  });
+
+  it('WEB-28 con showHeader muestra "Límite diario" y el límite, como en Inicio', () => {
+    render(<DailyLimitMeter dailyLimit={DAILY_LIMIT} showHeader />);
+    expect(screen.getByText('Límite diario')).toHaveClass('text-label');
+    expect(screen.getByText('$50,000.00')).toHaveClass('tabular-nums');
+  });
+
   it('DSG-11 es un medidor accesible con el porcentaje usado y la barra en el acento', () => {
     render(<DailyLimitMeter dailyLimit={DAILY_LIMIT} />);
     const meter = screen.getByRole('meter', { name: 'Límite diario' });

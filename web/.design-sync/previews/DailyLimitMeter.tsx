@@ -8,25 +8,25 @@ const base = {
 
 export const Default = () => (
   <div className="max-w-md">
-    <DailyLimitMeter dailyLimit={{ ...base, used: '12000.00', remaining: '38000.00' }} />
+    <DailyLimitMeter dailyLimit={{ ...base, used: '12000.00', remaining: '38000.00' }} showHeader />
   </div>
 );
 
 export const Unused = () => (
   <div className="max-w-md">
-    <DailyLimitMeter dailyLimit={{ ...base, used: '0.00', remaining: '50000.00' }} />
+    <DailyLimitMeter dailyLimit={{ ...base, used: '0.00', remaining: '50000.00' }} showHeader />
   </div>
 );
 
 export const NearlyReached = () => (
   <div className="max-w-md">
-    <DailyLimitMeter dailyLimit={{ ...base, used: '46500.00', remaining: '3500.00' }} />
+    <DailyLimitMeter dailyLimit={{ ...base, used: '46500.00', remaining: '3500.00' }} showHeader />
   </div>
 );
 
 export const Reached = () => (
   <div className="max-w-md">
-    <DailyLimitMeter dailyLimit={{ ...base, used: '50000.00', remaining: '0.00' }} />
+    <DailyLimitMeter dailyLimit={{ ...base, used: '50000.00', remaining: '0.00' }} showHeader />
   </div>
 );
 
