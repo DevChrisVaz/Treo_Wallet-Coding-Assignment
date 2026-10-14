@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useServices, useSessionSnapshot } from '@/app-services';
 import { Button, Wordmark } from '@/components/ui';
 import { restoreSession } from '@/session/restore';
+import { useScreenCaptureProtection } from '@/session/screen-capture';
 import { theme } from '@/theme';
 
 /**
@@ -14,6 +15,7 @@ import { theme } from '@/theme';
 export function RootNavigator() {
   const { session, refresher } = useServices();
   const snapshot = useSessionSnapshot();
+  useScreenCaptureProtection();
   // Cada intento de restaurar tiene un número; "Reintentar" inicia el siguiente.
   const [attempt, setAttempt] = useState(0);
   const [offlineAttempt, setOfflineAttempt] = useState<number | null>(null);
