@@ -35,6 +35,7 @@ export type Transfer = Schemas['Transfer'];
 export type TransferStatus = Schemas['TransferStatus'];
 export type TransferKind = Schemas['TransferKind'];
 export type OtpChallenge = Schemas['OtpChallenge'];
+export type ScheduledTransferList = Schemas['ScheduledTransferList'];
 
 // Errores
 export type Problem = Schemas['Problem'];
@@ -59,6 +60,7 @@ export const PROBLEM_CODES = [
   'BENEFICIARY_CONFLICT',
   'TRANSFER_NOT_PENDING',
   'TRANSFER_EXPIRED',
+  'TRANSFER_NOT_CANCELLABLE',
   'VALIDATION_FAILED',
   'INSUFFICIENT_FUNDS',
   'DAILY_LIMIT_EXCEEDED',
@@ -70,6 +72,7 @@ export const PROBLEM_CODES = [
   'OTP_INVALID',
   'OTP_ATTEMPTS_EXHAUSTED',
   'RESEND_LIMIT_REACHED',
+  'SCHEDULED_LIMIT_REACHED',
   'VERIFICATION_CODE_INVALID',
   'RATE_LIMITED',
   'INTERNAL_ERROR',

@@ -448,6 +448,12 @@ paths:
         de la transferencia y el header `Idempotent-Replayed: true` (o el mismo `422` si fue rechazada).
         Si el payload es distinto, responde `422 IDEMPOTENCY_KEY_REUSED`. Las peticiones simultáneas con
         la misma llave producen una sola transferencia. Los errores de validación no consumen la llave.
+
+        **Programación:** con `scheduledFor` (de mañana a 90 días, fecha de America/Mexico_City) la
+        transferencia no mueve dinero al crearse: responde `201` con estado `SCHEDULED`, o `PENDING_OTP`
+        si el monto es mayor a 10,000.00, y se ejecuta desde las 00:00 de esa fecha. Saldo y límite diario
+        se validan al ejecutar. La fecha forma parte del contenido que se compara entre reintentos. Máximo
+        20 programadas activas por usuario (`422 SCHEDULED_LIMIT_REACHED`).
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -485,6 +491,27 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /transfers/scheduled:
+    get:
+      tags: [transfers]
+      operationId: listScheduledTransfers
+      summary: Transferencias programadas pendientes de ejecutar
+      description: |
+        Transferencias del usuario en `SCHEDULED`, en orden de `scheduledFor` y luego de creación. Las
+        ejecutadas, fallidas, canceladas, vencidas y las que esperan su OTP no aparecen. Sin paginación:
+        el máximo es de 20 por usuario.
+      responses:
+        '200':
+          description: Programadas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduledTransferList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /transfers/{transferId}:
     get:
       tags: [transfers]
@@ -516,6 +543,9 @@ paths:
         si la transferencia ya está `COMPLETED`, responde `200` con ella sin consumir un intento.
         Si la revalidación falla, la transferencia pasa a `FAILED` y responde `422` con el motivo.
         Al tercer código incorrecto pasa a `FAILED` (`OTP_ATTEMPTS_EXHAUSTED`).
+
+        Una transferencia programada pasa a `SCHEDULED` con el código correcto, sin mover dinero ni
+        revalidar; confirmarla otra vez en `SCHEDULED` responde `200` sin consumir un intento.
       parameters:
         - $ref: '#/components/parameters/TransferId'
       requestBody:
@@ -526,7 +556,7 @@ paths:
               $ref: '#/components/schemas/ConfirmTransferRequest'
       responses:
         '200':
-          description: Transferencia completada.
+          description: Transferencia completada, o programada (`SCHEDULED`) si tiene `scheduledFor`.
           content:
             application/json:
               schema:
@@ -569,6 +599,35 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /transfers/{transferId}/cancel:
+    post:
+      tags: [transfers]
+      operationId: cancelTransfer
+      summary: Cancelar una transferencia programada
+      description: |
+        Pasa a `CANCELLED` una transferencia en `SCHEDULED`; una cancelada nunca se ejecuta. Cancelar una
+        que ya está `CANCELLED` responde `200` sin cambios. En cualquier otro estado responde
+        `409 TRANSFER_NOT_CANCELLABLE` con `transferStatus`. Si coincide con la ejecución, gana una sola.
+      parameters:
+        - $ref: '#/components/parameters/TransferId'
+      responses:
+        '200':
+          description: Transferencia cancelada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -833,6 +892,12 @@ components:
     Uuid:
       type: string
       format: uuid
+    ScheduledDate:
+      description: Fecha calendario en America/Mexico_City (`YYYY-MM-DD`).
+      type: string
+      format: date
+      pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+      examples: ['2026-10-20']
 
     # ---------- Auth ----------
     RegisterRequest:
@@ -1103,6 +1168,9 @@ components:
         amount: { $ref: '#/components/schemas/AmountInput' }
         concept: { $ref: '#/components/schemas/Concept' }
         reference: { $ref: '#/components/schemas/Reference' }
+        scheduledFor:
+          description: Fecha de ejecución, de mañana a 90 días. Sin el campo, la transferencia es inmediata.
+          $ref: '#/components/schemas/ScheduledDate'
     ConfirmTransferRequest:
       type: object
       additionalProperties: false
@@ -1111,7 +1179,7 @@ components:
         otp: { $ref: '#/components/schemas/SixDigitCode' }
     TransferStatus:
       type: string
-      enum: [PENDING_OTP, COMPLETED, REJECTED, FAILED, EXPIRED]
+      enum: [PENDING_OTP, COMPLETED, REJECTED, FAILED, EXPIRED, SCHEDULED, CANCELLED]
     TransferKind:
       type: string
       enum: [OWN, THIRD_PARTY]
@@ -1173,6 +1241,8 @@ components:
         - otp
         - rejectionReason
         - failureReason
+        - scheduledFor
+        - cancelledAt
         - createdAt
         - completedAt
       properties:
@@ -1196,15 +1266,32 @@ components:
           type: [string, 'null']
           enum: [INSUFFICIENT_FUNDS, DAILY_LIMIT_EXCEEDED, null]
         failureReason:
-          description: Motivo cuando el estado es `FAILED` (falla al confirmar).
+          description: Motivo cuando el estado es `FAILED` (falla al confirmar o al ejecutar una programada).
           type: [string, 'null']
           enum: [INSUFFICIENT_FUNDS, DAILY_LIMIT_EXCEEDED, OTP_ATTEMPTS_EXHAUSTED, null]
+        scheduledFor:
+          description: Fecha de ejecución de una transferencia programada; nula en las inmediatas.
+          type: [string, 'null']
+          format: date
+        cancelledAt:
+          description: Momento de la cancelación; solo en `CANCELLED`.
+          type: [string, 'null']
+          format: date-time
         createdAt:
           type: string
           format: date-time
         completedAt:
           type: [string, 'null']
           format: date-time
+
+    ScheduledTransferList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/Transfer' }
 
     # ---------- Errores (RFC 9457) ----------
     ProblemCode:
@@ -1222,6 +1309,7 @@ components:
         - BENEFICIARY_CONFLICT
         - TRANSFER_NOT_PENDING
         - TRANSFER_EXPIRED
+        - TRANSFER_NOT_CANCELLABLE
         - VALIDATION_FAILED
         - INSUFFICIENT_FUNDS
         - DAILY_LIMIT_EXCEEDED
@@ -1233,6 +1321,7 @@ components:
         - OTP_INVALID
         - OTP_ATTEMPTS_EXHAUSTED
         - RESEND_LIMIT_REACHED
+        - SCHEDULED_LIMIT_REACHED
         - VERIFICATION_CODE_INVALID
         - RATE_LIMITED
         - INTERNAL_ERROR
@@ -1253,6 +1342,7 @@ components:
         - TOO_LARGE
         - INVALID_CHECK_DIGIT
         - INVALID_DATE
+        - DATE_OUT_OF_RANGE
     FieldError:
       type: object
       required: [pointer, code, message]
@@ -1294,7 +1384,7 @@ components:
           type: string
           format: uuid
         transferStatus:
-          description: En `TRANSFER_NOT_PENDING`.
+          description: En `TRANSFER_NOT_PENDING` y `TRANSFER_NOT_CANCELLABLE`.
           $ref: '#/components/schemas/TransferStatus'
         remaining:
           description: En `DAILY_LIMIT_EXCEEDED`, lo que queda del límite del día.

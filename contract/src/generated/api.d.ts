@@ -295,8 +295,36 @@ export interface paths {
          *     de la transferencia y el header `Idempotent-Replayed: true` (o el mismo `422` si fue rechazada).
          *     Si el payload es distinto, responde `422 IDEMPOTENCY_KEY_REUSED`. Las peticiones simultáneas con
          *     la misma llave producen una sola transferencia. Los errores de validación no consumen la llave.
+         *
+         *     **Programación:** con `scheduledFor` (de mañana a 90 días, fecha de America/Mexico_City) la
+         *     transferencia no mueve dinero al crearse: responde `201` con estado `SCHEDULED`, o `PENDING_OTP`
+         *     si el monto es mayor a 10,000.00, y se ejecuta desde las 00:00 de esa fecha. Saldo y límite diario
+         *     se validan al ejecutar. La fecha forma parte del contenido que se compara entre reintentos. Máximo
+         *     20 programadas activas por usuario (`422 SCHEDULED_LIMIT_REACHED`).
          */
         post: operations["createTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/transfers/scheduled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Transferencias programadas pendientes de ejecutar
+         * @description Transferencias del usuario en `SCHEDULED`, en orden de `scheduledFor` y luego de creación. Las
+         *     ejecutadas, fallidas, canceladas, vencidas y las que esperan su OTP no aparecen. Sin paginación:
+         *     el máximo es de 20 por usuario.
+         */
+        get: operations["listScheduledTransfers"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -335,6 +363,9 @@ export interface paths {
          *     si la transferencia ya está `COMPLETED`, responde `200` con ella sin consumir un intento.
          *     Si la revalidación falla, la transferencia pasa a `FAILED` y responde `422` con el motivo.
          *     Al tercer código incorrecto pasa a `FAILED` (`OTP_ATTEMPTS_EXHAUSTED`).
+         *
+         *     Una transferencia programada pasa a `SCHEDULED` con el código correcto, sin mover dinero ni
+         *     revalidar; confirmarla otra vez en `SCHEDULED` responde `200` sin consumir un intento.
          */
         post: operations["confirmTransfer"];
         delete?: never;
@@ -357,6 +388,28 @@ export interface paths {
          * @description Máximo 3 reenvíos. Cada reenvío invalida el código anterior y reinicia los intentos.
          */
         post: operations["resendTransferOtp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/transfers/{transferId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancelar una transferencia programada
+         * @description Pasa a `CANCELLED` una transferencia en `SCHEDULED`; una cancelada nunca se ejecuta. Cancelar una
+         *     que ya está `CANCELLED` responde `200` sin cambios. En cualquier otro estado responde
+         *     `409 TRANSFER_NOT_CANCELLABLE` con `transferStatus`. Si coincide con la ejecución, gana una sola.
+         */
+        post: operations["cancelTransfer"];
         delete?: never;
         options?: never;
         head?: never;
@@ -411,6 +464,12 @@ export interface components {
         SixDigitCode: string;
         /** Format: uuid */
         Uuid: string;
+        /**
+         * Format: date
+         * @description Fecha calendario en America/Mexico_City (`YYYY-MM-DD`).
+         * @example 2026-10-20
+         */
+        ScheduledDate: string;
         RegisterRequest: {
             email: components["schemas"]["Email"];
             password: components["schemas"]["Password"];
@@ -566,12 +625,14 @@ export interface components {
             amount: components["schemas"]["AmountInput"];
             concept: components["schemas"]["Concept"];
             reference: components["schemas"]["Reference"];
+            /** @description Fecha de ejecución, de mañana a 90 días. Sin el campo, la transferencia es inmediata. */
+            scheduledFor?: components["schemas"]["ScheduledDate"];
         };
         ConfirmTransferRequest: {
             otp: components["schemas"]["SixDigitCode"];
         };
         /** @enum {string} */
-        TransferStatus: "PENDING_OTP" | "COMPLETED" | "REJECTED" | "FAILED" | "EXPIRED";
+        TransferStatus: "PENDING_OTP" | "COMPLETED" | "REJECTED" | "FAILED" | "EXPIRED" | "SCHEDULED" | "CANCELLED";
         /** @enum {string} */
         TransferKind: "OWN" | "THIRD_PARTY";
         TransferDestinationView: {
@@ -617,23 +678,36 @@ export interface components {
              */
             rejectionReason: "INSUFFICIENT_FUNDS" | "DAILY_LIMIT_EXCEEDED" | null;
             /**
-             * @description Motivo cuando el estado es `FAILED` (falla al confirmar).
+             * @description Motivo cuando el estado es `FAILED` (falla al confirmar o al ejecutar una programada).
              * @enum {string|null}
              */
             failureReason: "INSUFFICIENT_FUNDS" | "DAILY_LIMIT_EXCEEDED" | "OTP_ATTEMPTS_EXHAUSTED" | null;
+            /**
+             * Format: date
+             * @description Fecha de ejecución de una transferencia programada; nula en las inmediatas.
+             */
+            scheduledFor: string | null;
+            /**
+             * Format: date-time
+             * @description Momento de la cancelación; solo en `CANCELLED`.
+             */
+            cancelledAt: string | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             completedAt: string | null;
         };
+        ScheduledTransferList: {
+            items: components["schemas"]["Transfer"][];
+        };
         /** @enum {string} */
-        ProblemCode: "MALFORMED_REQUEST" | "IDEMPOTENCY_KEY_MISSING" | "IDEMPOTENCY_KEY_INVALID" | "INVALID_CURSOR" | "UNAUTHENTICATED" | "INVALID_CREDENTIALS" | "SESSION_REVOKED" | "EMAIL_NOT_VERIFIED" | "NOT_FOUND" | "BENEFICIARY_CONFLICT" | "TRANSFER_NOT_PENDING" | "TRANSFER_EXPIRED" | "VALIDATION_FAILED" | "INSUFFICIENT_FUNDS" | "DAILY_LIMIT_EXCEEDED" | "SAME_ACCOUNT_TRANSFER" | "IDEMPOTENCY_KEY_REUSED" | "CLABE_INVALID" | "CLABE_NOT_IN_PLATFORM" | "BENEFICIARY_IS_OWN_ACCOUNT" | "OTP_INVALID" | "OTP_ATTEMPTS_EXHAUSTED" | "RESEND_LIMIT_REACHED" | "VERIFICATION_CODE_INVALID" | "RATE_LIMITED" | "INTERNAL_ERROR";
+        ProblemCode: "MALFORMED_REQUEST" | "IDEMPOTENCY_KEY_MISSING" | "IDEMPOTENCY_KEY_INVALID" | "INVALID_CURSOR" | "UNAUTHENTICATED" | "INVALID_CREDENTIALS" | "SESSION_REVOKED" | "EMAIL_NOT_VERIFIED" | "NOT_FOUND" | "BENEFICIARY_CONFLICT" | "TRANSFER_NOT_PENDING" | "TRANSFER_EXPIRED" | "TRANSFER_NOT_CANCELLABLE" | "VALIDATION_FAILED" | "INSUFFICIENT_FUNDS" | "DAILY_LIMIT_EXCEEDED" | "SAME_ACCOUNT_TRANSFER" | "IDEMPOTENCY_KEY_REUSED" | "CLABE_INVALID" | "CLABE_NOT_IN_PLATFORM" | "BENEFICIARY_IS_OWN_ACCOUNT" | "OTP_INVALID" | "OTP_ATTEMPTS_EXHAUSTED" | "RESEND_LIMIT_REACHED" | "SCHEDULED_LIMIT_REACHED" | "VERIFICATION_CODE_INVALID" | "RATE_LIMITED" | "INTERNAL_ERROR";
         /**
          * @description Vocabulario cerrado de errores por campo, compartido por la API y los validadores del paquete.
          *     `INVALID_TYPE` cubre, por ejemplo, un monto enviado como número JSON en lugar de string.
          * @enum {string}
          */
-        FieldErrorCode: "REQUIRED" | "UNKNOWN_FIELD" | "INVALID_TYPE" | "INVALID_FORMAT" | "TOO_SHORT" | "TOO_LONG" | "TOO_MANY_DECIMALS" | "NOT_POSITIVE" | "TOO_LARGE" | "INVALID_CHECK_DIGIT" | "INVALID_DATE";
+        FieldErrorCode: "REQUIRED" | "UNKNOWN_FIELD" | "INVALID_TYPE" | "INVALID_FORMAT" | "TOO_SHORT" | "TOO_LONG" | "TOO_MANY_DECIMALS" | "NOT_POSITIVE" | "TOO_LARGE" | "INVALID_CHECK_DIGIT" | "INVALID_DATE" | "DATE_OUT_OF_RANGE";
         FieldError: {
             /** @description JSON Pointer al campo inválido (por ejemplo `/amount`). */
             pointer: string;
@@ -660,7 +734,7 @@ export interface components {
              * @description En `INSUFFICIENT_FUNDS`, `DAILY_LIMIT_EXCEEDED` y `OTP_ATTEMPTS_EXHAUSTED`.
              */
             transferId?: string;
-            /** @description En `TRANSFER_NOT_PENDING`. */
+            /** @description En `TRANSFER_NOT_PENDING` y `TRANSFER_NOT_CANCELLABLE`. */
             transferStatus?: components["schemas"]["TransferStatus"];
             /** @description En `DAILY_LIMIT_EXCEEDED`, lo que queda del límite del día. */
             remaining?: components["schemas"]["Amount"];
@@ -1212,6 +1286,28 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    listScheduledTransfers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Programadas. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduledTransferList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     getTransfer: {
         parameters: {
             query?: never;
@@ -1252,7 +1348,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Transferencia completada. */
+            /** @description Transferencia completada, o programada (`SCHEDULED`) si tiene `scheduledFor`. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1294,6 +1390,33 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    cancelTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Transferencia cancelada. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transfer"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
         };
