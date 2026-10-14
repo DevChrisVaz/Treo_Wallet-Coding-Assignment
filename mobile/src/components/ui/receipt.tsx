@@ -1,8 +1,7 @@
 import { formatMXN, type Transfer } from '@devchrisvaz/wallet-contract';
-import { toneIcon } from '@devchrisvaz/wallet-design-tokens';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { formatDateTime, maskClabe, statusPresentation } from '@/lib/display';
+import { formatDateTime, maskClabe } from '@/lib/display';
 import { theme } from '@/theme';
 
 import { Avatar } from './avatar';
@@ -28,10 +27,16 @@ function Row({ label, value, selectable }: { label: string; value: string; selec
 /** Comprobante: estado, monto, origen, destino, concepto, referencia, fecha y folio. */
 export function Receipt({ transfer, fromAccountName }: ReceiptProps) {
   const { destination } = transfer;
-  const { tone } = statusPresentation(transfer.status);
+  const completed = transfer.status === 'COMPLETED';
   return (
     <View style={styles.card}>
-      <Avatar size="lg" tone={tone === 'success' ? 'success' : 'neutral'} icon={toneIcon[tone]} />
+      <View testID="receipt-avatar">
+        <Avatar
+          size="lg"
+          tone={completed ? 'success' : 'neutral'}
+          icon={completed ? 'success' : 'info'}
+        />
+      </View>
       <StatusBadge status={transfer.status} />
       <Text style={styles.amount}>{formatMXN(transfer.amount)}</Text>
       <Row label="Origen" value={fromAccountName ?? 'Tu cuenta'} />

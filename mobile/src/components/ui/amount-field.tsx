@@ -38,6 +38,7 @@ function HeroAmountField({
   error,
   help,
   disabled = false,
+  // El monto héroe fija su propio estilo tipográfico: `inputStyle` no aplica y se descarta.
   inputStyle: _inputStyle,
   onFocus,
   onBlur,
