@@ -19,6 +19,18 @@ export interface TransferFormValues {
   reference: string;
 }
 
+/** Destino elegido en el primer paso (WEB-30). */
+export type TransferRecipient =
+  | { destinationType: 'OWN_ACCOUNT'; toAccountId: string }
+  | { destinationType: 'BENEFICIARY'; beneficiaryId: string };
+
+/** El destino de lo que se escribió, para volver al paso de monto con él al editar. */
+export function recipientOf(values: TransferFormValues): TransferRecipient {
+  return values.destinationType === 'OWN_ACCOUNT'
+    ? { destinationType: 'OWN_ACCOUNT', toAccountId: values.toAccountId }
+    : { destinationType: 'BENEFICIARY', beneficiaryId: values.beneficiaryId };
+}
+
 /** Un intento: lo que se escribió (para editar) y la petición validada (para enviar). */
 export interface TransferDraft {
   values: TransferFormValues;
@@ -28,7 +40,8 @@ export interface TransferDraft {
 export type ConfirmStatus = 'idle' | 'sending' | 'uncertain' | 'rejected';
 
 export type TransferFlowState =
-  | { step: 'form'; draft: TransferDraft | null }
+  | { step: 'recipient'; draft: TransferDraft | null }
+  | { step: 'form'; draft: TransferDraft | null; recipient: TransferRecipient }
   | {
       step: 'confirm';
       draft: TransferDraft;
@@ -38,9 +51,11 @@ export type TransferFlowState =
     }
   | { step: 'otp'; transfer: Transfer; replayed: boolean }
   | { step: 'receipt'; transfer: Transfer; replayed: boolean }
-  | { step: 'ended'; problem: ActionProblem };
+  /** `transfer`: la que se intentó confirmar con el código, para su comprobante (WEB-18). */
+  | { step: 'ended'; problem: ActionProblem; transfer: Transfer | null };
 
 type FlowEvent =
+  | { type: 'CHOOSE'; recipient: TransferRecipient }
   | { type: 'REVIEW'; draft: TransferDraft }
   | { type: 'EDIT' }
   | { type: 'SENDING' }
@@ -51,18 +66,24 @@ type FlowEvent =
   | { type: 'ENDED'; problem: ActionProblem }
   | { type: 'RESTART' };
 
-const INITIAL: TransferFlowState = { step: 'form', draft: null };
+const INITIAL: TransferFlowState = { step: 'recipient', draft: null };
 
 /**
- * Máquina de estados del flujo (D6 de web-app): formulario → confirmación → (código) →
- * comprobante. Es pura; la llave de idempotencia la maneja `useTransferFlow`.
+ * Máquina de estados del flujo (D6 de web-app, WEB-30): destinatario → monto → confirmación →
+ * (código) → comprobante. Es pura; la llave de idempotencia la maneja `useTransferFlow`.
  */
 export function transferFlowReducer(state: TransferFlowState, event: FlowEvent): TransferFlowState {
   switch (event.type) {
+    case 'CHOOSE':
+      return state.step === 'recipient'
+        ? { step: 'form', draft: state.draft, recipient: event.recipient }
+        : state;
     case 'REVIEW':
       return { step: 'confirm', draft: event.draft, status: 'idle' };
     case 'EDIT':
-      return state.step === 'confirm' ? { step: 'form', draft: state.draft } : state;
+      return state.step === 'confirm'
+        ? { step: 'form', draft: state.draft, recipient: recipientOf(state.draft.values) }
+        : state;
     case 'SENDING':
       return state.step === 'confirm'
         ? { step: 'confirm', draft: state.draft, status: 'sending' }
@@ -82,7 +103,11 @@ export function transferFlowReducer(state: TransferFlowState, event: FlowEvent):
     case 'CONFIRMED':
       return { step: 'receipt', transfer: event.transfer, replayed: false };
     case 'ENDED':
-      return { step: 'ended', problem: event.problem };
+      return {
+        step: 'ended',
+        problem: event.problem,
+        transfer: state.step === 'otp' ? state.transfer : null,
+      };
     case 'RESTART':
       return INITIAL;
   }
@@ -106,14 +131,21 @@ export function useIdempotencyKey(generate: () => string = createIdempotencyKey)
 /**
  * Flujo de transferencia con su llave: se genera al pasar a la confirmación, se conserva al
  * reintentar tras un fallo de red o 5xx, y se descarta al editar o al recibir una respuesta
- * definitiva (`COMPLETED`, `PENDING_OTP` o un rechazo).
+ * definitiva (`COMPLETED`, `PENDING_OTP` o un rechazo). Con `start` (el beneficiario de un acceso
+ * directo) empieza en el monto; reiniciar siempre vuelve al destinatario.
  */
-export function useTransferFlow(generate?: () => string) {
+export function useTransferFlow(generate?: () => string, start: TransferRecipient | null = null) {
   const { key, issue, discard } = useIdempotencyKey(generate);
-  const [state, dispatch] = useReducer(transferFlowReducer, INITIAL);
+  const [state, dispatch] = useReducer(transferFlowReducer, start, (first): TransferFlowState =>
+    first ? { step: 'form', draft: null, recipient: first } : INITIAL,
+  );
 
   const actions = useMemo(
     () => ({
+      choose(recipient: TransferRecipient) {
+        // La llave se emite al pasar a la revisión, no aquí.
+        dispatch({ type: 'CHOOSE', recipient });
+      },
       review(draft: TransferDraft) {
         issue();
         dispatch({ type: 'REVIEW', draft });

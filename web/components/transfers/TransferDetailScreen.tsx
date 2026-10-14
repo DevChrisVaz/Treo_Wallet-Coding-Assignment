@@ -10,10 +10,12 @@ import { useAccountsOverview, useTransfer } from '@/lib/client/queries';
 import { queryKeys } from '@/lib/client/query-keys';
 import { EndedStep, OtpStep } from './OtpStep';
 import { ReceiptStep } from './ReceiptStep';
+import { StepHeading } from './StepHeading';
 
 /**
  * Detalle de una transferencia (`/transfers/[transferId]`): su comprobante o, si sigue
- * `PENDING_OTP`, la captura del código (D4 de web-app).
+ * `PENDING_OTP`, la captura del código (D4 de web-app). La página tiene pestañas, así que las acciones
+ * de cada paso van en línea.
  */
 export function TransferDetailScreen({ transferId }: { transferId: string }) {
   const router = useRouter();
@@ -39,19 +41,31 @@ export function TransferDetailScreen({ transferId }: { transferId: string }) {
   }
 
   if (ended) {
-    return <EndedStep problem={ended} onRestart={() => router.push('/transfers/new')} />;
+    return (
+      <EndedStep
+        problem={ended}
+        transfer={query.data}
+        accounts={overview.data.accounts}
+        actions="inline"
+        onRestart={() => router.push('/transfers/new')}
+      />
+    );
   }
   const transfer = query.data;
   if (transfer.status === 'PENDING_OTP') {
     return (
-      <OtpStep
-        transfer={transfer}
-        onConfirmed={(confirmed: Transfer) =>
-          queryClient.setQueryData(queryKeys.transfer(transferId), confirmed)
-        }
-        onEnded={setEnded}
-      />
+      <>
+        <StepHeading>Confirma con tu código</StepHeading>
+        <OtpStep
+          transfer={transfer}
+          onConfirmed={(confirmed: Transfer) =>
+            queryClient.setQueryData(queryKeys.transfer(transferId), confirmed)
+          }
+          onEnded={setEnded}
+          actions="inline"
+        />
+      </>
     );
   }
-  return <ReceiptStep transfer={transfer} accounts={overview.data.accounts} />;
+  return <ReceiptStep transfer={transfer} accounts={overview.data.accounts} actions="inline" />;
 }

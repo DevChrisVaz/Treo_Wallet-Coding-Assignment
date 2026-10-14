@@ -9,8 +9,9 @@ import { LoginForm } from '@/components/auth/LoginForm';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { NewBeneficiaryForm } from '@/components/beneficiaries/NewBeneficiaryForm';
 import { TransferFlow } from '@/components/transfers/TransferFlow';
+import { TransferForm } from '@/components/transfers/TransferForm';
 import { bffGet } from '@/lib/client/bff';
-import { problem } from '@/test/fixtures';
+import { BENEFICIARY, OVERVIEW, problem } from '@/test/fixtures';
 import { setLocation } from '@/test/support/next-navigation';
 import { renderWithClient } from '@/test/support/render';
 import { fillTransfer, mockTransferReads } from '@/test/support/transfer-flow';
@@ -52,7 +53,18 @@ describe('accesibilidad de los formularios', () => {
       'Agregar beneficiario',
       'Nombre del titular',
     ],
-    ['transferencia', <TransferFlow key="transfer" />, 'Continuar', 'Cuenta de origen'],
+    [
+      'transferencia',
+      <TransferForm
+        key="transfer"
+        accounts={OVERVIEW.accounts}
+        beneficiaries={[BENEFICIARY]}
+        recipient={{ destinationType: 'BENEFICIARY', beneficiaryId: BENEFICIARY.id }}
+        onSubmit={() => undefined}
+      />,
+      'Continuar',
+      'Monto',
+    ],
   ])(
     'WEB-23 %s: con errores, el foco va al primer campo inválido, cuyo error está asociado, y axe no reporta problemas',
     async (_name, form, button, firstField) => {
@@ -110,6 +122,6 @@ describe('accesibilidad de los formularios', () => {
     const user = userEvent.setup();
     renderWithClient(<TransferFlow />);
     await fillTransfer(user);
-    expect(await screen.findByRole('heading', { name: 'Confirma la transferencia' })).toHaveFocus();
+    expect(await screen.findByRole('heading', { name: 'Revisa tu transferencia' })).toHaveFocus();
   });
 });

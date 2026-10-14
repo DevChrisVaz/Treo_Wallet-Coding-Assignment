@@ -56,7 +56,7 @@ describe('useTransferFlow', () => {
     const { result } = renderHook(({ generate }) => useTransferFlow(generate), {
       initialProps: { generate: keys() },
     });
-    expect(result.current.state.step).toBe('form');
+    expect(result.current.state.step).toBe('recipient');
 
     act(() => result.current.review(DRAFT));
 
@@ -163,7 +163,39 @@ describe('useTransferFlow', () => {
     });
 
     act(() => result.current.restart());
-    expect(result.current.state).toEqual({ step: 'form', draft: null });
+    expect(result.current.state).toEqual({ step: 'recipient', draft: null });
     expect(result.current.key).toBeNull();
+  });
+
+  it('WEB-30 elegir el destino pasa al monto; editar desde la revisión vuelve al monto con el mismo destino', () => {
+    const recipient = { destinationType: 'BENEFICIARY', beneficiaryId: BENEFICIARY.id } as const;
+    const { result } = renderHook(({ generate }) => useTransferFlow(generate), {
+      initialProps: { generate: keys() },
+    });
+    act(() => result.current.choose(recipient));
+    expect(result.current.state).toEqual({ step: 'form', draft: null, recipient });
+    act(() => result.current.review(DRAFT));
+    act(() => result.current.edit());
+    expect(result.current.state).toMatchObject({ step: 'form', draft: DRAFT, recipient });
+  });
+
+  it('WEB-30 con un beneficiario del acceso directo empieza en el monto y reiniciar vuelve al destinatario', () => {
+    const start = { destinationType: 'BENEFICIARY', beneficiaryId: BENEFICIARY.id } as const;
+    const { result } = renderHook(({ generate }) => useTransferFlow(generate, start), {
+      initialProps: { generate: keys() },
+    });
+    expect(result.current.state).toEqual({ step: 'form', draft: null, recipient: start });
+    act(() => result.current.restart());
+    expect(result.current.state).toEqual({ step: 'recipient', draft: null });
+  });
+
+  it('WEB-18 al terminar el intento conserva la transferencia para su comprobante', () => {
+    const { result } = renderHook(({ generate }) => useTransferFlow(generate), {
+      initialProps: { generate: keys() },
+    });
+    act(() => result.current.review(DRAFT));
+    act(() => result.current.sent(pendingOtpTransfer(), false));
+    act(() => result.current.ended(problem('OTP_ATTEMPTS_EXHAUSTED')));
+    expect(result.current.state).toMatchObject({ step: 'ended', transfer: pendingOtpTransfer() });
   });
 });
