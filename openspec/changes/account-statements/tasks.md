@@ -8,7 +8,7 @@ Requiere `contract-v1-2` (paquete 1.2.0) y la tarea 1.1 de `scheduled-transfers`
 - [x] 1.4 [api] Proyección de asiento a movimiento compartida con el historial; las pruebas de HIS-03 siguen pasando sin cambios (HIS-12)
 - [x] 1.5 [api] `PgStatementReader` con instantánea `REPEATABLE READ READ ONLY`, saldo inicial y tandas ascendentes por keyset; pruebas de integración del orden, del movimiento de noche y de la transferencia confirmada a mitad de la lectura (HIS-12)
 - [x] 1.6 [api] `PdfKitStatementRenderer` con Work Sans incrustada y su licencia, etiquetas del paquete de diseño, montos con `formatMXN`, encabezados repetidos, "Página X de Y", leyenda y mes vacío; pruebas que leen el texto del PDF (HIS-12)
-- [ ] 1.7 [api] Migración de `ck_audit_log_action` con `STATEMENT_EXPORTED` (con `down`) y el evento en el catálogo del dominio (AUD-07)
+- [x] 1.7 [api] Migración de `ck_audit_log_action` con `STATEMENT_EXPORTED` (con `down`) y el evento en el catálogo del dominio (AUD-07)
 - [ ] 1.8 [api] Caso de uso `GenerateStatement` y ruta `getAccountStatement` con headers y límite de 10 por minuto por usuario; pruebas de integración de 200, 404, 422 (formato y mes futuro), 429, conformidad con el contrato y auditoría (incluida la falla al auditar y la ausencia de evento en los rechazos) (HIS-11, AUD-07)
 - [ ] 1.9 [api] Prueba de rendimiento con 5,000 movimientos (menos de 5 segundos, varias páginas, "Página N de N") y sección "Estado de cuenta" en el README con el tiempo y el tamaño medidos (HIS-12)
 
