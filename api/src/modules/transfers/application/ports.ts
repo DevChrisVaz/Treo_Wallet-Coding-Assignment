@@ -29,6 +29,9 @@ export interface TransferRow {
 /** Persistencia de transferencias. */
 export interface TransferStore {
   insert(tx: Transaction, row: TransferRow): Promise<void>;
+  /** Inserta si la llave del usuario está libre; `false` si ya existe (espera a otra en curso). */
+  claim(tx: Transaction, row: TransferRow): Promise<boolean>;
+  findByKey(tx: Transaction, userId: string, idempotencyKey: string): Promise<TransferRow | null>;
 }
 
 /** Bloqueo y resolución de cuentas para mover dinero. */
