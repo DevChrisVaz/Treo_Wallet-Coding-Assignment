@@ -200,6 +200,11 @@ La web SHALL mostrar los movimientos de la cuenta seleccionada en orden descende
 - **WHEN** la API responde `INVALID_CURSOR`
 - **THEN** la web recarga la primera página con los filtros actuales
 
+#### Scenario: Rango de fechas invertido
+- **WHEN** el usuario elige en "Desde" una fecha posterior a la de "Hasta"
+- **THEN** la web marca el campo "Hasta" con el error "Elige una fecha igual o posterior a la de Desde." y no consulta la API
+- **AND** al corregir el rango vuelve a consultar la primera página con los filtros nuevos
+
 ### Requirement: WEB-15 Beneficiarios
 La web SHALL listar los beneficiarios del usuario y permitir dar de alta uno con nombre, alias y CLABE de 18 dígitos. El formulario MUST validar el formato y el dígito verificador de la CLABE antes de enviar, y la web MUST mostrar un mensaje específico para `CLABE_INVALID`, `CLABE_NOT_IN_PLATFORM`, `BENEFICIARY_IS_OWN_ACCOUNT` y `BENEFICIARY_CONFLICT`.
 
