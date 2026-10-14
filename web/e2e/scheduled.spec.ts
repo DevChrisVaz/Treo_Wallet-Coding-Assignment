@@ -60,7 +60,9 @@ for (const width of [390, 1280] as const) {
     ).toBeVisible();
     const receipt = page.getByRole('region', { name: 'Comprobante' });
     await expect(receipt.getByText('Programada', { exact: true })).toBeVisible();
-    await expect(receipt).toContainText('Programada para20 de octubre de 2026');
+    // Etiqueta y valor por separado: no dependen de que el texto de ambos quede pegado.
+    await expect(receipt.getByText('Programada para', { exact: true })).toBeVisible();
+    await expect(receipt.getByText('20 de octubre de 2026', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'tus transferencias programadas' })).toBeVisible();
   });
 }

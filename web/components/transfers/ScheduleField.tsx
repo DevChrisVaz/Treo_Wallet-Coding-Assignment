@@ -88,7 +88,7 @@ export function ScheduledOutcome({ scheduledFor }: { scheduledFor: string }) {
     void queryClient.invalidateQueries({ queryKey: scheduledTransfersKey });
   }, [queryClient]);
   return (
-    <InlineAlert tone="info">
+    <InlineAlert tone="info" announce={false}>
       {scheduledSendText(scheduledFor)}. Puedes cancelarla antes de esa fecha en{' '}
       <Link href={SCHEDULED_TRANSFERS_PATH} className="text-action underline underline-offset-2">
         tus transferencias programadas

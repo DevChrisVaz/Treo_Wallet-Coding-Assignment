@@ -299,6 +299,9 @@ createServer(async (req, res) => {
     });
   if (route === `GET /transfers/${scheduled.id}`) return send(res, 200, scheduled);
   if (route === `POST /transfers/${scheduled.id}/cancel`) {
+    // Se marca cancelada antes de responder, también en el caso 'gone' (409): la transferencia ya no
+    // está programada, así que la lista, al volver a cargarse, ya no la trae. El e2e "la lista se
+    // vuelve a cargar sin ella" (WEB-34) depende de ello.
     cancelled = true;
     if (scenario.cancel === 'gone')
       return fail(res, 409, 'TRANSFER_NOT_CANCELLABLE', { transferStatus: 'COMPLETED' });
