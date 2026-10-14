@@ -106,6 +106,123 @@ describe('errores de la API', () => {
   });
 });
 
+describe('forma de ProblemError', () => {
+  it('CTR-07 expone type, detail e instance de la respuesta', async () => {
+    const { fetch } = fakeFetch(() =>
+      problemResponse(422, {
+        type: '/problems/insufficient-funds',
+        title: 'Saldo insuficiente',
+        status: 422,
+        detail: 'La cuenta no tiene saldo suficiente para esta transferencia.',
+        instance: '/transfers',
+        code: 'INSUFFICIENT_FUNDS',
+        requestId: 'req-6',
+      }),
+    );
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    const error = await rejectionOf(client.GET('/accounts'));
+
+    expect(error).toMatchObject({
+      type: '/problems/insufficient-funds',
+      detail: 'La cuenta no tiene saldo suficiente para esta transferencia.',
+      instance: '/transfers',
+    });
+  });
+
+  it('CTR-07 expone remaining como texto y attemptsRemaining como número', async () => {
+    const { fetch } = fakeFetch(() =>
+      problemResponse(422, {
+        type: '/problems/daily-limit-exceeded',
+        title: 'Límite diario excedido',
+        status: 422,
+        code: 'DAILY_LIMIT_EXCEEDED',
+        requestId: 'req-7',
+        remaining: '1250.50',
+        attemptsRemaining: 2,
+      }),
+    );
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    const error = await rejectionOf(client.GET('/accounts'));
+
+    expect(error).toMatchObject({ remaining: '1250.50', attemptsRemaining: 2 });
+  });
+
+  it('CTR-07 attemptsRemaining en 0 se conserva y un valor del tipo equivocado se descarta', async () => {
+    const zero = fakeFetch(() =>
+      problemResponse(401, {
+        title: 'Código incorrecto',
+        code: 'INVALID_OTP',
+        attemptsRemaining: 0,
+      }),
+    );
+    const wrongTypes = fakeFetch(() =>
+      problemResponse(401, {
+        title: 'Código incorrecto',
+        code: 'INVALID_OTP',
+        attemptsRemaining: '2',
+        remaining: 5,
+      }),
+    );
+
+    const withZero = await rejectionOf(
+      createApiClient({ baseUrl: 'http://api.test', fetch: zero.fetch }).GET('/accounts'),
+    );
+    const withWrongTypes = await rejectionOf(
+      createApiClient({ baseUrl: 'http://api.test', fetch: wrongTypes.fetch }).GET('/accounts'),
+    );
+
+    expect((withZero as ProblemError).attemptsRemaining).toBe(0);
+    expect((withWrongTypes as ProblemError).attemptsRemaining).toBeUndefined();
+    expect((withWrongTypes as ProblemError).remaining).toBeUndefined();
+  });
+
+  it('CTR-07 un problem+json sin title usa un título genérico', async () => {
+    const { fetch } = fakeFetch(() => problemResponse(409, { code: 'BENEFICIARY_CONFLICT' }));
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    const error = await rejectionOf(client.GET('/accounts'));
+
+    expect(error).toMatchObject({
+      code: 'BENEFICIARY_CONFLICT',
+      title: 'Error de la API',
+      message: 'Error de la API',
+    });
+  });
+});
+
+describe('cuerpo problem+json que no se puede usar', () => {
+  it.each([
+    ['JSON ilegible', '{"title": "roto'],
+    ['vacío', ''],
+    ['null', 'null'],
+    ['un string', '"Bad Gateway"'],
+    ['un número', '502'],
+  ])('CTR-07 un problem+json %s cae en INTERNAL_ERROR con el status original', async (_, raw) => {
+    const { fetch } = fakeFetch(
+      () =>
+        new Response(raw, {
+          status: 500,
+          headers: { 'Content-Type': 'application/problem+json', 'X-Request-Id': 'req-8' },
+        }),
+    );
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    const error = await rejectionOf(client.GET('/accounts'));
+
+    expect(error).toBeInstanceOf(ProblemError);
+    expect(error).toMatchObject({
+      status: 500,
+      code: 'INTERNAL_ERROR',
+      rawCode: 'INTERNAL_ERROR',
+      title: 'Error inesperado',
+      requestId: 'req-8',
+    });
+    expect((error as ProblemError).detail).toBeUndefined();
+  });
+});
+
 describe('Retry-After', () => {
   const login = { email: 'ana@example.com', password: 'una-contraseña-larga' };
 
