@@ -44,6 +44,7 @@ import { LedgerPoster } from './modules/transfers/application/ledger-poster.js';
 import { PgAccountLocks } from './modules/transfers/infrastructure/pg-account-locks.js';
 import { PgLedgerStore } from './modules/transfers/infrastructure/pg-ledger-store.js';
 import { PgTransferStore } from './modules/transfers/infrastructure/pg-transfer-store.js';
+import { PgDailyUsage } from './modules/transfers/infrastructure/pg-daily-usage.js';
 import { TypeormTransactionRunner } from './platform/persistence/transaction.js';
 import type { Clock } from './shared/clock.js';
 import type { TransactionRunner } from './shared/transaction.js';
@@ -110,6 +111,7 @@ export async function createContainer(
   const transferStore = new PgTransferStore();
   const accountLocks = new PgAccountLocks(dataSource);
   const poster = new LedgerPoster(new PgLedgerStore());
+  const dailyUsage = new PgDailyUsage(dataSource);
   const codes = new OneTimeCodeService(new PgOneTimeCodeStore(), clock, config.otpHmacSecret);
   const accounts = new PgAccountRepository(dataSource);
   const openAccounts = new OpenDefaultAccounts({ accounts, clabe: config.clabe, clock });
@@ -173,7 +175,12 @@ export async function createContainer(
       getCurrentUser: new GetCurrentUser(users),
     },
     accounts: {
-      listAccounts: new ListAccounts({ accounts, dailyLimit: config.transfers.dailyLimit, clock }),
+      listAccounts: new ListAccounts({
+        accounts,
+        usage: dailyUsage,
+        dailyLimit: config.transfers.dailyLimit,
+        clock,
+      }),
     },
     ledger: {
       fundAccount: new FundAccount({
