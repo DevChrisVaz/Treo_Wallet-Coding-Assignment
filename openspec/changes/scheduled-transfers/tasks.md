@@ -7,7 +7,7 @@ Requiere `contract-v1-2` (paquete 1.2.0). La tarea 1.1 va antes de que cualquier
 ## 2. API
 
 - [x] 2.1 [api] Instalar el contrato 1.2.0 y el paquete de diseño 1.1.0; migración de `transfers` (`scheduled_for`, `cancelled_at`, estados, `ck_transfers_scheduled_has_date`, `ck_transfers_cancelled_at_by_status`, índices parciales) con `down` protegido; pruebas de las constraints por nombre (TRF-34)
-- [ ] 2.2 [api] Migración de `ck_audit_log_action` con `TRANSFER_SCHEDULED` y `TRANSFER_CANCELLED` (conservando `STATEMENT_EXPORTED`) y catálogo del dominio; prueba de la acción fuera del catálogo (AUD-08)
+- [x] 2.2 [api] Migración de `ck_audit_log_action` con `TRANSFER_SCHEDULED` y `TRANSFER_CANCELLED` (conservando `STATEMENT_EXPORTED`) y catálogo del dominio; prueba de la acción fuera del catálogo (AUD-08)
 - [ ] 2.3 [api] Dominio: transiciones nuevas de la máquina de estados (válidas e inválidas), huella con fecha solo cuando existe (vector inmediato fijo) y rango programable con `Clock`, con pruebas unitarias (TRF-27, TRF-29, TRF-34)
 - [ ] 2.4 [api] Programar hasta el umbral: validación de fecha y del monto mayor al límite, `SCHEDULED` sin tocar saldo ni límite, eventos `TRANSFER_CREATED` y `TRANSFER_SCHEDULED`, reintento y llave reutilizada con otra fecha; pruebas de integración (TRF-27, TRF-29, TRF-36)
 - [ ] 2.5 [api] Tope de 20 programadas activas con el bloqueo del usuario, sin consumir la llave; pruebas de la programada 21 y de dos programaciones simultáneas con 19 activas (TRF-29)
