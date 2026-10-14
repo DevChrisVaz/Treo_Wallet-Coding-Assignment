@@ -23,7 +23,7 @@ Cada tarea agrega o corrige pruebas sin tocar código de producción. Cada prueb
 
 ## 3. Identidad y sesiones
 
-- [ ] 3.1 [api] Después del reenvío por `/auth/register`, el código anterior deja de servir y el nuevo correo trae un código válido (IDN-01, IDN-05)
+- [x] 3.1 [api] Después del reenvío por `/auth/register`, el código anterior deja de servir y el nuevo correo trae un código válido (IDN-01, IDN-05)
 - [ ] 3.2 [api] El reuso fuera de la ventana revoca también los tokens ya usados de la familia; el reuso cuando el sucesor ya se usó responde `SESSION_REVOKED` y audita `REFRESH_TOKEN_REUSE_DETECTED` (IDN-12, AUD-01)
 - [ ] 3.3 [api] Ventana de gracia: exactamente 30 s todavía es reintento y se mide desde el primer uso; un sucesor ya revocado dentro de la ventana es reuso (IDN-12)
 - [ ] 3.4 [api] Un token válido de un usuario que ya no existe responde 401 `UNAUTHENTICATED`; el logout con un refresh token vencido responde 204 (IDN-10, IDN-13)

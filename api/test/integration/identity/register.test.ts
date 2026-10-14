@@ -80,6 +80,32 @@ describe('IDN-01 registro con respuesta uniforme', () => {
     expect(code.resend_count).toBe(1);
   });
 
+  it('IDN-05 al registrar de nuevo un email sin verificar, el código anterior deja de servir y el nuevo sí', async () => {
+    const person = newRegistration();
+    await register(person);
+    const first = t.mailer.lastCode(person.email);
+
+    await register(person);
+    const second = t.mailer.lastCode(person.email);
+    expect(t.mailer.to(person.email)).toHaveLength(2);
+
+    // Con 1 de cada millón de sorteos el código nuevo coincide con el anterior; ahí no hay qué probar.
+    if (second !== first) {
+      const stale = await request(t.app)
+        .post('/auth/verify-email')
+        .send({ email: person.email, code: first });
+      expect(stale.status).toBe(422);
+      expect(stale.body.code).toBe('VERIFICATION_CODE_INVALID');
+    }
+    // El intento fallido no gastó el desafío: el código del segundo correo todavía verifica.
+    const fresh = await request(t.app)
+      .post('/auth/verify-email')
+      .send({ email: person.email, code: second });
+    expect(fresh.status).toBe(200);
+    const [user] = await usersWith('email', person.email);
+    expect(user.email_verified_at).not.toBeNull();
+  });
+
   it('IDN-01 todas las ramas responden exactamente el mismo cuerpo', async () => {
     const person = newRegistration();
     const created = await register(person);
