@@ -28,23 +28,38 @@ export function statementRoutes(
     clock,
   });
 
-  routes.get('/accounts/:accountId/statements/:period', statementLimit, async (req, res) => {
-    const statement = await handlers.generateStatement.execute(
-      res.locals.userId as string,
-      String(req.params.accountId),
-      String(req.params.period),
-    );
-    // `end` y no `send`: sin ETag (la respuesta no se guarda) y con los bytes tal cual.
-    res
-      .status(200)
-      .set({
-        'Content-Type': 'application/pdf',
-        'Content-Length': String(statement.bytes.length),
-        'Cache-Control': 'no-store',
-        'Content-Disposition': `attachment; filename="${statement.filename}"`,
-      })
-      .end(statement.bytes);
-  });
+  // Express responde HEAD con el handler de GET: generaría el documento y registraría una
+  // exportación sin entregarla (AUD-07). Solo se admite GET.
+  const onlyGet: RequestHandler = (req, res, next) => {
+    if (req.method === 'HEAD') {
+      res.status(405).set('Allow', 'GET').end();
+      return;
+    }
+    next();
+  };
+
+  routes.get(
+    '/accounts/:accountId/statements/:period',
+    onlyGet,
+    statementLimit,
+    async (req, res) => {
+      const statement = await handlers.generateStatement.execute(
+        res.locals.userId as string,
+        String(req.params.accountId),
+        String(req.params.period),
+      );
+      // `end` y no `send`: sin ETag (la respuesta no se guarda) y con los bytes tal cual.
+      res
+        .status(200)
+        .set({
+          'Content-Type': 'application/pdf',
+          'Content-Length': String(statement.bytes.length),
+          'Cache-Control': 'no-store',
+          'Content-Disposition': `attachment; filename="${statement.filename}"`,
+        })
+        .end(statement.bytes);
+    },
+  );
 
   return routes;
 }

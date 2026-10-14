@@ -152,6 +152,16 @@ describe('HIS-11 ruta getAccountStatement', () => {
     expect(lines).toContain('Sin movimientos en el periodo');
   });
 
+  it('AUD-07 un HEAD no genera el documento ni registra una exportación que no se entregó', async () => {
+    const { ana, token } = await septemberScenario(t);
+    const res = await request(t.app)
+      .head(`/accounts/${ana.principal.id}/statements/2026-09`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(405);
+    expect(res.headers.allow).toBe('GET');
+    expect(await statementEvents()).toEqual([]);
+  });
+
   it('HIS-11 la cuenta de Luis responde 404 NOT_FOUND y no audita (AUD-07)', async () => {
     const { luis, token } = await septemberScenario(t);
     const res = await getStatement(t, token, luis.principal.id, '2026-09');
