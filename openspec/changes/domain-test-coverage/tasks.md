@@ -56,7 +56,7 @@ Cada tarea agrega o corrige pruebas sin tocar código de producción. Cada prueb
 ## 7. Contrato y paridad de reglas
 
 - [x] 7.1 [contract] CURP con fecha 00-02-29 que distingue el siglo, RFC que no coincide con la CURP y día 00 en fechas (CTR-10, CTR-11, CTR-13)
-- [ ] 7.2 [contract] Validadores de formularios: alias, nombre completo, longitudes de contraseña, email de más de 254 caracteres, UUID inválido, destino OWN_ACCOUNT y tipo de destino desconocido (CTR-12, CTR-13)
+- [x] 7.2 [contract] Validadores de formularios: alias, nombre completo, longitudes de contraseña, email de más de 254 caracteres, UUID inválido, destino OWN_ACCOUNT y tipo de destino desconocido (CTR-12, CTR-13)
 - [ ] 7.3 [contract] `ApiError` expone `detail`, `remaining`, `attemptsRemaining`, `type` e `instance`; un cuerpo problem+json ilegible cae en `INTERNAL_ERROR` (CTR-07)
 - [ ] 7.4 [api] CLABE, CURP y RFC dan el mismo resultado en la API y en el contrato sobre los mismos vectores (CTR-09, CTR-10, CTR-11, ACC-05, IDN-02)
 
