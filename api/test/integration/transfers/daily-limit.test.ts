@@ -134,6 +134,36 @@ describe('TRF-11 límite diario de transferencias a terceros', () => {
     expect((await dailyLimit(s)).used).toBe('45000.00');
   });
 
+  it('TRF-11 y TRF-14 una transferencia con OTP que excede el límite se rechaza al crearla, sin código ni correo', async () => {
+    const s = await scene(CDMX.noon);
+    await spend(s, 45_000);
+    const mailsBefore = s.t.mailer.sent.length;
+    const res = await postTransfer(s.t, s.ana, toLuis(s, '12000.00'));
+    expect(res.status).toBe(422);
+    expect(res.body).toMatchObject({
+      code: 'DAILY_LIMIT_EXCEEDED',
+      remaining: '5000.00',
+      transferId: expect.any(String),
+    });
+    const [row] = await harness.migrator.query(
+      'SELECT status, rejection_reason, requires_otp, otp_expires_at FROM app.transfers WHERE id = $1',
+      [res.body.transferId],
+    );
+    expect(row).toEqual({
+      status: 'REJECTED',
+      rejection_reason: 'DAILY_LIMIT_EXCEEDED',
+      requires_otp: true,
+      otp_expires_at: null,
+    });
+    const codes = await harness.migrator.query(
+      'SELECT 1 FROM app.one_time_codes WHERE purpose = $1',
+      ['TRANSFER_CONFIRMATION'],
+    );
+    expect(codes).toEqual([]);
+    expect(s.t.mailer.sent.length).toBe(mailsBefore);
+    expect((await dailyLimit(s)).used).toBe('45000.00');
+  });
+
   it('TRF-11 con el límite agotado, 8000.00 entre cuentas propias se completa sin consumir límite', async () => {
     const s = await scene(CDMX.noon);
     await spend(s, 50_000);
