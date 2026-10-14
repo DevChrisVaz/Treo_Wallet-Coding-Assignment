@@ -224,6 +224,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{accountId}/statements/{period}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Estado de cuenta mensual en PDF
+         * @description Documento PDF del mes calendario `period` (America/Mexico_City) de una cuenta del usuario, con
+         *     saldo inicial, abonos, cargos, saldo final y los movimientos del periodo en orden cronológico,
+         *     leídos de una sola instantánea de la base. El mes en curso se entrega como periodo parcial hasta
+         *     el momento de la generación; un mes posterior al actual responde `422 VALIDATION_FAILED`.
+         *     Máximo 10 por minuto por usuario. Cada descarga se audita (`STATEMENT_EXPORTED`).
+         */
+        get: operations["getAccountStatement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/beneficiaries": {
         parameters: {
             query?: never;
@@ -745,6 +769,8 @@ export interface components {
         IdempotencyKey: string;
         AccountId: string;
         TransferId: string;
+        /** @description Mes calendario en America/Mexico_City, con la forma `YYYY-MM`. */
+        StatementPeriod: string;
         /** @description Primer día incluido, como fecha calendario en America/Mexico_City. */
         FromDate: string;
         /** @description Último día incluido, como fecha calendario en America/Mexico_City. */
@@ -1046,6 +1072,39 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["UnprocessableContent"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAccountStatement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                accountId: components["parameters"]["AccountId"];
+                /** @description Mes calendario en America/Mexico_City, con la forma `YYYY-MM`. */
+                period: components["parameters"]["StatementPeriod"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Estado de cuenta. */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["RequestId"];
+                    /** @description `attachment; filename="estado-de-cuenta-<period>-<últimos 4 de la CLABE>.pdf"`. */
+                    "Content-Disposition"?: string;
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
         };
     };

@@ -329,6 +329,50 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /accounts/{accountId}/statements/{period}:
+    get:
+      tags: [accounts]
+      operationId: getAccountStatement
+      summary: Estado de cuenta mensual en PDF
+      description: |
+        Documento PDF del mes calendario `period` (America/Mexico_City) de una cuenta del usuario, con
+        saldo inicial, abonos, cargos, saldo final y los movimientos del periodo en orden cronológico,
+        leídos de una sola instantánea de la base. El mes en curso se entrega como periodo parcial hasta
+        el momento de la generación; un mes posterior al actual responde `422 VALIDATION_FAILED`.
+        Máximo 10 por minuto por usuario. Cada descarga se audita (`STATEMENT_EXPORTED`).
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - $ref: '#/components/parameters/StatementPeriod'
+      responses:
+        '200':
+          description: Estado de cuenta.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+            Content-Disposition:
+              description: '`attachment; filename="estado-de-cuenta-<period>-<últimos 4 de la CLABE>.pdf"`.'
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/pdf:
+              schema:
+                type: string
+                contentMediaType: application/pdf
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /beneficiaries:
     get:
       tags: [beneficiaries]
@@ -561,6 +605,15 @@ components:
       schema:
         type: string
         format: uuid
+    StatementPeriod:
+      name: period
+      in: path
+      required: true
+      description: Mes calendario en America/Mexico_City, con la forma `YYYY-MM`.
+      schema:
+        type: string
+        pattern: '^20[0-9]{2}-(0[1-9]|1[0-2])$'
+        examples: ['2026-09']
     FromDate:
       name: from
       in: query
