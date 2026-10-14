@@ -2,7 +2,7 @@
 
 - [x] 1.1 [contract] La prueba de humo crea un cliente con `import` y con `require` y hace una petición con un `fetch` propio; se ve fallar con `require` y se corrige con el interop de D1 (CTR-15)
 - [x] 1.2 [contract] `ProblemError.retryAfter` desde `Retry-After` en `toProblemError`; pruebas con `300`, sin header, `0`, `-5`, `1.5`, `abc` y una fecha HTTP (CTR-07)
-- [ ] 1.3 [contract] Versión 1.1.0 en `package.json` e `info.version`, y README con `retryAfter` (CTR-02, CTR-07, CTR-15)
+- [x] 1.3 [contract] Versión 1.1.0 en `package.json` e `info.version`, y README con `retryAfter` (CTR-02, CTR-07, CTR-15)
 
 ## 2. Web
 
