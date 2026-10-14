@@ -4,3 +4,7 @@ dist/
 coverage/
 package-lock.json
 assets/
+# design-sync (Claude Design): entradas de la sincronización y salidas locales, no son código de la app
+.design-sync/
+.ds-sync/
+ds-bundle/
