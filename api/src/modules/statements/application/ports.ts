@@ -1,4 +1,6 @@
 import type { MovementRecord } from '../../movements/application/ports.js';
+import type { StatementPeriod } from '../domain/statement-period.js';
+import type { ReconciledSummary } from '../domain/statement-summary.js';
 
 /** La cuenta del estado de cuenta con lo que va en su encabezado (HIS-12). */
 export interface StatementAccount {
@@ -35,4 +37,23 @@ export interface StatementSnapshot {
 export interface StatementReader {
   /** Abre la instantánea, ejecuta el trabajo con ella y la cierra, falle o no. */
   withSnapshot<T>(work: (snapshot: StatementSnapshot) => Promise<T>): Promise<T>;
+}
+
+/** Lo que va en el encabezado del documento. */
+export interface StatementHeader {
+  readonly account: StatementAccount;
+  readonly period: StatementPeriod;
+}
+
+/** Un documento en construcción: recibe las tandas y, al final, el resumen ya conciliado. */
+export interface StatementDocument {
+  /** Agrega renglones a la tabla, en el orden en que llegan. */
+  addRows(rows: readonly MovementRecord[]): void;
+  /** Escribe el resumen y los pies de página y devuelve los bytes del documento completo. */
+  finish(summary: ReconciledSummary): Promise<Uint8Array>;
+}
+
+/** Genera el documento del estado de cuenta (HIS-12). */
+export interface StatementRenderer {
+  begin(header: StatementHeader): StatementDocument;
 }
