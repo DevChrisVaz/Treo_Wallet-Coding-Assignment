@@ -112,6 +112,16 @@ describe('oferta del desbloqueo biométrico', () => {
     expect(LocalAuthentication.authenticateAsync).not.toHaveBeenCalled();
   });
 
+  test('MOB-24 al abrir la app con la sesión guardada no lo ofrece: solo después de iniciar sesión con contraseña', async () => {
+    secureStoreMock.set(REFRESH_TOKEN_KEY, 'refresh-0');
+    await renderRoot({ fake: walletApi() });
+
+    expect(await screen.findByText('$25,000.00')).toBeOnTheScreen();
+    await settle();
+
+    expect(offer()).toBeNull();
+  });
+
   test('MOB-24 sin biometría registrada no ofrece el desbloqueo', async () => {
     localAuthMock.configure({ enrolled: false });
     await renderRoot({ fake: walletApi() });

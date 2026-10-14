@@ -4,6 +4,7 @@
  */
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 
 const { AuthenticationType } = LocalAuthentication;
 
@@ -71,17 +72,27 @@ export async function readBiometricSupport(): Promise<BiometricSupport> {
   }
 }
 
-/** Lee la biometría del dispositivo al montar; `null` mientras la lee. */
+/**
+ * Lee la biometría del dispositivo al montar y cada vez que la app vuelve a estar activa, por
+ * ejemplo después de registrar una huella en los ajustes del teléfono; `null` mientras la lee.
+ */
 export function useBiometricSupport(): BiometricSupport | null {
   const [support, setSupport] = useState<BiometricSupport | null>(null);
 
   useEffect(() => {
     let active = true;
-    void readBiometricSupport().then((value) => {
-      if (active) setSupport(value);
+    const read = () => {
+      void readBiometricSupport().then((value) => {
+        if (active) setSupport(value);
+      });
+    };
+    read();
+    const subscription = AppState.addEventListener('change', (next) => {
+      if (next === 'active') read();
     });
     return () => {
       active = false;
+      subscription.remove();
     };
   }, []);
 

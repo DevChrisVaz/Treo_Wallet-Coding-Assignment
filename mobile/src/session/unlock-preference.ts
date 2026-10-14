@@ -51,12 +51,19 @@ type Listener = () => void;
  * Copia en memoria de la preferencia, compartida por la puerta de desbloqueo y los controles de la
  * pantalla de inicio. La puerta la consulta al volver de segundo plano sin esperar al almacenamiento
  * seguro (D4). `undefined` mientras no se ha leído.
+ *
+ * También recuerda si hay que ofrecer el desbloqueo (MOB-24): desde un inicio de sesión con
+ * contraseña hasta que la persona responde ("Activar", "Ahora no") o usa el interruptor. Así,
+ * apagar el interruptor no vuelve a mostrar la oferta aunque la preferencia quede vacía.
  */
 export class UnlockPreferenceStore {
   private value: UnlockPreference | null | undefined = undefined;
+  private offerPending = false;
   private readonly listeners = new Set<Listener>();
 
   getSnapshot = (): UnlockPreference | null | undefined => this.value;
+
+  isOfferPending = (): boolean => this.offerPending;
 
   subscribe = (listener: Listener): (() => void) => {
     this.listeners.add(listener);
@@ -67,27 +74,33 @@ export class UnlockPreferenceStore {
 
   async load(): Promise<UnlockPreference | null> {
     const value = await readUnlockPreference();
-    this.set(value);
+    this.update({ value });
     return value;
   }
 
   async save(value: UnlockPreference): Promise<void> {
     await saveUnlockPreference(value);
-    this.set(value);
+    this.update({ value, offerPending: false });
   }
 
   async clear(): Promise<void> {
     await clearUnlockPreference();
-    this.set(null);
+    this.update({ value: null, offerPending: false });
+  }
+
+  /** Inicio de sesión con contraseña exitoso: se ofrece el desbloqueo. */
+  offerAfterLogin(): void {
+    this.update({ offerPending: true });
   }
 
   /** La sesión ya la borró del almacenamiento al cerrarse o al quedar revocada (MOB-27). */
   forget(): void {
-    this.set(null);
+    this.update({ value: null, offerPending: false });
   }
 
-  private set(value: UnlockPreference | null): void {
-    this.value = value;
+  private update(changes: { value?: UnlockPreference | null; offerPending?: boolean }): void {
+    if (changes.value !== undefined) this.value = changes.value;
+    if (changes.offerPending !== undefined) this.offerPending = changes.offerPending;
     this.listeners.forEach((listener) => listener());
   }
 }
