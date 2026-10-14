@@ -33,9 +33,16 @@ function saveFile(blob: Blob, filename: string): void {
  * con el rediseño es una tarjeta del kit (`ListSection` con título), con el mes y el botón a todo lo
  * ancho en teléfono y en una fila en el dashboard (R53).
  */
-export function StatementDownload({ accountId }: { accountId: string }) {
+export function StatementDownload({
+  accountId,
+  now,
+}: {
+  accountId: string;
+  /** Fecha de referencia de los meses (lienzos con el reloj fijo); por omisión, la actual. */
+  now?: Date | undefined;
+}) {
   // Las opciones se calculan una vez, al montar, con la fecha de la Ciudad de México.
-  const [months] = useState(() => statementMonths(new Date()));
+  const [months] = useState(() => statementMonths(now ?? new Date()));
   const [period, setPeriod] = useState(() => months[1]?.value ?? months[0]?.value ?? '');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);

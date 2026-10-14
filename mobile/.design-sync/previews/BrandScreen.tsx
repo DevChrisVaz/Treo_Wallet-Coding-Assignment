@@ -1,4 +1,13 @@
-import { BrandScreen, Button, InlineAlert, Text, TextField, View, theme } from 'wallet-mobile-ui';
+import {
+  BrandScreen,
+  Button,
+  InlineAlert,
+  LockScreenView,
+  Text,
+  TextField,
+  View,
+  theme,
+} from 'wallet-mobile-ui';
 
 const noop = () => {};
 
@@ -37,5 +46,13 @@ export const SessionRevoked = () => (
       />
       {fields}
     </BrandScreen>
+  </View>
+);
+
+// Bonus (MOB-25, MOB-26): la pantalla de bloqueo del desbloqueo biométrico es la misma superficie de
+// marca, sin saldos ni datos personales (features/unlock/lock-screen-view.tsx).
+export const Locked = () => (
+  <View style={phone}>
+    <LockScreenView kind="huella" prompting={false} notice={null} onUnlock={noop} onSignOut={noop} />
   </View>
 );

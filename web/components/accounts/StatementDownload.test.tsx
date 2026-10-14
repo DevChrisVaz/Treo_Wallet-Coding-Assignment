@@ -50,6 +50,19 @@ afterEach(() => {
 const button = () => screen.getByRole('button', { name: 'Descargar PDF' });
 
 describe('StatementDownload', () => {
+  it('WEB-32 con `now` (lienzos con el reloj fijo) los meses salen de esa fecha y no del reloj', () => {
+    // El reloj dice mayo de 2024, como en la captura de design-sync; la fecha de la historia manda.
+    vi.setSystemTime(new Date('2024-05-15T12:00:00.000Z'));
+    render(
+      <StatementDownload accountId={PRINCIPAL.id} now={new Date('2026-10-13T18:00:00.000Z')} />,
+    );
+    const select = screen.getByLabelText<HTMLSelectElement>('Mes');
+    const options = within(select).getAllByRole('option');
+    expect(options[0]).toHaveTextContent('octubre 2026 (en curso)');
+    expect(options.at(-1)).toHaveTextContent('octubre 2025');
+    expect(select).toHaveValue('2026-09');
+  });
+
   it('WEB-32 el 14 de octubre de 2026 ofrece "octubre 2026 (en curso)" y de octubre de 2025 a septiembre de 2026, con septiembre seleccionado', () => {
     render(<StatementDownload accountId={PRINCIPAL.id} />);
     const select = screen.getByLabelText<HTMLSelectElement>('Mes');

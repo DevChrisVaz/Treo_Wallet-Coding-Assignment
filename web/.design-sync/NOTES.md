@@ -171,12 +171,12 @@ Regla de veredicto, en este orden (cualquier otra cosa es estructural y se corri
 | `HomeLoading` | 0.0081 | por diseño | 4.ª pestaña; resto 0.0000 |
 | `Login` | 0.0048 | por diseño | nota de registro (la app móvil no registra); resto 0.0008 |
 | `Movements` | 0.0439 | por diseño | fila "Filtros" (+56 px) y 4.ª pestaña; lista alineada 0.0053 |
-| `MovementsEmpty` | 0.0270 | por diseño | "Filtros", vacío filtrado de la web ("Limpiar filtros") y 4.ª pestaña; encabezado 0.0000 |
+| `MovementsEmpty` | 0.0350 | por diseño | "Filtros", vacío filtrado de la web ("Limpiar filtros"), 4.ª pestaña y, desde P2, la tarjeta "Estado de cuenta" (R53; antes 0.0270); encabezado 0.0000 |
 | `TransferAmount` | 0.0218 | por diseño | select nativo de una línea con el saldo en la ayuda (móvil: dos líneas) y la ayuda del monto de cada app (R30: describe cómo lee el monto cada una; concepto y referencia ya usan la redacción móvil); arriba 0.0022, abajo (+10 px) 0.0022 |
 | `TransferCompleted` | 0.0025 | suavizado | |
 | `TransferFailed` | 0.0016 | idéntico | |
 | `TransferOtp` | 0.0037 | por diseño | "Vence a las 12:05." (web) frente a la cuenta regresiva de móvil |
-| `TransferRecipient` | 0.0111 | por diseño | la web ofrece también las cuentas propias; beneficiarios alineados 0.0044 |
+| `TransferRecipient` | 0.0129 | por diseño | la web ofrece también las cuentas propias y, desde P2, el enlace "Transferencias programadas" de teléfono (R56; antes 0.0111); beneficiarios alineados 0.0044 |
 | `TransferRejected` | 0.0029 | suavizado | |
 | `TransferReview` | 0.0013 | idéntico | |
 | `TransferUncertain` | 0.0013 | idéntico | |
@@ -340,3 +340,46 @@ Hermes, rasterizado de fuentes en iOS/Android, áreas seguras en dispositivos, a
 RNTL de 7.1–7.5), el layout de pestañas de expo-router (el lienzo usa el `TabBar` del kit que ese
 layout renderiza) y la API real (sin cambios en este cambio; se probó de punta a punta en `web-app`
 9.2).
+
+## Funciones propias de cada plataforma (bonus, P2)
+
+Las funciones que llegaron de `release` después de aprobar las historias son **función propia de
+cada plataforma**: no tienen pareja y quedan "por diseño" en la paridad. Llevan el lenguaje del
+rediseño (kit, tokens, ritmo de 20 px, tarjetas sobre el lienzo, lima solo sobre oscuro, áreas de
+44 px) y se revisan solas: a 390 y 1280 en la web, a 390×844 en móvil.
+
+| Función | Plataforma | Historias | Regla |
+|---|---|---|---|
+| Estado de cuenta (WEB-32) | web | `AppShell`: `Movements`, `MovementsEmpty` y `MovementsFilters` (tarjeta después del historial); `StatementDownload` | R53 |
+| Programar (WEB-33): "Cuándo" del paso de monto, fila "Cuándo" de la revisión y del resumen, resultado "Transferencia programada" con el aviso informativo, "Programada para" | web | `AppShell`: `TransferAmountScheduled`, `TransferReviewScheduled`, `TransferScheduled`; `ScheduleField`; `Receipt`: `Scheduled` | R56 |
+| Programadas (WEB-34): lista, vacío, diálogo de cancelar, `TRANSFER_NOT_CANCELLABLE`; "Programadas" con su icono (CalendarClock) en la navegación lateral y el enlace del paso de destinatario en teléfono | web | `AppShell`: `ScheduledTransfers`, `ScheduledTransfersEmpty`, `ScheduledTransfersCancel`, `ScheduledTransfersCancelError`, `TransferRecipient`; `SideNav`: `Scheduled`; `Receipt`: `Cancelled`; `StatusBadge`: `AllStatuses` | R56, R58 |
+| Desbloqueo biométrico (MOB-24 a MOB-27) | móvil | ver `mobile/.design-sync/NOTES.md` | R46 |
+| Etiquetas `SCHEDULED` y `CANCELLED` del comprobante (MOB-23) | móvil | ver `mobile/.design-sync/NOTES.md` | MOB-23 |
+
+- **Sin pareja a propósito.** Los nombres de las historias propias no coinciden entre `AppShell` y
+  `Screen`, así que `parity-check.mjs` no las compara (las de móvil se llaman `TransferOutcome*`, no
+  `TransferScheduled`).
+- **Medición de P2** (`parity-check.mjs` contra un servidor de revisión temporal en 4321 con los
+  bundles de P2): las 15 parejas dan lo mismo que en 8.1 salvo `TransferRecipient`, 0.0129 (0.0125
+  en 8.1), por el enlace de teléfono de R56. `MovementsEmpty` da 0.0350, lo mismo que la pantalla
+  real en 8.1: la historia ahora tiene la tarjeta de R53.
+- **Lo que comparten las dos plataformas.** La insignia "Programada" usa el tono informativo y
+  "Cancelada" el neutro (DSG-18), y el título del comprobante es el mismo en las dos:
+  "Transferencia programada" para `SCHEDULED` y "Estado de la transferencia" para `CANCELLED`. El
+  comprobante web agrega "Programada para" (WEB-34); el de móvil no, porque MOB-23 solo pide etiqueta
+  y tono y la app no programa.
+- **Correcciones de estilo de P2** (cada una con su prueba): la nota del resultado programado es el
+  aviso informativo del kit (`InlineAlert`), como el aviso de la fallida sobre su comprobante;
+  "Transferencia cancelada" es el aviso de éxito del kit dentro de la región `polite` que siempre
+  existe (`InlineAlert` con `announce={false}`, sin un segundo rol); el diálogo de cancelar tiene la
+  anatomía de `BottomSheet` (asa en teléfono, 12 px arriba, título en una fila de 44 px y 16 px
+  entre filas), así que su título queda a la misma altura que el de "Filtrar movimientos"; y los
+  valores largos del resumen se reparten parejo (`text-balance`), sin "2026" suelto.
+- **Fechas fijas.** La captura de design-sync fija el reloj en 2024-05-15. `StatementDownload` y
+  `ScheduleField` reciben `now` (opcional, como `MovementList`) y sus historias pasan NOW; las
+  historias de `AppShell` componen la tarjeta y "Cuándo" con el kit y fechas de NOW.
+- **`next/link` en el lienzo.** `ScheduleField.tsx` exporta también la nota del resultado, que usa
+  `next/link` (CommonJS, necesita el router de Next). `build-ui.mjs` lo resuelve a `next-link.ts`,
+  el `RouterLink` del kit sin proveedor (un `<a>`); sin ese alias el bundle no cargaba ("Dynamic
+  require of react/jsx-runtime").
+

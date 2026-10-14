@@ -34,6 +34,24 @@ describe('InlineAlert', () => {
     },
   );
 
+  it('WEB-23 con announce={false} no lleva rol propio: la anuncia la región viva que la contiene', () => {
+    render(
+      <div role="status" aria-live="polite">
+        <InlineAlert tone="success" announce={false}>
+          Transferencia cancelada
+        </InlineAlert>
+      </div>,
+    );
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    const message = screen.getByText('Transferencia cancelada').parentElement?.parentElement;
+    expect(message).toHaveClass('bg-success-soft', 'text-success');
+    expect(message).not.toHaveAttribute('role');
+    expect(message?.querySelector('svg.lucide-circle-check')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
+  });
+
   it('WEB-23 puede recibir el foco al aparecer para anunciar el error', () => {
     render(
       <InlineAlert tone="danger" focusOnMount>

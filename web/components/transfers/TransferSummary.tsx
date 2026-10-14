@@ -2,12 +2,17 @@ import { ListSection } from '@/components/ui/ListSection';
 import type { SummaryRows } from '@/lib/client/transfer-steps';
 import { scheduledSendText } from './ScheduleField';
 
-/** Fila etiqueta / valor del resumen (revisión y panel lateral). */
+/**
+ * Fila etiqueta / valor del resumen (revisión y panel lateral). Un valor largo ("Se enviará el 20 de
+ * octubre de 2026") se reparte parejo en sus líneas, sin una palabra suelta al final.
+ */
 export function SummaryRow({ term, value }: { term: string; value: string | undefined }) {
   return (
     <div className="flex min-h-11 items-center justify-between gap-4 py-3">
       <dt className="text-body-sm text-fg-secondary">{term}</dt>
-      <dd className={`text-right text-label tabular-nums ${value ? 'text-fg' : 'text-fg-muted'}`}>
+      <dd
+        className={`text-right text-label text-balance tabular-nums ${value ? 'text-fg' : 'text-fg-muted'}`}
+      >
         {value ?? 'Por definir'}
       </dd>
     </div>

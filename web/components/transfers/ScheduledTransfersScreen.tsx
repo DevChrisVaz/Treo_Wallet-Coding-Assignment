@@ -12,7 +12,6 @@ import { Button, buttonClasses } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { InlineAlert } from '@/components/ui/InlineAlert';
 import { ListSection } from '@/components/ui/ListSection';
-import { TONE_CLASSES } from '@/lib/conventions';
 import { describeError, describeProblem } from '@/lib/client/problem-messages';
 import { queryKeys } from '@/lib/client/query-keys';
 import { scheduledTransfersKey, useScheduledTransfers } from '@/lib/client/scheduled-transfers';
@@ -110,10 +109,15 @@ function CancelDialog({ transfer, cancelling, error, onConfirm, onClose }: Cance
         aria-busy={cancelling || undefined}
         tabIndex={-1}
         onKeyDown={onKeyDown}
-        // Como BottomSheet: hasta 85 % del alto; bajo el título fijo, el resto se desplaza (texto al 200 %).
-        className="flex max-h-[85dvh] w-full max-w-app flex-col gap-5 rounded-t-lg bg-surface px-5 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-sheet focus-visible:outline-none dashboard:max-w-md dashboard:rounded-lg dashboard:p-6"
+        // Como el panel de BottomSheet: los mismos rellenos, el asa en teléfono y el título en una fila
+        // de 44 px; hasta 85 % del alto y, bajo el título fijo, el resto se desplaza (texto al 200 %).
+        className="flex max-h-[85dvh] w-full max-w-app flex-col gap-4 rounded-t-lg bg-surface px-5 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-sheet focus-visible:outline-none dashboard:max-w-md dashboard:rounded-lg dashboard:pb-6"
       >
-        <h2 id={titleId} className="shrink-0 text-h3 text-fg">
+        <div
+          aria-hidden="true"
+          className="mx-auto h-1 w-10 shrink-0 rounded-pill bg-border dashboard:hidden"
+        />
+        <h2 id={titleId} className="flex min-h-11 shrink-0 items-center text-h3 text-fg">
           ¿Cancelar la transferencia programada?
         </h2>
         <div className="grid min-h-0 gap-5 overflow-y-auto">
@@ -218,10 +222,13 @@ export function ScheduledTransfersScreen() {
 
   return (
     <>
-      {/* La región de anuncio existe siempre (WEB-23); vacía queda fuera del flujo y no suma espacio. */}
+      {/* La región de anuncio existe siempre (WEB-23); vacía queda fuera del flujo y no suma espacio.
+          A la vista, el aviso de éxito del kit, sin rol propio: lo anuncia esta región. */}
       <div role="status" aria-live="polite" className={announcement ? undefined : 'sr-only'}>
         {announcement ? (
-          <p className={`rounded-md p-4 text-body-sm ${TONE_CLASSES.success}`}>{announcement}</p>
+          <InlineAlert tone="success" announce={false}>
+            {announcement}
+          </InlineAlert>
         ) : null}
       </div>
       {pageError ? (

@@ -13,6 +13,9 @@ export const AllStatuses = () => (
     <StatusBadge status="REJECTED" />
     <StatusBadge status="FAILED" />
     <StatusBadge status="EXPIRED" />
+    {/* Bonus (MOB-23): programada (informativo) y cancelada (neutro). */}
+    <StatusBadge status="SCHEDULED" />
+    <StatusBadge status="CANCELLED" />
   </View>
 );
 

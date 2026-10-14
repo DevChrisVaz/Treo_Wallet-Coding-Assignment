@@ -242,6 +242,10 @@ describe('TransferFlow · confirmación de una programada', () => {
     expect(within(summary).getByText('Cuándo').closest('dl')).toHaveTextContent(
       'Referencia1CuándoSe enviará el 20 de octubre de 2026',
     );
+    // En dos líneas (teléfono o columna del resumen) el valor se reparte parejo: sin "2026" suelto.
+    expect(within(summary).getByText('Se enviará el 20 de octubre de 2026')).toHaveClass(
+      'text-balance',
+    );
     expect(createMock).not.toHaveBeenCalled();
   });
 

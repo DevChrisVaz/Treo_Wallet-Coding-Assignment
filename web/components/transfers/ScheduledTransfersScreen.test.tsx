@@ -259,6 +259,25 @@ describe('ScheduledTransfersScreen · cancelar', () => {
     );
   });
 
+  it('DSG-17 tiene la anatomía de la hoja del kit: asa en teléfono, 12 px arriba, 16 px al título y título de 44 px', async () => {
+    listReads([RENTA, LUZ]);
+    const user = userEvent.setup();
+    renderWithClient(<ScheduledTransfersScreen />);
+
+    const dialog = await openCancelDialog(user);
+
+    // Los mismos rellenos y separación que el panel de BottomSheet, en teléfono y en el dashboard.
+    expect(dialog).toHaveClass('gap-4', 'px-5', 'pt-3', 'dashboard:pb-6');
+    expect(dialog).not.toHaveClass('pt-6', 'dashboard:p-6');
+    const handle = dialog.firstElementChild;
+    expect(handle).toHaveAttribute('aria-hidden', 'true');
+    expect(handle).toHaveClass('h-1', 'w-10', 'rounded-pill', 'bg-border', 'dashboard:hidden');
+    const title = within(dialog).getByRole('heading', {
+      name: '¿Cancelar la transferencia programada?',
+    });
+    expect(title).toHaveClass('min-h-11', 'items-center', 'text-h3');
+  });
+
   it('WEB-34 al confirmar llama a cancelTransfer una sola vez, la quita de la lista y anuncia "Transferencia cancelada"', async () => {
     listReads([RENTA, LUZ], [LUZ]);
     cancelMock.mockResolvedValue({
@@ -308,6 +327,9 @@ describe('ScheduledTransfersScreen · cancelar', () => {
     const status = screen.getByRole('status');
     expect(status).toHaveAttribute('aria-live', 'polite');
     expect(status).toHaveTextContent('Transferencia cancelada');
+    // A la vista, el aviso de éxito del kit (InlineAlert con su icono), sin un segundo rol.
+    expect(status.firstElementChild).toHaveClass('bg-success-soft', 'text-success');
+    expect(status.querySelector('svg.lucide-circle-check')).not.toBeNull();
   });
 
   it('WEB-34 con doble clic en la confirmación llama a cancelTransfer una sola vez', async () => {

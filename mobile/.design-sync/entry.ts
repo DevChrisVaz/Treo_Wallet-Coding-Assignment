@@ -31,4 +31,9 @@ export { LoginView } from '@/features/auth/login-view';
 export { RecipientView } from '@/features/transfer/recipient-view';
 export { TransferFlowView } from '@/features/transfer/transfer-flow-view';
 export { StartupLoading, StartupOffline } from '@/navigation/startup-views';
+// Desbloqueo biométrico (bonus, MOB-24 a MOB-27): las vistas puras de la pantalla de bloqueo, la
+// oferta de Inicio y el interruptor del menú de la cuenta.
+export { LockScreenView } from '@/features/unlock/lock-screen-view';
+export { UnlockOfferView } from '@/features/unlock/unlock-offer-view';
+export { UnlockSwitchView } from '@/features/unlock/unlock-switch-view';
 export { ProblemError } from '@devchrisvaz/wallet-contract';

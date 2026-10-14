@@ -128,3 +128,36 @@ expo-router, TanStack Query y la sesión, no se pueden importar):
   vacía `ds-bundle/`: después de cada build corre `node .design-sync/review/install.mjs`.
 - `web/.design-sync/review/serve.mjs` sirve ambos bundles en un solo origen (`/web/*`, `/mobile/*`)
   y el lienzo de paridad en `/parity.html`.
+
+## Funciones propias de la app (bonus, P2)
+
+Lo que llegó de `release` después de aprobar las historias es **función propia de cada
+plataforma**: no tiene pareja web y queda "por diseño" en la paridad (ver la misma sección en
+`web/.design-sync/NOTES.md`). Las historias usan las vistas reales con los datos canónicos.
+
+| Función | Historias | Regla |
+|---|---|---|
+| Pantalla de bloqueo (MOB-25, MOB-26) | `Screen`: `LockScreen`, `LockScreenLockout`; `BrandScreen`: `Locked` | R46 |
+| Oferta del desbloqueo en Inicio (MOB-24) | `Screen`: `HomeUnlockOffer` | R46 |
+| Interruptor del desbloqueo en el menú de la cuenta (MOB-24, MOB-27) | `BottomSheet`: `AccountMenuUnlock`, `AccountMenuUnlockUnavailable` | R46 |
+| Comprobante de una programada o cancelada (MOB-23) | `Screen`: `TransferOutcomeScheduled`, `TransferOutcomeCancelled`; `Receipt`: `Scheduled`, `Cancelled`; `StatusBadge`: `AllStatuses` | MOB-23 |
+
+- **Vistas puras.** `features/unlock/{lock-screen,unlock-offer,unlock-switch}-view.tsx` dibujan; los
+  contenedores (`lock-screen.tsx`, `unlock-offer.tsx`, `unlock-switch.tsx`) piden la biometría y
+  guardan la preferencia. `entry.ts` exporta las tres vistas y `config.json` las deja sin tarjeta
+  (`null`), como las demás vistas. `src/__tests__/views-are-pure.test.ts` las lista y además rechaza
+  importar `./biometrics` o `./use-unlock-preference` en una vista.
+- **El menú de la cuenta va en `BottomSheet`.** La hoja es un `Modal` de React Native: en el
+  navegador se monta en `body` y en la tarjeta `column` de `Screen` taparía todas las historias. Por
+  eso `AccountMenuUnlock` está junto a `AccountMenu`, en la tarjeta `single` de 390×520, con la vista
+  real del interruptor. La hoja entra deslizándose: para capturarla a mano, espera ~1 s.
+- **Interruptor en react-native-web.** En el teléfono `thumbColor` vale para los dos estados;
+  react-native-web pinta el encendido con `activeThumbColor` (por omisión #009688, fuera de los
+  tokens). La vista pasa también `activeThumbColor` con la superficie del tema.
+- **Título del comprobante.** Con una transferencia `SCHEDULED` el paso se titula "Transferencia
+  programada" (antes decía "Transferencia enviada" sobre la insignia "Programada"); con `CANCELLED`,
+  "Estado de la transferencia". Son los títulos de la web.
+- **Sin pareja a propósito.** Los nombres no coinciden con los de `AppShell` (`TransferOutcome*`
+  frente a `TransferScheduled` de la web), así que `parity-check.mjs` no los compara. El comprobante
+  móvil no lleva "Programada para": MOB-23 solo pide la etiqueta y el tono, y la app no programa.
+

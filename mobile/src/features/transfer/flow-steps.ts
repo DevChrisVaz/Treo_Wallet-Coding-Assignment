@@ -1,4 +1,4 @@
-import { toCents } from '@devchrisvaz/wallet-contract';
+import { toCents, type TransferStatus } from '@devchrisvaz/wallet-contract';
 
 import type { AttemptState } from './transfer-attempt';
 
@@ -43,6 +43,16 @@ const TITLES: Record<AttemptState['status'], string> = {
   completed: 'Transferencia enviada',
 };
 
+/**
+ * Título del comprobante según el estado que devolvió la API (MOB-13, MOB-23): una programada no se
+ * envió, así que no dice "Transferencia enviada"; los mismos títulos que la web (`receiptTitle`).
+ */
+function receiptTitle(status: TransferStatus): string {
+  if (status === 'COMPLETED') return 'Transferencia enviada';
+  if (status === 'SCHEDULED') return 'Transferencia programada';
+  return 'Estado de la transferencia';
+}
+
 /** Título e indicador del paso (MOB-21); el total pasa a 4 cuando el monto no pide código (R36). */
 export function flowHeading(state: AttemptState): FlowHeading {
   const title = TITLES[state.status];
@@ -56,7 +66,12 @@ export function flowHeading(state: AttemptState): FlowHeading {
       return { title, step: 4, total: 5, label: 'Código' };
     case 'completed': {
       const total = state.transfer.requiresOtp ? 5 : 4;
-      return { title, step: total, total, label: 'Comprobante' };
+      return {
+        title: receiptTitle(state.transfer.status),
+        step: total,
+        total,
+        label: 'Comprobante',
+      };
     }
     case 'failed':
     case 'expired':
