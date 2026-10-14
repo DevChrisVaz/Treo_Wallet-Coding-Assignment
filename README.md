@@ -26,8 +26,9 @@ Este README reúne la información de los cinco proyectos. Cada proyecto conserv
 10. [Cómo funciona](#cómo-funciona)
 11. [Verificaciones manuales](#verificaciones-manuales)
 12. [Especificación y bitácora de AI](#especificación-y-bitácora-de-ai)
-13. [Avisos conocidos](#avisos-conocidos)
-14. [¿Qué haría con más tiempo?](#qué-haría-con-más-tiempo)
+13. [Entregables del enunciado](#entregables-del-enunciado)
+14. [Avisos conocidos](#avisos-conocidos)
+15. [¿Qué haría con más tiempo?](#qué-haría-con-más-tiempo)
 
 ## Qué incluye
 
@@ -63,7 +64,8 @@ Son cinco proyectos independientes en un solo repositorio. **No es un monorepo:*
 | [`web/`](web/)                     | Web                                 | Next.js (App Router) como BFF de la API, con TanStack Query y Server Actions                                                                                                            |
 | [`mobile/`](mobile/)               | App móvil                           | Expo SDK 57, React Native y Expo Router                                                                                                                                                 |
 | [`openspec/`](openspec/)           | Especificación                      | Changes de OpenSpec: propuesta, requisitos, diseño y tareas de cada parte                                                                                                               |
-| [`docs/`](docs/)                   | Documentación                       | Bitácora de AI                                                                                                                                                                          |
+| [`docs/`](docs/)                   | Documentación                       | Bitácora de AI, [propuesta de AWS](docs/aws-deploy.md), [matriz de trazabilidad](docs/traceability.md) y [guion del video](docs/video-script.md) |
+| [`scripts/`](scripts/)             | Herramientas del repositorio        | `trace.sh`, que genera la matriz de trazabilidad (`scripts/trace.sh --check` falla si hay huecos) |
 
 **Desviaciones del enunciado:**
 
@@ -1003,7 +1005,7 @@ Así se rastrea cada requisito en el código:
 | `scheduled-transfers`                                     | design-tokens, api, web, mobile | TRF-27 a TRF-36, AUD-08, DSG-18, WEB-33, WEB-34, MOB-23 | Completo                                                    |
 | `biometric-unlock`                                        | mobile                          | MOB-24 a MOB-27                                         | Falta la verificación en un Android                         |
 | `redesign`                                                | design-tokens, web, mobile      | DSG-13 a DSG-17, WEB-24 a WEB-31, MOB-18 a MOB-22       | En curso, en su propia rama                                 |
-| `delivery`                                                | docs                            | Sin requisitos nuevos                                   | Pendiente: documento de AWS, matriz de trazabilidad y video |
+| `delivery`                                                | docs                            | Sin requisitos nuevos                                   | Pendiente: video y CIs en verde en `main` |
 
 ### Mapa de la especificación
 
@@ -1060,6 +1062,22 @@ Cada change tiene un `design.md` con las decisiones y las alternativas descartad
 | [`delivery`](openspec/changes/delivery/design.md) | Propuesta de AWS ([`docs/aws-deploy.md`](docs/aws-deploy.md)), trazabilidad generada, guion del video |
 
 La [bitácora de AI](docs/ai-log.md) registra qué propuso la AI, qué acepté, qué rechacé o cambié, y dónde se equivocó y se corrigió.
+
+## Entregables del enunciado
+
+Dónde está cada punto de la lista de entregables y su estado.
+
+| Entregable | Dónde está | Estado |
+| ---------- | ---------- | ------ |
+| Repositorio de GitHub con historial completo, sin squash | [DevChrisVaz/Treo_Wallet-Coding-Assignment](https://github.com/DevChrisVaz/Treo_Wallet-Coding-Assignment). El historial conserva cada commit de cada tarea, con los trailers `Task:` y `Refs:`, y las ramas se integraron con `--no-ff` | Cumple. Comprobar la visibilidad del repositorio antes de enviarlo |
+| Carpeta `/specs` con los cuatro archivos de la Fase 1 | **Desviación declarada:** no hay `/specs`; se usa OpenSpec. `requirements.md` equivale a los `specs/` de cada change ([`openspec/specs/`](openspec/specs/) y `openspec/changes/*/specs/`); `design.md` a los [`design.md`](#decisiones-clave) de cada change (incluye el diagrama ER en Mermaid de [`api-foundation`](openspec/changes/api-foundation/design.md) y [`api-ledger`](openspec/changes/api-ledger/design.md), la concurrencia, la idempotencia y el `EXPLAIN ANALYZE`); `tasks.md` a los `tasks.md` de cada change, con etiquetas `[api]`, `[web]`, `[mobile]`; `ai-log.md` a [`docs/ai-log.md`](docs/ai-log.md) | Cumple, con la estructura de OpenSpec. Mapa en [Especificación y bitácora de AI](#especificación-y-bitácora-de-ai) |
+| Trazabilidad requerimiento → diseño → tarea → commit → prueba | [`docs/traceability.md`](docs/traceability.md), generado por [`scripts/trace.sh`](scripts/trace.sh) | Cumple; los huecos que quedan están explicados en ese archivo |
+| [`docs/aws-deploy.md`](docs/aws-deploy.md) con la propuesta y su diagrama | [`docs/aws-deploy.md`](docs/aws-deploy.md) | Escrito. Falta abrir el diagrama en GitHub para confirmar que renderiza, y revisar con el usuario las decisiones D1 a D12 (tarea 1.1) |
+| Documentación OpenAPI navegable en local | Swagger UI en `http://localhost:4000/docs` y el contrato en `/openapi.yaml` ([Ejecución en local](#ejecución-en-local)) | Cumple. Verificado desde un clon limpio |
+| Instrucciones para correr la app móvil | [App móvil](#3-app-móvil) y [Configuración](#app-móvil-mobileenv) (Expo Go o simulador apuntando a la API local) | Cumple. El bundle compila (`npx expo export`); falta el recorrido en un teléfono ([Verificaciones manuales](#verificaciones-manuales)) |
+| Video de 5 minutos como máximo, con un intento de transferencia con saldo insuficiente | Guion en [`docs/video-script.md`](docs/video-script.md) | **Pendiente:** el video no está grabado ni enlazado |
+| `README.md` con cómo correr en local, cómo correr pruebas y "qué haría con más tiempo" | Este archivo: [Ejecución en local](#ejecución-en-local), [Pruebas](#pruebas), [¿Qué haría con más tiempo?](#qué-haría-con-más-tiempo) | Cumple |
+| Pipeline de CI con lint y pruebas, en verde en la rama principal | Un workflow por proyecto en [`.github/workflows/`](.github/workflows/) (`api`, `web`, `mobile`, `contract`, `design-tokens`), con sus insignias arriba | **Pendiente de comprobar:** los workflows corren en `release`, la rama principal de este repositorio, y no existe una rama `main`. No se ha verificado con `gh run list` que estén en verde |
 
 ## Avisos conocidos
 
