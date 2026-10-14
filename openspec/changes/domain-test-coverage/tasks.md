@@ -9,7 +9,7 @@ Cada tarea agrega o corrige pruebas sin tocar código de producción. Cada prueb
 - [x] 1.5 [api] La llave de idempotencia es por usuario: dos usuarios con la misma llave crean dos transferencias independientes (TRF-02, TRF-03)
 - [x] 1.6 [api] Reversión cuando falla la auditoría de `TRANSFER_OTP_SENT`, `OTP_ATTEMPT_FAILED`/`OTP_ATTEMPTS_EXHAUSTED` (el contador de intentos también se revierte), `TRANSFER_FAILED` y `TRANSFER_OTP_RESENT` (TRF-25)
 - [x] 1.7 [api] Bordes de validación: referencia de más de 7 dígitos y concepto de exactamente 40 caracteres contados por punto de código (TRF-09)
-- [ ] 1.8 [api] Bajo el bloqueo se vuelve a comprobar que el destino propio pertenece al usuario y que el de un beneficiario es una cuenta de usuario (TRF-06)
+- [x] 1.8 [api] Bajo el bloqueo se vuelve a comprobar que el destino propio pertenece al usuario y que el de un beneficiario es una cuenta de usuario (TRF-06)
 
 ## 2. Transferencias programadas
 
