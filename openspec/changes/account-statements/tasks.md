@@ -4,7 +4,7 @@ Requiere `contract-v1-2` (paquete 1.2.0) y la tarea 1.1 de `scheduled-transfers`
 
 - [x] 1.1 [api] Instalar el contrato 1.2.0 y `@devchrisvaz/wallet-design-tokens` con `file:` e `install-links=true`; el CI de la API construye ambos paquetes y se dispara con cambios en `design-tokens/**`; las pruebas vigentes siguen pasando (HIS-11)
 - [x] 1.2 [api] Dominio: `StatementPeriod` (patrón, mes futuro, mes en curso parcial, inicio y fin en la Ciudad de México con la base IANA) con pruebas unitarias (HIS-11, HIS-12)
-- [ ] 1.3 [api] Dominio: `StatementSummary` con `BigInt` (abonos, cargos, saldo final y verificación de conciliación) con pruebas del mes vacío y del descuadre (HIS-12)
+- [x] 1.3 [api] Dominio: `StatementSummary` con `BigInt` (abonos, cargos, saldo final y verificación de conciliación) con pruebas del mes vacío y del descuadre (HIS-12)
 - [ ] 1.4 [api] Proyección de asiento a movimiento compartida con el historial; las pruebas de HIS-03 siguen pasando sin cambios (HIS-12)
 - [ ] 1.5 [api] `PgStatementReader` con instantánea `REPEATABLE READ READ ONLY`, saldo inicial y tandas ascendentes por keyset; pruebas de integración del orden, del movimiento de noche y de la transferencia confirmada a mitad de la lectura (HIS-12)
 - [ ] 1.6 [api] `PdfKitStatementRenderer` con Work Sans incrustada y su licencia, etiquetas del paquete de diseño, montos con `formatMXN`, encabezados repetidos, "Página X de Y", leyenda y mes vacío; pruebas que leen el texto del PDF (HIS-12)
