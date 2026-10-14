@@ -1,18 +1,19 @@
 import { ProblemError, type MovementPage } from '@devchrisvaz/wallet-contract';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
-import { bffGet, type QueryParams } from '@/lib/client/bff';
+import { bffDownload, bffGet, type QueryParams } from '@/lib/client/bff';
 import { AHORRO, OVERVIEW, PRINCIPAL, movement } from '@/test/fixtures';
 import { router, setLocation } from '@/test/support/next-navigation';
 import { renderWithClient } from '@/test/support/render';
 import { MovementsScreen } from './MovementsScreen';
 
-vi.mock('@/lib/client/bff', () => ({ bffGet: vi.fn() }));
+vi.mock('@/lib/client/bff', () => ({ bffGet: vi.fn(), bffDownload: vi.fn() }));
 vi.mock('next/navigation', () => import('@/test/support/next-navigation'));
 
 const bffGetMock = vi.mocked(bffGet);
+const bffDownloadMock = vi.mocked(bffDownload);
 const MOVEMENTS_PATH = `accounts/${PRINCIPAL.id}/movements`;
 
 const PAGE_1: MovementPage = {
@@ -208,5 +209,57 @@ describe('MovementsScreen', () => {
     const { container } = renderWithClient(<MovementsScreen accountId={PRINCIPAL.id} />);
     await screen.findByText(/Renta de octubre/);
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe('MovementsScreen con el estado de cuenta', () => {
+  beforeEach(() => {
+    bffDownloadMock.mockReset();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-14T18:00:00.000Z')); // 14 de octubre, 12:00 en CDMX
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('WEB-32 ofrece descargar el estado de cuenta de la cuenta abierta: septiembre 2026 por defecto', async () => {
+    reads(() => PAGE_1);
+    bffDownloadMock.mockResolvedValue({
+      blob: new Blob(['%PDF-'], { type: 'application/pdf' }),
+      filename: 'estado-de-cuenta-2026-09-0015.pdf',
+    });
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: () => 'blob:x' });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: () => undefined });
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+    const user = userEvent.setup();
+    renderWithClient(<MovementsScreen accountId={PRINCIPAL.id} />);
+
+    expect(screen.getByRole('heading', { name: 'Estado de cuenta' })).toBeVisible();
+    expect(screen.getByLabelText('Mes')).toHaveValue('2026-09');
+    await user.click(screen.getByRole('button', { name: 'Descargar PDF' }));
+
+    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+    expect(bffDownloadMock).toHaveBeenCalledWith(`accounts/${PRINCIPAL.id}/statements/2026-09`);
+  });
+
+  it('WEB-32 con RATE_LIMITED muestra el mensaje con la espera y sigue mostrando los movimientos', async () => {
+    reads(() => PAGE_1);
+    bffDownloadMock.mockRejectedValue(
+      new ProblemError(429, { code: 'RATE_LIMITED', requestId: 'api-7' }, null, 60),
+    );
+    const user = userEvent.setup();
+    renderWithClient(<MovementsScreen accountId={PRINCIPAL.id} />);
+    await screen.findByText(/Renta de octubre/);
+
+    await user.click(screen.getByRole('button', { name: 'Descargar PDF' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Hiciste demasiados intentos. Espera un momento y vuelve a intentar. Intenta de nuevo en 1 minuto.',
+    );
+    expect(screen.getByRole('list', { name: 'Movimientos' })).toBeVisible();
+    expect(screen.getByText(/Renta de octubre/)).toBeVisible();
   });
 });
