@@ -51,7 +51,8 @@ export function RootNavigator() {
   );
 }
 
-function StartupLoading() {
+/** Arranque en curso: marca e indicador de carga, sin datos de la cuenta. */
+export function StartupLoading() {
   return (
     <View style={styles.container} accessibilityLabel="Cargando">
       <Wordmark />

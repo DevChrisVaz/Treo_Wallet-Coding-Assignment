@@ -22,7 +22,7 @@ interface Alert {
  * regresiva de `Retry-After`.
  */
 export function LoginScreen() {
-  const { api, session } = useServices();
+  const { api, session, unlockPreference } = useServices();
   const snapshot = useSessionSnapshot();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,7 +47,11 @@ export function LoginScreen() {
     setSubmitting(true);
     try {
       const { data } = await api.POST('/auth/login', { body: parsed.data });
-      if (data) await session.start(data.tokens);
+      if (data) {
+        // Después de un inicio de sesión con contraseña se ofrece el desbloqueo biométrico (MOB-24).
+        unlockPreference.offerAfterLogin();
+        await session.start(data.tokens);
+      }
     } catch (error) {
       setAlert(alertFor(error));
       if (error instanceof ProblemError) {
