@@ -101,4 +101,4 @@
 
 ## 12. Contrato
 
-- [ ] 12.1 [api] Verificar que las pruebas de integración de este change pasan por la validación Ajv de respuestas contra `contract/openapi.yaml` en todos los endpoints nuevos, incluidas las respuestas 200 de reintento y los 422 con extensiones (ACC-10, BEN-01, TRF-03, HIS-03)
+- [x] 12.1 [api] Verificar que las pruebas de integración de este change pasan por la validación Ajv de respuestas contra `contract/openapi.yaml` en todos los endpoints nuevos, incluidas las respuestas 200 de reintento y los 422 con extensiones (ACC-10, BEN-01, TRF-03, HIS-03)

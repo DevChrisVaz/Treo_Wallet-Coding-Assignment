@@ -60,6 +60,27 @@ for (const [path, methods] of Object.entries(contract.paths)) {
   }
 }
 
+/** Rutas del contrato como expresiones regulares: `{transferId}` acepta un segmento cualquiera. */
+const routes = [...operations.entries()].map(([operationId, location]) => ({
+  operationId,
+  method: location.method,
+  pattern: new RegExp(
+    `^${location.path
+      .split('/')
+      .map((segment) =>
+        /^\{.+\}$/.test(segment) ? '[^/]+' : segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+      )
+      .join('/')}$`,
+  ),
+}));
+
+/** Operación del contrato para un método y una URL (sin query), o `undefined` si no se declara. */
+export function operationIdFor(method: string, url: string): string | undefined {
+  const path = url.split('?')[0] ?? url;
+  return routes.find((route) => route.method === method.toLowerCase() && route.pattern.test(path))
+    ?.operationId;
+}
+
 const validators = new Map<string, ValidateFunction>();
 function validatorAt(schemaRef: string): ValidateFunction {
   let validate = validators.get(schemaRef);

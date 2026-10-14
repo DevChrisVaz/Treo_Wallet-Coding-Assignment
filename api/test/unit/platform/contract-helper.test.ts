@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { expectToMatchContract, type ContractResponse } from '../../helpers/contract.js';
+import {
+  expectToMatchContract,
+  operationIdFor,
+  type ContractResponse,
+} from '../../helpers/contract.js';
 
 function response(overrides: Partial<ContractResponse>): ContractResponse {
   return {
@@ -84,5 +88,27 @@ describe('PLT-12 validación de respuestas contra el contrato', () => {
     expect(() =>
       expectToMatchContract(response({ status: 204, text: '{"x":1}' }), 'logout'),
     ).toThrow(/204/);
+  });
+});
+
+describe('ACC-10 operación del contrato a partir del método y la ruta', () => {
+  it.each([
+    ['get', '/accounts', 'listAccounts'],
+    ['get', '/accounts/2b1f6c1e-0000-4000-8000-000000000001', 'getAccount'],
+    ['get', '/accounts/x/movements?limit=5&type=DEPOSIT', 'listAccountMovements'],
+    ['post', '/beneficiaries', 'createBeneficiary'],
+    ['get', '/beneficiaries', 'listBeneficiaries'],
+    ['post', '/transfers', 'createTransfer'],
+    ['get', '/transfers/abc', 'getTransfer'],
+    ['post', '/transfers/abc/confirm', 'confirmTransfer'],
+    ['post', '/transfers/abc/otp/resend', 'resendTransferOtp'],
+  ])('ACC-10 %s %s es %s', (method, url, operationId) => {
+    expect(operationIdFor(method, url)).toBe(operationId);
+  });
+
+  it('ACC-10 una ruta o un método que el contrato no declara no tienen operación', () => {
+    expect(operationIdFor('delete', '/transfers/abc')).toBeUndefined();
+    expect(operationIdFor('get', '/transfers/abc/confirm/extra')).toBeUndefined();
+    expect(operationIdFor('get', '/no-existe')).toBeUndefined();
   });
 });

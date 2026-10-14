@@ -2,7 +2,7 @@ import request from 'supertest';
 import { expect } from 'vitest';
 import { Money } from '../../src/shared/money.js';
 import type { TestApp } from './app.js';
-import { expectToMatchContract } from './contract.js';
+import { expectToMatchContract, operationIdFor } from './contract.js';
 import type { IntegrationHarness } from './harness.js';
 import { verifiedUser, type VerifiedUser } from './identity.js';
 
@@ -30,10 +30,29 @@ export async function fund(t: TestApp, accountId: string, amount: string): Promi
   await t.container.ledger.fundAccount.execute({ account: accountId, amount: Money.parse(amount) });
 }
 
+/** Toda respuesta debe cumplir la operación del contrato que corresponde a su método y ruta. */
+function matchingContract(method: string, path: string) {
+  const operationId = operationIdFor(method, path);
+  if (!operationId) throw new Error(`El contrato no declara ${method.toUpperCase()} ${path}`);
+  return (res: request.Response) => expectToMatchContract(res, operationId);
+}
+
+/**
+ * Peticiones autenticadas que se validan solas contra `openapi.yaml` (ACC-10, PLT-12): la
+ * operación sale del método y la ruta, así que ninguna prueba del ledger puede saltarse Ajv.
+ */
 export function authed(t: TestApp, token: string) {
   return {
-    get: (path: string) => request(t.app).get(path).set('Authorization', `Bearer ${token}`),
-    post: (path: string) => request(t.app).post(path).set('Authorization', `Bearer ${token}`),
+    get: (path: string) =>
+      request(t.app)
+        .get(path)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(matchingContract('get', path)),
+    post: (path: string) =>
+      request(t.app)
+        .post(path)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(matchingContract('post', path)),
   };
 }
 
