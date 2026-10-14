@@ -35,8 +35,7 @@ export function Avatar({ tone = 'brand', size = 'md', initials: text, icon }: Av
   const dimension = theme.avatarSize[size];
   return (
     <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
+      aria-hidden
       style={[styles.circle, { width: dimension, height: dimension, backgroundColor: bg }]}
     >
       {icon ? (

@@ -21,7 +21,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react-native';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { theme } from '@/theme';
 
@@ -70,13 +70,12 @@ export function Icon({ name, size = 'md', color, label }: IconProps) {
       aria-label={label}
     />
   ) : (
-    <Glyph
-      size={iconSize[size]}
-      color={color}
-      strokeWidth={2}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    />
+    // Decorativo: `aria-hidden` en una View, que lo traduce en iOS, Android y la web. El Svg de
+    // react-native-svg no lo traduce en nativo, y react-native-web no reconoce
+    // `accessibilityElementsHidden` ni `importantForAccessibility`.
+    <View aria-hidden>
+      <Glyph size={iconSize[size]} color={color} strokeWidth={2} />
+    </View>
   );
 }
 

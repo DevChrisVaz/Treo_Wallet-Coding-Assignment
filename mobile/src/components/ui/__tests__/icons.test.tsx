@@ -1,5 +1,6 @@
 import { iconConcepts, iconNames } from '@devchrisvaz/wallet-design-tokens';
-import { render, screen } from '@testing-library/react-native';
+import { isHiddenFromAccessibility, render, screen } from '@testing-library/react-native';
+import { View } from 'react-native';
 import * as Lucide from 'lucide-react-native';
 
 import { theme } from '@/theme';
@@ -14,6 +15,17 @@ describe('Icon', () => {
   test('DSG-15 un icono con etiqueta se anuncia como imagen', async () => {
     await render(<Icon name="error" label="Error" color={theme.colors.status.danger.fg} />);
     expect(screen.getByLabelText('Error')).toBeOnTheScreen();
+  });
+
+  test('DSG-15 un icono sin etiqueta es decorativo: queda oculto para los lectores de pantalla', async () => {
+    await render(
+      <View testID="probe">
+        <Icon name="info" color={theme.colors.text.primary} />
+      </View>,
+    );
+    const [wrapper] = screen.getByTestId('probe').children;
+    expect(wrapper).toBeDefined();
+    expect(isHiddenFromAccessibility(wrapper as never)).toBe(true);
   });
 
   test('DSG-15 un botón solo con icono tiene nombre accesible', async () => {
