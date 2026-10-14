@@ -50,4 +50,18 @@ describe('MovementList', () => {
       '9 oct',
     ]);
   });
+
+  test('MOB-20 las filas del día muestran solo la hora y no llevan borde: la lista pone los divisores', async () => {
+    await render(
+      <MovementList
+        now={new Date('2026-10-13T18:00:00Z')}
+        movements={[movement('a', '2026-10-13T16:42:00Z'), movement('b', '2026-10-13T15:00:00Z')]}
+      />,
+    );
+    expect(screen.getAllByText(/^\d{2}:\d{2} · Ref\./)).toHaveLength(2);
+    expect(screen.queryByText(/13 oct/)).toBeNull();
+    for (const row of screen.getAllByTestId('movement-row')) {
+      expect(row).not.toHaveStyle({ borderBottomWidth: 1 });
+    }
+  });
 });

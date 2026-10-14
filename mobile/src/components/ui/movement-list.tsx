@@ -6,7 +6,10 @@ import { theme } from '@/theme';
 
 import { MovementRow } from './movement-row';
 
-/** Movimientos agrupados por día de Ciudad de México (MOB-20), como en la web. */
+/**
+ * Movimientos agrupados por día de Ciudad de México (MOB-20), como en la web. Bajo cada día, la fila
+ * muestra solo la hora (`timeOnly`) y la lista pone los divisores.
+ */
 export function MovementList({ movements, now }: { movements: readonly Movement[]; now?: Date }) {
   return (
     <View style={styles.list}>
@@ -17,7 +20,7 @@ export function MovementList({ movements, now }: { movements: readonly Movement[
           </Text>
           {group.items.map((item, index) => (
             <View key={item.id} style={index > 0 ? styles.divider : null}>
-              <MovementRow movement={item} />
+              <MovementRow movement={item} timeOnly />
             </View>
           ))}
         </View>
