@@ -2,7 +2,7 @@
 // Captura cada pareja (web y móvil a 390×844, sin el margen de la tarjeta) y mide la proporción de
 // píxeles distintos. Guía para la revisión de paridad (WEB-25), no una prueba binaria: las
 // diferencias de suavizado del texto son esperables.
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,10 +31,10 @@ const shot = async (url, file) => {
   // `fonts.ready` resuelve al instante si ninguna fuente empezó a cargar: forzamos el layout (que
   // pide las de Work Sans) y esperamos a que terminen antes de capturar.
   await page.waitForFunction(() => document.body.getBoundingClientRect() && document.fonts.status === 'loaded');
-  await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(400);
+  // Fuentes listas y dos cuadros pintados: la captura sale del layout final sin una espera fija.
+  await page.evaluate(() => document.fonts.ready.then(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))));
   await page.screenshot({ path: file });
-  return PNG.sync.read((await import('node:fs')).readFileSync(file));
+  return PNG.sync.read(readFileSync(file));
 };
 
 const webUrl = `${base}/web/${htmlOf(await headerOf('web'), 'AppShell')}`;

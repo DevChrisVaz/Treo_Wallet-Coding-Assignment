@@ -147,26 +147,32 @@ historias con el mismo nombre en `AppShell` (web) y `Screen` (móvil), WEB-25 / 
   `pixelmatch@7` y `pngjs@7` de `.ds-sync` (ver "Preparar").
 - Las capturas quitan el margen de la celda y el `transform` de `.ds-single`: con él, lo `fixed`
   (barra de pestañas, acciones del paso) quedaba al final del contenido en lugar de abajo del
-  teléfono. Se captura después de que cargue Work Sans.
+  teléfono. Se captura con Work Sans cargada y dos cuadros ya pintados, sin espera fija (tres
+  corridas seguidas dan el mismo `report.json`).
 - `diffRatio` es una guía, no una prueba: el texto nunca coincide píxel a píxel, porque la web carga
   Work Sans variable de Google Fonts y la app móvil los TTF estáticos de `@expo-google-fonts` (en el
   diff se ve rojo dentro de las letras, no fuera). Revisa el `-diff.png` de cada pareja que suba.
 
-Veredictos: **idéntico** (nada distinto salvo el borde de los glifos, < 0.002), **suavizado** (misma
-estructura; solo cambia el rasterizado del texto) y **por diseño** (diferencias acordadas). En "por
-diseño", "resto" es el `diffRatio` de la misma captura sin la zona acordada (alineando lo que esta
-empuja).
+Regla de veredicto, en este orden (cualquier otra cosa es estructural y se corrige):
+
+1. **por diseño**: el `-diff.png` muestra una diferencia acordada: 4.ª pestaña Beneficiarios, fila
+   "Filtros", cuentas propias como destinatario, select nativo de una línea, textos propios de cada
+   app, "Mostrar CLABE" de la web (R29) o la ayuda del monto de cada app (R30). La nota dice cuál y
+   "resto" es el `diffRatio` de la misma captura sin esa zona (alineando lo que esta empuja).
+2. **idéntico**: si no, `diffRatio` < 0.002.
+3. **suavizado**: si no, y al revisar el `-diff.png` solo hay píxeles en el borde de los glifos
+   (rasterizado distinto de Work Sans): ningún elemento se movió, cambió de tamaño ni de color.
 
 | Historia | diffRatio | Veredicto | Nota |
 |---|---|---|---|
-| `Home` | 0.0119 | por diseño | 4.ª pestaña Beneficiarios y "Mostrar CLABE" de la web; resto 0.0041 |
+| `Home` | 0.0119 | por diseño | 4.ª pestaña Beneficiarios y "Mostrar CLABE" de la web (R29: mismo aspecto, funciones propias); resto 0.0041 |
 | `HomeEmpty` | 0.0140 | por diseño | 4.ª pestaña; texto del vacío de cada app; resto 0.0016 |
 | `HomeError` | 0.0081 | por diseño | 4.ª pestaña; resto 0.0000 |
 | `HomeLoading` | 0.0081 | por diseño | 4.ª pestaña; resto 0.0000 |
 | `Login` | 0.0048 | por diseño | nota de registro (la app móvil no registra); resto 0.0008 |
 | `Movements` | 0.0439 | por diseño | fila "Filtros" (+56 px) y 4.ª pestaña; lista alineada 0.0053 |
 | `MovementsEmpty` | 0.0270 | por diseño | "Filtros", vacío filtrado de la web ("Limpiar filtros") y 4.ª pestaña; encabezado 0.0000 |
-| `TransferAmount` | 0.0219 | por diseño | select nativo de una línea con el saldo en la ayuda (móvil: dos líneas) y textos de ayuda de cada app; arriba 0.0061, abajo (+10 px) 0.0079 |
+| `TransferAmount` | 0.0218 | por diseño | select nativo de una línea con el saldo en la ayuda (móvil: dos líneas) y la ayuda del monto de cada app (R30: describe cómo lee el monto cada una; concepto y referencia ya usan la redacción móvil); arriba 0.0022, abajo (+10 px) 0.0022 |
 | `TransferCompleted` | 0.0025 | suavizado | |
 | `TransferFailed` | 0.0016 | idéntico | |
 | `TransferOtp` | 0.0037 | por diseño | "Vence a las 12:05." (web) frente a la cuenta regresiva de móvil |
@@ -178,15 +184,18 @@ empuja).
 Lo que se alineó para llegar ahí (en la primera medición, con el `transform`, `TransferFailed` daba
 0.0671 y `TransferAmount` 0.0537):
 
-- Kit web: AccountCard (120 px como en móvil: borde de 2 px, 4 px entre filas, controles de 44 px
-  con margen negativo), MovementRow (el tipo pasa a dos líneas en lugar de cortarse), Receipt (sin
+- Kit web: AccountCard (120 px como en móvil: borde de 2 px y 4 px entre filas; toda la tarjeta
+  selecciona con el `::after` del botón del nombre y el de la CLABE va encima con su área de 44 px,
+  R31), MovementRow (el tipo pasa a dos líneas en lugar de cortarse), Receipt (sin
   título visible, etiqueta pequeña sobre el valor, " · " entre nombre y terminación), OtpField (a
   todo lo ancho), AmountField hero (ancho medido con un espejo, como en móvil; etiqueta y ayuda
   centradas), campos a 4 px de su etiqueta, EmptyState (ayuda en `body`), Skeleton de tarjeta
-  (128 px), Wordmark completo en `h1`, StatusBadge de 24 px, chevron del sistema en Select,
+  (128 px), Wordmark completo en `h1` solo en la superficie de marca (`size="brand"`, R32; en los
+  encabezados sigue en `h2`), StatusBadge de 24 px, chevron del sistema en Select,
   ErrorState con "Reintentar" fuera de la alerta y dígitos tabulares en el límite diario.
 - Kit móvil: Receipt sin borde (D4) y con `fromAccountClabe` opcional para mostrar la terminación
   de origen; dígitos tabulares en el código y en la CLABE de AccountCard.
 - Historias: mismos espacios en Login, el destinatario del monto y las filas de destinatario; el
-  monto tecleado igual en las dos ("1250.00"); los nombres de Beneficiarios ya no se cortan; el
+  monto tecleado igual en las dos ("1250.00"); las ayudas de concepto y referencia con la
+  redacción móvil (R30); los nombres de Beneficiarios ya no se cortan; el
   error de Inicio en móvil con el título de la lectura, como el ErrorState de la web.
