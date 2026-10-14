@@ -158,6 +158,28 @@ describe('TRF-03 reintento de la creación después de confirmar el OTP', () => 
   });
 });
 
+describe('TRF-03 reintento de la creación de una transferencia FAILED', () => {
+  beforeEach(async () => {
+    await setup();
+  });
+
+  it('TRF-03 después de agotar los intentos del OTP, el reintento con la misma llave responde 200 con estado FAILED', async () => {
+    const key = randomUUID();
+    const created = await postTransfer(t, ana, toLuis('15000.00'), key);
+    const id = created.body.id as string;
+    const code = t.mailer.lastCode(ana.person.email);
+    for (let i = 0; i < 3; i++) await confirmTransfer(t, ana, id, { otp: wrongCode(code) });
+    expect((await transferRow(id)).status).toBe('FAILED');
+
+    const retry = await postTransfer(t, ana, toLuis('15000.00'), key);
+    expect(retry.status).toBe(200);
+    expect(retry.headers['idempotent-replayed']).toBe('true');
+    expect(retry.body).toMatchObject({ id, status: 'FAILED' });
+    expect(await balanceOf(harness, ana.principal.id)).toBe('20000.00');
+    expect(await transferRow(id)).toMatchObject({ status: 'FAILED' });
+  });
+});
+
 describe('TRF-17 código incorrecto', () => {
   beforeEach(async () => {
     await setup();

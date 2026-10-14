@@ -134,6 +134,37 @@ describe('TRF-11 límite diario de transferencias a terceros', () => {
     expect((await dailyLimit(s)).used).toBe('45000.00');
   });
 
+  it('TRF-03 y TRF-11 repetir con la misma llave un rechazo por límite devuelve el mismo 422 con remaining recalculado', async () => {
+    const s = await scene(CDMX.noon);
+    await spend(s, 45_000);
+    const key = randomUUID();
+    const first = await postTransfer(s.t, s.ana, toLuis(s, '6000.00'), key);
+    expect(first.status).toBe(422);
+    expect(first.body.remaining).toBe('5000.00');
+
+    // Después del rechazo se gastan 3000.00 más: el reintento ve lo que queda hoy, no lo de entonces.
+    await spend(s, 3_000);
+    const replay = await postTransfer(s.t, s.ana, toLuis(s, '6000.00'), key);
+    expect(replay.status).toBe(422);
+    expect(replay.headers['idempotent-replayed']).toBe('true');
+    expect(replay.body).toMatchObject({
+      code: 'DAILY_LIMIT_EXCEEDED',
+      transferId: first.body.transferId,
+      remaining: '2000.00',
+    });
+
+    // Con el límite agotado, lo que queda es 0.00.
+    await spend(s, 2_000);
+    const exhausted = await postTransfer(s.t, s.ana, toLuis(s, '6000.00'), key);
+    expect(exhausted.status).toBe(422);
+    expect(exhausted.body).toMatchObject({ code: 'DAILY_LIMIT_EXCEEDED', remaining: '0.00' });
+    const [{ n }] = await harness.migrator.query(
+      'SELECT count(*)::int AS n FROM app.transfers WHERE idempotency_key = $1',
+      [key],
+    );
+    expect(n).toBe(1);
+  });
+
   it('TRF-11 y TRF-14 una transferencia con OTP que excede el límite se rechaza al crearla, sin código ni correo', async () => {
     const s = await scene(CDMX.noon);
     await spend(s, 45_000);
