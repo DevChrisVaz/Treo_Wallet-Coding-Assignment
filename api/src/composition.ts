@@ -18,6 +18,10 @@ import { OpenDefaultAccounts } from './modules/accounts/application/open-default
 import { PgAccountRepository } from './modules/accounts/infrastructure/pg-account-repository.js';
 import { ListAccounts } from './modules/accounts/application/list-accounts.js';
 import { GetAccount } from './modules/accounts/application/get-account.js';
+import { BeneficiaryClabeResolver } from './modules/beneficiaries/application/clabe-resolver.js';
+import { CreateBeneficiary } from './modules/beneficiaries/application/create-beneficiary.js';
+import { beneficiaryRoutes } from './modules/beneficiaries/infrastructure/http/routes.js';
+import { PgBeneficiaryStore } from './modules/beneficiaries/infrastructure/pg-beneficiary-store.js';
 import { accountRoutes } from './modules/accounts/infrastructure/http/routes.js';
 import { Argon2PasswordHasher } from './modules/identity/infrastructure/argon2-password-hasher.js';
 import { identityRoutes } from './modules/identity/infrastructure/http/routes.js';
@@ -85,6 +89,10 @@ export interface Container {
     readonly listAccounts: ListAccounts;
     readonly getAccount: GetAccount;
   };
+  readonly beneficiaries: {
+    readonly createBeneficiary: CreateBeneficiary;
+    readonly beneficiaries: PgBeneficiaryStore;
+  };
   readonly ledger: {
     readonly fundAccount: FundAccount;
   };
@@ -114,6 +122,7 @@ export async function createContainer(
   const accountLocks = new PgAccountLocks(dataSource);
   const poster = new LedgerPoster(new PgLedgerStore());
   const dailyUsage = new PgDailyUsage(dataSource);
+  const beneficiaryStore = new PgBeneficiaryStore(dataSource);
   const codes = new OneTimeCodeService(new PgOneTimeCodeStore(), clock, config.otpHmacSecret);
   const accounts = new PgAccountRepository(dataSource);
   const openAccounts = new OpenDefaultAccounts({ accounts, clabe: config.clabe, clock });
@@ -185,6 +194,16 @@ export async function createContainer(
       }),
       getAccount: new GetAccount(accounts),
     },
+    beneficiaries: {
+      beneficiaries: beneficiaryStore,
+      createBeneficiary: new CreateBeneficiary({
+        transactions,
+        store: beneficiaryStore,
+        resolver: new BeneficiaryClabeResolver(beneficiaryStore, config.clabe.bankCode),
+        audit,
+        clock,
+      }),
+    },
     ledger: {
       fundAccount: new FundAccount({
         transactions,
@@ -204,6 +223,7 @@ export function createApp(container: Container): Express {
   const tables = [
     identityRoutes(container.identity, authenticateRequest, container.clock),
     accountRoutes(container.accounts, authenticateRequest),
+    beneficiaryRoutes(container.beneficiaries, authenticateRequest, container.clock),
   ];
   for (const table of tables) assertPublicRoutesAllowed(table.table);
   return createHttpApp({
