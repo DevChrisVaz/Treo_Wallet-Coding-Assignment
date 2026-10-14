@@ -102,6 +102,22 @@ describe('HIS-12 lector del estado de cuenta', () => {
     expect(opening).toEqual({ principal: 100_000n, ahorro: 0n, october: 85_000n });
   });
 
+  it('HIS-12 con varios asientos en el mismo último instante antes del periodo, el saldo inicial es el del de mayor id', async () => {
+    await fund(t, ana.principal.id, '1000.00');
+    // Cuatro asientos en el mismo instante (el reloj no se mueve): 1000 -> 999 -> 997 -> 994.
+    for (const amount of ['1.00', '2.00', '3.00']) {
+      await send(ana, { type: 'OWN_ACCOUNT', accountId: ana.ahorro.id }, amount);
+    }
+    const reader = new PgStatementReader(harness.app);
+    const { rows, opening } = await reader.withSnapshot(async (snapshot) => ({
+      rows: (await collect(snapshot.movements(ana.principal.id, EPOCH, FAR_FUTURE))).rows,
+      opening: await snapshot.openingBalance(ana.principal.id, period('2026-09').start),
+    }));
+    expect(new Set(rows.map((row) => row.occurredAt)).size).toBe(1);
+    expect(rows.map((row) => row.balanceAfterCents)).toEqual([100_000n, 99_900n, 99_700n, 99_400n]);
+    expect(opening).toBe(99_400n);
+  });
+
   it('HIS-12 los movimientos salen en orden ascendente por fecha y, en empate, por id, en tandas por keyset', async () => {
     await fund(t, ana.principal.id, '1000.00');
     // Mismo instante para las cinco: el desempate por id decide el orden y cruza las tandas.
