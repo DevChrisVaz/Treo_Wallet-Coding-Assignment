@@ -34,7 +34,7 @@ Este README reúne la información de los cinco proyectos. Cada proyecto conserv
 
 **Del enunciado:**
 
-- Registro con CURP, RFC y teléfono, verificación del correo con un código de 6 dígitos e inicio de sesión con refresh token rotativo.
+- Registro con CURP, RFC y teléfono (nombre de al menos dos palabras, contraseña de 12 caracteres con letra y dígito, mayoría de edad por la CURP y RFC que coincide con ella), verificación del correo con un código de 6 dígitos e inicio de sesión con refresh token rotativo.
 - Dos cuentas por usuario ("Principal" y "Ahorro") con CLABE, saldo y el límite diario que queda.
 - Beneficiarios dados de alta por CLABE de la plataforma.
 - Transferencias a una cuenta propia o a un beneficiario:
@@ -48,8 +48,8 @@ Este README reúne la información de los cinco proyectos. Cada proyecto conserv
 
 **Bonus:**
 
-- **Estado de cuenta mensual en PDF**, conciliado con el ledger y descargable desde la web.
-- **Transferencias programadas** con fecha futura: cancelación, tope de 20 por usuario y un ejecutor dentro de la API que ejecuta cada una exactamente una vez.
+- **Estado de cuenta mensual en PDF**, conciliado con el ledger y descargable desde la web, desde el mes en que se abrió la cuenta.
+- **Transferencias programadas** con fecha y hora futuras: cancelación, tope de 20 por usuario y un ejecutor dentro de la API que ejecuta cada una exactamente una vez.
 - **Desbloqueo biométrico** en la app móvil, con huella en Android en Expo Go.
 
 ## Estructura del repositorio
@@ -187,7 +187,7 @@ Para conocer la IP de tu red local: `ipconfig getifaddr en0` (macOS), `hostname 
 ```bash
 cd api
 
-# PostgreSQL (puerto 5433 del host) y Mailpit (SMTP 1025, bandeja 8025)
+# PostgreSQL (puerto 5433 del host) y Mailpit (SMTP 1025, bandeja 8025, guardada en el volumen `mailpit-data`)
 docker compose up -d --wait
 
 # Roles, bases y esquema (superusuario, idempotente)
@@ -208,7 +208,9 @@ npm run dev
 | http://localhost:4000/openapi.yaml | El contrato tal cual (fuera de producción)                                  |
 | http://localhost:8025              | Bandeja de Mailpit: códigos de verificación, OTP de transferencias y avisos |
 
-Una base creada antes de los bonus necesita `npm run db:migrate` para recibir sus migraciones (estado de cuenta y transferencias programadas).
+Una base creada antes de los bonus y de `ux-fixes` necesita `npm run db:migrate` para recibir sus migraciones (estado de cuenta, transferencias programadas, referencia opcional y programadas con hora).
+
+La bandeja de Mailpit se guarda en un volumen de Docker (`mailpit-data`): los correos sobreviven a `docker compose down` y a recrear el contenedor. Para vaciarla, `docker compose down -v` (borra también la base de PostgreSQL, así que hay que repetir `db:bootstrap`, `db:migrate` y `db:seed`).
 
 ### 2. Web
 
@@ -219,8 +221,9 @@ npm run dev        # http://localhost:3000; si el puerto está ocupado: npm run 
 
 1. Regístrate en `/register`; el código de verificación llega a Mailpit. Al verificar el correo se abren las cuentas Principal y Ahorro en $0.00; para tener saldo, usa el fondeo (`db:fund`). También puedes entrar con un usuario del seed.
 2. Las transferencias de más de $10,000.00 piden un código que también llega a Mailpit.
-3. Para programar una transferencia, elige "Programar" en "Cuándo" y una fecha. Aparece en "Programadas" hasta que se ejecuta o la cancelas. Para verla ejecutarse sin esperar a la medianoche, sigue [Verlas ejecutarse en local](#verlas-ejecutarse-en-local). Al ejecutarse, sale de "Programadas" y aparece en el historial; si falla, el aviso llega a Mailpit.
-4. El estado de cuenta se descarga desde la pantalla de movimientos de cada cuenta.
+3. Para programar una transferencia, elige "Programar" en "Cuándo" y una fecha y una hora (de la Ciudad de México, con al menos 10 minutos de anticipación y hasta 90 días). Aparece en "Programadas" hasta que se ejecuta o la cancelas. Para verla ejecutarse sin esperar a su hora, sigue [Verlas ejecutarse en local](#verlas-ejecutarse-en-local). Al ejecutarse, sale de "Programadas" y aparece en el historial; si falla, el aviso llega a Mailpit.
+4. El estado de cuenta se descarga desde la pantalla de movimientos de cada cuenta, y ofrece los meses desde que se abrió hasta el mes en curso.
+5. "Recibir", en Inicio, muestra los datos para que te transfieran (Titular, Banco, Cuenta y la CLABE completa, con "Copiar CLABE"); las tarjetas de cuenta solo muestran los últimos 4 dígitos.
 
 **Build de producción por `http` en local:** `npm run build` y luego `API_BASE_URL=http://localhost:4000 SESSION_COOKIE_SECURE=false npm start`. La sesión vive en la memoria del proceso: reiniciar el servidor cierra todas las sesiones.
 
@@ -395,7 +398,7 @@ Backend de la billetera:
 
 - **Identidad:** registro con verificación por correo y sesiones con refresh token rotativo.
 - **Cuentas y beneficiarios:** cuentas con CLABE y beneficiarios dados de alta por CLABE.
-- **Transferencias:** ledger de partida doble con idempotencia, límite diario y OTP por correo; también programadas con fecha futura.
+- **Transferencias:** ledger de partida doble con idempotencia, límite diario y OTP por correo; también programadas con fecha y hora futuras.
 - **Consultas:** historial con paginación por cursor y estado de cuenta mensual en PDF.
 - **Auditoría:** bitácora inmutable.
 
@@ -500,7 +503,7 @@ La base también lo protege por su cuenta:
 - **Respuesta:** `Content-Type: application/pdf`, `Content-Length`, `Cache-Control: no-store` y `Content-Disposition: attachment; filename="estado-de-cuenta-2026-09-0015.pdf"`, con el periodo y los últimos 4 dígitos de la CLABE.
 - **Periodo:** de la medianoche de la Ciudad de México del día 1 a la del día 1 del mes siguiente. La conversión a UTC usa la base IANA, así que los meses con horario de verano (antes de 2023) quedan bien.
   - El mes en curso se entrega como parcial, hasta el momento de la generación.
-  - Un mes futuro o un periodo mal formado responde `422 VALIDATION_FAILED` en `/period`.
+  - Un mes futuro, un mes anterior al de apertura de la cuenta (`Account.createdAt`, en la Ciudad de México) o un periodo mal formado responde `422 VALIDATION_FAILED` en `/period`; los dos primeros con `DATE_OUT_OF_RANGE`. El mes de apertura sí se permite.
   - Una cuenta ajena o inexistente responde `404 NOT_FOUND`.
   - Un HEAD responde `405` sin generar nada.
 - **Límite:** 10 por minuto por usuario (`429 RATE_LIMITED` con `Retry-After`).
@@ -519,7 +522,7 @@ Cómo se arma (`src/modules/statements/`):
 4. **PDF:** se genera en memoria con PDFKit, en tamaño carta y con Work Sans incrustada.
    - **Encabezado:** la marca, el titular, la cuenta, la CLABE completa, el periodo y la hora de generación.
    - **Resumen:** un recuadro con saldo inicial, abonos, cargos y saldo final.
-   - **Tabla:** fecha y hora de la Ciudad de México, tipo (con las etiquetas del sistema de diseño), concepto, contraparte y referencia, cargo y abono en columnas separadas, y saldo.
+   - **Tabla:** fecha y hora de la Ciudad de México, tipo (con las etiquetas del sistema de diseño), concepto, contraparte y referencia (solo si la hay, nunca "null"), cargo y abono en columnas separadas, y saldo.
    - **Páginas:** los encabezados de la tabla se repiten en cada una, con "Página X de Y" y la leyenda "Documento informativo; no es un comprobante fiscal.".
    - **Montos:** se escriben con `formatMXN` del contrato.
 
@@ -561,29 +564,29 @@ Para el mes en curso, `fin` es el momento de la generación. Sin movimientos en 
 
 #### Transferencias programadas (bonus)
 
-`POST /transfers` con `scheduledFor` programa la transferencia en lugar de ejecutarla. `scheduledFor` es una fecha `AAAA-MM-DD` de la Ciudad de México, de mañana a 90 días después de hoy.
+`POST /transfers` con `scheduledFor` programa la transferencia en lugar de ejecutarla. `scheduledFor` es un instante RFC 3339 con desfase (por ejemplo `2026-10-20T14:30:00-06:00` o `...Z`), con minutos exactos (segundos y fracción en cero), de 10 minutos a 90 días después del momento de la petición. La fecha y la hora se eligen en la web en hora de la Ciudad de México.
 
 - **Hasta 10,000.00:** responde `201` con estado `SCHEDULED`, sin asientos y sin tocar saldo ni límite.
-- **Arriba de 10,000.00:** responde `201` en `PENDING_OTP`, y el correo del código incluye la fecha ("Programada para el 20 de octubre de 2026."). Al confirmar el código queda `SCHEDULED`, también sin mover dinero ni revalidar.
+- **Arriba de 10,000.00:** responde `201` en `PENDING_OTP`, y el correo del código incluye la fecha y la hora ("Programada para el 20 de octubre de 2026, 14:30 (hora de la Ciudad de México)."). Al confirmar el código queda `SCHEDULED`, también sin mover dinero ni revalidar.
 - **Validación al programar:**
-  - la fecha: `422 VALIDATION_FAILED` en `/scheduledFor`, con `DATE_OUT_OF_RANGE` (incluida la de hoy) o `INVALID_DATE`;
-  - las mismas reglas de propiedad, monto, concepto y referencia que una inmediata;
+  - el instante: `422 VALIDATION_FAILED` en `/scheduledFor`, con `DATE_OUT_OF_RANGE` si queda fuera de la ventana (a menos de 10 minutos o a más de 90 días) o `INVALID_FORMAT` si no es RFC 3339 con desfase, no existe o trae segundos;
+  - las mismas reglas de propiedad, monto, concepto y referencia que una inmediata (la referencia es opcional: sin ella queda en `null`);
   - que una programada a un tercero no supere el límite diario (`TOO_LARGE` en `/amount`), porque nunca podría ejecutarse.
 
   El saldo y el límite **de hoy** no se validan: se validan al ejecutar.
 
-- **Idempotencia:** la fecha forma parte del contenido que se compara, así que reutilizar la llave con otra fecha responde `IDEMPOTENCY_KEY_REUSED`.
-  - La fecha entra en la huella **solo cuando existe**, para que la huella de las inmediatas ya guardadas no cambie.
-  - La fecha y el monto se validan después de reclamar la llave. Así, un reintento que llega pasada la medianoche se reconoce como reintento, en lugar de responder que su fecha ya no es programable.
+- **Idempotencia:** el instante forma parte del contenido que se compara, así que reutilizar la llave con otro instante responde `IDEMPOTENCY_KEY_REUSED`.
+  - El instante entra en la huella **solo cuando existe** y como instante ISO UTC (`...-06:00` y `...Z` equivalentes dan la misma huella), para que la huella de las inmediatas ya guardadas no cambie.
+  - El instante y el monto se validan después de reclamar la llave. Así, un reintento que llega cuando el instante ya no está en la ventana se reconoce como reintento, en lugar de responder que ya no es programable.
   - Una petición nueva inválida revierte el reclamo, así que no consume la llave.
 - **Tope:** 20 activas por usuario, contando las `SCHEDULED` y las programadas en `PENDING_OTP` vigentes. La número 21 responde `422 SCHEDULED_LIMIT_REACHED` sin guardarse ni consumir la llave.
-- **Consultar:** `GET /transfers/scheduled` (`listScheduledTransfers`) devuelve las `SCHEDULED` del usuario, por fecha y luego por creación.
+- **Consultar:** `GET /transfers/scheduled` (`listScheduledTransfers`) devuelve las `SCHEDULED` del usuario, por instante y luego por creación.
 - **Cancelar:** `POST /transfers/{transferId}/cancel` (`cancelTransfer`) pasa una `SCHEDULED` a `CANCELLED` con `cancelledAt`.
   - Cancelarla otra vez responde `200` sin cambios.
   - En cualquier otro estado responde `409 TRANSFER_NOT_CANCELLABLE` con `transferStatus`.
 - **Antes de ejecutarse:** una programada no aparece en el historial ni consume límite. `GET /transfers/{transferId}` muestra `scheduledFor` en cualquier estado y `cancelledAt` en las canceladas.
 - **Auditoría:**
-  - con actor `USER`: `TRANSFER_CREATED` (con el estado inicial y la fecha), `TRANSFER_SCHEDULED` al quedar programada (al crearla o al confirmar su código) y `TRANSFER_CANCELLED`;
+  - con actor `USER`: `TRANSFER_CREATED` (con el estado inicial y el instante programado), `TRANSFER_SCHEDULED` al quedar programada (al crearla o al confirmar su código) y `TRANSFER_CANCELLED`;
   - con actor `SYSTEM`: la ejecución deja `TRANSFER_COMPLETED` o `TRANSFER_FAILED`, con el id del dueño en los metadatos.
 
 ##### El ejecutor
@@ -596,7 +599,7 @@ Para el mes en curso, `fin` es el momento de la generación. Sin movimientos en 
 | `SCHEDULER_INTERVAL_MS` | `60000`           | Cada cuánto corre una pasada; de 1,000 a 3,600,000                                        |
 | `SCHEDULER_BATCH_SIZE`  | `100`             | Candidatas por lote (1 a 1,000); si un lote viene lleno, la pasada sigue con el siguiente |
 
-Una pasada lee sin bloqueo las `SCHEDULED` con `scheduled_for` menor o igual al día de hoy en la Ciudad de México, en orden de fecha y creación (índice parcial `ix_transfers_scheduled_due`). Después ejecuta cada una en su propia transacción:
+Una pasada lee sin bloqueo las `SCHEDULED` con `scheduled_for` menor o igual al instante actual, en orden de instante y creación (índice parcial `ix_transfers_scheduled_due`). Una programada vence en su minuto exacto, así que se ejecuta en la primera pasada posterior (como mucho `SCHEDULER_INTERVAL_MS` después). Después ejecuta cada una en su propia transacción:
 
 1. **Contador:** si es a un tercero, crea y bloquea la fila contador del límite del usuario para el día de ahora.
 2. **Transferencia:** la bloquea con `SELECT … WHERE id = $1 AND status = 'SCHEDULED' FOR NO KEY UPDATE SKIP LOCKED`. Si no devuelve fila, es que otra instancia o una cancelación la tiene, o que ya cambió de estado: se deja y se sigue.
@@ -604,11 +607,11 @@ Una pasada lee sin bloqueo las `SCHEDULED` con `scheduled_for` menor o igual al 
 4. **Validación:** revisa saldo y límite **del día de ejecución** con el mismo servicio que la creación inmediata (`LockedTransferExecutor`).
    - Si pasa, queda `COMPLETED`: dos asientos, `completedAt` igual a la hora de ejecución y consumo del límite de ese día.
    - Si no, queda `FAILED` con `INSUFFICIENT_FUNDS` o `DAILY_LIMIT_EXCEEDED`.
-5. **Aviso:** después del `COMMIT`, si quedó `FAILED`, envía al dueño "Tu transferencia programada no se realizó", con el monto, el destino (últimos 4 dígitos de la CLABE), la fecha y el motivo. Si el correo falla, queda un WARN con el `transferId`; la transferencia sigue `FAILED` y no se repite.
+5. **Aviso:** después del `COMMIT`, si quedó `FAILED`, envía al dueño "Tu transferencia programada no se realizó", con el monto, el destino (últimos 4 dígitos de la CLABE), la fecha y la hora programadas (de la Ciudad de México) y el motivo. Si el correo falla, queda un WARN con el `transferId`; la transferencia sigue `FAILED` y no se repite.
 
 Casos especiales:
 
-- **API caída a medianoche:** una programada que vence mientras la API no corre se ejecuta en la siguiente pasada y consume el límite del día en que se ejecuta.
+- **API caída a la hora programada:** una programada que vence mientras la API no corre se ejecuta en la siguiente pasada y consume el límite del día en que se ejecuta.
 - **Error dentro de una transacción** (por ejemplo, en la auditoría): solo esa transferencia se revierte. Queda un ERROR con su id, la pasada sigue con las demás y esa se reintenta en la siguiente pasada.
 - **`SIGTERM`:** el proceso deja de aceptar peticiones, detiene el ejecutor, espera la pasada en curso y solo entonces cierra el pool.
 
@@ -627,11 +630,15 @@ Cada programada se ejecuta exactamente una vez, aunque corran varias instancias 
 
 Lo demuestran las pruebas de `test/integration/concurrency/`: `scheduled-runners`, `cancel-race` y `scheduled-cap-race`. Como alternativa en AWS queda EventBridge Scheduler invocando `runOnce` cada minuto en una tarea aparte.
 
-**Migraciones:** el `down` de `1760700000000-scheduled-transfers` se niega mientras exista alguna transferencia programada (pendiente, ejecutada o cancelada), para no borrar sus fechas.
+**Migraciones:**
+
+- el `down` de `1760700000000-scheduled-transfers` se niega mientras exista alguna transferencia programada (pendiente, ejecutada o cancelada), para no borrar sus fechas;
+- `1760800000000-optional-transfer-reference` hace que `reference` admita `NULL` (los fondeos de la Tesorería pasan a `NULL`); su `down` pierde la distinción entre la referencia 0 y ninguna;
+- `1760800001000-scheduled-for-instant` pasa `scheduled_for` de `date` a `timestamptz` y agrega `ck_transfers_scheduled_for_minute`. Las filas existentes quedan a las 09:00 de la Ciudad de México de su día. Su `down` vuelve a `date` y **pierde la hora**.
 
 ##### Verlas ejecutarse en local
 
-Una programada vence a las 00:00 de su fecha. Para no esperar a la medianoche, se adelanta su fecha en la base:
+Una programada vence en su minuto exacto y el ejecutor corre cada 60 s por omisión (`SCHEDULER_INTERVAL_MS=60000`), así que se ejecuta como mucho un minuto después. Para no esperar, se adelanta su instante en la base:
 
 ```bash
 # 1. Pasadas cada 5 s: en api/.env, SCHEDULER_INTERVAL_MS=5000; después `npm run dev`.
@@ -644,17 +651,17 @@ FROM=$(curl -s localhost:4000/accounts -H "Authorization: Bearer $TOKEN" \
 LUIS=$(curl -s localhost:4000/beneficiaries -H "Authorization: Bearer $TOKEN" \
   | jq -r '.items[] | select(.alias == "Luis") | .id')
 
-# 3. Programar 100.00 para mañana (fecha de la Ciudad de México)
-TOMORROW=$(TZ=America/Mexico_City date -d tomorrow +%F)
+# 3. Programar 100.00 para dentro de una hora (minutos exactos, con desfase)
+TOMORROW=$(date -d '+1 hour' +%Y-%m-%dT%H:%M:00%:z)
 ID=$(curl -s localhost:4000/transfers -H "Authorization: Bearer $TOKEN" \
   -H "Idempotency-Key: $(uuidgen)" -H 'Content-Type: application/json' \
   -d "{\"fromAccountId\":\"$FROM\",\"destination\":{\"type\":\"BENEFICIARY\",\"beneficiaryId\":\"$LUIS\"},\"amount\":\"100.00\",\"concept\":\"Prueba programada\",\"reference\":\"1\",\"scheduledFor\":\"$TOMORROW\"}" \
   | jq -r .id)
 curl -s localhost:4000/transfers/scheduled -H "Authorization: Bearer $TOKEN" | jq '.items[] | {id, status, scheduledFor}'
 
-# 4. "Llega" su fecha: solo en desarrollo, con el rol dueño (desde api/)
+# 4. "Llega" su hora: solo en desarrollo, con el rol dueño (desde api/)
 docker compose exec -T postgres psql -U wallet_migrator -d wallet -c \
-  "UPDATE app.transfers SET scheduled_for = (now() AT TIME ZONE 'America/Mexico_City')::date
+  "UPDATE app.transfers SET scheduled_for = date_trunc('minute', now())
     WHERE id = '$ID' AND status = 'SCHEDULED'"
 
 # 5. En menos de 5 s el log de la API muestra "scheduled transfers pass" con completed: 1
@@ -678,17 +685,19 @@ Panel web con Next.js (App Router) como BFF (_Backend for Frontend_) de la API. 
 - **Lecturas por el proxy `GET /bff/api/[...path]`:** con lista blanca de rutas y destino fijo en `API_BASE_URL`. `GET /bff/api/session` responde con el usuario de la sesión sin llamar a la API.
 - **Sesión:** vive en un `Map` en memoria (en AWS, Redis). Expira tras `SESSION_IDLE_MINUTES` sin actividad o al vencer el refresh token. El access token se renueva una sola vez por sesión aunque lleguen peticiones simultáneas.
 - **Transferencias:** la llave de idempotencia se genera en el navegador al pasar a la confirmación, y se reutiliza solo al reintentar tras un fallo de red o un `5xx`. El botón se bloquea desde el primer clic.
-- **Estado de cuenta (WEB-32):** en la pantalla de movimientos hay un selector con el mes en curso ("(en curso)") y los 12 anteriores (el anterior por defecto), y el botón "Descargar PDF".
+- **Campos que no admiten lo inválido (WEB-11, WEB-16, WEB-18, WEB-21):** el monto acepta solo dígitos y un punto (2 decimales como máximo) y se muestra con comas de miles (`12,345.67`) pero viaja como `12345.67`; la referencia ("Referencia (opcional)", se omite si está vacía), los códigos de 6 dígitos y el teléfono admiten solo dígitos, también al pegar; la CURP y el RFC quedan en mayúsculas alfanuméricas. Todo con las utilidades del contrato (`sanitizeAmountTyping`, `digitsOnly`, `uppercaseAlphanumeric`). El registro valida al salir de cada campo y tiene "Confirmar contraseña", que es solo de la interfaz y no se envía.
+- **Navegación y Inicio (WEB-26, WEB-35, WEB-36):** en escritorio, el perfil de la barra lateral es un solo botón con un menú que contiene "Cerrar sesión". "Recibir" abre una hoja con Titular, Banco, Cuenta y la CLABE completa ("Copiar CLABE"); es el único lugar donde se ve completa, y las tarjetas muestran los últimos 4 dígitos. Beneficiarios y el paso de destinatario tienen un buscador que filtra en el cliente, sin acentos, por nombre, alias o CLABE.
+- **Estado de cuenta (WEB-32):** en la pantalla de movimientos hay un selector que va del mes en que se abrió la cuenta (`Account.createdAt`, mes de la Ciudad de México) al mes en curso ("(en curso)"), el más reciente primero y con el anterior por defecto (o el mes en curso si es el único), y el botón "Descargar PDF".
   - **Proxy:** la descarga pasa por la ruta `accounts/<id>/statements/<AAAA-MM>`, solo GET. Para esa ruta, el proxy pide `application/pdf`, entrega los bytes de la API sin tocarlos y copia `Content-Type`, `Content-Disposition`, `Content-Length` y `Retry-After`.
   - **Descarga:** mientras descarga, el botón queda ocupado y no acepta otro clic.
-  - **Errores:** se muestra el mensaje de su `code` sin salir de la pantalla; en `RATE_LIMITED`, con la espera.
-- **Transferencias programadas (WEB-33):** el formulario tiene "Cuándo", con "Ahora" (por defecto) o "Programar". "Programar" muestra una fecha limitada a `schedulableRange` del contrato, de mañana a 90 días, y el formulario valida con `transferFormAt(ahora)`.
-  - **Revisión:** dice "Se enviará el 20 de octubre de 2026".
-  - **Resultado:** "Transferencia programada", con la fecha y un enlace a "Programadas"; el comprobante muestra "Programada para".
+  - **Errores:** se muestra el mensaje de su `code` sin salir de la pantalla; en `RATE_LIMITED`, con la espera, y un `DATE_OUT_OF_RANGE` en `/period` dice que ese mes es anterior a la apertura de la cuenta.
+- **Transferencias programadas (WEB-33):** el formulario tiene "Cuándo", con "Ahora" (por defecto) o "Programar". "Programar" muestra una fecha y una hora lado a lado (ambas obligatorias, en hora de la Ciudad de México); la fecha se limita a `schedulableDates` del contrato, el formulario las combina con `mexicoCityToInstant` y valida el instante con `transferFormAt(ahora)`: de 10 minutos a 90 días después de ahora.
+  - **Revisión:** dice "Se enviará el 20 de octubre de 2026, 14:30".
+  - **Resultado:** "Transferencia programada", con la fecha y la hora y un enlace a "Programadas"; el comprobante muestra "Programada para" con fecha y hora.
   - **Errores:** `SCHEDULED_LIMIT_REACHED` muestra el texto del sistema de diseño. Un `VALIDATION_FAILED` de la API en un campo (`DATE_OUT_OF_RANGE`, `TOO_LARGE`) regresa al formulario con el mensaje junto al campo.
-  - **Fechas en palabras:** se escriben en UTC sobre la fecha calendario (`lib/scheduled-date.ts`), para que el huso del navegador no las recorra un día.
-  - **Rango:** la Server Action valida el formato de la fecha, no su rango. El rango lo decide la API después de reclamar la llave, para que un reintento después de medianoche reciba la transferencia que ya existe.
-- **Página "Programadas" (WEB-34):** `/transfers/scheduled` lista las programadas con su fecha, destino, monto y concepto, o dice "No tienes transferencias programadas".
+  - **Fecha y hora en palabras:** se escriben con el calendario de la Ciudad de México del contrato (`lib/scheduled-date.ts`), para que el huso del navegador no las recorra.
+  - **Rango:** la Server Action valida el formato del instante, no su ventana. La ventana la decide la API después de reclamar la llave, para que un reintento que llega fuera de ella reciba la transferencia que ya existe.
+- **Página "Programadas" (WEB-34):** `/transfers/scheduled` lista las programadas con su fecha y hora, destino, monto y concepto, o dice "No tienes transferencias programadas".
   - **Diálogo:** "Cancelar" abre un diálogo modal accesible. El foco empieza en "Volver", y Escape o "Volver" lo cierran sin llamar a la API.
   - **Confirmar:** llama una sola vez a `cancelTransfer` y anuncia "Transferencia cancelada".
   - **Ya ejecutada:** un `409 TRANSFER_NOT_CANCELLABLE` muestra "Esta transferencia ya no se puede cancelar." y vuelve a cargar la lista.
@@ -711,6 +720,8 @@ App de TreoWallet con el alcance reducido del enunciado:
 - transferir a un beneficiario ya registrado, con OTP por correo para montos mayores a $10,000.00.
 
 Como bonus, se abre con la huella. Habla directamente con la API con `Authorization: Bearer`.
+
+Como la web, la app no admite lo inválido al escribir (monto con comas de miles, referencia opcional y códigos de 6 dígitos solo con dígitos), tiene "Recibir" en Inicio (con "Copiar CLABE" y "Compartir") y un buscador de beneficiarios en el paso de destinatario. No tiene registro, programación ni estado de cuenta.
 
 - **Rutas** (`src/app/`): rutas delgadas de Expo Router. El grupo `(app)` solo existe con sesión (`Stack.Protected`); sin sesión, solo existe `login`.
 - **Sesión** (`src/session/`):
@@ -762,11 +773,13 @@ Usa `expo-local-authentication`. Es opcional y vale para el dispositivo en el qu
 | `ProblemError`, `NetworkError`, `toProblemError`                                                                                    | Las respuestas de error llegan como `ProblemError`, con `code`, `requestId`, las extensiones y `retryAfter`. Los fallos sin respuesta llegan como `NetworkError`, la única condición que se reintenta con la misma llave |
 | `createIdempotencyKey(generator?)`                                                                                                  | Llave UUID, una por intento de transferencia                                                                                                                                                                             |
 | `amountInput`, `toCents`, `centsToDecimalString`                                                                                    | Montos como string, convertidos a centavos con `BigInt`; nunca floats ni redondeo                                                                                                                                        |
-| `clabe`, `curp`, `rfc`, `phone`, `concept`, `reference`, `otpCode`, `scheduledDate`                                                 | Validadores de campo (Zod) con dígito verificador (CLABE, CURP) y fecha (CURP, RFC, fecha programada)                                                                                                                    |
-| `registerForm`, `verifyEmailForm`, `loginForm`, `beneficiaryForm`, `transferForm`, `transferFormAt(instant)`, `transferDestination` | Esquemas de formularios alineados con los requests del contrato. `transferFormAt` agrega el rango de la fecha programada                                                                                                 |
+| `clabe`, `curp`, `rfc`, `phone`, `concept`, `reference`, `optionalReference`, `otpCode`, `scheduledInstant`, `newPassword`, `personName`                                                 | Validadores de campo (Zod) con dígito verificador (CLABE, CURP) y fecha (CURP, RFC, instante programado). `optionalReference` trata `''` como «sin referencia»                                                                                                                    |
+| `registerForm`, `registerFormAt(instant)`, `verifyEmailForm`, `loginForm`, `beneficiaryForm`, `transferForm`, `transferFormAt(instant)`, `transferDestination` | Esquemas de formularios alineados con los requests del contrato. `registerForm` revisa que el RFC coincida con la CURP (`/rfc`) y que la CURP sea de una persona de 18 años o más (`/curp`), con «hoy» de la Ciudad de México; `registerFormAt` fija ese día. `transferFormAt` agrega la ventana del instante programado: de 10 minutos a 90 días (`DATE_OUT_OF_RANGE`) |
 | `toFieldErrors`                                                                                                                     | Convierte un error de Zod en `FieldError[]` del contrato (JSON Pointer y `FieldErrorCode`)                                                                                                                               |
 | `formatMXN(amount)`                                                                                                                 | `"1250.50"` → `$1,250.50`, solo con operaciones de texto                                                                                                                                                                 |
-| `mexicoCityDate(instant)`, `schedulableRange(instant)`                                                                              | Fecha calendario de un instante en `America/Mexico_City` y rango programable. Reciben el instante; no leen el reloj                                                                                                      |
+| `mexicoCityDate`, `mexicoCityDateTime`, `schedulableWindow`, `schedulableDates`, `parseInstant`, `mexicoCityToInstant(date, time)`, `formatMexicoCityDateTime`, `formatMexicoCityDate` | Calendario de `America/Mexico_City`: fecha y hora de un instante, ventana programable, combinar fecha `YYYY-MM-DD` y hora `HH:mm` en el instante ISO de `scheduledFor`, y formato en español («20 de octubre de 2026, 14:30»). Reciben el instante; no leen el reloj |
+| `listStatementPeriods(createdAt, now)`, `isPeriodBeforeCreation(period, createdAt)`, `statementPeriodOf` | Meses de estado de cuenta (`YYYY-MM`) desde la creación de la cuenta hasta el mes en curso, el más reciente primero, y el predicado que usa la API para el `422` |
+| `sanitizeAmountTyping(raw)`, `digitsOnly(raw, max?)`, `uppercaseAlphanumeric(raw, max?)`, `normalizeForSearch`, `matchesBeneficiary(beneficiary, query)` | Entrada de campos en la web y la app: monto al teclear (`{ value: '12345.67', display: '12,345.67' }`), solo dígitos, CURP y RFC en mayúsculas y búsqueda de beneficiarios sin acentos |
 | `./openapi.yaml` (subpath)                                                                                                          | El contrato, para Swagger UI y las pruebas de contrato de la API                                                                                                                                                         |
 
 | Consumidor | Qué usa                                                                                                                                          |
@@ -832,6 +845,7 @@ La `version` del paquete es igual a `info.version` del contrato, con semver:
 
 | Versión | Cambios                                                                                                                                                                                                                                                                                                                                                                     |
 | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.3.0   | Registro más estricto (`PersonName`, `Password` con letra y dígito, teléfono que empieza con 2 a 9, RFC igual a la CURP, mayoría de edad); `reference` opcional en `CreateTransferRequest` y nula en `Transfer` y `Movement`; `scheduledFor` pasa a instante `date-time` (`ScheduledInstant`, de 10 minutos a 90 días, minutos exactos) y se retiran `scheduledDate` y `schedulableRange`; el estado de cuenta anterior a la creación de la cuenta responde `DATE_OUT_OF_RANGE` en `/period` |
 | 1.2.0   | Estado de cuenta en PDF (`getAccountStatement`) y descarga binaria. Transferencias programadas: `scheduledFor`, `cancelledAt`, estados `SCHEDULED` y `CANCELLED`, `listScheduledTransfers`, `cancelTransfer`, códigos `TRANSFER_NOT_CANCELLABLE`, `SCHEDULED_LIMIT_REACHED` y `DATE_OUT_OF_RANGE`. `mexicoCityDate`, `schedulableRange`, `scheduledDate` y `transferFormAt` |
 | 1.1.0   | `ProblemError.retryAfter` y salida CommonJS funcional                                                                                                                                                                                                                                                                                                                       |
 | 1.0.1   | Primera versión consumida por la API, la web y la app                                                                                                                                                                                                                                                                                                                       |
@@ -847,7 +861,7 @@ Hoy el contrato y los tokens **no se publican**: son `"private": true` y los con
 
    GitHub Packages exige que el scope sea el dueño del repositorio (`@devchrisvaz`).
 
-2. **En cada consumidor:** cambiar una línea del `package.json` (`"@devchrisvaz/wallet-contract": "^1.2.0"` en lugar de `"file:../contract"`), agregar al `.npmrc` `@devchrisvaz:registry=https://npm.pkg.github.com` y `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}`, y quitar `install-links=true`.
+2. **En cada consumidor:** cambiar una línea del `package.json` (`"@devchrisvaz/wallet-contract": "^1.3.0"` en lugar de `"file:../contract"`), agregar al `.npmrc` `@devchrisvaz:registry=https://npm.pkg.github.com` y `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}`, y quitar `install-links=true`.
 3. **En el CI de cada consumidor:** `permissions: packages: read` y `NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}`. GitHub Packages pide token incluso para paquetes públicos.
 4. **Para revertir:** fijar la versión anterior en el `package.json` del consumidor.
 
@@ -1005,6 +1019,7 @@ Así se rastrea cada requisito en el código:
 | `scheduled-transfers`                                     | design-tokens, api, web, mobile | TRF-27 a TRF-36, AUD-08, DSG-18, WEB-33, WEB-34, MOB-23 | Completo                                                    |
 | `biometric-unlock`                                        | mobile                          | MOB-24 a MOB-27                                         | Falta la verificación en un Android                         |
 | `redesign`                                                | design-tokens, web, mobile      | DSG-13 a DSG-17, WEB-24 a WEB-31, MOB-18 a MOB-22       | En curso, en su propia rama                                 |
+| `ux-fixes`                                                | contract, api, web, mobile, docs | Cambios a CTR-11 a CTR-13, CTR-18, IDN-02, TRF-09, TRF-27 a TRF-30, HIS-11, WEB-11 a WEB-34 y MOB-06 a MOB-23; nuevos CTR-20, WEB-35, WEB-36, MOB-28 y MOB-29 | Completo                                                    |
 | `delivery`                                                | docs                            | Sin requisitos nuevos                                   | Pendiente: video y CIs en verde en `main` |
 
 ### Mapa de la especificación
@@ -1028,15 +1043,16 @@ Cada historia de usuario del enunciado (HU1 a HU6) se traza a sus requisitos, al
 | Bonus | Requisitos | Change |
 | ----- | ---------- | ------ |
 | Estado de cuenta mensual en PDF | HIS-11, HIS-12, AUD-07, WEB-32 | `account-statements` (§1 API, §2 web) |
-| Transferencias programadas | TRF-27 a TRF-36, AUD-08, WEB-33, WEB-34, MOB-23 | `scheduled-transfers` (§2 API, §3 web, §4 móvil) |
+| Transferencias programadas | TRF-27 a TRF-36, AUD-08, WEB-33, WEB-34, MOB-23 | `scheduled-transfers` (§2 API, §3 web, §4 móvil); con hora en `ux-fixes` (§10) |
 | Desbloqueo biométrico | MOB-24 a MOB-27 | `biometric-unlock` |
 
 **Transversales a las seis historias:**
 
 - **Plataforma y errores:** PLT-01 a PLT-06, PLT-08, PLT-10 a PLT-15, PLT-17 y PLT-18, en `api-foundation` §1 a §5, §8 y §9.
 - **Auditoría:** AUD-01 a AUD-06, en `api-foundation` §4.
-- **Contrato:** CTR-01 a CTR-17 (`openspec/specs/api-contract/`), más CTR-07 y CTR-15 (`contract-v1-1`) y CTR-13, CTR-18 y CTR-19 (`contract-v1-2`).
+- **Contrato:** CTR-01 a CTR-17 (`openspec/specs/api-contract/`), más CTR-07 y CTR-15 (`contract-v1-1`), CTR-13, CTR-18 y CTR-19 (`contract-v1-2`) y CTR-20 (`ux-fixes`, que también modifica CTR-11, CTR-12, CTR-13 y CTR-18).
 - **Sistema de diseño y rediseño:** DSG-01 a DSG-18, WEB-24 a WEB-31 y MOB-18 a MOB-22 (`design-system`, `redesign`).
+- **Ajustes de uso:** `ux-fixes` (registro, montos, referencia opcional, códigos, perfil, Recibir, búsqueda, meses del estado de cuenta y programadas con hora; WEB-35, WEB-36, MOB-28, MOB-29 y CTR-20 son requisitos nuevos).
 - **Cobertura de pruebas del dominio:** `domain-test-coverage` (solo pruebas, sin requisitos nuevos).
 
 Los huecos que hoy tiene la matriz (cuatro requisitos que se verifican en el CI y no con una prueba) están explicados al final de [`docs/traceability.md`](docs/traceability.md).
@@ -1056,6 +1072,7 @@ Cada change tiene un `design.md` con las decisiones y las alternativas descartad
 | [`contract-v1-1`](openspec/changes/contract-v1-1/design.md) y [`contract-v1-2`](openspec/changes/contract-v1-2/design.md) | Versiones 1.1.0 y 1.2.0 del contrato; calendario de la Ciudad de México; descarga binaria |
 | [`account-statements`](openspec/changes/account-statements/design.md) | PDFKit en la API; instantánea `REPEATABLE READ READ ONLY`; conciliación del resumen en el dominio |
 | [`scheduled-transfers`](openspec/changes/scheduled-transfers/design.md) | Ejecutor dentro de la API con `SKIP LOCKED`; tope de 20 por usuario; huella de idempotencia estable |
+| [`ux-fixes`](openspec/changes/ux-fixes/design.md) | `PersonName` aparte de `FullName` para que "Tienda 24" siga siendo un beneficiario válido; referencia `null` en lugar de un valor por omisión; `scheduledFor` como instante con precisión de minuto (10 minutos a 90 días; las filas viejas pasan a las 09:00 de la Ciudad de México); la CLABE completa solo en "Recibir"; búsqueda en el cliente porque la lista no está paginada; `Ñ` y `&` conservadas al escribir el RFC; la app móvil no tiene registro, programación ni estado de cuenta |
 | [`biometric-unlock`](openspec/changes/biometric-unlock/design.md) | `expo-local-authentication`; puerta antes de restaurar la sesión; preferencia en el almacenamiento seguro |
 | [`redesign`](openspec/changes/redesign/design.md) | Prototipo en una rama con aprobación visual antes de aplicar; paridad web y móvil; tokens v2 aditivos |
 | [`domain-test-coverage`](openspec/changes/domain-test-coverage/design.md) | Cada prueba escrita después del código se demuestra rompiendo la regla; una base de datos por línea de trabajo |
@@ -1129,7 +1146,7 @@ Dónde está cada punto de la lista de entregables y su estado.
 
 - **Recuperación de contraseña** y **cerrar todas las sesiones** desde la cuenta.
 - **OTP o periodo de espera al dar de alta un beneficiario,** antes de poder transferirle.
-- **KYC y validación de mayoría de edad** con la CURP contra RENAPO. Hoy la CURP solo se valida en estructura y dígito verificador, y acepta el sexo `X`.
+- **KYC** con la CURP contra RENAPO. Hoy la CURP solo se valida en estructura, dígito verificador y fecha de nacimiento (de ahí sale la mayoría de edad, 18 años o más al día de hoy en la Ciudad de México), el RFC debe coincidir con los primeros 10 caracteres de la CURP, y se acepta el sexo `X`. Nada de eso comprueba que la identidad exista.
 - **Cifrado por columna con índice ciego** para CURP, RFC y teléfono.
 - **Auditoría encadenada por hash,** con retención en S3 Object Lock.
 - **Atar el refresh token a la biometría** con `requireAuthentication` de `expo-secure-store`. Necesita un development build en iOS y un flujo de recuperación para cuando cambian las huellas registradas.
