@@ -3,18 +3,11 @@
  * `Authorization: Bearer` desde la memoria y un plazo de 15 s por intento, para que una red colgada
  * se trate como pérdida de red (`NetworkError`, reintentable) y no como espera infinita.
  */
-import {
-  createApiClient,
-  ProblemError,
-  toProblemError,
-  type ApiClient,
-} from '@devchrisvaz/wallet-contract';
+import { createApiClient, ProblemError, type ApiClient } from '@devchrisvaz/wallet-contract';
 
 import type { Session } from '@/session/session';
 
 export const REQUEST_TIMEOUT_MS = 15_000;
-
-type Middleware = Parameters<ApiClient['use']>[0];
 
 export type FetchFn = (request: Request) => Promise<Response>;
 
@@ -143,27 +136,6 @@ export function createSessionRefresher({
   };
 }
 
-const retryAfterByError = new WeakMap<ProblemError, number>();
-
-/** Segundos de `Retry-After` de una respuesta `429`, si la API los indicó. */
-export function retryAfterSeconds(error: unknown): number | undefined {
-  return error instanceof ProblemError ? retryAfterByError.get(error) : undefined;
-}
-
-/**
- * `ProblemError` no conserva los headers. Este middleware corre antes que el del contrato (openapi-
- * fetch ejecuta `onResponse` en orden inverso) y, en un `429`, guarda `Retry-After` junto al error.
- */
-const retryAfterMiddleware: Middleware = {
-  async onResponse({ response }) {
-    if (response.status !== 429) return undefined;
-    const error = await toProblemError(response);
-    const seconds = Number.parseInt(response.headers.get('Retry-After') ?? '', 10);
-    if (Number.isFinite(seconds) && seconds > 0) retryAfterByError.set(error, seconds);
-    throw error;
-  },
-};
-
 export function createWalletApi({
   baseUrl,
   session,
@@ -172,11 +144,9 @@ export function createWalletApi({
   refresher,
 }: WalletApiOptions & { refresher?: TokenRefresher }): ApiClient {
   const attempt = withTimeout(fetch, timeoutMs);
-  const client = createApiClient({
+  return createApiClient({
     baseUrl,
     getAccessToken: () => session.getAccessToken(),
     fetch: refresher ? withSessionRefresh(attempt, session, refresher) : attempt,
   });
-  client.use(retryAfterMiddleware);
-  return client;
 }

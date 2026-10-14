@@ -21,7 +21,6 @@ import {
 } from '@devchrisvaz/wallet-contract';
 import { randomUUID } from 'expo-crypto';
 
-import { retryAfterSeconds } from '@/api/client';
 import { zodFieldErrors } from '@/lib/field-errors';
 
 export interface TransferDraft {
@@ -340,7 +339,7 @@ export class TransferAttempt {
     } else if (error.status === 429) {
       this.setState({
         status: 'rateLimited',
-        retryAfterSeconds: retryAfterSeconds(error),
+        retryAfterSeconds: error.retryAfter,
         ...frozen,
       });
     } else if (REJECTION_CODES.has(error.code)) {

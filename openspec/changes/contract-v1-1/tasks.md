@@ -10,4 +10,4 @@
 
 ## 3. Móvil
 
-- [ ] 3.1 [mobile] Reinstalar el paquete 1.1.0 y reemplazar `retryAfterMiddleware` y `retryAfterSeconds` por `error.retryAfter`; las pruebas de MOB-01 siguen pasando (MOB-01, CTR-07)
+- [x] 3.1 [mobile] Reinstalar el paquete 1.1.0 y reemplazar `retryAfterMiddleware` y `retryAfterSeconds` por `error.retryAfter`; las pruebas de MOB-01 siguen pasando (MOB-01, CTR-07)

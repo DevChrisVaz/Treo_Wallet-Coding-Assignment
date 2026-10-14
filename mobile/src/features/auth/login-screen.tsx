@@ -3,7 +3,6 @@ import { problemMessage } from '@devchrisvaz/wallet-design-tokens';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { retryAfterSeconds } from '@/api/client';
 import { useServices, useSessionSnapshot } from '@/app-services';
 import { Screen } from '@/components/screen';
 import { Button, InlineAlert, TextField, Wordmark, type AlertTone } from '@/components/ui';
@@ -56,8 +55,7 @@ export function LoginScreen() {
         if (error.code === 'VALIDATION_FAILED' && error.errors) {
           setFieldErrors(fieldErrorsByName(error.errors));
         }
-        const seconds = retryAfterSeconds(error);
-        if (error.code === 'RATE_LIMITED' && seconds) lock.start(seconds);
+        if (error.code === 'RATE_LIMITED' && error.retryAfter) lock.start(error.retryAfter);
       }
     } finally {
       setSubmitting(false);
