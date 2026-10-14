@@ -264,7 +264,8 @@ test('WEB-30 a 390 px el pie fijo de cada paso no tapa el contenido (el espaciad
 /**
  * Con la página desplazada hasta el final: distancia entre el borde inferior de lo último del
  * contenido y el borde superior de lo fijo de abajo que contiene a `fixed`. Lo último es el último
- * hijo de `main` (pestañas) o lo que va antes del espaciador del pie (paso del flujo).
+ * hijo de `main` (pestañas) o lo que va antes del espaciador del pie (paso del flujo), que
+ * `StepActions` marca con `data-step-actions-spacer`.
  */
 function gapAtEnd(fixed: Locator, last: 'main' | 'before-spacer'): Promise<number> {
   return fixed.evaluate((element, mode) => {
@@ -274,7 +275,7 @@ function gapAtEnd(fixed: Locator, last: 'main' | 'before-spacer'): Promise<numbe
     const content =
       mode === 'main'
         ? document.querySelector('main')?.lastElementChild
-        : box?.previousElementSibling?.previousElementSibling;
+        : document.querySelector('main [data-step-actions-spacer]')?.previousElementSibling;
     if (!box || !content) return Number.NaN;
     return box.getBoundingClientRect().top - content.getBoundingClientRect().bottom;
   }, last);
