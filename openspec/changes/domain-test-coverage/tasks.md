@@ -42,7 +42,7 @@ Cada tarea agrega o corrige pruebas sin tocar código de producción. Cada prueb
 
 - [x] 5.1 [api] Con 60000 movimientos, la primera página sin filtros trae los 20 más recientes en orden descendente (HIS-08)
 - [ ] 5.2 [api] Una transferencia confirmada durante la generación del estado de cuenta no aparece en él y el resumen cuadra, a través del caso de uso completo (HIS-12)
-- [ ] 5.3 [api] Un cursor firmado cuyo cuerpo no es JSON o trae una fecha inexistente responde `INVALID_CURSOR`; los filtros de fecha de un solo lado devuelven el rango abierto (HIS-05, HIS-06)
+- [x] 5.3 [api] Un cursor firmado cuyo cuerpo no es JSON o trae una fecha inexistente responde `INVALID_CURSOR`; los filtros de fecha de un solo lado devuelven el rango abierto (HIS-05, HIS-06)
 - [ ] 5.4 [api] El saldo inicial con varios asientos en el mismo instante antes del periodo; el límite de 10 descargas por minuto también cuenta las peticiones rechazadas (HIS-11, HIS-12)
 - [x] 5.5 [api] La consulta con un rango de fechas antiguo usa su índice sin ordenar en memoria (HIS-09)
 
