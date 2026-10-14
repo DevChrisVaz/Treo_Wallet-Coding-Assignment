@@ -26,6 +26,17 @@ jobs:
   verify:
     name: Lint, tipos, formato, pruebas y build
     runs-on: ubuntu-latest
+    # Redis para las pruebas del almacén de sesiones (WEB-37); la misma versión que web/docker-compose.yml.
+    services:
+      redis:
+        image: redis:7.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
     env:
       NEXT_TELEMETRY_DISABLED: '1'
     steps:
@@ -70,8 +81,11 @@ jobs:
         working-directory: web
         run: npm run format:check
 
-      - name: Pruebas (BFF, pantallas y vitest-axe, WEB-01 a WEB-23)
+      # Con CI=true las pruebas de Redis fallan si falta TEST_REDIS_URL, en vez de saltarse.
+      - name: Pruebas (BFF, pantallas, vitest-axe y sesiones en Redis, WEB-01 a WEB-37)
         working-directory: web
+        env:
+          TEST_REDIS_URL: redis://localhost:6379/15
         run: npm test
 
       # El build no necesita API_BASE_URL: el servidor la lee en cada petición y next start la exige.
