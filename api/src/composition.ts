@@ -49,7 +49,7 @@ import { TransferDestinationResolver } from './modules/transfers/application/des
 import { CreateTransfer } from './modules/transfers/application/create-transfer.js';
 import { IdempotencyGate } from './modules/transfers/application/idempotency-gate.js';
 import { TransferLocker } from './modules/transfers/application/transfer-locker.js';
-import { toTransferView } from './modules/transfers/application/transfer-view.js';
+import { TransferOtpMailer } from './modules/transfers/application/transfer-emails.js';
 import { PgTransferDetails } from './modules/transfers/infrastructure/pg-transfer-details.js';
 import { transferRoutes } from './modules/transfers/infrastructure/http/routes.js';
 import { businessDayOf } from './shared/business-day.js';
@@ -146,6 +146,7 @@ export async function createContainer(
     maxAttempts: config.transfers.otpMaxAttempts,
     maxResends: config.transfers.otpMaxResends,
   };
+  const otpMail = new TransferOtpMailer(mailer, logger, otpPolicy.ttlMs);
   const refreshTokens = new PgRefreshTokenStore();
   const sessions = new SessionService(refreshTokens, clock);
   const accessTokens = new JoseAccessTokens({
@@ -239,11 +240,8 @@ export async function createContainer(
         otpPolicy,
         poster,
         counter: dailyUsage,
-        view: async (transferId) => {
-          const details = await transferDetails.find(transferId);
-          if (!details) throw new Error('La transferencia recién creada no existe');
-          return toTransferView(details, clock.now(), otpPolicy);
-        },
+        details: transferDetails,
+        otpMail,
         remainingToday: async (userId) => {
           const today = await dailyUsage.usage(userId, businessDayOf(clock.now()));
           const limit = today?.limit ?? config.transfers.dailyLimit;

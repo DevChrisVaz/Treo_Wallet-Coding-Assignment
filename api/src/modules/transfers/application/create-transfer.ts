@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Transfer } from '@devchrisvaz/wallet-contract';
+import type { DeliveryStatus } from '../../../platform/mail/mailer.js';
 import type { Clock } from '../../../shared/clock.js';
 import { DomainError } from '../../../shared/errors.js';
 import { Money } from '../../../shared/money.js';
@@ -15,6 +16,12 @@ import type { TransferDestinationResolver, TransferRequest } from './destination
 import type { IdempotencyGate } from './idempotency-gate.js';
 import type { RejectionReason, TransferRow, TransferStore } from './ports.js';
 import type { LedgerPoster } from './ledger-poster.js';
+import type { TransferOtpMailer } from './transfer-emails.js';
+import {
+  toTransferView,
+  type TransferDetails,
+  type TransferDetailsReader,
+} from './transfer-view.js';
 import {
   DayChangedWhileWaiting,
   type DailyUsageCounter,
@@ -33,10 +40,11 @@ export interface CreateTransferDeps {
   /** Códigos de un solo uso (propósito TRANSFER_CONFIRMATION) y su política. */
   readonly codes: OneTimeCodeService;
   readonly otpPolicy: CodePolicy;
-  /** Estado actual de la transferencia como la ve su dueño (comprobante). */
   readonly poster: LedgerPoster;
   readonly counter: DailyUsageCounter;
-  readonly view: (transferId: string) => Promise<Transfer>;
+  /** Transferencia con su destino y su desafío: comprobante y datos del correo del OTP. */
+  readonly details: TransferDetailsReader;
+  readonly otpMail: TransferOtpMailer;
   /** Lo que queda del límite de hoy (para repetir un rechazo por límite). */
   readonly remainingToday: (userId: string) => Promise<Money>;
 }
@@ -239,7 +247,12 @@ export class CreateTransfer {
 
   private async toOutcome(userId: string, result: AttemptResult): Promise<CreateTransferOutcome> {
     if (result.kind === 'CREATED') {
-      return { kind: 'CREATED', transfer: await this.deps.view(result.transferId) };
+      const details = await this.load(result.transferId);
+      // El correo sale después del COMMIT; si falla, la transferencia sigue pendiente (TRF-15).
+      const delivery = result.otp
+        ? await this.deps.otpMail.send(details, result.otp.code)
+        : undefined;
+      return { kind: 'CREATED', transfer: this.toView(details, delivery) };
     }
     if (result.kind === 'REJECTED') {
       return {
@@ -260,6 +273,16 @@ export class CreateTransfer {
         replayed: true,
       };
     }
-    return { kind: 'REPLAYED', transfer: await this.deps.view(existing.id) };
+    return { kind: 'REPLAYED', transfer: this.toView(await this.load(existing.id)) };
+  }
+
+  private async load(transferId: string): Promise<TransferDetails> {
+    const details = await this.deps.details.find(transferId);
+    if (!details) throw new Error('La transferencia recién guardada no existe');
+    return details;
+  }
+
+  private toView(details: TransferDetails, deliveryStatus?: DeliveryStatus): Transfer {
+    return toTransferView(details, this.deps.clock.now(), this.deps.otpPolicy, deliveryStatus);
   }
 }

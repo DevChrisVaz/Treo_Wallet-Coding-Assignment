@@ -22,6 +22,14 @@ describe('TRF-08 valor Money', () => {
     expect(Money.fromCents(-15000n).toDecimalString()).toBe('-150.00');
   });
 
+  it('TRF-15 se muestra como moneda es-MX con separador de miles', () => {
+    expect(Money.parse('15000').toDisplayString()).toBe('$15,000.00');
+    expect(Money.parse('0.5').toDisplayString()).toBe('$0.50');
+    expect(Money.parse('999.99').toDisplayString()).toBe('$999.99');
+    expect(Money.parse('1234567.89').toDisplayString()).toBe('$1,234,567.89');
+    expect(Money.fromCents(-15000n).toDisplayString()).toBe('-$150.00');
+  });
+
   it('TRF-08 rechaza un monto inválido con un código de error por campo', () => {
     expect(() => Money.parse('100.005')).toThrow(MoneyParseError);
     try {

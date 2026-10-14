@@ -57,6 +57,17 @@ export class Money {
     return `${sign}${absolute / 100n}.${(absolute % 100n).toString().padStart(2, '0')}`;
   }
 
+  /**
+   * Para mostrar a una persona en es-MX: `"$15,000.00"`, `"-$150.00"`. Se arma con aritmética de
+   * centavos para no depender de los datos de ICU del entorno.
+   */
+  toDisplayString(): string {
+    const sign = this.cents < 0n ? '-' : '';
+    const absolute = this.cents < 0n ? -this.cents : this.cents;
+    const pesos = (absolute / 100n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return `${sign}$${pesos}.${(absolute % 100n).toString().padStart(2, '0')}`;
+  }
+
   plus(other: Money): Money {
     return new Money(this.cents + other.cents);
   }
