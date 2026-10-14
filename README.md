@@ -223,9 +223,10 @@ npm run dev        # http://localhost:3000; si el puerto está ocupado: npm run 
 
 1. Regístrate en `/register`; el código de verificación llega a Mailpit. Al verificar el correo se abren las cuentas Principal y Ahorro en $0.00; para tener saldo, usa el fondeo (`db:fund`). También puedes entrar con un usuario del seed.
 2. Las transferencias de más de $10,000.00 piden un código que también llega a Mailpit.
-3. Para programar una transferencia, elige "Programar" en "Cuándo" y una fecha y una hora (de la Ciudad de México, con al menos 10 minutos de anticipación y hasta 90 días). Aparece en "Programadas" hasta que se ejecuta o la cancelas. Para verla ejecutarse sin esperar a su hora, sigue [Verlas ejecutarse en local](#verlas-ejecutarse-en-local). Al ejecutarse, sale de "Programadas" y aparece en el historial; si falla, el aviso llega a Mailpit.
-4. El estado de cuenta se descarga desde la pantalla de movimientos de cada cuenta, y ofrece los meses desde que se abrió hasta el mes en curso.
+3. Para programar una transferencia, elige "Programar" en "Cuándo", en el paso del monto, y una fecha y una hora (de la Ciudad de México, con al menos 10 minutos de anticipación y hasta 90 días). Aparece en "Programadas" (en la navegación lateral desde 1024 px; en teléfono, "Transferencias programadas" al pie del primer paso de Transferir) hasta que se ejecuta o la cancelas. Para verla ejecutarse sin esperar a su hora, sigue [Verlas ejecutarse en local](#verlas-ejecutarse-en-local). Al ejecutarse, sale de "Programadas" y aparece en el historial; si falla, el aviso llega a Mailpit.
+4. El estado de cuenta se descarga desde la tarjeta "Estado de cuenta" de Movimientos, después del historial de cada cuenta, y ofrece los meses desde que se abrió la cuenta hasta el mes en curso.
 5. "Recibir", en Inicio, muestra los datos para que te transfieran (Titular, Banco, Cuenta y la CLABE completa, con "Copiar CLABE"); las tarjetas de cuenta solo muestran los últimos 4 dígitos.
+6. Con la ventana a menos de 1024 px de ancho (o en el teléfono), la web toma la forma de la app móvil, con la barra de pestañas abajo; desde 1024 px es el dashboard con la navegación lateral.
 
 **Build de producción por `http` en local:** `npm run build` y luego `API_BASE_URL=http://localhost:4000 SESSION_COOKIE_SECURE=false npm start`. La sesión vive en la memoria del proceso: reiniciar el servidor cierra todas las sesiones.
 
@@ -238,7 +239,7 @@ npm run android         # emulador de Android
 npm run ios             # simulador de iOS (macOS)
 ```
 
-En Linux, si Expo anuncia una IP que el teléfono no alcanza, fíjala con `REACT_NATIVE_PACKAGER_HOSTNAME=<IP de tu red local> npx expo start`. El registro, la verificación del correo y el alta de beneficiarios se hacen en la web.
+En Linux, si Expo anuncia una IP que el teléfono no alcanza, fíjala con `REACT_NATIVE_PACKAGER_HOSTNAME=<IP de tu red local> npx expo start`. El registro, la verificación del correo y el alta de beneficiarios se hacen en la web. Después de un `npm install` que cambie el paquete de diseño o el contrato, reinicia Expo con `npx expo start --clear`, para que Metro no sirva la copia anterior.
 
 ### Usuarios de prueba
 
@@ -274,6 +275,7 @@ Es la única forma de meter dinero: no hay endpoint que lo cree. Valida el monto
 | `api`           | `npm run test:unit`        | Solo unitarias, sin base de datos                                                    |
 | `api`           | `npm run test:integration` | Solo integración (`wallet_test`)                                                     |
 | `web`           | `npm test`                 | Vitest: BFF, configuración y lógica en Node, y pantallas en jsdom                    |
+| `web`           | `npm run test:e2e`         | Playwright en Chromium contra una API simulada: layout, teclado, hojas y axe         |
 | `mobile`        | `npm test`                 | jest-expo y Testing Library                                                          |
 
 En todos los proyectos, el título de cada prueba empieza con el ID del requisito que verifica, por ejemplo `TRF-03 …`, `WEB-17 …` o `MOB-25 …`.
@@ -300,10 +302,15 @@ En todos los proyectos, el título de cada prueba empieza con el ID del requisit
 - **Dos proyectos de Vitest:**
   - `*.test.ts` corre en Node (BFF, configuración y lógica);
   - `*.test.tsx` corre en jsdom, con Testing Library y `vitest-axe`.
-- **Contraste:** no se puede medir en jsdom; se verificó con Lighthouse ([Verificaciones manuales](#verificaciones-manuales)).
+- **Contraste:** no se puede medir en jsdom; se verificó con Lighthouse ([Verificaciones manuales](#verificaciones-manuales)) y, desde el rediseño, lo mide axe en las pruebas en navegador.
 - **Programadas:** sus pruebas usan un reloj fijo, el 14 de octubre de 2026 a mediodía de la Ciudad de México, con `vi.useFakeTimers({ toFake: ['Date'] })`. Solo se falsea `Date`, así que user-event sigue funcionando. La fecha en palabras se prueba también con `TZ` al oeste y al este de UTC.
 - **Doble clic:** `user.dblClick` no basta para probar el candado del envío, porque user-event envuelve cada evento en `act` y React deshabilita el botón entre los dos clics. Por eso las pruebas del candado hacen los dos clics dentro de un mismo `act`.
 - **Diálogo de cancelación:** no usa `<dialog>` nativo porque jsdom no implementa `showModal()`. Sigue el patrón modal de WAI-ARIA (`role="dialog"`, `aria-modal`, foco atrapado y Escape), que sí se puede probar con el teclado en jsdom.
+- **Pruebas en navegador** (`npm run test:e2e`, Playwright 1.61.1, `web/e2e/`): lo que jsdom no puede medir. La configuración levanta `e2e/fake-api.mjs` en `127.0.0.1:4999`, una API simulada con los datos canónicos de las historias del rediseño, y `next dev` en `127.0.0.1:3101` apuntando a ella; no usa la API real ni los puertos 3000 y 4000. La primera vez, si falta el navegador, `npx playwright install chromium`; si Turbopack se detiene con "OS file watch limit reached", libera observadores de archivos (inotify) o sube `fs.inotify.max_user_watches`.
+  - **Layout:** sin desplazamiento horizontal de 320 a 1920 px (también con barras de desplazamiento clásicas), un solo `h1` visible por pantalla, las dos formas y el texto al 200 %.
+  - **Teclado:** la transferencia hasta el comprobante solo con el teclado, a 390 y a 1280 px.
+  - **Hojas y diálogos:** foco atrapado, Escape y foco de regreso.
+  - **Accesibilidad:** axe con el CSS real, incluido el contraste, en cada pantalla y con las hojas abiertas.
 
 ### App móvil
 
@@ -354,6 +361,7 @@ Hay un workflow por proyecto en `.github/workflows/`: `api`, `web`, `mobile`, `c
 | `dev`                     | Servidor de desarrollo                                                                        |
 | `build` / `start`         | Build de producción y servidor                                                                |
 | `test`                    | Vitest (`test:watch` en modo observación)                                                     |
+| `test:e2e`                | Playwright en Chromium contra la API simulada de `e2e/fake-api.mjs`                           |
 | `typecheck`               | `next typegen` y `tsc --noEmit`                                                               |
 | `lint`                    | ESLint sin advertencias permitidas; incluye la regla que prohíbe `parseFloat` y `Number(...)` |
 | `format` / `format:check` | Prettier                                                                                      |
@@ -682,7 +690,7 @@ docker compose exec -T postgres psql -U wallet_migrator -d wallet -c \
 
 ### Web
 
-Panel web con Next.js (App Router) como BFF (_Backend for Frontend_) de la API. Consume el cliente tipado, los validadores y `formatMXN` del contrato, y los tokens para Tailwind v4, los estados, los movimientos y los textos de error del sistema de diseño.
+Panel web con Next.js (App Router) como BFF (_Backend for Frontend_) de la API. Consume el cliente tipado, los validadores y `formatMXN` del contrato, y del sistema de diseño los tokens para Tailwind v4, los iconos por concepto, los destinos de la navegación, la agrupación por día, los estados, los movimientos y los textos de error.
 
 - **Mutaciones con Server Actions** (`app/actions/`): validan con los esquemas del contrato, exigen la sesión y devuelven `{ ok, data }` o `{ ok: false, problem }`. Next.js rechaza las que llegan de otro `Origin`.
 - **Lecturas por el proxy `GET /bff/api/[...path]`:** con lista blanca de rutas y destino fijo en `API_BASE_URL`. `GET /bff/api/session` responde con el usuario de la sesión sin llamar a la API.
@@ -690,7 +698,7 @@ Panel web con Next.js (App Router) como BFF (_Backend for Frontend_) de la API. 
 - **Transferencias:** la llave de idempotencia se genera en el navegador al pasar a la confirmación, y se reutiliza solo al reintentar tras un fallo de red o un `5xx`. El botón se bloquea desde el primer clic.
 - **Campos que no admiten lo inválido (WEB-11, WEB-16, WEB-18, WEB-21):** el monto acepta solo dígitos y un punto (2 decimales como máximo) y se muestra con comas de miles (`12,345.67`) pero viaja como `12345.67`; la referencia ("Referencia (opcional)", se omite si está vacía), los códigos de 6 dígitos y el teléfono admiten solo dígitos, también al pegar; la CURP y el RFC quedan en mayúsculas alfanuméricas. Todo con las utilidades del contrato (`sanitizeAmountTyping`, `digitsOnly`, `uppercaseAlphanumeric`). El registro valida al salir de cada campo y tiene "Confirmar contraseña", que es solo de la interfaz y no se envía.
 - **Navegación y Inicio (WEB-26, WEB-35, WEB-36):** en escritorio, el perfil de la barra lateral es un solo botón con un menú que contiene "Cerrar sesión". "Recibir" abre una hoja con Titular, Banco, Cuenta y la CLABE completa ("Copiar CLABE"); es el único lugar donde se ve completa, y las tarjetas muestran los últimos 4 dígitos. Beneficiarios y el paso de destinatario tienen un buscador que filtra en el cliente, sin acentos, por nombre, alias o CLABE.
-- **Estado de cuenta (WEB-32):** en la pantalla de movimientos hay un selector que va del mes en que se abrió la cuenta (`Account.createdAt`, mes de la Ciudad de México) al mes en curso ("(en curso)"), el más reciente primero y con el anterior por defecto (o el mes en curso si es el único), y el botón "Descargar PDF".
+- **Estado de cuenta (WEB-32):** en la pantalla de movimientos, la tarjeta "Estado de cuenta", después del historial, tiene un selector que va del mes en que se abrió la cuenta (`Account.createdAt`, mes de la Ciudad de México) al mes en curso ("(en curso)"), el más reciente primero y con el anterior por defecto (o el mes en curso si es el único), y el botón "Descargar PDF".
   - **Proxy:** la descarga pasa por la ruta `accounts/<id>/statements/<AAAA-MM>`, solo GET. Para esa ruta, el proxy pide `application/pdf`, entrega los bytes de la API sin tocarlos y copia `Content-Type`, `Content-Disposition`, `Content-Length` y `Retry-After`.
   - **Descarga:** mientras descarga, el botón queda ocupado y no acepta otro clic.
   - **Errores:** se muestra el mensaje de su `code` sin salir de la pantalla; en `RATE_LIMITED`, con la espera, y un `DATE_OUT_OF_RANGE` en `/period` dice que ese mes es anterior a la apertura de la cuenta.
@@ -701,18 +709,26 @@ Panel web con Next.js (App Router) como BFF (_Backend for Frontend_) de la API. 
   - **Fecha y hora en palabras:** se escriben con el calendario de la Ciudad de México del contrato (`lib/scheduled-date.ts`), para que el huso del navegador no las recorra.
   - **Rango:** la Server Action valida el formato del instante, no su ventana. La ventana la decide la API después de reclamar la llave, para que un reintento que llega fuera de ella reciba la transferencia que ya existe.
 - **Página "Programadas" (WEB-34):** `/transfers/scheduled` lista las programadas con su fecha y hora, destino, monto y concepto, o dice "No tienes transferencias programadas".
+  - **Cómo se llega:** en el dashboard, "Programadas" está en la navegación lateral, con su propio icono (el concepto `scheduled`, CalendarClock). En teléfono la barra de pestañas conserva sus cuatro destinos y se llega con "Transferencias programadas", al pie del primer paso de Transferir.
   - **Diálogo:** "Cancelar" abre un diálogo modal accesible. El foco empieza en "Volver", y Escape o "Volver" lo cierran sin llamar a la API.
   - **Confirmar:** llama una sola vez a `cancelTransfer` y anuncia "Transferencia cancelada".
   - **Ya ejecutada:** un `409 TRANSFER_NOT_CANCELLABLE` muestra "Esta transferencia ya no se puede cancelar." y vuelve a cargar la lista.
 - **Interfaz:** componentes cliente con TanStack Query. Formularios con react-hook-form y los validadores del contrato. Estilos solo con las utilidades de los tokens: la paleta por defecto de Tailwind no existe.
+- **Rediseño (WEB-24 a WEB-31):**
+  - **Dos formas.** Por debajo de 1024 px, la **forma de app**, igual que la app móvil: barra de pestañas abajo (Inicio, Movimientos, Transferir y Beneficiarios) y, en Inicio, el saludo "Hola, Ana" con el avatar que abre el menú de la cuenta con "Cerrar sesión"; entre 480 y 1023 px se centra en una columna de 480 px. Desde 1024 px, el **dashboard**: navegación lateral (con "Programadas" y, abajo, el perfil como un solo botón que abre un menú con "Cerrar sesión", WEB-26), barra superior con el título y la acción principal, y contenido de hasta 1200 px.
+  - **Estructura.** `components/layout/AppFrame.tsx` monta `AppShell` en las rutas con sesión, con el destino, el título y la forma de cada ruta (`appSection` en `lib/navigation.ts`). Las páginas públicas van sobre `BrandShell`, la superficie verde de la marca. Cada página expone un solo `h1`.
+  - **Enlaces internos.** Los del kit pasan por `next/link` con `components/ui/RouterLink.tsx`, así que se navega sin recargar y sin perder la caché.
+  - **Inicio y Movimientos.** Inicio muestra el saldo total en el _hero_ con lo que queda del límite del día, las tarjetas de cuenta como selector y los últimos 5 movimientos de la elegida, con "Ver todos". La cuenta elegida se comparte con Movimientos, que agrupa por día de la Ciudad de México y abre los filtros en una hoja inferior (en el dashboard, un panel centrado).
+  - **Transferencia por pasos.** Destinatario (cuentas propias y beneficiarios) → Monto → Revisión → Código (si aplica) → Comprobante, con "Paso n de m" y las acciones fijas abajo en teléfono. En el dashboard, el resumen va al lado y sigue lo que se escribe.
 
-| Carpeta       | Contenido                                                                                                      |
-| ------------- | -------------------------------------------------------------------------------------------------------------- |
-| `app/`        | Rutas: `(public)` (login, registro, verificación), `(app)` (protegidas en el layout), `bff/` y `actions/`      |
-| `components/` | `ui/` (inventario del sistema de diseño), pantallas por dominio, estados de carga y error                      |
-| `lib/server/` | Solo servidor (`server-only`): entorno, sesión, cookie, contexto de petición, cliente de API, acciones y proxy |
-| `lib/client/` | Lecturas, TanStack Query, mensajes por `code`, `unwrap`, flujo de transferencia y llave de idempotencia        |
-| `test/`       | Datos de ejemplo del contrato, API simulada con `fetch`, sustitutos de `next/headers` y `next/navigation`      |
+| Carpeta              | Contenido                                                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `app/`               | Rutas: `(public)` (login, registro, verificación), `(app)` (protegidas en el layout), `bff/` y `actions/`                         |
+| `components/`        | `ui/` (inventario del sistema de diseño), pantallas por dominio, estados de carga y error                                         |
+| `components/layout/` | `AppFrame` y `AppShell` (las dos formas, con navegación y título), `BrandShell` (páginas públicas), `SkipLink` y el foco del `h1` |
+| `lib/server/`        | Solo servidor (`server-only`): entorno, sesión, cookie, contexto de petición, cliente de API, acciones y proxy                    |
+| `lib/client/`        | Lecturas, TanStack Query, mensajes por `code`, `unwrap`, flujo de transferencia y llave de idempotencia                           |
+| `test/`              | Datos de ejemplo del contrato, API simulada con `fetch`, sustitutos de `next/headers` y `next/navigation`                         |
 
 ### App móvil
 
@@ -727,6 +743,11 @@ Como bonus, se abre con la huella. Habla directamente con la API con `Authorizat
 Como la web, la app no admite lo inválido al escribir (monto con comas de miles, referencia opcional y códigos de 6 dígitos solo con dígitos), tiene "Recibir" en Inicio (con "Copiar CLABE" y "Compartir") y un buscador de beneficiarios en el paso de destinatario. No tiene registro, programación ni estado de cuenta.
 
 - **Rutas** (`src/app/`): rutas delgadas de Expo Router. El grupo `(app)` solo existe con sesión (`Stack.Protected`); sin sesión, solo existe `login`.
+  - **Pestañas** (`src/app/(app)/(tabs)`): Inicio y Movimientos, con el `TabBar` del kit; su tercer destino, Transferir, abre el flujo.
+  - **Flujo de transferencia** (`src/app/(app)/transfer/*`): pantallas de la pila fuera de las pestañas, a pantalla completa y sin la barra. Sigue los pasos Destinatario → Monto → Revisión → Código (si aplica) → Comprobante, con "Paso n de m".
+- **Contenedor y vista:** cada pantalla tiene un contenedor (`*-screen.tsx`), que consulta la API, guarda el estado y navega, y una vista pura (`*-view.tsx`), que solo dibuja. `src/__tests__/views-are-pure.test.ts` impide que una vista importe navegación, consultas, sesión o módulos nativos, y el lienzo de design-sync dibuja esas mismas vistas.
+- **Encabezado:** `GET /me` da el nombre del saludo ("Hola, Ana") y el correo del menú de la cuenta, que se abre con el avatar. Si falla, saluda sin nombre y lo vuelve a pedir.
+- **Interfaz (rediseño, MOB-18 a MOB-22):** el kit `src/components/ui` (_hero_ del saldo, tarjetas seleccionables, listas agrupadas por día, hojas inferiores, indicador de pasos) solo con los tokens. Inicio y Movimientos comparten la cuenta elegida, que se olvida al cerrar sesión. El inicio de sesión va sobre la superficie verde de la marca.
 - **Sesión** (`src/session/`):
   - el **refresh token** vive en `expo-secure-store` (Keychain o Keystore, `WHEN_UNLOCKED_THIS_DEVICE_ONLY`);
   - el **access token** vive solo en memoria;
@@ -744,10 +765,10 @@ Como la web, la app no admite lo inválido al escribir (monto con comas de miles
 
 Usa `expo-local-authentication`. Es opcional y vale para el dispositivo en el que se activa.
 
-- **Activación:** después de iniciar sesión con contraseña, si el teléfono tiene una huella registrada, la pantalla de inicio muestra la tarjeta "Entrar con tu huella", con "Activar" y "Ahora no". Dice "rostro" o "biometría" según el tipo disponible.
+- **Activación:** después de iniciar sesión con contraseña, si el teléfono tiene una huella registrada, Inicio muestra la tarjeta "Entrar con tu huella", debajo del saldo, con "Activar" y "Ahora no". Dice "rostro" o "biometría" según el tipo disponible.
   - "Activar" pide la huella y solo con éxito activa el desbloqueo.
   - "Ahora no" se recuerda hasta el siguiente cierre de sesión.
-  - El interruptor "Desbloqueo con huella", al final de la pantalla de inicio, lo enciende (pide la huella) o lo apaga (sin pedirla y sin cerrar la sesión).
+  - El interruptor "Desbloqueo con huella", en el menú de la cuenta (el avatar del encabezado), junto a "Cerrar sesión", lo enciende (pide la huella) o lo apaga (sin pedirla y sin cerrar la sesión).
   - Sin biometría registrada, el interruptor aparece deshabilitado con una explicación.
 - **Bloqueo:** con el desbloqueo activo y una sesión guardada, la app muestra "TreoWallet está bloqueada" y pide la huella en dos momentos:
   - al abrirse en frío, **antes** de renovar la sesión con la API: ninguna petición a `/auth/refresh` hasta el éxito;
@@ -895,12 +916,14 @@ Ajustes de accesibilidad, verificados por `test/contrast.test.ts`:
 - **Lo que quita de Tailwind:** la paleta, la escala de texto, los radios y las sombras por defecto, así que `bg-red-500` o `text-sm` no existen.
 - **Lo que conserva:** el espaciado por defecto, porque ya es de base 4.
 - **Utilidades semánticas:** `bg-surface`, `text-fg-secondary`, `bg-action`, `border-border-input`, `bg-success-soft text-success`, `text-money-in`, `text-h1`, `rounded-pill`, etcétera.
-- **Fuente:** con `next/font`, se expone la variable de Work Sans y se redefine `--dt-font-sans`.
+- **Del rediseño:** `bg-surface-canvas`, `bg-surface-hero`, `text-fg-on-hero-muted`, el lima `bg-accent-on-dark`, `text-accent-on-dark` y `outline-accent-on-dark` (solo sobre `surface-hero`, DSG-14), `text-display-xl`, `shadow-raised`, `shadow-sheet`, `max-w-app`, `max-w-content`, `w-sidebar`, `h-(--dt-layout-tab-bar-height)` y las variantes `app:` (≥ 480 px) y `dashboard:` (≥ 1024 px). La tabla completa está en `design-tokens/README.md`.
+- **Fuente:** con `next/font`, se expone la variable de Work Sans y se redefine `--dt-font-sans`. La web usa `next/font/local` con un archivo versionado (`web/app/fonts/WorkSans-latin.woff2`, licencia OFL), el mismo que carga el lienzo de design-sync: Google Fonts entrega otra compilación de la fuente a cada navegador, con otros anchos de letra.
 
 **En la app** (React Native): `import { theme } from '@devchrisvaz/wallet-design-tokens/native'`, con Work Sans de `@expo-google-fonts/work-sans`.
 
 - **Pesos:** los estilos de texto no incluyen `fontWeight`, porque cada peso es su propia familia. Con `fontWeight` en una familia cargada a mano, Android puede mostrar la fuente del sistema.
 - **Resolución:** si Metro no resuelve el subpath por `exports`, la carpeta `native/` del paquete sirve de respaldo.
+- **Del rediseño:** `theme.colors.surface.canvas` y `.hero`, `theme.colors.text.onHeroMuted`, `theme.colors.accent.onDark`, `theme.typography.displayXl`, `theme.elevation.raised` y `.sheet`, `theme.iconSize`, `theme.avatarSize` y `theme.layout`, con los mismos valores que la web.
 
 **Datos y textos compartidos:**
 
@@ -908,10 +931,14 @@ Ajustes de accesibilidad, verificados por `test/contrast.test.ts`:
 - **Movimientos:** `movementType`, con la etiqueta y la dirección de los cinco tipos.
 - **Dinero:** `money`, con el signo y el color por dirección. Las salidas usan la tinta, nunca el color de error.
 - **Mensajes de error:** `problemMessage(code)`, con un mensaje por `ProblemCode`, de "tú" y con el tono de Treo.
+- **Iconos:** `iconConcepts` e `iconNames`, el icono de Lucide (1.48.0) de cada concepto, igual en web y móvil; `movementIcon` por tipo de movimiento y `toneIcon` por tono de alerta. "Programadas" usa el concepto `scheduled` (`CalendarClock`).
+- **Navegación:** `navDestinations`, la etiqueta y el icono de Inicio, Movimientos, Transferir y Beneficiarios.
+- **Días:** `dayKey`, `dayLabel` ("Hoy", "Ayer", "9 oct") y `groupByDay`, en días de la Ciudad de México, sin crear `Intl` al importar, con UTC−6 fijo si el motor no conoce la zona horaria y con una tabla de meses propia.
+- **Saldo del _hero_:** `heroAmountSize` (el tamaño según el largo del monto) y `splitCents` (los centavos en un tamaño menor).
 
 El paquete no depende del contrato: cada cliente comprueba la exhaustividad con `transferStatus satisfies Record<TransferStatus, unknown>`.
 
-**Componentes:** cada cliente implementa con sus tokens el inventario de `design.md`: `Wordmark`, `Button`, `TextField`, `AmountField`, `OtpField`, `Select`, `AccountCard`, `MovementRow`, `StatusBadge`, `InlineAlert`, `EmptyState`, `Skeleton`, `Receipt`, `DailyLimitMeter` y, en móvil, `PrivacyOverlay`. Reglas comunes:
+**Componentes:** cada cliente implementa con sus tokens el inventario de `design.md`: `Wordmark`, `Button`, `TextField`, `AmountField`, `OtpField`, `Select`, `AccountCard`, `MovementRow`, `StatusBadge`, `InlineAlert`, `EmptyState`, `Skeleton`, `Receipt`, `DailyLimitMeter` y, en móvil, `PrivacyOverlay`. El rediseño agrega `TabBar`, `SideNav` y `TopBar` (solo web), `AppHeader`, `BalanceHero`, `QuickActions`, `ListSection`, `MovementList`, `Avatar`, `Icon` e `IconButton`, `BottomSheet`, `Stepper`, `FlowHeader`, `StepActions` (solo web), `BrandShell` y `BrandScreen`, y `AppShell` (solo web). Reglas comunes:
 
 - área táctil de 44 px;
 - foco visible;
@@ -926,7 +953,7 @@ Lo que las pruebas automáticas no pueden comprobar se verificó en un navegador
 
 **Web (2026-10-13):**
 
-- **Solo con teclado:** inicio de sesión y transferencia con OTP hasta el comprobante, sin ratón. El foco fue visible en todos los pasos, con el anillo de 2 px `#1C4B42`.
+- **Solo con teclado:** inicio de sesión y transferencia con OTP hasta el comprobante, sin ratón. El foco fue visible en todos los pasos, con el anillo de 2 px `#1C4B42`. Desde el rediseño, el recorrido por pasos está automatizado en `web/e2e/keyboard.spec.ts`, a 390 y a 1280 px; el guion manual queda para repetirlo con la API real.
   - Ese anillo aparece con una transición de 150 ms, así que una captura tomada justo al enfocar puede no mostrarlo.
   - La cookie `sid` no es visible para JavaScript, y ni el HTML ni el almacenamiento del navegador contienen tokens.
 - **Lighthouse (accesibilidad):** 100, sin auditorías fallidas e incluido `color-contrast`, en `/login`, `/register` con errores, `/`, `/transfers/new` con errores, `/beneficiaries/new` con errores y `/accounts/{id}/movements`.
@@ -965,24 +992,33 @@ Lo que las pruebas automáticas no pueden comprobar se verificó en un navegador
 
 Recorrido en Expo Go contra la API local, con `.env` apuntando a la IP de la red local:
 
-1. **Inicio de sesión:** también con una contraseña incorrecta, que debe decir "El correo o la contraseña no coinciden.".
-2. **Saldos:** con la CLABE enmascarada y lo que queda del límite; deslizar hacia abajo actualiza.
-3. **Movimientos:** los últimos 20 de cada cuenta.
-4. **Transferencia con OTP:** de más de 10,000.00, con el código de Mailpit, hasta el comprobante "Completada".
-5. **Saldo insuficiente.**
+1. **Inicio de sesión:** sobre la superficie verde de la marca, también con una contraseña incorrecta, que debe decir "El correo o la contraseña no coinciden.".
+2. **Inicio:** "Hola, <nombre>", el saldo total en el _hero_ con "Disponible hoy", y las tarjetas con la CLABE enmascarada; al tocar la otra cuenta, "Últimos movimientos" muestra sus últimos 5. Deslizar hacia abajo actualiza.
+3. **Movimientos:** "Ver todos" abre la pestaña Movimientos con la cuenta elegida; el selector cambia de cuenta; los últimos 20, agrupados por día.
+4. **Transferencia con OTP:** desde la pestaña Transferir (el flujo oculta la barra y dice "Paso n de m"), de más de 10,000.00, con el código de Mailpit, hasta el comprobante "Completada".
+5. **Saldo insuficiente:** "Corregir" regresa al paso del monto.
 6. **Modo avión a mitad del envío:** la app reintenta con la misma llave al volver la red, y existe una sola transferencia.
 7. **Privacidad:** la pantalla de privacidad aparece en el selector de apps.
 
+Rediseño, lo que el lienzo de react-native-web no puede comprobar (detalle en `mobile/README.md`):
+
+1. **Fechas en Hermes:** "Hoy", "Ayer" y las fechas cortas igual que en los lienzos, también cerca de la medianoche de la Ciudad de México.
+2. **Texto agrandado al máximo:** el saldo de Inicio se reduce para caber en una línea y nunca se corta.
+3. **Foco de las hojas:** con TalkBack o VoiceOver, el menú de la cuenta recibe el foco y lo devuelve al avatar al cerrarse.
+4. **Atrás de Android:** cierra primero una hoja; en el monto regresa al destinatario; en el destinatario sale del flujo.
+5. **Pestañas y área segura:** la barra queda sobre la barra de gestos sin doble espacio y el flujo no la muestra.
+6. **Anuncio del paso:** "Paso n de m" se anuncia una sola vez.
+
 Desbloqueo biométrico, en un Android con huella y PIN:
 
-1. Inicia sesión con contraseña y toca "Activar" en la tarjeta "Entrar con tu huella", o enciende el interruptor al final de la pantalla de inicio.
+1. Inicia sesión con contraseña y toca "Activar" en la tarjeta "Entrar con tu huella", debajo del saldo de Inicio, o enciende el interruptor del menú de la cuenta (el avatar del encabezado).
 2. Cierra Expo Go por completo y abre el proyecto: debe verse "TreoWallet está bloqueada", sin saldos. En la terminal de la API, `/auth/refresh` aparece solo después de poner la huella.
 3. Regresa a la app en menos de 60 segundos: no pide la huella.
 4. Regresa después de más de 60 segundos: muestra la pantalla de bloqueo y sigues en la misma pantalla al desbloquear.
 5. Cancela el diálogo: la app se queda bloqueada, sin volver a abrirlo sola.
 6. Usa el PIN del teléfono desde el diálogo: también desbloquea.
 7. Toca "Usar mi contraseña": cierra la sesión y la tarjeta vuelve a aparecer al iniciar sesión.
-8. Apaga el interruptor: la app ya no pide la huella.
+8. Apaga el interruptor del menú de la cuenta: la app ya no pide la huella.
 
 ## Especificación y bitácora de AI
 
@@ -1021,7 +1057,7 @@ Así se rastrea cada requisito en el código:
 | `account-statements`                                      | api, web                        | HIS-11, HIS-12, AUD-07, WEB-32                          | Completo                                                    |
 | `scheduled-transfers`                                     | design-tokens, api, web, mobile | TRF-27 a TRF-36, AUD-08, DSG-18, WEB-33, WEB-34, MOB-23 | Completo                                                    |
 | `biometric-unlock`                                        | mobile                          | MOB-24 a MOB-27                                         | Falta la verificación en un Android                         |
-| `redesign`                                                | design-tokens, web, mobile      | DSG-13 a DSG-17, WEB-24 a WEB-31, MOB-18 a MOB-22       | En curso, en su propia rama                                 |
+| `redesign`                                                | design-tokens, web, mobile      | DSG-13 a DSG-17, WEB-24 a WEB-31, MOB-18 a MOB-22       | Aplicado e integrado en `release`; faltan la verificación en Expo Go y subir los lienzos a Claude Design |
 | `ux-fixes`                                                | contract, api, web, mobile, docs | Cambios a CTR-11 a CTR-13, CTR-18, IDN-02, TRF-09, TRF-27 a TRF-30, HIS-11, WEB-11 a WEB-34 y MOB-06 a MOB-23; nuevos CTR-20, WEB-35, WEB-36, MOB-28 y MOB-29 | Completo                                                    |
 | `delivery`                                                | docs                            | Sin requisitos nuevos                                   | Pendiente: video y CIs en verde en `main` |
 

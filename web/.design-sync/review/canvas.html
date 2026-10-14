@@ -102,7 +102,7 @@
     const [, group, name] = /components\/([^/]+)\/([^/]+)\//.exec(c.sourcePath);
     return { group, name, html: `components/${group}/${name}/${name}.html` };
   });
-  // Las pantallas (historias de PageShell / Screen) van primero, como su propia sección.
+  // Las pantallas (historias de AppShell en la web y de Screen en móvil) van primero, como su propia sección.
   const SCREENS = new Set(['AppShell', 'Screen']);
   const screenGroup = (comps.find((c) => SCREENS.has(c.name)) || {}).group;
   const groups = [...new Set(comps.map((c) => c.group))].sort((a, b) => (b === screenGroup) - (a === screenGroup) || a.localeCompare(b));

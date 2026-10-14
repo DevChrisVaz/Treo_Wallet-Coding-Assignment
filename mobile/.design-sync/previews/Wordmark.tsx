@@ -2,12 +2,18 @@ import { Button, Text, View, Wordmark, theme } from 'wallet-mobile-ui';
 
 const noop = () => {};
 
-const frame = { width: 360, padding: theme.spacing[4], gap: theme.spacing[3] };
+// Sobre el lienzo de la app y, en su tono inverso, sobre la superficie de marca (BrandScreen, la
+// pantalla de privacidad).
+const frame = {
+  width: 390,
+  padding: theme.spacing[5],
+  gap: theme.spacing[3],
+  backgroundColor: theme.colors.surface.canvas,
+};
 
-const inverseFrame = {
+const brandFrame = {
   ...frame,
-  backgroundColor: theme.colors.surface.inverse,
-  borderRadius: theme.radius.md,
+  backgroundColor: theme.colors.surface.hero,
 };
 
 export const Full = () => (
@@ -23,26 +29,26 @@ export const Compact = () => (
 );
 
 export const Inverse = () => (
-  <View style={{ ...inverseFrame, gap: theme.spacing[4] }}>
+  <View style={{ ...brandFrame, gap: theme.spacing[4] }}>
     <Wordmark tone="inverse" />
     <Wordmark tone="inverse" variant="compact" />
   </View>
 );
 
-export const LoginHeader = () => (
-  <View style={{ ...frame, gap: theme.spacing[2] }}>
-    <Wordmark />
-    <Text style={{ ...theme.typography.h1, color: theme.colors.text.primary }}>Inicia sesión</Text>
-    <Text style={{ ...theme.typography.body, color: theme.colors.text.secondary }}>
-      Usa el correo y la contraseña de tu cuenta TreoWallet.
+// El encabezado de BrandScreen (inicio de sesión y pantalla de bloqueo).
+export const BrandHeader = () => (
+  <View
+    style={{
+      ...brandFrame,
+      gap: theme.spacing[3],
+      paddingTop: theme.spacing[16],
+      paddingBottom: theme.spacing[8],
+    }}
+  >
+    <Wordmark tone="inverse" />
+    <Text style={{ ...theme.typography.body, color: theme.colors.text.onHeroMuted }}>
+      Tu billetera digital en pesos mexicanos.
     </Text>
-  </View>
-);
-
-export const HomeHeader = () => (
-  <View style={{ ...frame, gap: theme.spacing[2] }}>
-    <Wordmark variant="compact" />
-    <Text style={{ ...theme.typography.h1, color: theme.colors.text.primary }}>Tus cuentas</Text>
   </View>
 );
 

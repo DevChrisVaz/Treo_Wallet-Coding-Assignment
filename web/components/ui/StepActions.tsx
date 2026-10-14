@@ -22,9 +22,11 @@ export function StepActions({ children, stacked = false, fixed = true }: StepAct
     <>
       {/* Mide lo que el pie: su borde, sus márgenes (con el área segura) y uno o dos botones. Descuenta
           el margen inferior de `main` en el flujo (-mb-6): al final de la página lo último queda a
-          20 px del pie (el espacio del paso), como el contenido sobre el `footer` de Screen (WEB-25). */}
+          20 px del pie (el espacio del paso), como el contenido sobre el `footer` de Screen (WEB-25).
+          `data-step-actions-spacer` lo ubica en las pruebas en navegador (e2e/layout.spec.ts). */}
       <div
         aria-hidden="true"
+        data-step-actions-spacer=""
         className="-mb-6 border-t border-transparent pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dashboard:hidden"
       >
         <div className={stacked ? 'h-27' : 'h-12'} />

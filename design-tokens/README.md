@@ -2,7 +2,7 @@
 
 Sistema de diseño de **TreoWallet**: tokens semánticos, salidas para Tailwind v4 (web) y React Native (móvil), convenciones de dinero y estados, y los textos de la interfaz. Lo consumen `/web` y `/mobile`; no tiene dependencias de runtime.
 
-- Especificación: `openspec/changes/design-system/` (capability `design-system`, requisitos DSG-01 a DSG-12). Las tablas completas de tokens, componentes y mensajes están en su `design.md`.
+- Especificación: `openspec/changes/design-system/` (capability `design-system`, requisitos DSG-01 a DSG-12). Las tablas completas de tokens, componentes y mensajes están en su `design.md`. El rediseño (`openspec/changes/redesign/`, DSG-13 a DSG-17) agrega tokens, iconos, destinos de navegación y agrupación por día, sin cambiar el valor de ningún token anterior (DSG-16); los estados `SCHEDULED` y `CANCELLED` vienen de `openspec/changes/scheduled-transfers/` (DSG-18).
 - **Referencia visual:** `preview/index.html`, generada desde los tokens. Ábrela en el navegador (por ejemplo, `npx serve preview`). No se publica.
 
 ## Identidad
@@ -46,24 +46,26 @@ Si cambias los tokens: `npm run generate` aquí y `npm install` en el cliente pa
 
 La hoja define las variables `--dt-*` en `:root` y **elimina la paleta, la escala de texto, los radios y las sombras por defecto de Tailwind**: `bg-red-500` o `text-sm` no existen. El espaciado por defecto se conserva porque ya es de base 4 (`p-4` = 16 px).
 
-| Uso           | Utilidades                                                                                                                                                    |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Superficies   | `bg-surface`, `bg-surface-subtle`, `bg-surface-brand`, `bg-surface-inverse`                                                                                   |
-| Texto         | `text-fg`, `text-fg-secondary`, `text-fg-muted`, `text-fg-on-action`, `text-fg-on-action-active`, `text-fg-on-inverse`                                        |
-| Acción        | `bg-action hover:bg-action-active text-fg-on-action hover:text-fg-on-action-active`, `disabled:bg-action-disabled disabled:text-fg-disabled`                  |
-| Bordes y foco | `border-border`, `border-border-input`, `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus`                                  |
-| Estados       | `bg-success-soft text-success`, `warning`, `danger`, `info`, `neutral`                                                                                        |
-| Dinero        | `text-money-in`, `text-money-out`, siempre con `tabular-nums`                                                                                                 |
-| Tipografía    | `text-display`, `text-h1`, `text-h2`, `text-h3`, `text-body`, `text-body-sm`, `text-label`, `text-caption` (cada una trae su interlineado, _tracking_ y peso) |
-| Forma         | `rounded-sm`, `rounded-md` (tarjetas), `rounded-lg`, `rounded-pill` (botones, insignias), `shadow-card`                                                       |
+| Uso                 | Utilidades                                                                                                                                                                                                                                                              |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Superficies         | `bg-surface`, `bg-surface-subtle`, `bg-surface-brand`, `bg-surface-inverse`, `bg-surface-canvas` (fondo de la app), `bg-surface-hero` (_hero_ del saldo y pantallas de marca)                                                                                           |
+| Texto               | `text-fg`, `text-fg-secondary`, `text-fg-muted`, `text-fg-on-action`, `text-fg-on-action-active`, `text-fg-on-inverse`, `text-fg-on-hero-muted` (etiquetas sobre `surface-hero`)                                                                                        |
+| Acción              | `bg-action hover:bg-action-active text-fg-on-action hover:text-fg-on-action-active`, `disabled:bg-action-disabled disabled:text-fg-disabled`                                                                                                                            |
+| Acento sobre oscuro | `bg-accent-on-dark`, `text-accent-on-dark`, `outline-accent-on-dark` (lima): solo sobre `surface-hero`, nunca sobre superficies claras (DSG-14). Los controles sobre oscuro usan `focus-visible:outline-accent-on-dark`                                                 |
+| Bordes y foco       | `border-border`, `border-border-input`, `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus`                                                                                                                                            |
+| Estados             | `bg-success-soft text-success`, `warning`, `danger`, `info`, `neutral`                                                                                                                                                                                                  |
+| Dinero              | `text-money-in`, `text-money-out`, siempre con `tabular-nums`                                                                                                                                                                                                           |
+| Tipografía          | `text-display-xl` (saldo del _hero_), `text-display`, `text-h1`, `text-h2`, `text-h3`, `text-body`, `text-body-sm`, `text-label`, `text-caption` (cada una trae su interlineado, _tracking_ y peso)                                                                     |
+| Forma               | `rounded-sm`, `rounded-md` (tarjetas), `rounded-lg` (_hero_, hojas, paneles), `rounded-pill` (botones, insignias), `shadow-card`, `shadow-raised` (tarjetas flotantes), `shadow-sheet` (hojas inferiores)                                                               |
+| Layout              | `max-w-app` (columna de 480 px de la forma de app), `max-w-content` (contenido del _dashboard_, 1200 px), `w-sidebar` (navegación lateral, 248 px), `h-(--dt-layout-tab-bar-height)` (barra de pestañas, 64 px); variantes `app:` (≥ 480 px) y `dashboard:` (≥ 1024 px) |
 
-**Fuente con `next/font`:** `next/font/google` sirve Work Sans con un nombre de familia generado, así que la pila `"Work Sans", …` no la encuentra. Expón su variable y redefine `--dt-font-sans`:
+**Fuente con `next/font`:** `next/font` sirve Work Sans con un nombre de familia generado, así que la pila `"Work Sans", …` no la encuentra. Expón su variable y redefine `--dt-font-sans`. La web usa `next/font/local` con un archivo versionado (`web/app/fonts/WorkSans-latin.woff2`, OFL): Google Fonts entrega otra compilación de la fuente a cada navegador, con otros anchos de letra, y así la app y el lienzo de design-sync dibujan el mismo texto.
 
 ```ts
 // app/layout.tsx
-const workSans = Work_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
+const workSans = localFont({
+  src: './fonts/WorkSans-latin.woff2',
+  weight: '400 600',
   variable: '--font-work-sans',
 });
 // <html className={workSans.variable}>
@@ -108,6 +110,17 @@ const styles = StyleSheet.create({
 
 Los estilos de texto **no incluyen `fontWeight`**: cada peso es su propia familia (`WorkSans_500Medium`…). Si agregas `fontWeight` a una familia cargada a mano, Android puede mostrar la fuente del sistema.
 
+Tokens del rediseño en el tema, con los mismos valores que la web (paridad):
+
+| Uso            | En `theme`                                                                                                                          |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Superficies    | `theme.colors.surface.canvas` (fondo de la app), `theme.colors.surface.hero` (_hero_ y pantallas de marca)                          |
+| Texto y acento | `theme.colors.text.onHeroMuted` (etiquetas sobre el _hero_), `theme.colors.accent.onDark` (lima, solo sobre `surface.hero`, DSG-14) |
+| Tipografía     | `theme.typography.displayXl` (saldo del _hero_)                                                                                     |
+| Elevación      | `theme.elevation.raised` (tarjetas flotantes), `theme.elevation.sheet` (hojas inferiores), además de `card`                         |
+| Medidas        | `theme.iconSize.{sm,md,lg}` (16, 20, 24), `theme.avatarSize.{sm,md,lg}` (32, 40, 56)                                                |
+| Layout         | `theme.layout.tabBarHeight` (64), `appColumnMax` (480), `sidebarWidth` (248), `contentMax` (1200)                                   |
+
 Si Metro no resuelve el subpath por `exports`, la carpeta `native/` del paquete funciona como respaldo.
 
 ## Datos y textos compartidos
@@ -134,9 +147,18 @@ const message = problemMessage(error.code); // INTERNAL_ERROR si el code es desc
 - Las salidas usan la tinta (`money.out`), **nunca** el color de error.
 - Los mensajes siguen el tono de Treo: de "tú", qué pasó y qué hacer. Agrega los datos variables tú mismo ("Te quedan 2 intentos").
 
+Datos del rediseño, para que web y móvil decidan igual (`openspec/changes/redesign/`):
+
+- **Iconos** (DSG-15): `iconConcepts` y `iconNames`, el nombre del icono de Lucide (1.48.0) de cada concepto. Los componentes `Icon` reciben el concepto, no el icono, y una prueba de cada cliente compara el mapa con las exportaciones de Lucide. `movementIcon` da el icono de cada tipo de movimiento y `toneIcon` el de cada tono de alerta. El concepto `scheduled` (`CalendarClock`) es de "Programadas" en la web, distinto del de "Transferir".
+- **Navegación:** `navDestinations`, la etiqueta y el icono de Inicio, Movimientos, Transferir y Beneficiarios en las pestañas y en la navegación lateral.
+- **Días:** `dayKey`, `dayLabel` ("Hoy", "Ayer", "9 oct" o "28 dic 2025") y `groupByDay`, siempre en días de la Ciudad de México. No crean `Intl` al importar; si el motor no conoce la zona horaria (Hermes sin ICU completo), usan UTC−6 fijo, y los meses salen de una tabla propia, no del ICU del motor.
+- **Saldo del _hero_:** `heroAmountSize` elige `displayXl`, `display` o `h1` según el largo del monto, para que quepa en una línea a 390 px, y `splitCents` separa los centavos (`$35,000` y `.00`) para mostrarlos más chicos.
+
 ## Componentes
 
 Cada cliente implementa con sus tokens el inventario de `design.md` (D7): `Wordmark`, `Button`, `TextField`, `AmountField`, `OtpField`, `Select`, `AccountCard`, `MovementRow`, `StatusBadge`, `InlineAlert`, `EmptyState`, `Skeleton`, `Receipt`, `DailyLimitMeter` y, en móvil, `PrivacyOverlay`. La referencia visual muestra cómo se ven.
+
+El rediseño (inventario v2, D7 de `openspec/changes/redesign/design.md`) agrega, con la misma anatomía en las dos plataformas: `TabBar`, `SideNav` y `TopBar` (solo web), `AppHeader`, `BalanceHero`, `QuickActions`, `ListSection`, `MovementList`, `Avatar`, `Icon` e `IconButton`, `BottomSheet`, `Stepper`, `FlowHeader`, `StepActions` (solo web; en móvil es el `footer` de `Screen`), `BrandShell` (web) y `BrandScreen` (móvil) para las pantallas de marca, y `AppShell` (solo web), con la forma de app y la del _dashboard_.
 
 Reglas comunes: área táctil de 44 px, foco visible con `border.focus`, el color nunca es la única señal (las insignias siempre llevan etiqueta), y sin animación cuando la persona prefiere movimiento reducido.
 

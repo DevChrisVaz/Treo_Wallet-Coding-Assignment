@@ -1,7 +1,8 @@
 /*
  * Superficie del sistema de diseño de la web que se sincroniza con Claude Design: el inventario de
- * components/ui, los estados, las estructuras de página (AppShell con sesión y BrandShell pública),
- * StepHeading y las piezas de las funciones propias de la web (ScheduleField y StatementDownload).
+ * components/ui (con StepActions, las acciones de los pasos del flujo), los estados, las estructuras
+ * de página (AppShell con sesión y BrandShell pública), StepHeading y las piezas de las funciones
+ * propias de la web (ScheduleField y StatementDownload).
  * Lo que no está aquí no llega al bundle.
  */
 export { AccountCard, type AccountCardProps } from '@/components/ui/AccountCard';
@@ -27,6 +28,7 @@ export { Select, type SelectProps } from '@/components/ui/Select';
 export { SideNav, type SideNavProps } from '@/components/ui/SideNav';
 export { Skeleton, type SkeletonProps } from '@/components/ui/Skeleton';
 export { StatusBadge } from '@/components/ui/StatusBadge';
+export { StepActions, type StepActionsProps } from '@/components/ui/StepActions';
 export { Stepper } from '@/components/ui/Stepper';
 export { TabBar, type NavItem, type TabBarProps } from '@/components/ui/TabBar';
 export { TextField, type TextFieldProps } from '@/components/ui/TextField';

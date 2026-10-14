@@ -13,7 +13,7 @@ interface AccountCardProps {
   onPress?: () => void;
 }
 
-/** Cuenta con nombre, CLABE enmascarada y saldo en `display` con dígitos tabulares (DSG-09). */
+/** Cuenta con nombre, CLABE enmascarada y saldo en `h2` con dígitos tabulares (DSG-09). */
 export function AccountCard({ name, clabe, balance, selected = false, onPress }: AccountCardProps) {
   const formatted = formatMXN(balance);
   const content = (
