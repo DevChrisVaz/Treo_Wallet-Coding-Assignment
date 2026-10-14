@@ -39,6 +39,14 @@ describe('BEN-01 y BEN-09 endpoints de beneficiarios', () => {
     expectToMatchContract(again, 'createBeneficiary');
     expect(again.status).toBe(200);
     expect(again.body.id).toBe(first.body.id);
+    // El reintento no duplica: el usuario sigue con un solo beneficiario con esa CLABE.
+    const list = await authed(t, ana.accessToken).get('/beneficiaries');
+    expect(list.body.items).toEqual([first.body]);
+    const [{ n }] = await harness.migrator.query(
+      'SELECT count(*)::int AS n FROM app.beneficiaries WHERE user_id = $1 AND clabe = $2',
+      [ana.userId, body.clabe],
+    );
+    expect(n).toBe(1);
   });
 
   it('BEN-09 el listado va ordenado por alias', async () => {

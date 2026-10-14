@@ -5,6 +5,7 @@ import { Money } from '../../../src/shared/money.js';
 import { buildTestApp, type TestApp } from '../../helpers/app.js';
 import { expectToMatchContract } from '../../helpers/contract.js';
 import { useIntegrationHarness } from '../../helpers/harness.js';
+import { postTransfer } from '../../helpers/ledger-api.js';
 import { verifiedUser, type VerifiedUser } from '../../helpers/identity.js';
 
 const harness = useIntegrationHarness();
@@ -57,7 +58,18 @@ describe('ACC-13 saldo disponible igual al saldo contable', () => {
 
 describe('ACC-11 límite diario en el resumen', () => {
   it('ACC-11 los movimientos entre cuentas propias y los fondeos no consumen el límite', async () => {
+    // Fondeo ya hecho en beforeEach; ahora se mueve dinero entre las cuentas propias.
+    const transfer = await postTransfer(t, ana, {
+      fromAccountId: accounts.principal,
+      destination: { type: 'OWN_ACCOUNT', accountId: accounts.ahorro },
+      amount: '5000.00',
+      concept: 'Ahorro',
+      reference: '1',
+    });
+    expect(transfer.status).toBe(201);
+    expect(transfer.body).toMatchObject({ kind: 'OWN', status: 'COMPLETED' });
     const body = await overview();
+    expect(body.accounts.map((account) => account.balance)).toEqual(['25000.00', '5000.00']);
     expect(body.dailyLimit).toMatchObject({ used: '0.00', remaining: '50000.00' });
   });
 

@@ -84,8 +84,30 @@ describe('AUD-01 escritor de auditoría', () => {
     expect(await auditRows()).toEqual([]);
   });
 
-  it('AUD-02 rechaza metadatos con llaves de datos personales o secretos', async () => {
-    for (const key of ['email', 'curp', 'rfc', 'phone', 'clabe', 'password', 'otp', 'code']) {
+  it('AUD-02 rechaza cada llave prohibida, en minúsculas, mayúsculas y mixtas', async () => {
+    const forbidden = [
+      'email',
+      'phone',
+      'curp',
+      'rfc',
+      'clabe',
+      'fullName',
+      'name',
+      'password',
+      'token',
+      'accessToken',
+      'refreshToken',
+      'code',
+      'otp',
+    ];
+    // Los metadatos solo admiten valores escalares, así que no hay objetos anidados que revisar.
+    const variants = forbidden.flatMap((key) => [
+      key,
+      key.toLowerCase(),
+      key.toUpperCase(),
+      key.charAt(0).toUpperCase() + key.slice(1),
+    ]);
+    for (const key of new Set(variants)) {
       await expect(
         writer().recordStandalone({
           action: 'USER_REGISTERED',
