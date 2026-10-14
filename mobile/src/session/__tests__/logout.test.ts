@@ -4,6 +4,7 @@ import { secureStoreMock } from '@/test-utils/native-mocks';
 
 import { logout } from '../logout';
 import { Session } from '../session';
+import { readUnlockPreference, saveUnlockPreference } from '../unlock-preference';
 
 async function setup(reply: FakeReply) {
   const fake = createFakeApi().on('POST', '/auth/logout', reply);
@@ -46,6 +47,24 @@ describe('cierre de sesión', () => {
     expect(secureStoreMock.entries()).toEqual({});
     expect(session.getSnapshot()).toEqual({ status: 'signedOut', reason: 'logout' });
   });
+
+  test.each([
+    ['con red', noContent()],
+    ['sin red', 'network-error' as const],
+  ])(
+    'MOB-27 cerrar sesión %s borra la preferencia del desbloqueo, incluida "Ahora no"',
+    async (_, reply) => {
+      for (const value of ['enabled', 'declined'] as const) {
+        const { session, api } = await setup(reply);
+        await saveUnlockPreference(value);
+
+        await logout(session, api);
+
+        expect(secureStoreMock.entries()).toEqual({});
+        expect(await readUnlockPreference()).toBeNull();
+      }
+    },
+  );
 
   test('MOB-04 no espera a la API para borrar los tokens locales', async () => {
     jest.useFakeTimers();
