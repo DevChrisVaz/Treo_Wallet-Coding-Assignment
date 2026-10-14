@@ -12,7 +12,15 @@ module.exports = defineConfig([
   expoConfig,
   prettierConfig,
   {
-    ignores: ['dist/*', '.expo/*', 'coverage/*', 'expo-env.d.ts'],
+    ignores: [
+      'dist/*',
+      '.expo/*',
+      'coverage/*',
+      'expo-env.d.ts',
+      '.ds-sync/**',
+      'ds-bundle/**',
+      '.design-sync/**',
+    ],
   },
   {
     rules: {
