@@ -141,4 +141,48 @@ Todos los comportamientos vigentes se conservan: una sola transferencia por inte
 
 ## Open Questions
 
-Se resuelven en el prototipo y se registran aquí al aprobarlo: valores finales de `text.onHeroMuted` y de los niveles de elevación, el icono de Lucide de cada concepto y el diseño exacto del resplandor del *hero*.
+Ninguna. Las preguntas abiertas se cerraron en el prototipo, que el usuario aprobó el 2026-10-14 (tarea 5.4); los valores quedan en la sección siguiente.
+
+## Valores y decisiones cerrados en el prototipo
+
+**Tokens (paquete 1.1.0, aditivo):**
+
+- `text.onHeroMuted` = `#BFCDCA` (`green200`), 6.00:1 sobre `surface.hero`.
+- `elevation.raised` = `0 4px 12px rgb(0 26 5 / 0.08), 0 1px 3px rgb(0 26 5 / 0.1)` en CSS. En React Native: sombra `#001A05`, opacidad 0.12, radio 12, desplazamiento (0, 4) y `elevation` 4.
+- `elevation.sheet` = `0 -8px 24px rgb(0 26 5 / 0.12)` en CSS. En React Native: sombra `#001A05`, opacidad 0.12, radio 24, desplazamiento (0, −8) y `elevation` 16.
+- Ningún token vigente cambió de valor, así que el paquete sigue en la línea 1.x.
+
+**Iconos (Lucide 1.48.0):** `lucide-react` en web y `lucide-react-native` con `react-native-svg` 15.15.4 en móvil. Cada concepto usa este icono:
+
+| Concepto | Icono | Concepto | Icono |
+|---|---|---|---|
+| inicio | `House` | movimientos | `ReceiptText` |
+| transferir | `Send` | beneficiarios | `Users` |
+| cerrar sesión | `LogOut` | entrada | `ArrowDownLeft` |
+| salida | `ArrowUpRight` | depósito | `Landmark` |
+| traspaso propio | `Repeat2` | éxito | `CircleCheck` |
+| error | `CircleAlert` | aviso | `TriangleAlert` |
+
+Conceptos de interfaz agregados en el prototipo:
+
+| Concepto | Icono | Concepto | Icono |
+|---|---|---|---|
+| información | `Info` | cerrar | `X` |
+| atrás | `ChevronLeft` | adelante | `ChevronRight` |
+| desplegar | `ChevronDown` | filtros | `SlidersHorizontal` |
+| cuenta | `UserRound` | | |
+
+**Resplandor del *hero*:** es un círculo de 192 px (`spacing[16] × 3`) desplazado 64 px hacia arriba y a la derecha, fuera de la esquina superior derecha. Lleva un degradado radial de `accent.onDark`, del 35 % de opacidad en el centro a transparente en el 70 % del radio. En la web es un `radial-gradient` con `color-mix`; en móvil es un `RadialGradient` de `react-native-svg`. En ambos casos es decorativo y se oculta a los lectores de pantalla.
+
+**Decisiones de detalle que cambian lo escrito arriba:**
+
+- **Un solo `h1` por página en todos los anchos.** En la forma de app es el saludo del `AppHeader` ("Hola, Ana"); en el *dashboard*, el título de la `TopBar`; dentro del flujo, el título del `FlowHeader`, y en ese modo no se muestra la `TopBar`. Ajusta D7, donde la `TopBar` era siempre el `h1`.
+- **Monto protagonista.** El "$" y el monto forman una sola unidad centrada. El ancho del campo se mide con un espejo oculto del texto, en web y en móvil, porque los dígitos de Work Sans son proporcionales.
+- **Selección de cuenta (D9).** La tarjeta seleccionada lleva un borde interior de 2 px en lugar de un anillo, para que la tarjeta conserve su altura. En la web, toda la tarjeta es el área de selección: el botón con el nombre sigue dentro del `h3` y su pseudo-elemento cubre la tarjeta. "Mostrar CLABE" queda encima con su propia área de 44 px, sin que las áreas se encimen.
+- **Funciones propias que se conservan (D3).**
+  - La web mantiene "Mostrar CLABE" en las tarjetas, la cuarta pestaña Beneficiarios, la fila de filtros de Movimientos y las cuentas propias en el paso de destinatario.
+  - El texto de ayuda del monto es propio de cada app ("por ejemplo 1,250.50" en la web, "sin comas" en móvil) porque describe cómo lee cada una el monto. Concepto y Referencia usan el texto de móvil ("De 1 a 40 caracteres", "De 1 a 7 dígitos") en ambas.
+  - El `Select` de la web es nativo: cerrado se ve igual que el de móvil, y al abrirse usa el selector del sistema.
+- **Espaciado de la forma de app.** El contenido de las pestañas empieza 36 px bajo el encabezado, en web y en móvil. En móvil, la pantalla no reserva el alto de la barra de pestañas, que es hermana de la pantalla y no la tapa.
+- **Comprobante.** No lleva título visible: el encabezado es solo para lectores de pantalla. Muestra la cuenta de origen como "Principal · •••• 9719" en ambas plataformas. El icono sigue el tono del estado: éxito si se completó y error si falló o se rechazó.
+- **Paridad medida.** Las 15 parejas de pantallas web y móvil a 390×844 salen idénticas, con diferencias solo de suavizado o con diferencias por diseño. La tabla está en `web/.design-sync/NOTES.md`, sección "Paridad".
