@@ -173,8 +173,10 @@ const styles = StyleSheet.create({
   rowTitle: { ...theme.typography.label, color: theme.colors.text.primary },
   rowDetail: { ...theme.typography.caption, color: theme.colors.text.secondary },
   summaryLabel: { ...theme.typography.bodySm, color: theme.colors.text.secondary },
+  // Dígitos tabulares, como el resumen de la web (CLABE y referencia alineadas).
   summaryValue: {
     ...theme.typography.label,
+    ...theme.amount,
     flexShrink: 1,
     color: theme.colors.text.primary,
     textAlign: 'right',
@@ -507,11 +509,16 @@ export const HomeLoading = () => (
   </TabScreen>
 );
 
-// La consulta falló (sin red): no se muestran saldos anteriores, solo el error y Reintentar.
+// La consulta falló (sin red): no se muestran saldos anteriores, solo el error y Reintentar. El
+// título dice qué lectura falló, como el ErrorState de la web (WEB-20, paridad WEB-25).
 export const HomeError = () => (
   <TabScreen current="home">
     <View style={styles.list}>
-      <InlineAlert tone="danger" message={NETWORK_ERROR_MESSAGE} />
+      <InlineAlert
+        tone="danger"
+        title="No pudimos cargar tus cuentas"
+        message={NETWORK_ERROR_MESSAGE}
+      />
       <Button label="Reintentar" variant="secondary" onPress={noop} />
     </View>
   </TabScreen>
@@ -721,7 +728,11 @@ export const TransferCompleted = () => (
       </>
     }
   >
-    <Receipt transfer={completedTransfer} fromAccountName={principal.name} />
+    <Receipt
+      transfer={completedTransfer}
+      fromAccountName={principal.name}
+      fromAccountClabe={principal.clabe}
+    />
   </FlowScreen>
 );
 
@@ -740,6 +751,10 @@ export const TransferFailed = () => (
     }
   >
     <InlineAlert tone="danger" message={OTP_ATTEMPTS_EXHAUSTED} />
-    <Receipt transfer={failedTransfer} fromAccountName={principal.name} />
+    <Receipt
+      transfer={failedTransfer}
+      fromAccountName={principal.name}
+      fromAccountClabe={principal.clabe}
+    />
   </FlowScreen>
 );
