@@ -88,4 +88,13 @@ describe('BrandShell', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Inicia sesión' })).toBeInTheDocument();
     expect(screen.getByRole('form', { name: 'Inicio de sesión' })).toBeInTheDocument();
   });
+
+  it('WEB-25 el Wordmark de la superficie de marca va en h1, como en la app móvil', () => {
+    render(
+      <BrandShell title="Inicia sesión">
+        <p>Formulario</p>
+      </BrandShell>,
+    );
+    expect(screen.getByText('Treo').parentElement).toHaveClass('text-h1');
+  });
 });

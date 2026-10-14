@@ -12,7 +12,8 @@ export function BrandShell({ title, children }: { title: string; children: React
       <SkipLink />
       <div className="mx-auto flex w-full max-w-app items-end px-5 pt-16 pb-8 dashboard:max-w-none dashboard:flex-1 dashboard:items-center dashboard:justify-center dashboard:p-16">
         <div className="grid gap-3">
-          <Wordmark tone="inverse" />
+          {/* En h1, como el Wordmark completo de la pantalla de marca móvil (WEB-25). */}
+          <Wordmark tone="inverse" size="brand" />
           <p className="text-body text-fg-on-hero-muted">
             Tu billetera digital en pesos mexicanos.
           </p>
