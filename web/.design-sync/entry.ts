@@ -22,6 +22,7 @@ export { MovementRow } from '@/components/ui/MovementRow';
 export { OtpField, type OtpFieldProps } from '@/components/ui/OtpField';
 export { QuickActions, type QuickAction } from '@/components/ui/QuickActions';
 export { Receipt, type ReceiptProps } from '@/components/ui/Receipt';
+export { SearchField, type SearchFieldProps } from '@/components/ui/SearchField';
 export { Select, type SelectProps } from '@/components/ui/Select';
 export { SideNav, type SideNavProps } from '@/components/ui/SideNav';
 export { Skeleton, type SkeletonProps } from '@/components/ui/Skeleton';

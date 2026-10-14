@@ -17,9 +17,12 @@ export interface TransferFormValues {
   amount: string;
   concept: string;
   reference: string;
-  /** "Ahora" o "Programar" (WEB-33); la fecha solo se envía con "Programar". */
+  /** "Ahora" o "Programar" (WEB-33); la fecha y la hora solo se envían con "Programar". */
   when: 'NOW' | 'SCHEDULED';
+  /** Fecha de envío (`YYYY-MM-DD`, Ciudad de México). Se combina con `scheduledTime` en un instante (WEB-33). */
   scheduledFor: string;
+  /** Hora de envío (`HH:mm`, Ciudad de México). */
+  scheduledTime: string;
 }
 
 /** Destino elegido en el primer paso (WEB-30). */

@@ -48,6 +48,12 @@ function sideNav(): HTMLElement {
   return aside;
 }
 
+/** Abre el menú del perfil de la navegación lateral (WEB-26) y devuelve su opción "Cerrar sesión". */
+async function openProfileMenu(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(within(sideNav()).getByRole('button', { name: /Ana Gómez Castillo/ }));
+  return within(sideNav()).getByRole('menu');
+}
+
 beforeEach(() => {
   logoutMock.mockReset();
 });
@@ -155,7 +161,9 @@ describe('AppFrame', () => {
     const { client } = renderFrame('/');
     client.setQueryData(queryKeys.accounts, OVERVIEW);
 
-    await user.click(within(sideNav()).getByRole('button', { name: 'Cerrar sesión' }));
+    await user.click(
+      within(await openProfileMenu(user)).getByRole('menuitem', { name: 'Cerrar sesión' }),
+    );
 
     expect(logoutMock).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/login'));
@@ -175,11 +183,31 @@ describe('AppFrame', () => {
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/login'));
   });
 
+  it('WEB-26 la barra lateral no tiene un botón "Cerrar sesión" suelto: el perfil es un botón con menú que la nombra', async () => {
+    const user = userEvent.setup();
+    renderFrame('/');
+    expect(within(sideNav()).queryByRole('button', { name: 'Cerrar sesión' })).toBeNull();
+    const profile = within(sideNav()).getByRole('button', { name: /Ana Gómez Castillo/ });
+    expect(profile).toHaveAccessibleName(/ana@example\.com/);
+    expect(profile).toHaveAttribute('aria-haspopup', 'menu');
+    expect(profile).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(profile);
+    expect(profile).toHaveAttribute('aria-expanded', 'true');
+    expect(within(sideNav()).getByRole('menuitem', { name: 'Cerrar sesión' })).toHaveFocus();
+
+    await user.keyboard('{Escape}');
+    expect(within(sideNav()).queryByRole('menu')).toBeNull();
+    expect(profile).toHaveFocus();
+  });
+
   it('WEB-05 aunque la acción falle, lleva al inicio de sesión', async () => {
     logoutMock.mockRejectedValue(new TypeError('Failed to fetch'));
     const user = userEvent.setup();
     renderFrame('/');
-    await user.click(within(sideNav()).getByRole('button', { name: 'Cerrar sesión' }));
+    await user.click(
+      within(await openProfileMenu(user)).getByRole('menuitem', { name: 'Cerrar sesión' }),
+    );
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/login'));
   });
 
@@ -187,7 +215,9 @@ describe('AppFrame', () => {
     logoutMock.mockReturnValue(new Promise(() => undefined));
     const user = userEvent.setup();
     renderFrame('/');
-    await user.dblClick(within(sideNav()).getByRole('button', { name: 'Cerrar sesión' }));
+    await user.dblClick(
+      within(await openProfileMenu(user)).getByRole('menuitem', { name: 'Cerrar sesión' }),
+    );
     expect(logoutMock).toHaveBeenCalledTimes(1);
   });
 
@@ -200,14 +230,15 @@ describe('AppFrame', () => {
     const sheet = screen.getByRole('dialog', { name: 'Tu cuenta' });
     await user.click(within(sheet).getByRole('button', { name: 'Cerrar sesión' }));
 
-    for (const region of [sideNav(), sheet]) {
-      const button = within(region).getByRole('button', { name: 'Cerrando…' });
-      expect(button).toBeDisabled();
-      expect(button).toHaveAttribute('aria-busy', 'true');
-      expect(
-        within(region).queryByRole('button', { name: 'Cerrar sesión' }),
-      ).not.toBeInTheDocument();
-    }
+    // El menú del perfil se cierra al elegir; al reabrirlo, la opción sigue ocupada.
+    const menu = await openProfileMenu(user);
+    const item = within(menu).getByRole('menuitem', { name: 'Cerrando…' });
+    expect(item).toBeDisabled();
+    expect(item).toHaveAttribute('aria-busy', 'true');
+    const button = within(sheet).getByRole('button', { name: 'Cerrando…' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-busy', 'true');
+    expect(within(sheet).queryByRole('button', { name: 'Cerrar sesión' })).not.toBeInTheDocument();
     expect(logoutMock).toHaveBeenCalledTimes(1);
   });
 

@@ -28,6 +28,13 @@ export const Default = () => (
   </div>
 );
 
+/** WEB-35: solo la CLABE enmascarada (últimos 4); no hay "Mostrar CLABE": la completa está en "Recibir dinero". */
+export const MaskedClabe = () => (
+  <div className="max-w-md">
+    <AccountCard account={principal} />
+  </div>
+);
+
 export const WithoutActions = () => (
   <div className="max-w-md">
     <AccountCard account={ahorro} />

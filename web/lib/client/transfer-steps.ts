@@ -1,7 +1,7 @@
 import {
   amountInput,
   formatMXN,
-  scheduledDate,
+  scheduledInstant,
   toCents,
   type Account,
   type Beneficiary,
@@ -9,6 +9,7 @@ import {
 } from '@devchrisvaz/wallet-contract';
 import type { ActionProblem } from '@/lib/action-result';
 import { maskClabe, normalizeAmountInput } from '@/lib/money';
+import { scheduledInstantOf } from './transfer-form';
 import {
   recipientOf,
   type TransferFlowState,
@@ -116,7 +117,7 @@ export interface SummaryRows {
   monto?: string;
   concepto?: string;
   referencia?: string;
-  /** Fecha programada (`YYYY-MM-DD`); sin ella la transferencia es inmediata y no hay fila "Cuándo". */
+  /** Instante programado (RFC 3339); sin él la transferencia es inmediata y no hay fila "Cuándo". */
   programada?: string;
 }
 
@@ -138,11 +139,18 @@ const beneficiaryText = (beneficiary: Beneficiary | undefined) =>
 const transferText = (transfer: Transfer) =>
   `${transfer.destination.displayName} · •••• ${transfer.destination.clabeLast4}`;
 
-/** La fecha elegida con "Programar" si ya es una fecha válida para el contrato; si no, nada (WEB-33). */
+/**
+ * El momento elegido con "Programar" si fecha y hora ya forman un instante válido para el contrato;
+ * si no, nada (WEB-33).
+ */
 function typedSchedule(values: TransferFormValues): string | undefined {
   if (values.when !== 'SCHEDULED') return undefined;
-  return scheduledDate.safeParse(values.scheduledFor).success ? values.scheduledFor : undefined;
+  const instant = scheduledInstantOf(values);
+  return scheduledInstant.safeParse(instant).success ? instant : undefined;
 }
+
+/** Sin referencia (WEB-16): el resumen lo dice en lugar de dejar la fila por definir. */
+const NO_REFERENCE = 'Sin referencia';
 
 /** El monto escrito si ya es válido para el contrato (sin separadores); si no, nada. */
 function typedAmount(text: string): string | undefined {
@@ -190,7 +198,7 @@ export function transferSummary(
           para: destination(state.recipient),
           monto: amount ? formatMXN(amount) : undefined,
           concepto: values?.concept || undefined,
-          referencia: values?.reference || undefined,
+          referencia: values?.reference || NO_REFERENCE,
           programada: values ? typedSchedule(values) : undefined,
         }),
         note: note(amount, false),
@@ -204,7 +212,7 @@ export function transferSummary(
           para: destination(recipientOf(values)),
           monto: formatMXN(request.amount),
           concepto: request.concept,
-          referencia: request.reference,
+          referencia: request.reference ?? NO_REFERENCE,
           programada: request.scheduledFor,
         }),
         note: note(request.amount, false),
@@ -221,7 +229,7 @@ export function transferSummary(
           para: transferText(transfer),
           monto: formatMXN(transfer.amount),
           concepto: transfer.concept,
-          referencia: transfer.reference,
+          referencia: transfer.reference ?? NO_REFERENCE,
           programada: transfer.scheduledFor ?? undefined,
         }),
         note: note(transfer.amount, state.step !== 'otp'),

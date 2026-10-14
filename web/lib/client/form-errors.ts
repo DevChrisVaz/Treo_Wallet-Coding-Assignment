@@ -1,3 +1,4 @@
+import { digitsOnly, uppercaseAlphanumeric } from '@devchrisvaz/wallet-contract';
 import type { FieldValues, Path, UseFormRegisterReturn, UseFormSetError } from 'react-hook-form';
 import type { ActionProblem } from '@/lib/action-result';
 
@@ -21,16 +22,34 @@ export function applyServerFieldErrors<T extends FieldValues>(
   return applied;
 }
 
-/** Convierte a mayúsculas lo que se escribe (CURP, RFC) antes de que el formulario lo lea. */
-export function upperCase<T extends string>(
+/** Cambia el texto del campo con `clean` antes de que el formulario lo lea (también al pegar). */
+function sanitizing<T extends string>(
   registration: UseFormRegisterReturn<T>,
+  clean: (raw: string) => string,
 ): UseFormRegisterReturn<T> {
   return {
     ...registration,
     onChange: (event) => {
       const input = event.target as HTMLInputElement;
-      input.value = input.value.toUpperCase();
+      const cleaned = clean(input.value);
+      if (cleaned !== input.value) input.value = cleaned;
       return registration.onChange(event);
     },
   };
+}
+
+/** CURP y RFC mientras se escriben: mayúsculas alfanuméricas, recortadas a `maxLength` (WEB-11). */
+export function uppercaseField<T extends string>(
+  registration: UseFormRegisterReturn<T>,
+  maxLength: number,
+): UseFormRegisterReturn<T> {
+  return sanitizing(registration, (raw) => uppercaseAlphanumeric(raw, maxLength));
+}
+
+/** Teléfono, referencia y códigos: solo dígitos, recortados a `maxLength` (WEB-11, WEB-16, WEB-18). */
+export function digitsOnlyField<T extends string>(
+  registration: UseFormRegisterReturn<T>,
+  maxLength: number,
+): UseFormRegisterReturn<T> {
+  return sanitizing(registration, (raw) => digitsOnly(raw, maxLength));
 }

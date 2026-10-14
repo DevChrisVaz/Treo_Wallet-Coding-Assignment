@@ -16,6 +16,19 @@ export const OnHero = () => (
   </div>
 );
 
+/** WEB-35: Inicio ofrece también "Recibir" (flecha entrante), después de "Transferir". */
+export const WithReceive = () => (
+  <div className="max-w-[390px] rounded-lg bg-surface-hero p-6">
+    <QuickActions
+      actions={[
+        { key: 't', label: 'Transferir', icon: 'transfer', href: '#' },
+        { key: 'r', label: 'Recibir', icon: 'moneyIn', onClick: () => undefined },
+        { key: 'm', label: 'Movimientos', icon: 'movements', href: '#' },
+      ]}
+    />
+  </div>
+);
+
 export const ThreeActions = () => (
   <div className="max-w-[390px] rounded-lg bg-surface-hero p-6">
     <QuickActions

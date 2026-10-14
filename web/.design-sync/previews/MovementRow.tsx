@@ -108,3 +108,10 @@ export const MovementHistory = () => (
     </div>
   </section>
 );
+
+/** WEB-16: un movimiento sin referencia (`null`) no muestra "Ref.". */
+export const WithoutReference = () => (
+  <ul aria-label="Movimientos" className="max-w-xl">
+    <MovementRow timeOnly movement={{ ...sent, reference: null }} />
+  </ul>
+);

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
   AccountCard,
   AmountField,
@@ -20,6 +20,7 @@ import {
   OtpField,
   QuickActions,
   Receipt,
+  SearchField,
   Select,
   Skeleton,
   TextField,
@@ -123,7 +124,8 @@ const scheduledTransfer = {
   id: '9a3b5c7d-2e4f-4a6b-8c0d-1e3f5a7b9c2d',
   status: 'SCHEDULED' as const,
   amount: '1000.00',
-  scheduledFor: '2026-10-20',
+  // WEB-33: instante RFC 3339 (20 de octubre de 2026, 14:30 en la Ciudad de México = 20:30 UTC).
+  scheduledFor: '2026-10-20T20:30:00Z',
   cancelledAt: null,
   createdAt: '2026-10-13T16:50:00Z',
   completedAt: null,
@@ -197,48 +199,130 @@ export const Login = () => (
   </BrandShell>
 );
 
-/** /register — RegisterForm, con el mismo ritmo que Login. */
-export const Register = () => (
-  <BrandShell title="Crea tu cuenta">
-    <form noValidate className="grid gap-4">
-      <TextField label="Correo" type="email" autoComplete="email" />
-      <TextField
-        label="Contraseña"
-        type="password"
-        autoComplete="new-password"
-        hint="Usa al menos 12 caracteres."
-      />
-      <TextField label="Nombre completo" autoComplete="name" />
-      <TextField
-        label="CURP"
-        autoCapitalize="characters"
-        spellCheck={false}
-        hint="18 caracteres, como aparece en tu identificación."
-      />
-      <TextField
-        label="RFC"
-        autoCapitalize="characters"
-        spellCheck={false}
-        hint="13 caracteres, con homoclave."
-      />
-      <TextField
-        label="Teléfono"
-        type="tel"
-        inputMode="numeric"
-        autoComplete="tel-national"
-        hint="10 dígitos, sin lada ni espacios."
-      />
-      <Button type="submit" className="w-full">
-        Crear cuenta
-      </Button>
-    </form>
-    <p className="text-center text-body-sm text-fg-secondary">
-      ¿Ya tienes cuenta?{' '}
-      <a href="#" className="inline-flex min-h-11 items-center font-medium text-action underline underline-offset-2">
-        Inicia sesión
-      </a>
-    </p>
-  </BrandShell>
+/** Errores de campo del registro (WEB-11): los mensajes del contrato, bajo cada campo. */
+interface RegisterFieldErrors {
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+  fullName?: string;
+  curp?: string;
+  rfc?: string;
+  phone?: string;
+}
+
+/**
+ * RegisterForm (WEB-11): validación al salir de cada campo (`mode: 'onTouched'`), "Confirmar contraseña"
+ * solo en la interfaz (no se envía a la API) y entradas acotadas al teclear: CURP y RFC en mayúsculas
+ * alfanuméricas (18 y 13), teléfono solo dígitos (10). Los campos de `values` van rellenos.
+ */
+function RegisterForm({
+  values = {},
+  errors = {},
+}: {
+  values?: Partial<Record<keyof RegisterFieldErrors, string>>;
+  errors?: RegisterFieldErrors;
+}) {
+  return (
+    <BrandShell title="Crea tu cuenta">
+      <form noValidate className="grid gap-4">
+        <TextField
+          label="Correo"
+          type="email"
+          autoComplete="email"
+          defaultValue={values.email}
+          error={errors.email}
+        />
+        <TextField
+          label="Contraseña"
+          type="password"
+          autoComplete="new-password"
+          defaultValue={values.password}
+          hint="De 12 a 128 caracteres, con al menos una letra y un número."
+          error={errors.password}
+        />
+        {/* WEB-11: campo nuevo, solo de interfaz; debe coincidir con la contraseña. */}
+        <TextField
+          label="Confirmar contraseña"
+          type="password"
+          autoComplete="new-password"
+          defaultValue={values.confirmPassword}
+          error={errors.confirmPassword}
+        />
+        <TextField
+          label="Nombre completo"
+          autoComplete="name"
+          defaultValue={values.fullName}
+          hint="Nombre y apellido, solo letras."
+          error={errors.fullName}
+        />
+        <TextField
+          label="CURP"
+          autoCapitalize="characters"
+          spellCheck={false}
+          maxLength={18}
+          defaultValue={values.curp}
+          hint="18 caracteres, como aparece en tu identificación."
+          error={errors.curp}
+        />
+        <TextField
+          label="RFC"
+          autoCapitalize="characters"
+          spellCheck={false}
+          maxLength={13}
+          defaultValue={values.rfc}
+          hint="13 caracteres, con homoclave."
+          error={errors.rfc}
+        />
+        <TextField
+          label="Teléfono"
+          type="tel"
+          inputMode="numeric"
+          autoComplete="tel-national"
+          maxLength={10}
+          defaultValue={values.phone}
+          hint="10 dígitos, sin lada ni espacios."
+          error={errors.phone}
+        />
+        <Button type="submit" className="w-full">
+          Crear cuenta
+        </Button>
+      </form>
+      <p className="text-center text-body-sm text-fg-secondary">
+        ¿Ya tienes cuenta?{' '}
+        <a href="#" className="inline-flex min-h-11 items-center font-medium text-action underline underline-offset-2">
+          Inicia sesión
+        </a>
+      </p>
+    </BrandShell>
+  );
+}
+
+/** /register — RegisterForm vacío, con el mismo ritmo que Login. */
+export const Register = () => <RegisterForm />;
+
+/**
+ * /register tras salir de los campos (WEB-11): errores en línea de las reglas del contrato. El RFC no
+ * coincide con los 10 primeros caracteres de la CURP; el nombre lleva un dígito; la confirmación no
+ * coincide; el teléfono no empieza en 2 a 9.
+ */
+export const RegisterErrors = () => (
+  <RegisterForm
+    values={{
+      email: 'ana@example.com',
+      password: 'contraseña-segura1',
+      confirmPassword: 'contraseña-segura2',
+      fullName: 'Ana3 Gómez',
+      curp: 'GOCA900515MDFMSN09',
+      rfc: 'GOMA850101AB1',
+      phone: '1555123456',
+    }}
+    errors={{
+      confirmPassword: 'Las contraseñas no coinciden.',
+      fullName: 'Usa solo letras, espacios, apóstrofo, guion o punto.',
+      rfc: 'El RFC no coincide con tu CURP',
+      phone: 'Escribe 10 dígitos; el primero va del 2 al 9.',
+    }}
+  />
 );
 
 /** /verify-email?email=…&registered=1 — VerifyEmailForm al llegar del registro. */
@@ -272,40 +356,147 @@ const quickActions = (
   <QuickActions
     actions={[
       { key: 't', label: 'Transferir', icon: 'transfer', href: '#' },
+      // WEB-35: "Recibir" va después de "Transferir", con la flecha
+      // entrante (`moneyIn`), y abre la hoja "Recibir dinero".
+      { key: 'r', label: 'Recibir', icon: 'moneyIn', onClick: noop },
       { key: 'm', label: 'Movimientos', icon: 'movements', href: '#' },
     ]}
   />
 );
 
-/** / — inicio con cuentas: hero, cuentas, límite diario y últimos movimientos. */
-export const Home = () => (
-  <HomeShell>
-    <BalanceHero
-      total={sumAmounts([principal.balance, ahorro.balance])}
-      available={dailyLimit.remaining}
-      actions={quickActions}
-    />
-    <div className="grid gap-5 dashboard:grid-cols-2">
-      <div className="grid content-start gap-5">
-        <section aria-label="Cuentas" className="grid gap-3">
-          <AccountCard account={principal} selected onSelect={noop} />
-          <AccountCard account={ahorro} onSelect={noop} />
-        </section>
-        <ListSection>
-          <DailyLimitMeter dailyLimit={dailyLimit} showHeader />
+/**
+ * El contenido de Inicio. WEB-28: la tarjeta de cuenta solo muestra la CLABE enmascarada (•••• 1234); ya
+ * no hay "Mostrar CLABE": la CLABE completa solo está en "Recibir dinero".
+ */
+function HomeContent() {
+  return (
+    <>
+      <BalanceHero
+        total={sumAmounts([principal.balance, ahorro.balance])}
+        available={dailyLimit.remaining}
+        actions={quickActions}
+      />
+      <div className="grid gap-5 dashboard:grid-cols-2">
+        <div className="grid content-start gap-5">
+          <section aria-label="Cuentas" className="grid gap-3">
+            <AccountCard account={principal} selected onSelect={noop} />
+            <AccountCard account={ahorro} onSelect={noop} />
+          </section>
+          <ListSection>
+            <DailyLimitMeter dailyLimit={dailyLimit} showHeader />
+          </ListSection>
+        </div>
+        <ListSection
+          title="Últimos movimientos"
+          action={
+            <a href="#" className="inline-flex min-h-11 items-center text-label text-action">
+              Ver todos
+            </a>
+          }
+        >
+          <MovementList movements={movements} now={NOW} />
         </ListSection>
       </div>
-      <ListSection
-        title="Últimos movimientos"
-        action={
-          <a href="#" className="inline-flex min-h-11 items-center text-label text-action">
-            Ver todos
-          </a>
-        }
-      >
-        <MovementList movements={movements} now={NOW} />
-      </ListSection>
-    </div>
+    </>
+  );
+}
+
+/** / — inicio con cuentas: hero con "Recibir", cuentas con la CLABE enmascarada, límite y movimientos. */
+export const Home = () => (
+  <HomeShell>
+    <HomeContent />
+  </HomeShell>
+);
+
+/** CLABE de 18 dígitos en grupos de 4 para leerla (la copia va sin espacios). */
+const groupClabe = (clabe: string) => clabe.replace(/(\d{4})(?=\d)/g, '$1 ');
+
+/**
+ * Hoja "Recibir dinero" (WEB-35: `components/accounts/ReceiveSheet.tsx`): selector de cuenta arriba (Principal /
+ * Ahorro, la de Inicio preseleccionada), los datos para recibir (Titular, Banco, Cuenta, CLABE
+ * completa en grupos) y "Copiar CLABE", que pasa a "CLABE copiada" con una confirmación anunciada
+ * (`role="status"`). La web no tiene "Compartir" (solo móvil).
+ */
+function ReceiveSheet({ selected = principal, copied = false }: { selected?: typeof principal; copied?: boolean }) {
+  const accounts = [principal, ahorro];
+  const rows: [string, string][] = [
+    ['Titular', user.name],
+    ['Banco', 'TreoWallet'],
+    ['Cuenta', selected.name],
+  ];
+  return (
+    <KeepScroll>
+      <BottomSheet open onClose={noop} title="Recibir dinero">
+        <div className="grid gap-5">
+          <div
+            role="radiogroup"
+            aria-label="Cuenta"
+            className="grid grid-cols-2 gap-1 rounded-md bg-surface-subtle p-1"
+          >
+            {accounts.map((account) => {
+              const on = account.id === selected.id;
+              return (
+                <button
+                  key={account.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  className={`min-h-11 rounded-sm px-3 text-label transition-colors ${on ? 'bg-surface text-fg shadow-card' : 'text-fg-secondary hover:text-fg'}`}
+                >
+                  {account.name}
+                </button>
+              );
+            })}
+          </div>
+          <dl className="divide-y divide-border">
+            {rows.map(([term, value]) => (
+              <SummaryRow key={term} term={term} value={value} />
+            ))}
+            <div className="grid gap-1 py-3">
+              <dt className="text-body-sm text-fg-secondary">CLABE</dt>
+              <dd className="text-h3 whitespace-nowrap text-fg tabular-nums">
+                {groupClabe(selected.clabe)}
+              </dd>
+            </div>
+          </dl>
+          <div className="grid gap-3">
+            <Button variant={copied ? 'primary' : 'secondary'} icon={copied ? 'check' : 'copy'}>
+              {copied ? 'CLABE copiada' : 'Copiar CLABE'}
+            </Button>
+            <p role="status" className="sr-only">
+              {copied ? 'CLABE copiada' : ''}
+            </p>
+          </div>
+          <p className="text-caption text-fg-muted">
+            Comparte estos datos para que te transfieran desde otra cuenta TreoWallet.
+          </p>
+        </div>
+      </BottomSheet>
+    </KeepScroll>
+  );
+}
+
+/** "Recibir" abierto en Inicio: hoja en teléfono y panel centrado en el dashboard (ver a 390 y 1280). */
+export const HomeReceive = () => (
+  <HomeShell>
+    <HomeContent />
+    <ReceiveSheet />
+  </HomeShell>
+);
+
+/** Tras "Copiar CLABE": el botón dice "CLABE copiada" (feedback que vuelve a la normalidad a los pocos segundos). */
+export const HomeReceiveCopied = () => (
+  <HomeShell>
+    <HomeContent />
+    <ReceiveSheet copied />
+  </HomeShell>
+);
+
+/** El selector cambió a Ahorro: los datos de abajo son los de esa cuenta (cuenta y CLABE). */
+export const HomeReceiveSavings = () => (
+  <HomeShell>
+    <HomeContent />
+    <ReceiveSheet selected={ahorro} />
   </HomeShell>
 );
 
@@ -540,7 +731,7 @@ const OVER_BALANCE_DRAFT: Draft = { ...DRAFT, amount: '$30,000.00', otp: true };
 const SCHEDULED_DRAFT: Draft = {
   ...DRAFT,
   amount: '$1,000.00',
-  when: 'Se enviará el 20 de octubre de 2026',
+  when: 'Se enviará el 20 de octubre de 2026, 14:30',
 };
 
 /** Fila etiqueta / valor del resumen (revisión y panel lateral); un valor largo se reparte parejo. */
@@ -564,7 +755,10 @@ function Summary({ draft }: { draft: Draft }) {
         <SummaryRow term="Para" value={draft.to} />
         <SummaryRow term="Monto" value={draft.amount} />
         <SummaryRow term="Concepto" value={draft.concept} />
-        <SummaryRow term="Referencia" value={draft.reference} />
+        <SummaryRow
+          term="Referencia"
+          value={draft.reference === '' ? 'Sin referencia' : draft.reference}
+        />
         {draft.when ? <SummaryRow term="Cuándo" value={draft.when} /> : null}
       </dl>
       <p className="border-t border-border pt-3 text-caption text-fg-muted">
@@ -655,40 +849,70 @@ function RecipientOption({
   );
 }
 
-/** Paso 1: cuentas propias y beneficiarios. */
-export const TransferRecipient = () => (
-  <FlowPage title="¿A quién le envías?" step={1} total={5} stepLabel="Destinatario" draft={{}}>
-    <ListSection title="Tus cuentas">
-      <ul className="divide-y divide-border">
-        <RecipientOption
-          avatar={<Avatar icon="ownTransfer" />}
-          label={ahorro.name}
-          description={`CLABE ${mask(ahorro.clabe)} · $10,000.00`}
-        />
-      </ul>
-    </ListSection>
-    <ListSection title="Beneficiarios">
-      <ul className="divide-y divide-border">
-        {[luis, mama].map((beneficiary) => (
+/**
+ * Paso 1: cuentas propias y beneficiarios. WEB-36: el campo de búsqueda va arriba de los beneficiarios y
+ * solo los filtra (las cuentas propias no); se oculta sin beneficiarios.
+ */
+function RecipientStep({
+  query = '',
+  beneficiaries = [luis, mama],
+}: {
+  query?: string;
+  beneficiaries?: (typeof luis)[];
+}) {
+  return (
+    <FlowPage title="¿A quién le envías?" step={1} total={5} stepLabel="Destinatario" draft={{}}>
+      <ListSection title="Tus cuentas">
+        <ul className="divide-y divide-border">
           <RecipientOption
-            key={beneficiary.id}
-            avatar={<Avatar initials={initials(beneficiary.name)} />}
-            label={beneficiary.alias}
-            description={`${beneficiary.name} · CLABE ${mask(beneficiary.clabe)}`}
+            avatar={<Avatar icon="ownTransfer" />}
+            label={ahorro.name}
+            description={`CLABE ${mask(ahorro.clabe)} · $10,000.00`}
           />
-        ))}
-      </ul>
-    </ListSection>
-    {/* En teléfono "Programadas" no es pestaña: se llega desde aquí (R56); en el dashboard está en
-        la navegación lateral. */}
-    <a href="#" className={buttonClasses('ghost', 'dashboard:hidden')}>
-      Transferencias programadas
-    </a>
-  </FlowPage>
+        </ul>
+      </ListSection>
+      <ListSection title="Beneficiarios">
+        <div className="grid gap-2">
+          <BeneficiarySearch query={query} />
+          {beneficiaries.length > 0 ? (
+            <ul className="divide-y divide-border">
+              {beneficiaries.map((beneficiary) => (
+                <RecipientOption
+                  key={beneficiary.id}
+                  avatar={<Avatar initials={initials(beneficiary.name)} />}
+                  label={beneficiary.alias}
+                  description={`${beneficiary.name} · CLABE ${mask(beneficiary.clabe)}`}
+                />
+              ))}
+            </ul>
+          ) : (
+            <NoResults query={query} flat />
+          )}
+        </div>
+      </ListSection>
+      {/* En teléfono "Programadas" no es pestaña: se llega desde aquí (R56); en el dashboard está en
+          la navegación lateral. */}
+      <a href="#" className={buttonClasses('ghost', 'dashboard:hidden')}>
+        Transferencias programadas
+      </a>
+    </FlowPage>
+  );
+}
+
+export const TransferRecipient = () => <RecipientStep />;
+
+/** Paso 1 con «mar» escrito: solo "Mamá"; "Ahorro" (cuenta propia) sigue a la vista. */
+export const TransferRecipientSearchResults = () => (
+  <RecipientStep query="mar" beneficiaries={[mama]} />
+);
+
+/** Paso 1 con una búsqueda sin coincidencias. */
+export const TransferRecipientNoResults = () => (
+  <RecipientStep query="Zapata" beneficiaries={[]} />
 );
 
 /** Campos del paso 2: a quién, el monto grande, la cuenta de origen, el concepto y la referencia. */
-function AmountFields({ amount }: { amount: string }) {
+function AmountFields({ amount, reference = '1' }: { amount: string; reference?: string }) {
   return (
     <>
       <ListSection>
@@ -702,7 +926,8 @@ function AmountFields({ amount }: { amount: string }) {
           </div>
         </div>
       </ListSection>
-      {/* El mismo monto tecleado que en la historia móvil (la web también acepta "1,250.00"). */}
+      {/* WEB-21: solo dígitos y un punto mientras se teclea; se muestra con separador de miles
+          ("12,345.67") y la API recibe "12345.67". */}
       <AmountField
         variant="hero"
         label="Monto"
@@ -716,12 +941,14 @@ function AmountFields({ amount }: { amount: string }) {
       </Select>
       {/* Ayudas con la redacción de la app móvil (R30); la del monto sigue siendo la de cada app. */}
       <TextField label="Concepto" hint="De 1 a 40 caracteres." autoComplete="off" defaultValue="Renta" />
+      {/* WEB-16: opcional, solo dígitos (se descartan al teclear y al pegar), hasta 7. */}
       <TextField
-        label="Referencia"
+        label="Referencia (opcional)"
         inputMode="numeric"
-        hint="De 1 a 7 dígitos."
+        maxLength={7}
+        hint="Hasta 7 dígitos."
         autoComplete="off"
-        defaultValue="1"
+        defaultValue={reference}
       />
     </>
   );
@@ -737,7 +964,24 @@ export const TransferAmount = () => (
     draft={DRAFT}
     actions={<Button type="submit">Continuar</Button>}
   >
-    <AmountFields amount="1250.00" />
+    <AmountFields amount="1,250.00" />
+  </FlowPage>
+);
+
+/**
+ * WEB-21 + WEB-16: el monto con separador de miles mientras se teclea (12,345.67; la API recibe 12345.67) y
+ * la referencia opcional vacía: el resumen lateral dice "Sin referencia".
+ */
+export const TransferAmountFormatted = () => (
+  <FlowPage
+    title="¿Cuánto envías?"
+    step={2}
+    total={5}
+    stepLabel="Monto"
+    draft={{ ...DRAFT, amount: '$12,345.67', reference: '' }}
+    actions={<Button type="submit">Continuar</Button>}
+  >
+    <AmountFields amount="12,345.67" reference="" />
   </FlowPage>
 );
 
@@ -765,7 +1009,8 @@ function ReviewSummary({ draft }: { draft: Draft }) {
           <SummaryRow term="Desde" value={`${principal.name} · ${mask(principal.clabe)}`} />
           <SummaryRow term="Para" value={draft.to} />
           <SummaryRow term="Concepto" value={draft.concept} />
-          <SummaryRow term="Referencia" value={draft.reference} />
+          {/* WEB-16: sin referencia no hay fila. */}
+          {draft.reference === '' ? null : <SummaryRow term="Referencia" value={draft.reference} />}
           {draft.when ? <SummaryRow term="Cuándo" value={draft.when} /> : null}
         </dl>
       </ListSection>
@@ -923,19 +1168,29 @@ function ScheduleChoice() {
           </label>
         </div>
       </fieldset>
-      <TextField
-        type="date"
-        label="Fecha de envío"
-        min="2026-10-14"
-        max="2027-01-11"
-        defaultValue="2026-10-20"
-        hint="Entre el 14 de octubre de 2026 y el 11 de enero de 2027."
-      />
+      {/* WEB-33: fecha y hora lado a lado (ScheduleField con `timeField`); la hora es de la Ciudad de México. */}
+      <div className="grid content-start items-start gap-4 sm:grid-cols-2 sm:gap-x-3">
+        <TextField
+          type="date"
+          label="Fecha de envío"
+          min="2026-10-13"
+          max="2027-01-11"
+          defaultValue="2026-10-20"
+          hint="Entre el 13 de octubre de 2026 y el 11 de enero de 2027."
+        />
+        <TextField
+          type="time"
+          label="Hora de envío"
+          step={60}
+          defaultValue="14:30"
+          hint="Hora de la Ciudad de México, al menos 10 minutos después de ahora."
+        />
+      </div>
     </div>
   );
 }
 
-/** Paso 2 con "Programar" y el 20 de octubre: el resumen del dashboard ya dice "Cuándo". */
+/** Paso 2 con "Programar", el 20 de octubre a las 14:30: el resumen del dashboard ya dice "Cuándo". */
 export const TransferAmountScheduled = () => (
   <FlowPage
     title="¿Cuánto envías?"
@@ -945,7 +1200,7 @@ export const TransferAmountScheduled = () => (
     draft={SCHEDULED_DRAFT}
     actions={<Button type="submit">Continuar</Button>}
   >
-    <AmountFields amount="1000.00" />
+    <AmountFields amount="1,000.00" />
     <ScheduleChoice />
   </FlowPage>
 );
@@ -990,7 +1245,7 @@ export const TransferScheduled = () => (
     }
   >
     <InlineAlert tone="info">
-      Se enviará el 20 de octubre de 2026. Puedes cancelarla antes de esa fecha en{' '}
+      Se enviará el 20 de octubre de 2026, 14:30. Puedes cancelarla antes de esa hora en{' '}
       <a href="#" className="text-action underline underline-offset-2">
         tus transferencias programadas
       </a>
@@ -1016,15 +1271,57 @@ function BeneficiariesShell({ children }: { children: ReactNode }) {
   );
 }
 
-/** /beneficiaries — la lista (ordenada por alias); en teléfono, "Agregar" va arriba. */
-export const Beneficiaries = () => (
-  <BeneficiariesShell>
-    <a href="#" className={buttonClasses('primary', 'dashboard:hidden')}>
-      Agregar beneficiario
-    </a>
+/**
+ * Campo de búsqueda de beneficiarios (WEB-36: `components/beneficiaries/BeneficiarySearch.tsx`): lupa a la izquierda,
+ * placeholder "Buscar por nombre, alias o CLABE", × al haber texto. El filtro es del cliente y no
+ * distingue mayúsculas ni acentos (nombre y alias; los dígitos buscan en la CLABE). Se oculta si no
+ * hay beneficiarios.
+ */
+function BeneficiarySearch({ query = '' }: { query?: string }) {
+  return (
+    <SearchField
+      label="Buscar beneficiarios"
+      placeholder="Buscar por nombre, alias o CLABE"
+      value={query}
+      onChange={noop}
+      onClear={noop}
+    />
+  );
+}
+
+/**
+ * Sin coincidencias (WEB-36): "Sin resultados" con "Limpiar búsqueda". Suelto en la página es el
+ * EmptyState del kit; dentro de una tarjeta (`flat`, paso de destinatario) va sin su propia tarjeta
+ * para no anidar sombras.
+ */
+function NoResults({ query, flat = false }: { query: string; flat?: boolean }) {
+  const description = `No hay beneficiarios que coincidan con «${query}».`;
+  if (!flat) {
+    return (
+      <EmptyState
+        icon="beneficiaries"
+        title="Sin resultados"
+        description={description}
+        action={<Button variant="secondary">Limpiar búsqueda</Button>}
+      />
+    );
+  }
+  return (
+    <div className="grid justify-items-center gap-3 px-6 py-8 text-center">
+      <Avatar size="lg" icon="beneficiaries" />
+      <h3 className="text-h3 text-fg">Sin resultados</h3>
+      <p className="text-body text-fg-secondary">{description}</p>
+      <Button variant="secondary">Limpiar búsqueda</Button>
+    </div>
+  );
+}
+
+/** La lista de beneficiarios de la pantalla (`items` ya filtrados). */
+function BeneficiaryList({ items }: { items: (typeof luis)[] }) {
+  return (
     <ListSection>
       <ul aria-label="Beneficiarios" className="divide-y divide-border">
-        {[luis, mama].map((beneficiary) => (
+        {items.map((beneficiary) => (
           <li key={beneficiary.id} className="flex items-center gap-3 py-3">
             <Avatar initials={initials(beneficiary.name)} />
             {/* El nombre completo pasa a otra línea en lugar de cortarse (WEB-25). */}
@@ -1046,6 +1343,39 @@ export const Beneficiaries = () => (
         ))}
       </ul>
     </ListSection>
+  );
+}
+
+/** /beneficiaries — la lista (ordenada por alias) con el campo de búsqueda; en teléfono, "Agregar" va arriba. */
+export const Beneficiaries = () => (
+  <BeneficiariesShell>
+    <a href="#" className={buttonClasses('primary', 'dashboard:hidden')}>
+      Agregar beneficiario
+    </a>
+    <BeneficiarySearch />
+    <BeneficiaryList items={[luis, mama]} />
+  </BeneficiariesShell>
+);
+
+/** /beneficiaries con «mar» escrito: solo "Mamá" (María Gómez); «maria» también la encontraría. */
+export const BeneficiariesSearchResults = () => (
+  <BeneficiariesShell>
+    <a href="#" className={buttonClasses('primary', 'dashboard:hidden')}>
+      Agregar beneficiario
+    </a>
+    <BeneficiarySearch query="mar" />
+    <BeneficiaryList items={[mama]} />
+  </BeneficiariesShell>
+);
+
+/** /beneficiaries con una búsqueda sin coincidencias. */
+export const BeneficiariesNoResults = () => (
+  <BeneficiariesShell>
+    <a href="#" className={buttonClasses('primary', 'dashboard:hidden')}>
+      Agregar beneficiario
+    </a>
+    <BeneficiarySearch query="Zapata" />
+    <NoResults query="Zapata" />
   </BeneficiariesShell>
 );
 
@@ -1157,7 +1487,7 @@ function ScheduledList() {
           <li className="flex flex-wrap items-center justify-between gap-3 py-3">
             <div className="grid min-w-0 gap-1">
               <p className="text-label text-fg">
-                <time dateTime={scheduledTransfer.scheduledFor}>20 de octubre de 2026</time>
+                <time dateTime={scheduledTransfer.scheduledFor}>20 de octubre de 2026, 14:30</time>
               </p>
               <p className="text-h3 text-fg tabular-nums">{formatMXN(scheduledTransfer.amount)}</p>
               <p className="text-body-sm text-fg-secondary">
@@ -1167,7 +1497,7 @@ function ScheduledList() {
             </div>
             <Button
               variant="secondary"
-              aria-label="Cancelar la transferencia de $1,000.00 a Luis del 20 de octubre de 2026"
+              aria-label="Cancelar la transferencia de $1,000.00 a Luis del 20 de octubre de 2026, 14:30"
             >
               Cancelar
             </Button>
@@ -1228,7 +1558,7 @@ export const ScheduledTransfersCancel = () => (
         </h2>
         <div className="grid min-h-0 gap-5 overflow-y-auto">
           <p id="cancel-scheduled-description" className="text-body text-fg-secondary">
-            Transferencia de $1,000.00 a Luis •••• 5678, programada para el 20 de octubre de 2026.
+            Transferencia de $1,000.00 a Luis •••• 5678, programada para el 20 de octubre de 2026, 14:30.
             Si la cancelas, no se enviará.
           </p>
           <div className="grid gap-3 dashboard:flex dashboard:flex-wrap">

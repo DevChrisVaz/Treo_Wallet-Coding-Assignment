@@ -1,5 +1,6 @@
 'use client';
 
+import { ProblemError } from '@devchrisvaz/wallet-contract';
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { InlineAlert } from '@/components/ui/InlineAlert';
@@ -25,9 +26,23 @@ function saveFile(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), REVOKE_AFTER_MS);
 }
 
+/** Mensaje si la API rechaza el mes por ser anterior a la apertura de la cuenta (WEB-32). */
+export const PERIOD_BEFORE_CREATION =
+  'Ese mes es anterior a la apertura de tu cuenta. Elige un mes más reciente.';
+
+/** 422 con un error de campo en `/period`: el mes elegido está fuera del rango de la cuenta. */
+function isPeriodOutOfRange(error: unknown): boolean {
+  return (
+    error instanceof ProblemError &&
+    error.status === 422 &&
+    (error.errors ?? []).some((field) => field.pointer === '/period')
+  );
+}
+
 /**
- * Descarga del estado de cuenta (WEB-32, D11 de account-statements): selector con el mes en curso
- * y los 12 anteriores (el anterior por defecto) y "Descargar PDF". La descarga pasa por el proxy del
+ * Descarga del estado de cuenta (WEB-32, D11 de account-statements): selector con
+ * los meses desde la creación de la cuenta hasta el mes en curso (el anterior por defecto, si
+ * existe) y "Descargar PDF". La descarga pasa por el proxy del
  * BFF; si falla, el mensaje del código aparece aquí mismo, sin salir de la pantalla. Es un
  * componente aparte para que el rediseño de la pantalla de movimientos lo reubique sin cambiarlo;
  * con el rediseño es una tarjeta del kit (`ListSection` con título), con el mes y el botón a todo lo
@@ -35,14 +50,17 @@ function saveFile(blob: Blob, filename: string): void {
  */
 export function StatementDownload({
   accountId,
+  createdAt,
   now,
 }: {
   accountId: string;
+  /** `Account.createdAt`: el primer mes que se puede pedir. */
+  createdAt: string;
   /** Fecha de referencia de los meses (lienzos con el reloj fijo); por omisión, la actual. */
   now?: Date | undefined;
 }) {
   // Las opciones se calculan una vez, al montar, con la fecha de la Ciudad de México.
-  const [months] = useState(() => statementMonths(now ?? new Date()));
+  const [months] = useState(() => statementMonths(createdAt, now ?? new Date()));
   const [period, setPeriod] = useState(() => months[1]?.value ?? months[0]?.value ?? '');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +76,7 @@ export function StatementDownload({
       const file = await bffDownload(`accounts/${accountId}/statements/${period}`);
       saveFile(file.blob, file.filename);
     } catch (caught) {
-      setError(describeError(caught));
+      setError(isPeriodOutOfRange(caught) ? PERIOD_BEFORE_CREATION : describeError(caught));
     } finally {
       inFlight.current = false;
       setPending(false);

@@ -44,3 +44,36 @@ export const Scheduled = () => (
     />
   </div>
 );
+
+const long = {
+  name: 'María Fernanda de los Ángeles Villanueva-Ximénez Castellanos',
+  email: 'maria.fernanda.villanueva.ximenez.castellanos@subdominio-largo.example.com',
+};
+
+/** WEB-26: el perfil es un solo botón con chevron; nombre y correo van en una línea cada uno. */
+export const Profile = () => (
+  <div className="h-[640px] w-sidebar">
+    <SideNav items={DEFAULT_NAV_ITEMS} current="home" user={user} onLogout={noop} className="flex h-full!" />
+  </div>
+);
+
+/** WEB-26: un nombre y un correo muy largos se cortan con puntos suspensivos sin desbordar el botón. */
+export const LongProfile = () => (
+  <div className="h-[640px] w-sidebar">
+    <SideNav items={DEFAULT_NAV_ITEMS} current="home" user={long} onLogout={noop} className="flex h-full!" />
+  </div>
+);
+
+/** WEB-26: el menú abierto encima del botón (aria-expanded) con "Cerrar sesión"; ya no hay botón aparte. */
+export const MenuOpen = () => (
+  <div className="h-[640px] w-sidebar">
+    <SideNav items={DEFAULT_NAV_ITEMS} current="home" user={user} onLogout={noop} defaultMenuOpen className="flex h-full!" />
+  </div>
+);
+
+/** WEB-26: menú abierto con el perfil largo: el menú tiene el ancho del botón. */
+export const MenuOpenLongProfile = () => (
+  <div className="h-[640px] w-sidebar">
+    <SideNav items={DEFAULT_NAV_ITEMS} current="home" user={long} onLogout={noop} defaultMenuOpen className="flex h-full!" />
+  </div>
+);

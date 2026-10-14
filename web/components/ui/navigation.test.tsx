@@ -87,23 +87,83 @@ describe('destinos solo laterales', () => {
 });
 
 describe('SideNav', () => {
-  it('WEB-26 marca el destino actual y cierra sesión', async () => {
-    const onLogout = vi.fn();
-    render(<SideNav items={WEB_ITEMS} current="beneficiaries" user={USER} onLogout={onLogout} />);
+  it('WEB-26 marca el destino actual', () => {
+    render(<SideNav items={WEB_ITEMS} current="beneficiaries" user={USER} />);
     expect(screen.getByRole('link', { name: 'Beneficiarios' })).toHaveAttribute(
       'aria-current',
       'page',
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
-    expect(onLogout).toHaveBeenCalledOnce();
   });
 
-  it('WEB-23 los enlaces y el botón de cierre sobre el fondo oscuro usan anillo de foco lima', () => {
+  it('WEB-26 el perfil es un solo botón con menú que no muestra "Cerrar sesión" hasta abrirlo', async () => {
+    const onLogout = vi.fn();
+    render(<SideNav items={WEB_ITEMS} current="home" user={USER} onLogout={onLogout} />);
+    const profile = screen.getByRole('button', { name: /Ana Gómez Castillo/ });
+    expect(profile).toHaveAttribute('aria-haspopup', 'menu');
+    expect(profile).toHaveAttribute('aria-expanded', 'false');
+    expect(profile).toHaveTextContent('ana@example.com');
+    expect(screen.queryByRole('menuitem')).not.toBeInTheDocument();
+    await userEvent.click(profile);
+    expect(profile).toHaveAttribute('aria-expanded', 'true');
+    const item = screen.getByRole('menuitem', { name: 'Cerrar sesión' });
+    expect(item).toHaveFocus();
+    await userEvent.click(item);
+    expect(onLogout).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(profile).toHaveFocus();
+  });
+
+  it('WEB-26 nombre y correo se truncan con puntos suspensivos sin desbordar el botón', () => {
+    render(
+      <SideNav
+        items={WEB_ITEMS}
+        current="home"
+        user={{ name: 'N'.repeat(120), email: 'e'.repeat(120) + '@example.com' }}
+      />,
+    );
+    const profile = screen.getByRole('button', { name: /N{120}/ });
+    expect(profile).toHaveClass('w-full');
+    const lines = profile.querySelectorAll('.truncate');
+    expect(lines).toHaveLength(2);
+    expect(lines[0]?.parentElement).toHaveClass('min-w-0');
+  });
+
+  it('WEB-26 Escape, un clic fuera y las flechas gestionan el menú', async () => {
+    render(<SideNav items={WEB_ITEMS} current="home" user={USER} onLogout={() => {}} />);
+    const profile = screen.getByRole('button', { name: /Ana Gómez Castillo/ });
+    await userEvent.click(profile);
+    await userEvent.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menuitem', { name: 'Cerrar sesión' })).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(profile).toHaveFocus();
+    await userEvent.click(profile);
+    await userEvent.click(document.body);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('WEB-26 con "Cerrando…" la opción queda ocupada y deshabilitada', async () => {
+    render(
+      <SideNav
+        items={WEB_ITEMS}
+        current="home"
+        user={USER}
+        onLogout={() => {}}
+        loggingOut
+        defaultMenuOpen
+      />,
+    );
+    const item = screen.getByRole('menuitem', { name: 'Cerrando…' });
+    expect(item).toBeDisabled();
+    expect(item).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('WEB-23 los enlaces sobre el fondo oscuro y el botón del perfil usan anillo de foco lima', () => {
     render(<SideNav items={WEB_ITEMS} current="home" user={USER} onLogout={() => {}} />);
     expect(screen.getByRole('link', { name: 'Movimientos' })).toHaveClass(
       'focus-visible:outline-accent-on-dark',
     );
-    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toHaveClass(
+    expect(screen.getByRole('button', { name: /Ana Gómez Castillo/ })).toHaveClass(
       'focus-visible:outline-accent-on-dark',
     );
   });

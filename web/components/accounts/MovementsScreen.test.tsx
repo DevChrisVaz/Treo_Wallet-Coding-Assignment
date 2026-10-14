@@ -274,6 +274,7 @@ describe('MovementsScreen', () => {
     }));
     renderWithClient(<MovementsScreen accountId={PRINCIPAL.id} />);
     await screen.findByText(/Medianoche/);
+    await screen.findByRole('heading', { name: 'Estado de cuenta' });
     // Los días van a nivel 2, bajo el h1 de AppShell; la tarjeta del estado de cuenta va después
     // del historial (R53).
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
@@ -371,7 +372,7 @@ describe('MovementsScreen con el estado de cuenta', () => {
     vi.useRealTimers();
   });
 
-  it('WEB-32 ofrece descargar el estado de cuenta de la cuenta abierta: septiembre 2026 por defecto', async () => {
+  it('WEB-32 ofrece descargar el estado de cuenta de la cuenta abierta: el mes de creación es el único', async () => {
     reads(() => PAGE_1);
     bffDownloadMock.mockResolvedValue({
       blob: new Blob(['%PDF-'], { type: 'application/pdf' }),
@@ -385,12 +386,15 @@ describe('MovementsScreen con el estado de cuenta', () => {
     const user = userEvent.setup();
     renderWithClient(<MovementsScreen accountId={PRINCIPAL.id} />);
 
-    expect(screen.getByRole('heading', { name: 'Estado de cuenta' })).toBeVisible();
-    expect(screen.getByLabelText('Mes')).toHaveValue('2026-09');
+    // La tarjeta espera al resumen de cuentas: de él sale el mes de creación (WEB-32).
+    expect(await screen.findByRole('heading', { name: 'Estado de cuenta' })).toBeVisible();
+    // Principal se abrió el 1 de octubre de 2026: octubre (en curso) es el único mes.
+    expect(screen.getByLabelText('Mes')).toHaveValue('2026-10');
+    expect(screen.getAllByRole('option')).toHaveLength(1);
     await user.click(screen.getByRole('button', { name: 'Descargar PDF' }));
 
     await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
-    expect(bffDownloadMock).toHaveBeenCalledWith(`accounts/${PRINCIPAL.id}/statements/2026-09`);
+    expect(bffDownloadMock).toHaveBeenCalledWith(`accounts/${PRINCIPAL.id}/statements/2026-10`);
   });
 
   it('WEB-32 con RATE_LIMITED muestra el mensaje con la espera y sigue mostrando los movimientos', async () => {

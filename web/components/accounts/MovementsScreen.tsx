@@ -46,6 +46,9 @@ export function MovementsScreen({ accountId }: { accountId: string }) {
   const queryKey = useMemo(() => queryKeys.movements(accountId, filters), [accountId, filters]);
   const invertedRange = isInvertedRange(filters);
 
+  // El primer mes del estado de cuenta es el de la creación de la cuenta (WEB-32).
+  const createdAt = overview.data?.accounts.find((account) => account.id === accountId)?.createdAt;
+
   useEffect(() => select(accountId), [accountId, select]);
 
   const movements = useInfiniteQuery({
@@ -162,7 +165,9 @@ export function MovementsScreen({ accountId }: { accountId: string }) {
       {/* Función propia de la web, fuera de las historias aprobadas (R53): tarjeta aparte después
           del historial, para no mover el selector, "Filtros" ni la lista de la historia
           `Movements`. La clave reinicia el mes elegido al cambiar de cuenta. */}
-      <StatementDownload key={accountId} accountId={accountId} />
+      {createdAt ? (
+        <StatementDownload key={accountId} accountId={accountId} createdAt={createdAt} />
+      ) : null}
 
       <BottomSheet
         open={filtersOpen}

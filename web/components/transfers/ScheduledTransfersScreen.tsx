@@ -16,7 +16,7 @@ import { describeError, describeProblem } from '@/lib/client/problem-messages';
 import { queryKeys } from '@/lib/client/query-keys';
 import { scheduledTransfersKey, useScheduledTransfers } from '@/lib/client/scheduled-transfers';
 import { SCHEDULED_TRANSFERS_PATH, loginPath } from '@/lib/navigation';
-import { formatScheduledDate } from '@/lib/scheduled-date';
+import { formatScheduledInstant } from '@/lib/scheduled-date';
 
 /*
  * Página "Programadas" (WEB-34, D11 de scheduled-transfers): lista de `listScheduledTransfers` por
@@ -35,7 +35,7 @@ function destinationOf(transfer: Transfer): string {
 }
 
 function dateOf(transfer: Transfer): string {
-  return transfer.scheduledFor ? formatScheduledDate(transfer.scheduledFor) : '';
+  return transfer.scheduledFor ? formatScheduledInstant(transfer.scheduledFor) : '';
 }
 
 /** Elementos que reciben foco con Tab dentro del diálogo. */

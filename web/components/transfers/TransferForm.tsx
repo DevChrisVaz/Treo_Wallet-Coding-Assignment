@@ -16,6 +16,7 @@ import type {
   TransferFormValues,
   TransferRecipient,
 } from '@/lib/client/transfer-flow';
+import { digitsOnlyField } from '@/lib/client/form-errors';
 import { serverFieldErrors, transferResolver } from '@/lib/client/transfer-form';
 import { defaultOriginId, originsFor } from '@/lib/client/transfer-steps';
 import { maskClabe } from '@/lib/money';
@@ -50,6 +51,7 @@ function defaults(props: TransferFormProps): TransferFormValues {
     reference: '',
     when: 'NOW',
     scheduledFor: '',
+    scheduledTime: '',
   };
 }
 
@@ -61,6 +63,7 @@ const STEP_FIELDS: ReadonlySet<keyof TransferFormValues> = new Set([
   'reference',
   'when',
   'scheduledFor',
+  'scheduledTime',
 ]);
 
 /**
@@ -195,18 +198,21 @@ export function TransferForm(props: TransferFormProps) {
         {...register('concept')}
       />
       <TextField
-        label="Referencia"
+        label="Referencia (opcional)"
         inputMode="numeric"
-        hint="De 1 a 7 dígitos."
+        maxLength={7}
+        hint="Hasta 7 dígitos."
         autoComplete="off"
         error={errors.reference?.message}
-        {...register('reference')}
+        {...digitsOnlyField(register('reference'), 7)}
       />
       <ScheduleField
         when={when}
         whenField={register('when')}
         dateField={register('scheduledFor')}
+        timeField={register('scheduledTime')}
         error={errors.scheduledFor?.message}
+        timeError={errors.scheduledTime?.message}
       />
       <StepActions>
         <Button type="submit">Continuar</Button>

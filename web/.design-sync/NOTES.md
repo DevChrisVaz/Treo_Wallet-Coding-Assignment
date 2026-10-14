@@ -68,7 +68,7 @@ node .ds-sync/package-validate.mjs ./ds-bundle
 - `dtsPropsFor` (MovementRow, Receipt, AccountCard, DailyLimitMeter): el extractor no resuelve los
   tipos del contrato generados por openapi-typescript (`components["schemas"][…]`) y los deja como
   `unknown`. Los cuerpos están escritos a mano desde `contract/openapi.yaml`.
-- Estados que no se capturan en estático: la CLABE completa de AccountCard ("Mostrar CLABE"), el foco
+- Estados que no se capturan en estático: el foco
   del SkipLink, el select nativo abierto, escribir/pegar el código, la animación de los esqueletos.
 - Hallazgos de los tokens (no de las previews): `info-soft` y `success-soft` comparten `#EDF7ED`; la
   pista vacía de DailyLimitMeter (`bg-neutral-soft`) casi no se ve sobre blanco.
@@ -157,7 +157,7 @@ Regla de veredicto, en este orden (cualquier otra cosa es estructural y se corri
 
 1. **por diseño**: el `-diff.png` muestra una diferencia acordada: 4.ª pestaña Beneficiarios, fila
    "Filtros", cuentas propias como destinatario, select nativo de una línea, textos propios de cada
-   app, "Mostrar CLABE" de la web (R29) o la ayuda del monto de cada app (R30). La nota dice cuál y
+   app o la ayuda del monto de cada app (R30). La nota dice cuál y
    "resto" es el `diffRatio` de la misma captura sin esa zona (alineando lo que esta empuja).
 2. **idéntico**: si no, `diffRatio` < 0.002.
 3. **suavizado**: si no, y al revisar el `-diff.png` solo hay píxeles en el borde de los glifos
@@ -165,7 +165,7 @@ Regla de veredicto, en este orden (cualquier otra cosa es estructural y se corri
 
 | Historia | diffRatio | Veredicto | Nota |
 |---|---|---|---|
-| `Home` | 0.0119 | por diseño | 4.ª pestaña Beneficiarios y "Mostrar CLABE" de la web (R29: mismo aspecto, funciones propias); resto 0.0041 |
+| `Home` | 0.0119 | por diseño | 4.ª pestaña Beneficiarios; resto 0.0041 (WEB-28: ya no hay "Mostrar CLABE", la R29 dejó de ser una diferencia; medir de nuevo) |
 | `HomeEmpty` | 0.0140 | por diseño | 4.ª pestaña; texto del vacío de cada app; resto 0.0016 |
 | `HomeError` | 0.0081 | por diseño | 4.ª pestaña; resto 0.0000 |
 | `HomeLoading` | 0.0081 | por diseño | 4.ª pestaña; resto 0.0000 |
@@ -276,7 +276,7 @@ paréntesis, página completa (`-tall`), las dos con la misma fuente.
 |---|---|---|---|---|---|---|---|
 | `Beneficiaries` | 0.0077 / 0.0000 | 0.0077 / 0.0000 | 0.0035 / 0.0000 | — | — | idéntico | "Agregar beneficiario" en la barra superior, como la historia (R44, WEB-26) |
 | `BeneficiariesEmpty` | 0.0107 / 0.0000 | 0.0107 / 0.0000 | 0.0045 / 0.0000 | — | — | idéntico | |
-| `Home` | 0.0174 / 0.0000 | 0.0218 / 0.0000 | 0.0126 / 0.0000 | 0.0000 | 0.0119 (0.0089) | por diseño | D: 4.ª pestaña y "Mostrar CLABE" (R29); resto de la página completa sin la barra 0.0050 (suavizado) |
+| `Home` | 0.0174 / 0.0000 | 0.0218 / 0.0000 | 0.0126 / 0.0000 | 0.0000 | 0.0119 (0.0089) | por diseño | D: 4.ª pestaña (antes también "Mostrar CLABE", R29, que WEB-28 quitó); resto de la página completa sin la barra 0.0050 (suavizado) |
 | `HomeEmpty` | 0.0132 / 0.0000 | 0.0132 / 0.0000 | 0.0054 / 0.0000 | 0.0000 | 0.0140 (0.0140) | por diseño | D: 4.ª pestaña; texto del vacío de cada app |
 | `HomeError` | 0.0081 / 0.0000 | 0.0081 / 0.0000 | 0.0035 / 0.0000 | 0.0000 | 0.0081 (0.0081) | por diseño | D: 4.ª pestaña |
 | `HomeLoading` | 0.0020 / 0.0000 | 0.0020 / 0.0000 | 0.0017 / 0.0000 | 0.0000 | 0.0081 (0.0081) | por diseño | D: 4.ª pestaña; las dos saludan a Ana mientras cargan |
@@ -340,6 +340,33 @@ Hermes, rasterizado de fuentes en iOS/Android, áreas seguras en dispositivos, a
 RNTL de 7.1–7.5), el layout de pestañas de expo-router (el lienzo usa el `TabBar` del kit que ese
 layout renderiza) y la API real (sin cambios en este cambio; se probó de punta a punta en `web-app`
 9.2).
+
+## Cambios de UX (change ux-fixes): historias de lienzo
+
+El lienzo va primero y la app después. Estas historias muestran el diseño objetivo; lo marcado como
+"por implementar" está compuesto en la historia (copia del JSX) y la app aún no lo tiene. Revisadas
+a 1280 y 390 con capturas de página completa.
+
+| Cambio | Historias (`AppShell` salvo que se indique) | Estado en la app |
+|---|---|---|
+| WEB-26 perfil de la barra lateral | `SideNav`: `Profile`, `LongProfile` (nombre y correo muy largos, con puntos suspensivos), `MenuOpen`, `MenuOpenLongProfile`; todas las pantallas de escritorio la muestran | **Hecho en el kit** (`ui/SideNav.tsx`, `ProfileMenu`); **hecho en la app**: `AppFrame` lo cablea al cierre de sesión existente (`useLogout`), con nombre y correo de la sesión; el control de cierre suelto ya no existe (el menú de la cuenta de teléfono, `AppHeader`, sigue igual). `defaultMenuOpen` es solo para lienzos y pruebas |
+| WEB-35 Recibir | `QuickActions`: `WithReceive`; `Home` (acción "Recibir" tras "Transferir", tarjetas con la CLABE enmascarada); `HomeReceive`, `HomeReceiveCopied`, `HomeReceiveSavings` (hoja "Recibir dinero": selector de cuenta, Titular/Banco/Cuenta/CLABE agrupada, "Copiar CLABE" y "CLABE copiada"); `AccountCard`: `MaskedClabe` | Tarjeta sin "Mostrar CLABE": **hecho en el kit**. Acción "Recibir" y hoja: **hechos en la app** (`accounts/ReceiveSheet.tsx`, titular desde `SessionUserProvider`; copia con `navigator.clipboard` y avisa si falla; la hoja usa `BottomSheet` del kit; teléfono = hoja, escritorio = panel centrado, según el ancho). La web no lleva "Compartir" |
+| WEB-36 búsqueda de beneficiarios | `SearchField`: `Empty`, `Filled`, `Interactive`; `Beneficiaries`, `BeneficiariesSearchResults` («mar»), `BeneficiariesNoResults`; `TransferRecipient`, `TransferRecipientSearchResults`, `TransferRecipientNoResults` | `SearchField` **hecho en el kit**; filtro y vacíos **hechos en la app** (`beneficiaries/BeneficiarySearch.tsx`, `matchesBeneficiary` del contrato; `BeneficiariesScreen` y `RecipientStep`). En el paso de destinatario el vacío va sin tarjeta propia (`flat`) para no anidar sombras; suelto en la página es el `EmptyState` |
+| WEB-32 meses del estado de cuenta | `StatementDownload` (sin historia nueva) | **Hecho en la app**: `statementMonths(createdAt, now)` con `listStatementPeriods`; un 422 en `/period` se muestra como "Ese mes es anterior a la apertura de tu cuenta…" |
+| WEB-11 registro | `Register` (con "Confirmar contraseña"), `RegisterErrors` (errores en línea: confirmación, nombre, RFC contra CURP, teléfono) | **Hecho** (`RegisterForm`: `registerFormAt`, `mode: 'onTouched'`, "Confirmar contraseña" solo de interfaz, CURP/RFC con `uppercaseAlphanumeric` y teléfono con `digitsOnly`, errores del servidor en `/curp` y `/rfc`) |
+| WEB-21 / WEB-16 monto y referencia | `TransferAmount` ("1,250.00"), `TransferAmountFormatted` ("12,345.67", referencia vacía, el resumen dice "Sin referencia"); `Receipt`: `WithoutReference`; `MovementRow`: `WithoutReference` | **Hecho** (`AmountField` da formato con `sanitizeAmountTyping` y conserva el cursor; "Referencia (opcional)" solo dígitos, se omite si está vacía; el resumen dice "Sin referencia" y la revisión oculta la fila) |
+| WEB-33 programar con hora | `ScheduleField`: `Scheduled`, `OutOfRange`, `TooSoon`, `DateOnly`; `TransferAmountScheduled`, `TransferReviewScheduled`, `TransferScheduled`, `ScheduledTransfers`, `ScheduledTransfersCancel`; `Receipt`: `Scheduled` | **Hecho** (fecha y hora en `TransferForm`, instante con `mexicoCityToInstant`, validación con `transferFormAt(ahora)`; revisión, resultado, detalle y lista dicen "20 de octubre de 2026, 14:30") |
+
+- Kit nuevo o ampliado: `SearchField` (`ui/SearchField.tsx`, exportado en `entry.ts`, stub `docs/SearchField.md`);
+  `Icon`/`IconButton`/`Button` aceptan `IconName` = concepto del paquete de tokens o glifo extra
+  (`EXTRA_ICONS`: `search`, `copy`, `check`, `selector`); si pasan a ser conceptos compartidos con móvil,
+  súbelos a `iconConcepts`. `moneyIn` (flecha entrante) ya existía y es el icono de "Recibir".
+- El texto de error de las historias de registro y de programación es el propuesto en el lienzo; el
+  contrato decide el mensaje final (por ejemplo "El RFC no coincide con tu CURP" ya está fijado).
+- Paridad: los nombres nuevos de web (`HomeReceive`, `TransferRecipientSearchResults`, …) emparejan con
+  móvil solo si `Screen` usa el mismo nombre. Registro, `SideNav` y programación no tienen pareja
+  móvil. La diferencia R29 "Mostrar CLABE" **ya no existe**: ambas apps muestran la CLABE
+  enmascarada y la completa solo en "Recibir dinero".
 
 ## Funciones propias de cada plataforma (bonus, P2)
 

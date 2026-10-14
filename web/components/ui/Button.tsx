@@ -1,6 +1,5 @@
-import type { IconConcept } from '@devchrisvaz/wallet-design-tokens';
 import type { ComponentPropsWithRef, ReactNode } from 'react';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 
@@ -31,7 +30,7 @@ export interface ButtonProps extends ComponentPropsWithRef<'button'> {
   loading?: boolean;
   loadingLabel?: ReactNode;
   /** Icono a la izquierda del texto. */
-  icon?: IconConcept;
+  icon?: IconName;
 }
 
 function Spinner() {

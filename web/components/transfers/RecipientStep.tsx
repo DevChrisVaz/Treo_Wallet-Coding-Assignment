@@ -1,6 +1,11 @@
 import { formatMXN, type Account, type Beneficiary } from '@devchrisvaz/wallet-contract';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import {
+  BeneficiaryNoResults,
+  BeneficiarySearchField,
+  useBeneficiarySearch,
+} from '@/components/beneficiaries/BeneficiarySearch';
 import { Avatar, initials } from '@/components/ui/Avatar';
 import { buttonClasses } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -47,10 +52,12 @@ function RecipientOption({
 
 /**
  * Paso 1 del flujo (WEB-30): a quién se envía. Ofrece todas las cuentas propias (R38: el origen se
- * elige en el paso siguiente, que ya no ofrece la cuenta elegida aquí) y los beneficiarios. En
+ * elige en el paso siguiente, que ya no ofrece la cuenta elegida aquí) y los beneficiarios, que se pueden
+ * buscar (WEB-36; las cuentas propias no se filtran). En
  * teléfono también lleva a las transferencias programadas (WEB-34), que no son pestaña.
  */
 export function RecipientStep({ accounts, beneficiaries, onChoose }: RecipientStepProps) {
+  const search = useBeneficiarySearch(beneficiaries);
   return (
     <>
       <ListSection title="Tus cuentas">
@@ -68,19 +75,26 @@ export function RecipientStep({ accounts, beneficiaries, onChoose }: RecipientSt
       </ListSection>
       <ListSection title="Beneficiarios">
         {beneficiaries.length > 0 ? (
-          <ul className="divide-y divide-border">
-            {beneficiaries.map((beneficiary) => (
-              <RecipientOption
-                key={beneficiary.id}
-                avatar={<Avatar initials={initials(beneficiary.name)} />}
-                label={beneficiary.alias}
-                description={`${beneficiary.name} · CLABE ${maskClabe(beneficiary.clabe)}`}
-                onClick={() =>
-                  onChoose({ destinationType: 'BENEFICIARY', beneficiaryId: beneficiary.id })
-                }
-              />
-            ))}
-          </ul>
+          <div className="grid gap-2">
+            <BeneficiarySearchField query={search.query} onChange={search.setQuery} />
+            {search.visible.length > 0 ? (
+              <ul className="divide-y divide-border">
+                {search.visible.map((beneficiary) => (
+                  <RecipientOption
+                    key={beneficiary.id}
+                    avatar={<Avatar initials={initials(beneficiary.name)} />}
+                    label={beneficiary.alias}
+                    description={`${beneficiary.name} · CLABE ${maskClabe(beneficiary.clabe)}`}
+                    onClick={() =>
+                      onChoose({ destinationType: 'BENEFICIARY', beneficiaryId: beneficiary.id })
+                    }
+                  />
+                ))}
+              </ul>
+            ) : (
+              <BeneficiaryNoResults query={search.query} onClear={search.clear} flat />
+            )}
+          </div>
         ) : (
           <p className="py-3 text-body-sm text-fg-secondary">
             Aún no tienes beneficiarios.{' '}

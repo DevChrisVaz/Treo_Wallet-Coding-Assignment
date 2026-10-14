@@ -29,6 +29,7 @@ function draft(amount: string): TransferDraft {
       reference: '1',
       when: 'NOW',
       scheduledFor: '',
+      scheduledTime: '',
     },
     request: {
       fromAccountId: PRINCIPAL.id,
@@ -153,7 +154,7 @@ describe('pasos del flujo', () => {
   it('WEB-33 el comprobante de una programada se titula "Transferencia programada", también tras el código', () => {
     const scheduled = transfer({
       status: 'SCHEDULED',
-      scheduledFor: '2026-10-20',
+      scheduledFor: '2026-10-20T20:30:00.000Z',
       completedAt: null,
     });
     expect(receiptTitle(scheduled)).toBe('Transferencia programada');
@@ -180,15 +181,18 @@ describe('pasos del flujo', () => {
       recipient: { destinationType: 'BENEFICIARY', beneficiaryId: BENEFICIARY.id },
     };
     const values = draft('1000').values;
-    const live = (when: 'NOW' | 'SCHEDULED', scheduledFor: string) => ({
+    const live = (when: 'NOW' | 'SCHEDULED', scheduledFor: string, scheduledTime = '14:30') => ({
       ...CTX,
-      live: { ...values, when, scheduledFor },
+      live: { ...values, when, scheduledFor, scheduledTime },
     });
     expect(transferSummary(toLuis, live('SCHEDULED', '2026-10-20')).rows.programada).toBe(
-      '2026-10-20',
+      '2026-10-20T20:30:00.000Z',
     );
     // "Ahora" no envía fecha aunque se haya escrito una; una fecha incompleta aún no se resume.
     expect(transferSummary(toLuis, live('NOW', '2026-10-20')).rows).not.toHaveProperty(
+      'programada',
+    );
+    expect(transferSummary(toLuis, live('SCHEDULED', '2026-10-20', '')).rows).not.toHaveProperty(
       'programada',
     );
     expect(transferSummary(toLuis, live('SCHEDULED', '2026-10')).rows).not.toHaveProperty(
@@ -196,22 +200,25 @@ describe('pasos del flujo', () => {
     );
 
     const scheduledDraft = draft('1000');
-    scheduledDraft.request = { ...scheduledDraft.request, scheduledFor: '2026-10-20' };
+    scheduledDraft.request = {
+      ...scheduledDraft.request,
+      scheduledFor: '2026-10-20T20:30:00.000Z',
+    };
     expect(
       transferSummary({ step: 'confirm', draft: scheduledDraft, status: 'idle' }, CTX).rows
         .programada,
-    ).toBe('2026-10-20');
+    ).toBe('2026-10-20T20:30:00.000Z');
     expect(transferSummary(confirm('1000'), CTX).rows).not.toHaveProperty('programada');
 
     const scheduled = transfer({
       status: 'SCHEDULED',
-      scheduledFor: '2026-10-20',
+      scheduledFor: '2026-10-20T20:30:00.000Z',
       completedAt: null,
     });
     expect(
       transferSummary({ step: 'receipt', transfer: scheduled, replayed: false }, CTX).rows
         .programada,
-    ).toBe('2026-10-20');
+    ).toBe('2026-10-20T20:30:00.000Z');
     expect(
       transferSummary({ step: 'receipt', transfer: transfer(), replayed: false }, CTX).rows,
     ).not.toHaveProperty('programada');

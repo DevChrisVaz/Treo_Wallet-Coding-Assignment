@@ -4,7 +4,7 @@ import { scheduledSendText } from './ScheduleField';
 
 /**
  * Fila etiqueta / valor del resumen (revisión y panel lateral). Un valor largo ("Se enviará el 20 de
- * octubre de 2026") se reparte parejo en sus líneas, sin una palabra suelta al final.
+ * octubre de 2026, 14:30") se reparte parejo en sus líneas, sin una palabra suelta al final.
  */
 export function SummaryRow({ term, value }: { term: string; value: string | undefined }) {
   return (

@@ -28,7 +28,7 @@ function field(name: string, value?: string): Field {
   };
 }
 
-/** Por omisión: "Ahora", sin fecha. */
+/** Por omisión: "Ahora", sin fecha ni hora. */
 export const Now = () => (
   <div className="max-w-xl">
     <ScheduleField
@@ -40,26 +40,54 @@ export const Now = () => (
   </div>
 );
 
-/** "Programar" con una fecha dentro del rango. */
+/** "Programar" con fecha y hora lado a lado (WEB-33: la hora es de la Ciudad de México, a minutos). */
 export const Scheduled = () => (
   <div className="max-w-xl">
     <ScheduleField
       when="SCHEDULED"
       whenField={field('when', 'SCHEDULED')}
       dateField={field('scheduledFor', '2026-10-20')}
+      timeField={field('scheduledTime', '14:30')}
       now={NOW}
     />
   </div>
 );
 
-/** La API rechazó la fecha (DATE_OUT_OF_RANGE): su mensaje va junto al campo. */
+/** La API rechazó el momento (DATE_OUT_OF_RANGE, WEB-33): su mensaje va junto a la fecha. */
 export const OutOfRange = () => (
   <div className="max-w-xl">
     <ScheduleField
       when="SCHEDULED"
       whenField={field('when', 'SCHEDULED')}
       dateField={field('scheduledFor', '2027-03-01')}
-      error="Elige una fecha entre mañana y 90 días después de hoy"
+      timeField={field('scheduledTime', '09:00')}
+      error="Elige un momento entre 10 minutos y 90 días después de ahora."
+      now={NOW}
+    />
+  </div>
+);
+
+/** WEB-33: hoy a las 12:05, a menos de 10 minutos de ahora (12:00): DATE_OUT_OF_RANGE. */
+export const TooSoon = () => (
+  <div className="max-w-xl">
+    <ScheduleField
+      when="SCHEDULED"
+      whenField={field('when', 'SCHEDULED')}
+      dateField={field('scheduledFor', '2026-10-13')}
+      timeField={field('scheduledTime', '12:05')}
+      error="Elige un momento entre 10 minutos y 90 días después de ahora."
+      now={NOW}
+    />
+  </div>
+);
+
+/** Sin `timeField` (formulario anterior): solo la fecha. */
+export const DateOnly = () => (
+  <div className="max-w-xl">
+    <ScheduleField
+      when="SCHEDULED"
+      whenField={field('when', 'SCHEDULED')}
+      dateField={field('scheduledFor', '2026-10-20')}
       now={NOW}
     />
   </div>

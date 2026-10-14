@@ -3,9 +3,17 @@ import * as Lucide from 'lucide-react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Avatar, initials } from './Avatar';
-import { ICONS, Icon, IconButton } from './Icon';
+import { EXTRA_ICONS, ICONS, Icon, IconButton } from './Icon';
 
 describe('Icon', () => {
+  it.each(Object.keys(EXTRA_ICONS) as (keyof typeof EXTRA_ICONS)[])(
+    'DSG-15 el glifo extra %s se dibuja',
+    (name) => {
+      const { container } = render(<Icon name={name} />);
+      expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    },
+  );
+
   it.each(iconConcepts)('DSG-15 %s usa el icono del mapa compartido', (concept) => {
     expect(ICONS[concept]).toBe((Lucide as unknown as Record<string, unknown>)[iconNames[concept]]);
   });
