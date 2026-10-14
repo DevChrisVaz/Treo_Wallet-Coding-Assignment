@@ -109,4 +109,15 @@ describe('BrandShell', () => {
     );
     expect(screen.getByText('Treo').parentElement).toHaveClass('text-h1');
   });
+
+  it('WEB-23 la marca es el encabezado de la página (banner): fuera de main nada queda sin landmark', () => {
+    render(
+      <BrandShell title="Inicia sesión">
+        <p>Formulario</p>
+      </BrandShell>,
+    );
+    const banner = screen.getByRole('banner');
+    expect(banner).toContainElement(screen.getByText('Treo'));
+    expect(banner).toContainElement(screen.getByText('Tu billetera digital en pesos mexicanos.'));
+  });
 });

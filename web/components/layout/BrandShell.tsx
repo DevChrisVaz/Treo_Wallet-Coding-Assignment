@@ -10,7 +10,8 @@ export function BrandShell({ title, children }: { title: string; children: React
   return (
     <div className="flex min-h-dvh flex-col bg-surface-hero dashboard:flex-row">
       <SkipLink />
-      <div className="mx-auto flex w-full max-w-app items-end px-5 pt-16 pb-8 dashboard:max-w-none dashboard:flex-1 dashboard:items-center dashboard:justify-center dashboard:p-16">
+      {/* La marca es el encabezado de la página (banner): todo el contenido queda en un landmark. */}
+      <header className="mx-auto flex w-full max-w-app items-end px-5 pt-16 pb-8 dashboard:max-w-none dashboard:flex-1 dashboard:items-center dashboard:justify-center dashboard:p-16">
         <div className="grid gap-3">
           {/* En h1, como el Wordmark completo de la pantalla de marca móvil (WEB-25). */}
           <Wordmark tone="inverse" size="brand" />
@@ -18,7 +19,7 @@ export function BrandShell({ title, children }: { title: string; children: React
             Tu billetera digital en pesos mexicanos.
           </p>
         </div>
-      </div>
+      </header>
       <main
         id={MAIN_CONTENT_ID}
         tabIndex={-1}

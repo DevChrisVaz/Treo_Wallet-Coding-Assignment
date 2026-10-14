@@ -66,6 +66,14 @@ describe('AppHeader', () => {
     expect(screen.getByRole('button', { name: 'Menú de la cuenta' })).toHaveClass('size-11');
   });
 
+  it('WEB-23 el botón del avatar no tiene más texto que su etiqueta: las iniciales las dibuja CSS', () => {
+    render(<AppHeader user={USER} />);
+    const button = screen.getByRole('button', { name: 'Menú de la cuenta' });
+    // Su nombre contiene todo su texto visible (WCAG 2.5.3, axe `label-content-name-mismatch`).
+    expect(button).toHaveTextContent(/^$/);
+    expect(button.querySelector('[data-initials]')).toHaveAttribute('data-initials', 'AG');
+  });
+
   it('WEB-27 en otras pestañas muestra el título de la página', () => {
     render(<AppHeader user={USER} title="Movimientos" />);
     expect(screen.getByRole('heading', { level: 1, name: 'Movimientos' })).toBeInTheDocument();

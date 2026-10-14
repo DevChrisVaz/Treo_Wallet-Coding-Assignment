@@ -44,7 +44,7 @@ export function AppHeader({
         onClick={() => setOpen(true)}
         className="inline-flex size-11 items-center justify-center rounded-pill"
       >
-        <Avatar tone="hero" initials={initials(user.name)} />
+        <Avatar tone="hero" initials={initials(user.name)} insideLabelledControl />
       </button>
       <BottomSheet open={open} onClose={() => setOpen(false)} title="Tu cuenta">
         <div className="grid gap-5">
