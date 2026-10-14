@@ -2,7 +2,7 @@ Cada tarea agrega o corrige pruebas sin tocar código de producción. Cada prueb
 
 ## 1. Transferencias inmediatas
 
-- [ ] 1.1 [api] Reintento de `POST /transfers` con la misma llave después de confirmar el OTP: 200 COMPLETED con el mismo id y sin mover dinero otra vez (TRF-03)
+- [x] 1.1 [api] Reintento de `POST /transfers` con la misma llave después de confirmar el OTP: 200 COMPLETED con el mismo id y sin mover dinero otra vez (TRF-03)
 - [ ] 1.2 [api] Una transferencia hecha por la API deja exactamente dos asientos, −X y +X, con su `transferId`; la referencia con letras responde `VALIDATION_FAILED` (TRF-21, TRF-09)
 - [ ] 1.3 [api] Una transferencia mayor al umbral que excede el límite diario se rechaza al crearla con `DAILY_LIMIT_EXCEEDED`, sin emitir código ni enviar correo (TRF-11, TRF-14)
 - [ ] 1.4 [api] Repetición con la misma llave de un rechazo `DAILY_LIMIT_EXCEEDED` (con `remaining` recalculado) y de una transferencia FAILED (200 con estado FAILED) (TRF-03, TRF-11)

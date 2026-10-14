@@ -121,6 +121,43 @@ describe('TRF-16 confirmación con el código correcto', () => {
   });
 });
 
+describe('TRF-03 reintento de la creación después de confirmar el OTP', () => {
+  beforeEach(async () => {
+    await setup();
+  });
+
+  it('TRF-03 el reintento con la misma llave y el mismo cuerpo responde 200 COMPLETED con el mismo id sin mover dinero otra vez', async () => {
+    const key = randomUUID();
+    const created = await postTransfer(t, ana, toLuis('15000.00'), key);
+    expect(created.status).toBe(201);
+    expect(created.body.status).toBe('PENDING_OTP');
+    const id = created.body.id as string;
+    const confirmed = await confirmTransfer(t, ana, id, {
+      otp: t.mailer.lastCode(ana.person.email),
+    });
+    expect(confirmed.body.status).toBe('COMPLETED');
+
+    // La app no supo que se confirmó y reintenta la creación original.
+    const retry = await postTransfer(t, ana, toLuis('15000.00'), key);
+    expect(retry.status).toBe(200);
+    expect(retry.headers['idempotent-replayed']).toBe('true');
+    expect(retry.body).toMatchObject({ id, status: 'COMPLETED' });
+    expect(await balanceOf(harness, ana.principal.id)).toBe('5000.00');
+    expect(await balanceOf(harness, luis.principal.id)).toBe('15000.00');
+    expect(await usedToday()).toBe('1500000');
+    const entries = await harness.migrator.query(
+      'SELECT amount_cents FROM app.ledger_entries WHERE transfer_id = $1 ORDER BY amount_cents',
+      [id],
+    );
+    expect(entries).toHaveLength(2);
+    const [{ n }] = await harness.migrator.query(
+      'SELECT count(*)::int AS n FROM app.transfers WHERE idempotency_key = $1',
+      [key],
+    );
+    expect(n).toBe(1);
+  });
+});
+
 describe('TRF-17 código incorrecto', () => {
   beforeEach(async () => {
     await setup();
