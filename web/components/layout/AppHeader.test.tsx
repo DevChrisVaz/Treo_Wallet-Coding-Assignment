@@ -63,6 +63,24 @@ describe('AppNav', () => {
     expect(screen.getByRole('link', { name: 'Cuentas' })).not.toHaveAttribute('aria-current');
   });
 
+  it('WEB-34 ofrece "Programadas", que lleva a /transfers/scheduled', () => {
+    render(<AppNav />);
+    expect(screen.getByRole('link', { name: 'Programadas' })).toHaveAttribute(
+      'href',
+      '/transfers/scheduled',
+    );
+  });
+
+  it('WEB-34 WEB-23 en la página de programadas marca "Programadas" y no "Transferir"', () => {
+    setLocation('/transfers/scheduled');
+    render(<AppNav />);
+    expect(screen.getByRole('link', { name: 'Programadas' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.getByRole('link', { name: 'Transferir' })).not.toHaveAttribute('aria-current');
+  });
+
   it('WEB-23 no tiene problemas de accesibilidad', async () => {
     const { container } = renderWithClient(
       <>
