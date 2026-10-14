@@ -2,7 +2,7 @@ import type { Movement } from '@devchrisvaz/wallet-contract';
 import { screen, userEvent, within } from '@testing-library/react-native';
 
 import { createFakeApi, json, problem } from '@/test-utils/fake-api';
-import { overview, principal } from '@/test-utils/fixtures';
+import { me, overview, principal } from '@/test-utils/fixtures';
 import { renderApp } from '@/test-utils/render-app';
 import { theme } from '@/theme';
 
@@ -28,11 +28,11 @@ function movement(index: number, overrides: Partial<Movement> = {}): Movement {
 const page = (items: Movement[]) => ({ items, nextCursor: items.length ? 'cursor-2' : null });
 
 async function openMovements(fake: ReturnType<typeof createFakeApi>) {
-  fake.on('GET', '/accounts', json(200, overview()));
+  fake.on('GET', '/me', json(200, me)).on('GET', '/accounts', json(200, overview()));
   return renderApp({
     fake,
-    routes: { 'accounts/[accountId]': MovementsScreen },
-    initialUrl: `/accounts/${principal.id}`,
+    routes: { movements: MovementsScreen },
+    initialUrl: '/movements',
   });
 }
 

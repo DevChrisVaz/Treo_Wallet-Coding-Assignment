@@ -19,16 +19,20 @@ interface ScreenProps {
   /** Encabezado fijo sobre el contenido desplazable. */
   header?: ReactNode;
   /**
-   * Reservado; en móvil la barra no se superpone: el navegador de pestañas la pone debajo de la
-   * pantalla, así que el contenido no reserva su alto (se conserva por compatibilidad).
+   * Pantalla de una pestaña: la barra va debajo (no encima) y pone el área segura inferior, así que
+   * la pantalla solo reserva la de arriba.
    */
   tabBar?: boolean;
 }
 
 /** Contenedor de pantalla: área segura, desplazamiento, teclado y margen del sistema. */
-export function Screen({ children, refresh, footer, header }: ScreenProps) {
+export function Screen({ children, refresh, footer, header, tabBar = false }: ScreenProps) {
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+    <SafeAreaView
+      testID="screen-safe-area"
+      style={styles.safe}
+      edges={tabBar ? ['top'] : ['top', 'bottom']}
+    >
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

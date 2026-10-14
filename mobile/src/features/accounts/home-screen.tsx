@@ -1,25 +1,24 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { useServices } from '@/app-services';
 import { Screen } from '@/components/screen';
 import {
   AccountCard,
+  AppHeader,
   Button,
   DailyLimitMeter,
   EmptyState,
   InlineAlert,
   Skeleton,
-  Wordmark,
 } from '@/components/ui';
 import { UnlockOffer } from '@/features/unlock/unlock-offer';
-import { UnlockSwitch } from '@/features/unlock/unlock-switch';
 import { errorMessage } from '@/lib/errors';
 import { useRefreshByUser } from '@/lib/use-refresh-by-user';
-import { logout } from '@/session/logout';
 import { theme } from '@/theme';
 
+import { useAccountHeader } from './account-header';
 import { useAccountsOverview } from './queries';
+import { useAccountSelection } from './selection';
 
 /**
  * Saldo de las cuentas (MOB-05): cuentas con nombre, CLABE enmascarada y saldo, lo que queda del
@@ -28,27 +27,19 @@ import { useAccountsOverview } from './queries';
  */
 export function HomeScreen() {
   const router = useRouter();
-  const { session, api } = useServices();
+  const header = useAccountHeader();
+  const { select } = useAccountSelection();
   const overview = useAccountsOverview();
   const refresh = useRefreshByUser(overview.refetch);
 
   return (
     <Screen
+      tabBar
       refresh={refresh}
-      footer={
-        <>
-          <Button label="Transferir" onPress={() => router.push('/transfer')} />
-          <Button label="Cerrar sesión" variant="ghost" onPress={() => void logout(session, api)} />
-        </>
+      header={
+        <AppHeader user={header.user} onLogout={header.onLogout} menuExtra={header.menuExtra} />
       }
     >
-      <View style={styles.header}>
-        <Wordmark variant="compact" />
-        <Text style={styles.title} accessibilityRole="header">
-          Tus cuentas
-        </Text>
-      </View>
-
       <UnlockOffer />
 
       {overview.isPending ? (
@@ -76,26 +67,20 @@ export function HomeScreen() {
               name={account.name}
               clabe={account.clabe}
               balance={account.balance}
-              onPress={() =>
-                router.push({
-                  pathname: '/accounts/[accountId]',
-                  params: { accountId: account.id },
-                })
-              }
+              onPress={() => {
+                select(account.id);
+                router.navigate('/movements');
+              }}
             />
           ))}
           <Text style={styles.hint}>Toca una cuenta para ver sus últimos movimientos.</Text>
         </View>
       )}
-
-      <UnlockSwitch />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { gap: theme.spacing[2] },
-  title: { ...theme.typography.h1, color: theme.colors.text.primary },
   list: { gap: theme.spacing[4] },
   hint: { ...theme.typography.caption, color: theme.colors.text.muted, textAlign: 'center' },
 });

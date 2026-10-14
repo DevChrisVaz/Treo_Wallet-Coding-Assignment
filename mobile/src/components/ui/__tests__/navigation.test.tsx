@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
+import { Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { theme } from '@/theme';
@@ -38,6 +39,16 @@ describe('TabBar', () => {
     );
     expect(screen.getByTestId('tab-bar')).toHaveStyle({ height: 64 + 34 });
   });
+
+  test('MOB-18 la pestaña actual lleva la etiqueta en verde de acción y las demás en gris', async () => {
+    await render(
+      <SafeAreaProvider initialMetrics={metrics}>
+        <TabBar items={['home', 'movements', 'transfer']} current="movements" onSelect={() => {}} />
+      </SafeAreaProvider>,
+    );
+    expect(screen.getByText('Movimientos')).toHaveStyle({ color: theme.colors.action.primary });
+    expect(screen.getByText('Inicio')).toHaveStyle({ color: theme.colors.text.muted });
+  });
 });
 
 describe('AppHeader', () => {
@@ -53,6 +64,18 @@ describe('AppHeader', () => {
     const sheet = screen.getByTestId('bottom-sheet');
     await fireEvent.press(within(sheet).getByRole('button', { name: 'Cerrar sesión' }));
     expect(onLogout).toHaveBeenCalledTimes(1);
+  });
+
+  test('MOB-18 MOB-24 el menú de la cuenta muestra lo que se le pase junto a "Cerrar sesión"', async () => {
+    await render(
+      <SafeAreaProvider initialMetrics={metrics}>
+        <AppHeader user={USER} onLogout={() => {}} menuExtra={<Text>Ajuste extra</Text>} />
+      </SafeAreaProvider>,
+    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Menú de la cuenta' }));
+    const sheet = screen.getByTestId('bottom-sheet');
+    expect(within(sheet).getByText('Ajuste extra')).toBeOnTheScreen();
+    expect(within(sheet).getByRole('button', { name: 'Cerrar sesión' })).toBeOnTheScreen();
   });
 
   test('MOB-18 en Inicio el saludo es el encabezado de la pantalla', async () => {

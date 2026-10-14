@@ -12,6 +12,7 @@ import {
   type FetchFn,
   type TokenRefresher,
 } from '@/api/client';
+import { AccountSelectionProvider } from '@/features/accounts/selection';
 import { Session, type SessionSnapshot } from '@/session/session';
 import { UnlockPreferenceStore } from '@/session/unlock-preference';
 
@@ -82,7 +83,9 @@ export function AppProviders({ baseUrl, fetch, services: given, children }: AppP
   const [services] = useState(() => given ?? createServices(baseUrl, fetch));
   return (
     <ServicesContext.Provider value={services}>
-      <QueryClientProvider client={services.queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={services.queryClient}>
+        <AccountSelectionProvider>{children}</AccountSelectionProvider>
+      </QueryClientProvider>
     </ServicesContext.Provider>
   );
 }

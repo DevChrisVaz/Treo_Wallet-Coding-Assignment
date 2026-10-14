@@ -31,7 +31,7 @@ export function TabBar({ items, current, onSelect }: TabBarProps) {
             accessibilityLabel={label}
             accessibilityState={{ selected: active }}
             onPress={() => onSelect(key)}
-            style={styles.item}
+            style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
           >
             <View style={[styles.pill, active && styles.pillActive]}>
               <Icon
@@ -61,6 +61,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: theme.spacing[1],
   },
+  itemPressed: { backgroundColor: theme.colors.surface.subtle },
   pill: {
     width: theme.spacing[16],
     height: theme.spacing[8],

@@ -95,7 +95,7 @@ export function IconButton({ icon, label, onPress, tone = 'default' }: IconButto
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      hitSlop={4}
+      hitSlop={theme.spacing[1]}
       style={styles.button}
     >
       <Icon name={icon} size="lg" color={color} />

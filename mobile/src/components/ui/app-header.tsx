@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { theme } from '@/theme';
@@ -12,10 +12,12 @@ interface AppHeaderProps {
   /** Título de la pestaña; sin él, saluda con el nombre (Inicio). */
   title?: string;
   onLogout?: () => void;
+  /** Contenido adicional del menú de la cuenta, antes de "Cerrar sesión" (p. ej., ajustes). */
+  menuExtra?: ReactNode;
 }
 
 /** Encabezado de la app (MOB-18): saludo o título y el menú de la cuenta. */
-export function AppHeader({ user, title, onLogout }: AppHeaderProps) {
+export function AppHeader({ user, title, onLogout, menuExtra }: AppHeaderProps) {
   const [open, setOpen] = useState(false);
   const firstName = user.name.trim().split(/\s+/)[0] ?? user.name;
   return (
@@ -51,6 +53,7 @@ export function AppHeader({ user, title, onLogout }: AppHeaderProps) {
             </Text>
           </View>
         </View>
+        {menuExtra}
         {onLogout ? (
           <Button label="Cerrar sesión" icon="logout" variant="secondary" onPress={onLogout} />
         ) : null}
