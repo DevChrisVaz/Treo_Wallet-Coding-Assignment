@@ -86,6 +86,55 @@ describe('TRF-03 reintentos con la misma llave', () => {
   });
 });
 
+describe('TRF-02 y TRF-03 la llave es por usuario', () => {
+  it('TRF-03 dos usuarios con la misma llave crean dos transferencias independientes, sin replay ni IDEMPOTENCY_KEY_REUSED', async () => {
+    await fund(t, ana.principal.id, '1000.00');
+    await fund(t, luis.principal.id, '1000.00');
+    const key = randomUUID();
+    const fromAna = await postTransfer(
+      t,
+      ana,
+      { ...toLuis('100.00'), destination: { type: 'OWN_ACCOUNT', accountId: ana.ahorro.id } },
+      key,
+    );
+    const fromLuis = await postTransfer(
+      t,
+      luis,
+      {
+        fromAccountId: luis.principal.id,
+        destination: { type: 'OWN_ACCOUNT', accountId: luis.ahorro.id },
+        amount: '200.00',
+        concept: 'Renta',
+        reference: '1',
+      },
+      key,
+    );
+    expect(fromAna.status).toBe(201);
+    expect(fromLuis.status).toBe(201);
+    expect(fromLuis.headers['idempotent-replayed']).toBeUndefined();
+    expect(fromLuis.body.id).not.toBe(fromAna.body.id);
+    expect(await transfersWithKey(key)).toBe(2);
+    expect(await balanceOf(harness, ana.principal.id)).toBe('900.00');
+    expect(await balanceOf(harness, luis.principal.id)).toBe('800.00');
+
+    // Cada quien reintenta lo suyo y recibe su propia transferencia.
+    const retryLuis = await postTransfer(
+      t,
+      luis,
+      {
+        fromAccountId: luis.principal.id,
+        destination: { type: 'OWN_ACCOUNT', accountId: luis.ahorro.id },
+        amount: '200.00',
+        concept: 'Renta',
+        reference: '1',
+      },
+      key,
+    );
+    expect(retryLuis.status).toBe(200);
+    expect(retryLuis.body.id).toBe(fromLuis.body.id);
+  });
+});
+
 describe('TRF-04 llave reutilizada con otro contenido', () => {
   it('TRF-04 la llave de una transferencia de 100.00 usada para 200.00 es 422 IDEMPOTENCY_KEY_REUSED', async () => {
     await fund(t, ana.principal.id, '1000.00');
