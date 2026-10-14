@@ -1,7 +1,7 @@
 import { problemMessage } from '@devchrisvaz/wallet-design-tokens';
-import { screen, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTransfer } from '@/app/actions/transfers';
 import { bffGet } from '@/lib/client/bff';
 import { BENEFICIARY, PRINCIPAL, pendingOtpTransfer, problem, transfer } from '@/test/fixtures';
@@ -214,4 +214,151 @@ describe('TransferFlow · confirmación', () => {
       screen.getByRole('heading', { level: 1, name: 'Estado sin confirmar' }),
     ).not.toHaveFocus();
   });
+});
+
+describe('TransferFlow · confirmación de una programada', () => {
+  // 14 de octubre de 2026, 12:00 en la Ciudad de México.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-14T18:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const SCHEDULED_REQUEST = { ...REQUEST, amount: '1000', scheduledFor: '2026-10-20' };
+  const scheduled = () => transfer({ status: 'SCHEDULED', scheduledFor: '2026-10-20' });
+
+  it('WEB-33 la revisión dice "Se enviará el 20 de octubre de 2026"', async () => {
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+
+    await fillTransfer(user, '1,000', '2026-10-20');
+
+    const summary = await screen.findByRole('region', { name: 'Revisa tu transferencia' });
+    expect(summary).toHaveTextContent('Se enviará el 20 de octubre de 2026');
+    // Es una fila más del resumen de la revisión, después de la referencia (WEB-30).
+    expect(within(summary).getByText('Cuándo').closest('dl')).toHaveTextContent(
+      'Referencia1CuándoSe enviará el 20 de octubre de 2026',
+    );
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it('WEB-16 una transferencia inmediata no dice cuándo se enviará', async () => {
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await fillTransfer(user);
+    const summary = await screen.findByRole('region', { name: 'Revisa tu transferencia' });
+    expect(summary).not.toHaveTextContent('Se enviará el');
+  });
+
+  it('WEB-33 WEB-17 con doble clic al programar envía una sola creación con scheduledFor y su llave', async () => {
+    createMock.mockReturnValue(new Promise(() => undefined));
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await fillTransfer(user, '1,000', '2026-10-20');
+
+    await user.dblClick(await screen.findByRole('button', { name: 'Enviar' }));
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(createMock).toHaveBeenCalledWith(
+      SCHEDULED_REQUEST,
+      expect.stringMatching(/^[0-9a-f-]{36}$/),
+    );
+    expect(screen.getByRole('button', { name: 'Enviando…' })).toBeDisabled();
+  });
+
+  it('WEB-33 WEB-17 dos clics en "Enviar" antes de que React vuelva a pintar envían una sola programación', async () => {
+    createMock.mockReturnValue(new Promise(() => undefined));
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await fillTransfer(user, '1,000', '2026-10-20');
+    const send = await screen.findByRole('button', { name: 'Enviar' });
+
+    // En un mismo act el botón sigue habilitado para el segundo clic: solo el candado lo detiene.
+    act(() => {
+      send.click();
+      send.click();
+    });
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(createMock).toHaveBeenCalledWith(
+      SCHEDULED_REQUEST,
+      expect.stringMatching(/^[0-9a-f-]{36}$/),
+    );
+  });
+
+  it('WEB-33 WEB-17 tras un error de red, "Reintentar" reenvía la programación con la misma llave', async () => {
+    createMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    createMock.mockResolvedValueOnce({ ok: true, data: { transfer: scheduled(), replayed: true } });
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await fillTransfer(user, '1,000', '2026-10-20');
+
+    await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+    await user.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    expect(createMock).toHaveBeenCalledTimes(2);
+    expect(createMock.mock.calls[1]?.[0]).toEqual(SCHEDULED_REQUEST);
+    expect(keysSent()[1]).toBe(keysSent()[0]);
+    expect(await screen.findByRole('heading', { name: 'Transferencia programada' })).toBeVisible();
+  });
+
+  it('WEB-33 ante SCHEDULED_LIMIT_REACHED muestra el texto del paquete de diseño', async () => {
+    createMock.mockResolvedValue({ ok: false, problem: problem('SCHEDULED_LIMIT_REACHED') });
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await fillTransfer(user, '1,000', '2026-10-20');
+
+    await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(
+      'Llegaste al máximo de 20 transferencias programadas. Cancela alguna para programar otra.',
+    );
+    expect(alert).toHaveFocus();
+  });
+
+  it.each([
+    [
+      '/scheduledFor',
+      'DATE_OUT_OF_RANGE',
+      'Fecha de envío',
+      'Elige una fecha entre mañana y 90 días después de hoy',
+    ],
+    [
+      '/amount',
+      'TOO_LARGE',
+      'Monto',
+      'Una transferencia programada a un tercero no puede superar el límite diario de $50,000.00',
+    ],
+  ] as const)(
+    'WEB-33 WEB-17 un error de la API en %s (%s) vuelve al formulario con el error junto al campo y el siguiente envío usa otra llave',
+    async (pointer, code, label, message) => {
+      createMock.mockResolvedValueOnce({
+        ok: false,
+        problem: problem('VALIDATION_FAILED', { errors: [{ pointer, code, message }] }),
+      });
+      createMock.mockResolvedValueOnce({
+        ok: true,
+        data: { transfer: scheduled(), replayed: false },
+      });
+      const user = userEvent.setup();
+      renderWithClient(<TransferFlow />);
+      await fillTransfer(user, '1,000', '2026-10-20');
+
+      await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+
+      const field = await screen.findByLabelText(label);
+      expect(field).toHaveAttribute('aria-invalid', 'true');
+      expect(field).toHaveAccessibleDescription(expect.stringContaining(message));
+      await waitFor(() => expect(field).toHaveFocus());
+
+      await user.click(screen.getByRole('button', { name: 'Continuar' }));
+      await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+      expect(createMock).toHaveBeenCalledTimes(2);
+      expect(keysSent()[1]).not.toBe(keysSent()[0]);
+    },
+  );
 });

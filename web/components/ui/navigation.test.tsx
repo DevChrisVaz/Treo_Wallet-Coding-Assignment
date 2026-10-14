@@ -61,6 +61,29 @@ describe('TabBar', () => {
   });
 });
 
+describe('destinos solo laterales', () => {
+  const WITH_SCHEDULED: NavItem[] = [
+    ...WEB_ITEMS.slice(0, 3),
+    { key: 'scheduled', href: '/transfers/scheduled', sideOnly: true },
+    ...WEB_ITEMS.slice(3),
+  ];
+
+  it('WEB-34 WEB-27 la barra de pestañas omite "Programadas" y conserva sus cuatro pestañas', () => {
+    render(<TabBar items={WITH_SCHEDULED} current="scheduled" position="static" />);
+    const nav = screen.getByRole('navigation', { name: 'Principal' });
+    expect(within(nav).getAllByRole('link')).toHaveLength(4);
+    expect(within(nav).queryByRole('link', { name: 'Programadas' })).not.toBeInTheDocument();
+  });
+
+  it('WEB-34 WEB-26 la navegación lateral muestra "Programadas" con el icono de transferir y la marca', () => {
+    render(<SideNav items={WITH_SCHEDULED} current="scheduled" user={USER} />);
+    const link = screen.getByRole('link', { name: 'Programadas' });
+    expect(link).toHaveAttribute('href', '/transfers/scheduled');
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(link.querySelector('svg')).toHaveClass('lucide-send');
+  });
+});
+
 describe('SideNav', () => {
   it('WEB-26 marca el destino actual y cierra sesión', async () => {
     const onLogout = vi.fn();

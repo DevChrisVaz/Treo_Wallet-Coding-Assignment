@@ -1,4 +1,4 @@
-import { navDestinations, type NavDestination } from '@devchrisvaz/wallet-design-tokens';
+import { APP_DESTINATIONS, type AppDestination } from '@/lib/navigation';
 import { Avatar, initials } from './Avatar';
 import { Icon } from './Icon';
 import { RouterLink } from './RouterLink';
@@ -7,7 +7,7 @@ import { Wordmark } from './Wordmark';
 
 export interface SideNavProps {
   items: readonly NavItem[];
-  current: NavDestination | null;
+  current: AppDestination | null;
   user: { name: string; email: string };
   onLogout?: () => void;
   /** Cierre de sesión en curso: el botón muestra "Cerrando…", ocupado y deshabilitado (WEB-05). */
@@ -19,7 +19,10 @@ export interface SideNavProps {
 const ITEM =
   'flex min-h-11 items-center gap-3 rounded-md px-3 text-label focus-visible:outline-accent-on-dark';
 
-/** Navegación lateral del dashboard (WEB-26): verde profundo, destino actual en lima. */
+/**
+ * Navegación lateral del dashboard (WEB-26): verde profundo, destino actual en lima. Muestra todos los
+ * destinos, también los `sideOnly` como "Programadas" (WEB-34).
+ */
 export function SideNav({
   items,
   current,
@@ -38,7 +41,7 @@ export function SideNav({
       <nav aria-label="Principal" className="flex-1">
         <ul className="grid gap-1">
           {items.map(({ key, href }) => {
-            const { label, icon } = navDestinations[key];
+            const { label, icon } = APP_DESTINATIONS[key];
             const active = key === current;
             return (
               <li key={key}>

@@ -10,14 +10,16 @@ import { ListSection } from '@/components/ui/ListSection';
 import { Select } from '@/components/ui/Select';
 import { StepActions } from '@/components/ui/StepActions';
 import { TextField } from '@/components/ui/TextField';
-import { transferResolver } from '@/lib/client/transfer-form';
+import type { ActionProblem } from '@/lib/action-result';
 import type {
   TransferDraft,
   TransferFormValues,
   TransferRecipient,
 } from '@/lib/client/transfer-flow';
+import { serverFieldErrors, transferResolver } from '@/lib/client/transfer-form';
 import { defaultOriginId, originsFor } from '@/lib/client/transfer-steps';
 import { maskClabe } from '@/lib/money';
+import { ScheduleField } from './ScheduleField';
 
 export interface TransferFormProps {
   accounts: Account[];
@@ -28,6 +30,8 @@ export interface TransferFormProps {
   initialValues?: TransferFormValues | undefined;
   /** Acceso directo desde una cuenta (`?from=`): el origen, salvo que sea el destino (R38). */
   defaultFromAccountId?: string | undefined;
+  /** Rechazo de validación de la API: sus errores se muestran junto a cada campo (WEB-33). */
+  problem?: ActionProblem | undefined;
   onSubmit: (draft: TransferDraft) => void;
   /** Lo que se va escribiendo, para el resumen del dashboard. */
   onValuesChange?: ((values: TransferFormValues) => void) | undefined;
@@ -44,15 +48,23 @@ function defaults(props: TransferFormProps): TransferFormValues {
     amount: '',
     concept: '',
     reference: '',
+    when: 'NOW',
+    scheduledFor: '',
   };
 }
 
-/** "Para": el destinatario elegido, con su avatar y su CLABE enmascarada. */
+/**
+ * "Para": el destinatario elegido, con su avatar y su CLABE enmascarada. El destino se eligió en el
+ * paso anterior y aquí no tiene campo: un error de la API sobre él se muestra en esta fila (WEB-33).
+ */
 function RecipientRow({
   accounts,
   beneficiaries,
   recipient,
-}: Pick<TransferFormProps, 'accounts' | 'beneficiaries' | 'recipient'>) {
+  error,
+}: Pick<TransferFormProps, 'accounts' | 'beneficiaries' | 'recipient'> & {
+  error?: string | undefined;
+}) {
   const account =
     recipient.destinationType === 'OWN_ACCOUNT'
       ? accounts.find((item) => item.id === recipient.toAccountId)
@@ -81,6 +93,7 @@ function RecipientRow({
               {to.label} · CLABE {maskClabe(to.clabe)}
             </p>
           ) : null}
+          {error ? <p className="text-caption text-danger">{error}</p> : null}
         </div>
       </div>
     </ListSection>
@@ -89,15 +102,17 @@ function RecipientRow({
 
 /**
  * Paso de monto (WEB-30, WEB-16): a quién se envía, el monto como protagonista, la cuenta de origen
- * (sin la cuenta propia de destino), el concepto y la referencia. La validación es la del contrato.
+ * (sin la cuenta propia de destino), el concepto, la referencia y cuándo (ahora o en una fecha,
+ * WEB-33). La validación es la del contrato; los errores de campo de la API vuelven aquí.
  */
 export function TransferForm(props: TransferFormProps) {
-  const { accounts, beneficiaries, recipient, onSubmit, onValuesChange } = props;
+  const { accounts, beneficiaries, recipient, problem, onSubmit, onValuesChange } = props;
   const initial = defaults(props);
   const {
     register,
     handleSubmit,
     control,
+    setError,
     formState: { errors },
   } = useForm<TransferFormValues, unknown, TransferDraft>({
     resolver: transferResolver,
@@ -106,6 +121,18 @@ export function TransferForm(props: TransferFormProps) {
 
   const fromAccountId = useWatch({ control, name: 'fromAccountId' });
   const origins = originsFor(accounts, recipient);
+  const when = useWatch({ control, name: 'when' });
+
+  // Errores de campo que devolvió la API: junto a su campo, con el foco en el primero (WEB-33).
+  useEffect(() => {
+    const entries = Object.entries(serverFieldErrors(problem)) as [
+      keyof TransferFormValues,
+      string,
+    ][];
+    entries.forEach(([field, message], index) => {
+      setError(field, { type: 'server', message }, { shouldFocus: index === 0 });
+    });
+  }, [problem, setError]);
   const origin = accounts.find((account) => account.id === fromAccountId);
 
   // Lo escrito, para el resumen del dashboard; `useWatch` da los valores por omisión al inicio.
@@ -116,7 +143,12 @@ export function TransferForm(props: TransferFormProps) {
 
   return (
     <form noValidate onSubmit={handleSubmit(onSubmit)} className="grid content-start gap-5">
-      <RecipientRow accounts={accounts} beneficiaries={beneficiaries} recipient={recipient} />
+      <RecipientRow
+        accounts={accounts}
+        beneficiaries={beneficiaries}
+        recipient={recipient}
+        error={errors.beneficiaryId?.message ?? errors.toAccountId?.message}
+      />
       <AmountField
         variant="hero"
         label="Monto"
@@ -153,6 +185,12 @@ export function TransferForm(props: TransferFormProps) {
         autoComplete="off"
         error={errors.reference?.message}
         {...register('reference')}
+      />
+      <ScheduleField
+        when={when}
+        whenField={register('when')}
+        dateField={register('scheduledFor')}
+        error={errors.scheduledFor?.message}
       />
       <StepActions>
         <Button type="submit">Continuar</Button>

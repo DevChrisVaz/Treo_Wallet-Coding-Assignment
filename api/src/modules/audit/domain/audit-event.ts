@@ -1,5 +1,5 @@
 /**
- * Catálogo cerrado de eventos auditados (AUD-01, AUD-07). La base de datos lo replica en
+ * Catálogo cerrado de eventos auditados (AUD-01, AUD-07, AUD-08). La base de datos lo replica en
  * `ck_audit_log_action`; una prueba verifica que ambos coincidan.
  */
 export const AUDIT_ACTIONS = [
@@ -23,6 +23,9 @@ export const AUDIT_ACTIONS = [
   'TRANSFER_COMPLETED',
   'TRANSFER_REJECTED',
   'TRANSFER_FAILED',
+  // Transferencias programadas (AUD-08): al quedar en SCHEDULED y al cancelarse
+  'TRANSFER_SCHEDULED',
+  'TRANSFER_CANCELLED',
   // Sistema
   'FUNDING_POSTED',
   // Estados de cuenta: la única lectura que se audita (AUD-07)

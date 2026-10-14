@@ -76,6 +76,57 @@ describe('AppFrame', () => {
     );
   });
 
+  it('WEB-34 WEB-26 la navegación lateral ofrece "Programadas", que lleva a /transfers/scheduled', () => {
+    renderFrame('/');
+    const link = within(sideNav()).getByRole('link', { name: 'Programadas' });
+    expect(link).toHaveAttribute('href', '/transfers/scheduled');
+    expect(link).toHaveAttribute('data-next-link');
+    // Va después de "Transferir" y reusa su icono (sin concepto nuevo en el paquete de diseño).
+    const labels = within(sideNav())
+      .getAllByRole('link')
+      .map((item) => item.textContent);
+    expect(labels).toEqual(['Inicio', 'Movimientos', 'Transferir', 'Programadas', 'Beneficiarios']);
+    expect(link.querySelector('svg')).toHaveClass('lucide-send');
+  });
+
+  it('WEB-34 WEB-27 en teléfono "Programadas" no es pestaña: siguen las cuatro', () => {
+    renderFrame('/');
+    const tabs = screen.getAllByRole('navigation', { name: 'Principal' })[1];
+    expect(
+      within(tabs!)
+        .getAllByRole('link')
+        .map((item) => item.textContent),
+    ).toEqual(['Inicio', 'Movimientos', 'Transferir', 'Beneficiarios']);
+  });
+
+  it('WEB-34 WEB-23 en la página de programadas marca "Programadas" y no "Transferir"', () => {
+    renderFrame('/transfers/scheduled');
+    expect(within(sideNav()).getByRole('link', { name: 'Programadas' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(sideNav()).getByRole('link', { name: 'Transferir' })).not.toHaveAttribute(
+      'aria-current',
+    );
+    const tabs = screen.getAllByRole('navigation', { name: 'Principal' })[1];
+    for (const tab of within(tabs!).getAllByRole('link')) {
+      expect(tab).not.toHaveAttribute('aria-current');
+    }
+  });
+
+  it('WEB-34 WEB-26 la página de programadas se titula "Transferencias programadas" con "Nueva transferencia" como acción', () => {
+    renderFrame('/transfers/scheduled');
+    const titles = screen.getAllByRole('heading', { level: 1 });
+    expect(titles.map((title) => title.textContent)).toEqual([
+      'Transferencias programadas',
+      'Transferencias programadas',
+    ]);
+    expect(screen.getByRole('link', { name: 'Nueva transferencia' })).toHaveAttribute(
+      'href',
+      '/transfers/new',
+    );
+  });
+
   it('WEB-27 en el flujo de transferencia no hay pestañas ni menú de la cuenta', () => {
     renderFrame('/transfers/new');
     expect(screen.getAllByRole('navigation', { name: 'Principal' })).toHaveLength(1);

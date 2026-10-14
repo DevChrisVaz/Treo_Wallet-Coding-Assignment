@@ -17,6 +17,9 @@ export interface TransferFormValues {
   amount: string;
   concept: string;
   reference: string;
+  /** "Ahora" o "Programar" (WEB-33); la fecha solo se envía con "Programar". */
+  when: 'NOW' | 'SCHEDULED';
+  scheduledFor: string;
 }
 
 /** Destino elegido en el primer paso (WEB-30). */
@@ -41,7 +44,13 @@ export type ConfirmStatus = 'idle' | 'sending' | 'uncertain' | 'rejected';
 
 export type TransferFlowState =
   | { step: 'recipient'; draft: TransferDraft | null }
-  | { step: 'form'; draft: TransferDraft | null; recipient: TransferRecipient }
+  | {
+      step: 'form';
+      draft: TransferDraft | null;
+      recipient: TransferRecipient;
+      /** Error de campo de la API, para mostrarlo junto al campo al volver al monto (WEB-33). */
+      problem?: ActionProblem;
+    }
   | {
       step: 'confirm';
       draft: TransferDraft;
@@ -61,6 +70,7 @@ type FlowEvent =
   | { type: 'SENDING' }
   | { type: 'UNCERTAIN'; error: unknown }
   | { type: 'REJECTED'; problem: ActionProblem }
+  | { type: 'INVALID'; problem: ActionProblem }
   | { type: 'SENT'; transfer: Transfer; replayed: boolean }
   | { type: 'CONFIRMED'; transfer: Transfer }
   | { type: 'ENDED'; problem: ActionProblem }
@@ -95,6 +105,16 @@ export function transferFlowReducer(state: TransferFlowState, event: FlowEvent):
     case 'REJECTED':
       return state.step === 'confirm'
         ? { step: 'confirm', draft: state.draft, status: 'rejected', problem: event.problem }
+        : state;
+    case 'INVALID':
+      // Un error de campo de la API se corrige en el paso de monto, junto al campo (WEB-33).
+      return state.step === 'confirm'
+        ? {
+            step: 'form',
+            draft: state.draft,
+            recipient: recipientOf(state.draft.values),
+            problem: event.problem,
+          }
         : state;
     case 'SENT':
       return event.transfer.status === 'PENDING_OTP'
@@ -163,6 +183,10 @@ export function useTransferFlow(generate?: () => string, start: TransferRecipien
       rejected(problem: ActionProblem) {
         discard();
         dispatch({ type: 'REJECTED', problem });
+      },
+      invalid(problem: ActionProblem) {
+        discard();
+        dispatch({ type: 'INVALID', problem });
       },
       sent(transfer: Transfer, replayed: boolean) {
         discard();

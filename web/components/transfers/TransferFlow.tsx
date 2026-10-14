@@ -15,6 +15,7 @@ import {
   type TransferFormValues,
   type TransferRecipient,
 } from '@/lib/client/transfer-flow';
+import { serverFieldErrors } from '@/lib/client/transfer-form';
 import { flowHeading, transferSummary, type FlowHeading } from '@/lib/client/transfer-steps';
 import { ActionProblemError, isUncertainFailure } from '@/lib/client/unwrap';
 import { loginPath } from '@/lib/navigation';
@@ -178,6 +179,11 @@ function TransferSteps({
         flow.uncertain(new ActionProblemError(problem));
         return;
       }
+      // Un error de campo (por ejemplo, la fecha fuera de rango) se corrige junto al campo (WEB-33).
+      if (Object.keys(serverFieldErrors(problem)).length > 0) {
+        flow.invalid(problem);
+        return;
+      }
       // El saldo mostrado junto al rechazo debe ser el vigente.
       void queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
       flow.rejected(problem);
@@ -210,6 +216,7 @@ function TransferSteps({
           recipient={state.recipient}
           initialValues={state.draft?.values}
           defaultFromAccountId={defaultFromAccountId}
+          problem={state.problem}
           onSubmit={flow.review}
           onValuesChange={setLive}
         />

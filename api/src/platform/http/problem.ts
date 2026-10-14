@@ -42,7 +42,7 @@ export const PROBLEM_CATALOG: Record<ProblemCode, ProblemEntry> = {
 const ALLOWED_EXTENSIONS: Record<keyof ProblemExtensions, readonly ProblemCode[]> = {
   errors: ['VALIDATION_FAILED'],
   transferId: ['INSUFFICIENT_FUNDS', 'DAILY_LIMIT_EXCEEDED', 'OTP_ATTEMPTS_EXHAUSTED'],
-  transferStatus: ['TRANSFER_NOT_PENDING'],
+  transferStatus: ['TRANSFER_NOT_PENDING', 'TRANSFER_NOT_CANCELLABLE'],
   remaining: ['DAILY_LIMIT_EXCEEDED'],
   attemptsRemaining: ['OTP_INVALID', 'VERIFICATION_CODE_INVALID'],
 };

@@ -7,21 +7,27 @@ export interface FingerprintInput {
   readonly amount: Money;
   readonly concept: string;
   readonly reference: string;
+  /** Fecha programada (`YYYY-MM-DD`); ausente o nula en las inmediatas. */
+  readonly scheduledFor?: string | null;
 }
 
 /**
  * Huella del contenido de una transferencia (TRF-04): SHA-256 hexadecimal de los valores ya
  * interpretados, serializados como arreglo JSON (sin ambigüedad aunque el concepto traiga
  * separadores). El monto entra en centavos, así que `"100.5"` y `"100.50"` dan la misma huella.
+ *
+ * La fecha programada entra como séptimo elemento **solo cuando existe** (TRF-29, D3): la huella de
+ * toda inmediata ya guardada no cambia, y una programada nunca coincide con una inmediata.
  */
 export function transferFingerprint(input: FingerprintInput): string {
-  const canonical = JSON.stringify([
+  const values = [
     input.fromAccountId,
     input.destination.type,
     input.destination.id,
     input.amount.cents.toString(),
     input.concept,
     input.reference,
-  ]);
-  return createHash('sha256').update(canonical).digest('hex');
+  ];
+  if (input.scheduledFor) values.push(input.scheduledFor);
+  return createHash('sha256').update(JSON.stringify(values)).digest('hex');
 }

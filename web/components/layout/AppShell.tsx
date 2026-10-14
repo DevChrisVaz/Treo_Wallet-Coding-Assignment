@@ -1,20 +1,25 @@
-import type { NavDestination } from '@devchrisvaz/wallet-design-tokens';
 import type { ReactNode } from 'react';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { SideNav } from '@/components/ui/SideNav';
 import { TabBar, type NavItem } from '@/components/ui/TabBar';
 import { TopBar } from '@/components/ui/TopBar';
+import { SCHEDULED_TRANSFERS_PATH, type AppDestination } from '@/lib/navigation';
 import { MAIN_CONTENT_ID, SkipLink } from './SkipLink';
 
+/**
+ * Destinos con sesión. "Programadas" (WEB-34) va en la navegación lateral, después de "Transferir";
+ * en teléfono no es pestaña: se llega desde el primer paso del flujo de transferencia.
+ */
 export const DEFAULT_NAV_ITEMS: readonly NavItem[] = [
   { key: 'home', href: '/' },
   { key: 'movements', href: '/movements' },
   { key: 'transfer', href: '/transfers/new' },
+  { key: 'scheduled', href: SCHEDULED_TRANSFERS_PATH, sideOnly: true },
   { key: 'beneficiaries', href: '/beneficiaries' },
 ];
 
 export interface AppShellProps {
-  current: NavDestination | null;
+  current: AppDestination | null;
   title: string;
   primaryAction?: ReactNode;
   user: { name: string; email: string };

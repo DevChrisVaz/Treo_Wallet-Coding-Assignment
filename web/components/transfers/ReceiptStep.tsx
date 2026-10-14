@@ -8,6 +8,7 @@ import { Button, buttonClasses } from '@/components/ui/Button';
 import { Receipt } from '@/components/ui/Receipt';
 import { StepActions, type StepActionsMode } from '@/components/ui/StepActions';
 import { queryKeys } from '@/lib/client/query-keys';
+import { ScheduledOutcome } from './ScheduleField';
 
 export interface ReceiptStepProps {
   transfer: Transfer;
@@ -19,7 +20,9 @@ export interface ReceiptStepProps {
 
 /**
  * Comprobante (WEB-16, D11): `Receipt` con `StatusBadge`. Una transferencia `COMPLETED` movió dinero,
- * así que se vuelven a consultar las cuentas y el historial. El título del paso lo da FlowHeader.
+ * así que se vuelven a consultar las cuentas y el historial. Una `SCHEDULED` no movió dinero: se
+ * anuncia como programada (el título "Transferencia programada" lo da FlowHeader, o el detalle, con
+ * `receiptTitle`), con su fecha y el enlace a las programadas (WEB-33).
  */
 export function ReceiptStep({
   transfer,
@@ -29,6 +32,7 @@ export function ReceiptStep({
 }: ReceiptStepProps) {
   const queryClient = useQueryClient();
   const completed = transfer.status === 'COMPLETED';
+  const scheduled = transfer.status === 'SCHEDULED';
 
   useEffect(() => {
     if (!completed) return;
@@ -38,6 +42,9 @@ export function ReceiptStep({
 
   return (
     <>
+      {scheduled && transfer.scheduledFor ? (
+        <ScheduledOutcome scheduledFor={transfer.scheduledFor} />
+      ) : null}
       <Receipt
         transfer={transfer}
         fromAccount={accounts.find((account) => account.id === transfer.fromAccountId)}

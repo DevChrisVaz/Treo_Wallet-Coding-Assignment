@@ -1,9 +1,9 @@
 import { problemMessage } from '@devchrisvaz/wallet-design-tokens';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
-import { AHORRO, BENEFICIARY, PRINCIPAL } from '@/test/fixtures';
+import { AHORRO, BENEFICIARY, PRINCIPAL, problem } from '@/test/fixtures';
 import type { TransferDraft } from '@/lib/client/transfer-flow';
 import { TransferForm, type TransferFormProps } from './TransferForm';
 
@@ -143,6 +143,8 @@ describe('TransferForm', () => {
         amount: '15,000',
         concept: 'Renta',
         reference: '7',
+        when: 'NOW',
+        scheduledFor: '',
       },
     });
     expect(screen.getByLabelText('Monto')).toHaveValue('15,000');
@@ -163,6 +165,156 @@ describe('TransferForm', () => {
   it('WEB-23 cada campo tiene su etiqueta y no hay problemas de accesibilidad', async () => {
     const { user } = renderForm();
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(
+      await axe(screen.getByRole('button', { name: 'Continuar' }).closest('form') as HTMLElement),
+    ).toHaveNoViolations();
+  });
+});
+
+describe('TransferForm · programar', () => {
+  // 14 de octubre de 2026, 12:00 en la Ciudad de México.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-14T18:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const OUT_OF_RANGE = 'Elige una fecha entre mañana y 90 días después de hoy';
+  const SCHEDULED_VALUES = {
+    fromAccountId: PRINCIPAL.id,
+    destinationType: 'BENEFICIARY',
+    toAccountId: '',
+    beneficiaryId: BENEFICIARY.id,
+    amount: '1,000',
+    concept: 'Renta',
+    reference: '1',
+    when: 'SCHEDULED',
+    scheduledFor: '2026-10-20',
+  } as const;
+
+  /** Con Luis ya elegido en el paso anterior (`TO_LUIS`), como en el flujo por pasos (WEB-30). */
+  async function fillScheduled(user: ReturnType<typeof userEvent.setup>, date: string) {
+    await user.selectOptions(screen.getByLabelText('Cuenta de origen'), PRINCIPAL.id);
+    await user.type(screen.getByLabelText('Monto'), '1,000');
+    await user.type(screen.getByLabelText('Concepto'), 'Renta');
+    await user.type(screen.getByLabelText('Referencia'), '1');
+    await user.click(screen.getByRole('radio', { name: 'Programar' }));
+    if (date) await user.type(screen.getByLabelText('Fecha de envío'), date);
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+  }
+
+  it('WEB-33 ofrece "Cuándo" con "Ahora" por defecto', () => {
+    renderForm();
+    expect(screen.getByRole('group', { name: 'Cuándo' })).toBeVisible();
+    expect(screen.getByRole('radio', { name: 'Ahora' })).toBeChecked();
+  });
+
+  it('WEB-33 con "Programar" y una fecha arma la petición con scheduledFor', async () => {
+    const { onSubmit, user } = renderForm();
+
+    await fillScheduled(user, '2026-10-20');
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]?.[0].request).toEqual({
+      fromAccountId: PRINCIPAL.id,
+      destination: { type: 'BENEFICIARY', beneficiaryId: BENEFICIARY.id },
+      amount: '1000',
+      concept: 'Renta',
+      reference: '1',
+      scheduledFor: '2026-10-20',
+    });
+  });
+
+  it('WEB-33 al volver a "Ahora" la petición no lleva fecha aunque se haya escrito una', async () => {
+    const { onSubmit, user } = renderForm();
+    await user.click(screen.getByRole('radio', { name: 'Programar' }));
+    await user.type(screen.getByLabelText('Fecha de envío'), '2026-10-20');
+    await user.click(screen.getByRole('radio', { name: 'Ahora' }));
+
+    await fillBeneficiaryTransfer(user, '1,000');
+
+    expect(onSubmit.mock.calls[0]?.[0].request).not.toHaveProperty('scheduledFor');
+  });
+
+  it.each([
+    ['2026-10-14', 'hoy'],
+    ['2027-01-13', 'a 91 días'],
+  ])(
+    'WEB-33 valida la fecha con el esquema del contrato: %s (%s) queda fuera de rango',
+    async (date) => {
+      const { onSubmit, user } = renderForm();
+
+      await fillScheduled(user, date);
+
+      const field = screen.getByLabelText('Fecha de envío');
+      expect(field).toHaveAttribute('aria-invalid', 'true');
+      expect(field).toHaveAccessibleDescription(expect.stringContaining(OUT_OF_RANGE));
+      expect(onSubmit).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['2026-10-15', '2027-01-12'])('WEB-33 acepta la fecha límite %s', async (date) => {
+    const { onSubmit, user } = renderForm();
+    await fillScheduled(user, date);
+    expect(onSubmit.mock.calls[0]?.[0].request).toMatchObject({ scheduledFor: date });
+  });
+
+  it('WEB-33 "Programar" sin fecha pide la fecha', async () => {
+    const { onSubmit, user } = renderForm();
+    await fillScheduled(user, '');
+    expect(screen.getByLabelText('Fecha de envío')).toHaveAccessibleDescription(
+      expect.stringContaining('La fecha es obligatoria'),
+    );
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('WEB-17 al editar recupera la fecha programada', () => {
+    renderForm({ initialValues: SCHEDULED_VALUES });
+    expect(screen.getByRole('radio', { name: 'Programar' })).toBeChecked();
+    expect(screen.getByLabelText('Fecha de envío')).toHaveValue('2026-10-20');
+  });
+
+  it.each([
+    ['/scheduledFor', 'DATE_OUT_OF_RANGE', 'Fecha de envío', OUT_OF_RANGE],
+    [
+      '/amount',
+      'TOO_LARGE',
+      'Monto',
+      'Una transferencia programada a un tercero no puede superar el límite diario de $50,000.00',
+    ],
+  ] as const)(
+    'WEB-33 WEB-23 un error de la API en %s (%s) se muestra junto a su campo, que recibe el foco',
+    (pointer, code, label, message) => {
+      renderForm({
+        initialValues: SCHEDULED_VALUES,
+        problem: problem('VALIDATION_FAILED', { errors: [{ pointer, code, message }] }),
+      });
+
+      const field = screen.getByLabelText(label);
+      expect(field).toHaveAttribute('aria-invalid', 'true');
+      expect(field).toHaveAccessibleDescription(expect.stringContaining(message));
+      expect(field).toHaveFocus();
+    },
+  );
+
+  it('WEB-33 un error de la API sobre el destino, que se eligió en el paso anterior, se muestra en "Para"', () => {
+    const message = 'Elige un beneficiario';
+    renderForm({
+      initialValues: SCHEDULED_VALUES,
+      problem: problem('VALIDATION_FAILED', {
+        errors: [{ pointer: '/destination/beneficiaryId', code: 'INVALID_FORMAT', message }],
+      }),
+    });
+    expect(screen.getByText(message)).toHaveClass('text-danger');
+    expect(screen.getByText('Para').parentElement).toHaveTextContent(message);
+  });
+
+  it('WEB-23 con la fecha a la vista no hay problemas de accesibilidad', async () => {
+    const { user } = renderForm();
+    await fillScheduled(user, '2027-01-13');
     expect(
       await axe(screen.getByRole('button', { name: 'Continuar' }).closest('form') as HTMLElement),
     ).toHaveNoViolations();

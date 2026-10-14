@@ -54,13 +54,18 @@ import { GenerateStatement } from './modules/statements/application/generate-sta
 import { statementRoutes } from './modules/statements/infrastructure/http/routes.js';
 import { PdfKitStatementRenderer } from './modules/statements/infrastructure/pdfkit-statement-renderer.js';
 import { PgStatementReader } from './modules/statements/infrastructure/pg-statement-reader.js';
+import { CancelTransfer } from './modules/transfers/application/cancel-transfer.js';
 import { ConfirmTransfer } from './modules/transfers/application/confirm-transfer.js';
 import { CreateTransfer } from './modules/transfers/application/create-transfer.js';
 import { GetTransfer } from './modules/transfers/application/get-transfer.js';
+import { ListScheduledTransfers } from './modules/transfers/application/list-scheduled-transfers.js';
 import { ResendTransferOtp } from './modules/transfers/application/resend-transfer-otp.js';
 import { IdempotencyGate } from './modules/transfers/application/idempotency-gate.js';
 import { TransferLocker } from './modules/transfers/application/transfer-locker.js';
-import { TransferOtpMailer } from './modules/transfers/application/transfer-emails.js';
+import {
+  ScheduledFailureMailer,
+  TransferOtpMailer,
+} from './modules/transfers/application/transfer-emails.js';
 import { PgTransferDetails } from './modules/transfers/infrastructure/pg-transfer-details.js';
 import { transferRoutes } from './modules/transfers/infrastructure/http/routes.js';
 import { businessDayOf } from './shared/business-day.js';
@@ -69,6 +74,9 @@ import { LedgerPoster } from './modules/transfers/application/ledger-poster.js';
 import { PgAccountLocks } from './modules/transfers/infrastructure/pg-account-locks.js';
 import { PgLedgerStore } from './modules/transfers/infrastructure/pg-ledger-store.js';
 import { PgTransferStore } from './modules/transfers/infrastructure/pg-transfer-store.js';
+import { PgScheduledTransfers } from './modules/transfers/infrastructure/pg-scheduled-transfers.js';
+import { LockedTransferExecutor } from './modules/transfers/application/locked-transfer-executor.js';
+import { ScheduledTransferRunner } from './modules/transfers/application/scheduled-transfer-runner.js';
 import { PgDailyUsage } from './modules/transfers/infrastructure/pg-daily-usage.js';
 import { TypeormTransactionRunner } from './platform/persistence/transaction.js';
 import type { Clock } from './shared/clock.js';
@@ -125,9 +133,15 @@ export interface Container {
     readonly confirmTransfer: ConfirmTransfer;
     readonly resendTransferOtp: ResendTransferOtp;
     readonly getTransfer: GetTransfer;
+    readonly cancelTransfer: CancelTransfer;
+    readonly listScheduledTransfers: ListScheduledTransfers;
   };
   readonly ledger: {
     readonly fundAccount: FundAccount;
+  };
+  /** Ejecutor de transferencias programadas; `main` lo programa y las pruebas llaman `runOnce`. */
+  readonly scheduler: {
+    readonly runner: ScheduledTransferRunner;
   };
 }
 
@@ -152,9 +166,11 @@ export async function createContainer(
 
   const users = overrides.users ?? new PgUserRepository(dataSource);
   const transferStore = new PgTransferStore();
+  const scheduledTransfers = new PgScheduledTransfers(dataSource);
   const accountLocks = new PgAccountLocks(dataSource);
   const poster = new LedgerPoster(new PgLedgerStore());
   const dailyUsage = new PgDailyUsage(dataSource);
+  const executor = new LockedTransferExecutor(poster, dailyUsage);
   const beneficiaryStore = new PgBeneficiaryStore(dataSource);
   const codes = new OneTimeCodeService(new PgOneTimeCodeStore(), clock, config.otpHmacSecret);
   const accounts = new PgAccountRepository(dataSource);
@@ -270,13 +286,14 @@ export async function createContainer(
         gate: new IdempotencyGate(transferStore),
         locker,
         store: transferStore,
+        cap: scheduledTransfers,
         audit,
         clock,
         otpThreshold: config.transfers.otpThreshold,
+        dailyLimit: config.transfers.dailyLimit,
         codes,
         otpPolicy,
-        poster,
-        counter: dailyUsage,
+        executor,
         details: transferDetails,
         otpMail,
         remainingToday: async (userId) => {
@@ -292,8 +309,7 @@ export async function createContainer(
         store: transferStore,
         codes,
         otpPolicy,
-        poster,
-        counter: dailyUsage,
+        executor,
         audit,
         clock,
         details: transferDetails,
@@ -309,6 +325,19 @@ export async function createContainer(
         otpMail,
       }),
       getTransfer: new GetTransfer({ details: transferDetails, clock, otpPolicy }),
+      cancelTransfer: new CancelTransfer({
+        transactions,
+        store: transferStore,
+        audit,
+        clock,
+        details: transferDetails,
+        otpPolicy,
+      }),
+      listScheduledTransfers: new ListScheduledTransfers({
+        reader: transferDetails,
+        clock,
+        otpPolicy,
+      }),
     },
     ledger: {
       fundAccount: new FundAccount({
@@ -318,6 +347,20 @@ export async function createContainer(
         poster,
         audit,
         clock,
+      }),
+    },
+    scheduler: {
+      runner: new ScheduledTransferRunner({
+        transactions,
+        queue: scheduledTransfers,
+        locker,
+        executor,
+        store: transferStore,
+        audit,
+        notifier: new ScheduledFailureMailer(mailer, logger, transferDetails),
+        clock,
+        logger,
+        batchSize: config.scheduler.batchSize,
       }),
     },
   };
