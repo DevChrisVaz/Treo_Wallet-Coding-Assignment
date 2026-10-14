@@ -1,0 +1,77 @@
+name: mobile
+
+# La app instala /contract y /design-tokens como copia (file:../ con install-links=true), así que
+# un cambio en cualquiera de los dos también se verifica aquí.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - 'contract/**'
+      - 'design-tokens/**'
+      - '.github/workflows/mobile.yml'
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - 'contract/**'
+      - 'design-tokens/**'
+      - '.github/workflows/mobile.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: mobile
+
+jobs:
+  verify:
+    name: Lint, tipos, formato, pruebas y bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            contract/package-lock.json
+            design-tokens/package-lock.json
+            mobile/package-lock.json
+
+      - name: Compilar el contrato
+        working-directory: contract
+        run: |
+          npm ci
+          npm run build
+
+      - name: Compilar el sistema de diseño
+        working-directory: design-tokens
+        run: |
+          npm ci
+          npm run build
+
+      - name: Instalar la app (copia de los paquetes locales)
+        run: npm ci
+
+      - name: Lint (incluye la prohibición de AsyncStorage, MOB-02)
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Formato
+        run: npm run format:check
+
+      - name: Pruebas (MOB-01 a MOB-17, DSG)
+        run: npm test -- --ci
+
+      - name: Bundle de Metro para Android e iOS (resuelve los paquetes locales)
+        run: |
+          npx expo export --platform android --output-dir "$RUNNER_TEMP/export-android"
+          npx expo export --platform ios --output-dir "$RUNNER_TEMP/export-ios"

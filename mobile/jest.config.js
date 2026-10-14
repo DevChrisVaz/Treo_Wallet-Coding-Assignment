@@ -8,6 +8,9 @@ module.exports = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   clearMocks: true,
+  // Con la caché de Babel vacía (CI), transformar React Native dentro de la primera prueba que lo
+  // usa puede pasar de los 5 s por defecto.
+  testTimeout: 30_000,
   transform: { '\\.mjs$': preset.transform['\\.[jt]sx?$'] },
   transformIgnorePatterns: [
     nodeModules.replace(/\)\)$/, '|@devchrisvaz))'),
