@@ -37,7 +37,7 @@
 ## 5. Beneficiarios
 
 - [x] 5.1 [api] Esquema Zod de `CreateBeneficiaryRequest` con errores por JSON Pointer (BEN-02)
-- [ ] 5.2 [api] Cadena de validación en el orden de BEN-06: dígito verificador, código de banco, cuenta USER existente y cuenta propia, con sus códigos de error (BEN-03, BEN-04, BEN-05, BEN-06)
+- [x] 5.2 [api] Cadena de validación en el orden de BEN-06: dígito verificador, código de banco, cuenta USER existente y cuenta propia, con sus códigos de error (BEN-03, BEN-04, BEN-05, BEN-06)
 - [ ] 5.3 [api] Caso de uso de alta con idempotencia por contenido y resolución de `23505` por relectura (200 o 409), auditoría `BENEFICIARY_CREATED` en la misma transacción solo en altas nuevas (BEN-01, BEN-07, BEN-11)
 - [ ] 5.4 [api] Endpoints `POST /beneficiaries` y `GET /beneficiaries` ordenado por alias, con rate limit de 10 altas por hora por usuario (BEN-01, BEN-09, BEN-10)
 - [ ] 5.5 [api] Pruebas unitarias de la cadena de validación, incluida la CLABE con suma múltiplo de 10 y el orden de errores (BEN-03, BEN-06)
