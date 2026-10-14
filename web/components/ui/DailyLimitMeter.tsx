@@ -10,6 +10,10 @@ export function DailyLimitMeter({ dailyLimit }: { dailyLimit: DailyLimit }) {
 
   return (
     <div className="grid gap-2">
+      <div className="flex items-baseline justify-between gap-4">
+        <p className="text-label text-fg">Límite diario</p>
+        <p className="text-caption text-fg-muted tabular-nums">{formatMXN(dailyLimit.limit)}</p>
+      </div>
       <div
         role="meter"
         aria-label="Límite diario"

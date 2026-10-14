@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { AHORRO, DAILY_LIMIT, PRINCIPAL, movement, transfer } from '@/test/fixtures';
 import { AccountCard } from './AccountCard';
@@ -12,7 +12,7 @@ describe('AccountCard', () => {
   it('WEB-13 WEB-21 muestra el nombre, la CLABE enmascarada y el saldo con formatMXN', () => {
     render(<AccountCard account={PRINCIPAL} />);
     const card = screen.getByRole('article', { name: 'Principal' });
-    expect(within(card).getByText('$25,000.00')).toHaveClass('text-display', 'tabular-nums');
+    expect(within(card).getByText('$25,000.00')).toHaveClass('text-h2', 'tabular-nums');
     expect(card).toHaveTextContent('•••• 9719');
     expect(card).not.toHaveTextContent('032180000118359719');
   });
@@ -28,10 +28,19 @@ describe('AccountCard', () => {
     );
   });
 
-  it('DSG-11 usa la superficie de marca con radio mediano y marca la cuenta seleccionada', () => {
+  it('DSG-11 usa la superficie elevada con radio mediano y marca la cuenta seleccionada', () => {
     render(<AccountCard account={AHORRO} selected />);
     const card = screen.getByRole('article', { name: 'Ahorro' });
-    expect(card).toHaveClass('bg-surface-brand', 'rounded-md', 'ring-2', 'ring-action');
+    expect(card).toHaveClass('bg-surface', 'rounded-md', 'ring-2', 'ring-action');
+  });
+
+  it('WEB-28 la tarjeta seleccionable anuncia su estado', async () => {
+    const onSelect = vi.fn();
+    render(<AccountCard account={PRINCIPAL} selected onSelect={onSelect} />);
+    const toggle = screen.getByRole('button', { name: 'Principal' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(toggle);
+    expect(onSelect).toHaveBeenCalledOnce();
   });
 
   it('WEB-23 no tiene problemas de accesibilidad', async () => {
@@ -73,8 +82,13 @@ describe('MovementRow', () => {
     expect(row).toHaveTextContent('Luis Pérez');
     expect(row).toHaveTextContent('Renta de octubre');
     expect(row).toHaveTextContent('Ref. 1234');
-    expect(row).toHaveTextContent('13 oct 2026, 10:42');
-    expect(row).toHaveTextContent('Saldo: $26,500.00');
+    expect(row).toHaveTextContent('13 oct 2026, 10:42'); // completo para lectores de pantalla
+    expect(row).toHaveTextContent('Saldo $26,500.00');
+  });
+
+  it('WEB-29 muestra un avatar con el icono del tipo de movimiento', () => {
+    const { container } = renderRow({ movement: movement() });
+    expect(container.querySelector('li span[aria-hidden="true"] svg')).not.toBeNull();
   });
 
   it('WEB-14 un depósito sin contraparte muestra solo el concepto', () => {

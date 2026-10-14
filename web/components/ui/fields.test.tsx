@@ -26,9 +26,9 @@ describe('TextField', () => {
     expect(screen.getByText('El correo no tiene un formato válido')).toHaveClass('text-danger');
   });
 
-  it('WEB-23 DSG-06 usa el borde de campo del sistema, alto de 44 px y foco visible', () => {
+  it('WEB-23 DSG-06 usa el borde de campo del sistema, alto de 52 px y foco visible', () => {
     render(<TextField label="Nombre" />);
-    expect(screen.getByLabelText('Nombre')).toHaveClass('border-border-input', 'min-h-11');
+    expect(screen.getByLabelText('Nombre')).toHaveClass('border-border-input', 'min-h-13');
   });
 
   it('WEB-23 no tiene problemas de accesibilidad en reposo, error y deshabilitado', async () => {

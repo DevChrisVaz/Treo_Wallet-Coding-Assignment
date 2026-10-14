@@ -1,23 +1,34 @@
 import { formatMXN, type Movement } from '@devchrisvaz/wallet-contract';
+import { movementIcon } from '@devchrisvaz/wallet-design-tokens';
 import { MONEY_CLASSES, MOVEMENT_TYPE } from '@/lib/conventions';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, formatTime } from '@/lib/format';
 import { signedAmount } from '@/lib/money';
+import { Avatar } from './Avatar';
 
 /**
- * Fila del historial (D7 de design-system): tipo, contraparte, concepto, referencia, fecha, monto
- * con signo y color por dirección (DSG-09) y saldo después del movimiento (WEB-14).
+ * Fila del historial (WEB-14, WEB-29): avatar por tipo, tipo, contraparte y concepto, hora y
+ * referencia, monto con signo y saldo. La fecha completa queda para lectores de pantalla: la lista
+ * la agrupa visualmente por día.
  */
 export function MovementRow({ movement }: { movement: Movement }) {
   const { direction, label } = MOVEMENT_TYPE[movement.type];
   const detail = [movement.counterparty?.name, movement.concept].filter(Boolean).join(' · ');
 
+  const dateTime = formatDateTime(movement.occurredAt);
   return (
-    <li className="flex items-start justify-between gap-4 border-b border-border py-3">
-      <div className="grid min-w-0 gap-0.5">
-        <p className="text-label text-fg">{label}</p>
-        <p className="text-body-sm text-fg-secondary">{detail}</p>
+    <li className="flex items-center gap-3 py-3">
+      <Avatar
+        tone={direction === 'in' ? 'success' : 'neutral'}
+        icon={movementIcon[movement.type]}
+      />
+      <div className="grid min-w-0 flex-1 gap-0.5">
+        <p className="truncate text-label text-fg">{label}</p>
+        <p className="truncate text-caption text-fg-secondary">{detail}</p>
         <p className="text-caption text-fg-muted">
-          <time dateTime={movement.occurredAt}>{formatDateTime(movement.occurredAt)}</time>
+          <time dateTime={movement.occurredAt}>
+            <span className="sr-only">{dateTime.slice(0, dateTime.lastIndexOf(',') + 2)}</span>
+            {formatTime(movement.occurredAt)}
+          </time>
           {' · '}Ref. {movement.reference}
         </p>
       </div>
@@ -26,7 +37,7 @@ export function MovementRow({ movement }: { movement: Movement }) {
           {signedAmount(direction, movement.amount)}
         </p>
         <p className="text-caption text-fg-muted tabular-nums">
-          Saldo: {formatMXN(movement.balanceAfter)}
+          Saldo {formatMXN(movement.balanceAfter)}
         </p>
       </div>
     </li>

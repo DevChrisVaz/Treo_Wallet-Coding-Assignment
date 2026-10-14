@@ -1,7 +1,9 @@
 'use client';
 
+import { toneIcon } from '@devchrisvaz/wallet-design-tokens';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { TONE_CLASSES } from '@/lib/conventions';
+import { Icon } from './Icon';
 
 export type AlertTone = 'success' | 'warning' | 'danger' | 'info';
 
@@ -33,10 +35,13 @@ export function InlineAlert({
       ref={ref}
       role={tone === 'danger' ? 'alert' : 'status'}
       tabIndex={focusOnMount ? -1 : undefined}
-      className={`grid gap-1 rounded-md px-4 py-3 text-body-sm ${TONE_CLASSES[tone]} ${className}`.trim()}
+      className={`flex gap-3 rounded-md p-4 text-body-sm ${TONE_CLASSES[tone]} ${className}`.trim()}
     >
-      {title ? <p className="text-label">{title}</p> : null}
-      {children ? <div>{children}</div> : null}
+      <Icon name={toneIcon[tone]} />
+      <div className="grid gap-1">
+        {title ? <p className="text-label">{title}</p> : null}
+        {children ? <div>{children}</div> : null}
+      </div>
     </div>
   );
 }

@@ -13,7 +13,7 @@ export function Skeleton({ variant = 'line', className = '' }: SkeletonProps) {
   return (
     <div
       aria-hidden="true"
-      className={`animate-pulse bg-surface-subtle motion-reduce:animate-none ${VARIANTS[variant]} ${className}`.trim()}
+      className={`animate-pulse bg-border motion-reduce:animate-none ${VARIANTS[variant]} ${className}`.trim()}
     />
   );
 }

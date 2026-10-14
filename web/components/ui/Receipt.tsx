@@ -2,6 +2,7 @@ import { formatMXN, type Account, type Transfer } from '@devchrisvaz/wallet-cont
 import { useId, type ReactNode } from 'react';
 import { formatDateTime } from '@/lib/format';
 import { maskClabe } from '@/lib/money';
+import { Avatar } from './Avatar';
 import { StatusBadge } from './StatusBadge';
 
 export interface ReceiptProps {
@@ -32,6 +33,11 @@ export function Receipt({ transfer, fromAccount }: ReceiptProps) {
 
   return (
     <section aria-labelledby={titleId} className="grid gap-4 rounded-lg bg-surface p-6 shadow-card">
+      <Avatar
+        size="lg"
+        tone={transfer.status === 'COMPLETED' ? 'success' : 'neutral'}
+        icon={transfer.status === 'COMPLETED' ? 'success' : 'info'}
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id={titleId} className="text-h3 text-fg">
           Comprobante
