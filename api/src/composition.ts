@@ -273,6 +273,7 @@ export async function createContainer(
         audit,
         clock,
         otpThreshold: config.transfers.otpThreshold,
+        dailyLimit: config.transfers.dailyLimit,
         codes,
         otpPolicy,
         poster,

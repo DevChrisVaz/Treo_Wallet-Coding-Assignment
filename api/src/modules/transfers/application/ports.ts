@@ -24,6 +24,10 @@ export interface TransferRow {
   readonly otpExpiresAt: Date | null;
   readonly createdAt: Date;
   readonly completedAt: Date | null;
+  /** Fecha de ejecución (`YYYY-MM-DD`, día de CDMX) de una programada; nula en las inmediatas. */
+  readonly scheduledFor: string | null;
+  /** Momento de la cancelación; solo en `CANCELLED`. */
+  readonly cancelledAt: Date | null;
 }
 
 /** Persistencia de transferencias. */
@@ -36,6 +40,8 @@ export interface TransferStore {
   reject(tx: Transaction, transferId: string, reason: RejectionReason): Promise<void>;
   /** Deja la transferencia en PENDING_OTP con la vigencia de su código (sin asientos). */
   awaitOtp(tx: Transaction, transferId: string, otpExpiresAt: Date): Promise<void>;
+  /** Deja una programada en SCHEDULED, esperando su fecha (sin asientos, TRF-27, TRF-28). */
+  schedule(tx: Transaction, transferId: string): Promise<void>;
   /** Bloquea (`FOR UPDATE`) la transferencia si es del usuario; `null` si no existe o es ajena. */
   lockOwned(tx: Transaction, transferId: string, userId: string): Promise<TransferRow | null>;
   /** Marca una transferencia pendiente como FAILED con su motivo (sin asientos). */

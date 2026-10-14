@@ -69,10 +69,9 @@ export function toTransferView(
     otp: status === 'PENDING_OTP' ? otpChallenge(details, policy, deliveryStatus) : null,
     rejectionReason: details.rejectionReason,
     failureReason: details.failureReason,
-    // Campos del contrato 1.2.0: mientras la API no programe transferencias (change
-    // scheduled-transfers), todas son inmediatas y ninguna se cancela.
-    scheduledFor: null,
-    cancelledAt: null,
+    // En toda programada, sin importar su estado; nula en las inmediatas (TRF-34).
+    scheduledFor: details.scheduledFor,
+    cancelledAt: details.cancelledAt?.toISOString() ?? null,
     createdAt: details.createdAt.toISOString(),
     completedAt: details.completedAt?.toISOString() ?? null,
   };

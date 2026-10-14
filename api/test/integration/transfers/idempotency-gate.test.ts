@@ -36,6 +36,8 @@ function row(key: string, fingerprint = 'a'.repeat(64)): TransferRow {
     otpExpiresAt: null,
     createdAt: new Date('2026-10-13T18:00:00Z'),
     completedAt: null,
+    scheduledFor: null,
+    cancelledAt: null,
   };
 }
 

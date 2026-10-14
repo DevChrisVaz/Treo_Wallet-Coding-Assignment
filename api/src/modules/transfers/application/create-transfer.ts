@@ -2,9 +2,9 @@ import { randomUUID } from 'node:crypto';
 import type { Transfer } from '@devchrisvaz/wallet-contract';
 import type { DeliveryStatus } from '../../../platform/mail/mailer.js';
 import type { Clock } from '../../../shared/clock.js';
-import type { DomainError } from '../../../shared/errors.js';
+import { DomainError, type FieldError } from '../../../shared/errors.js';
 import type { Money } from '../../../shared/money.js';
-import type { TransactionRunner } from '../../../shared/transaction.js';
+import type { Transaction, TransactionRunner } from '../../../shared/transaction.js';
 import type { AuditWriter } from '../../audit/application/audit-writer.js';
 import type {
   CodePolicy,
@@ -12,6 +12,7 @@ import type {
   OneTimeCodeService,
 } from '../../identity/application/one-time-codes.js';
 import { transferFingerprint } from '../domain/fingerprint.js';
+import { scheduledAmountIssue, scheduledDateIssue } from '../domain/schedule.js';
 import type { TransferDestinationResolver, TransferRequest } from './destination-resolver.js';
 import type { IdempotencyGate } from './idempotency-gate.js';
 import type { RejectionReason, TransferRow, TransferStore } from './ports.js';
@@ -38,6 +39,8 @@ export interface CreateTransferDeps {
   readonly audit: AuditWriter;
   readonly clock: Clock;
   readonly otpThreshold: Money;
+  /** Límite diario a terceros: una programada mayor nunca podría ejecutarse (TRF-27). */
+  readonly dailyLimit: Money;
   /** Códigos de un solo uso (propósito TRANSFER_CONFIRMATION) y su política. */
   readonly codes: OneTimeCodeService;
   readonly otpPolicy: CodePolicy;
@@ -65,11 +68,28 @@ type AttemptResult =
       readonly remaining: Money | null;
     };
 
+/** Transferencia ya resuelta y con su huella, lista para reclamar la llave. */
+interface Draft {
+  readonly userId: string;
+  readonly idempotencyKey: string;
+  readonly fingerprint: string;
+  readonly kind: 'OWN' | 'THIRD_PARTY';
+  readonly fromAccountId: string;
+  readonly toAccountId: string;
+  readonly beneficiaryId: string | null;
+  readonly amount: Money;
+  readonly concept: string;
+  readonly reference: number;
+  readonly scheduledFor: string | null;
+}
+
 /**
- * `POST /transfers` (TRF-01 a TRF-14, TRF-24, TRF-25). Resuelve destino y propiedad sin consumir la
- * llave; en una transacción reclama la llave, toma los bloqueos en orden global, valida saldo y
- * límite bajo bloqueo y decide: rechazo persistido como REJECTED, ejecución inmediata o espera de
- * OTP. Si la medianoche de CDMX llega mientras espera los bloqueos, revierte y reintenta una vez.
+ * `POST /transfers` (TRF-01 a TRF-14, TRF-24, TRF-25, TRF-27). Resuelve destino y propiedad sin
+ * consumir la llave; en una transacción reclama la llave y, si es inmediata, toma los bloqueos en
+ * orden global, valida saldo y límite bajo bloqueo y decide: rechazo persistido como REJECTED,
+ * ejecución inmediata o espera de OTP. Si la medianoche de CDMX llega mientras espera los bloqueos,
+ * revierte y reintenta una vez. Una programada no toca saldo, límite ni cuentas: queda en
+ * SCHEDULED hasta su fecha.
  */
 export class CreateTransfer {
   constructor(private readonly deps: CreateTransferDeps) {}
@@ -80,14 +100,16 @@ export class CreateTransfer {
     request: TransferRequest,
   ): Promise<CreateTransferOutcome> {
     const route = await this.deps.destinations.resolve(userId, request);
+    const scheduledFor = request.scheduledFor ?? null;
     const fingerprint = transferFingerprint({
       fromAccountId: request.fromAccountId,
       destination: request.destination,
       amount: request.amount,
       concept: request.concept,
       reference: String(request.reference),
+      scheduledFor,
     });
-    const draft = {
+    const draft: Draft = {
       userId,
       idempotencyKey,
       fingerprint,
@@ -98,6 +120,7 @@ export class CreateTransfer {
       amount: request.amount,
       concept: request.concept,
       reference: request.reference,
+      scheduledFor,
     };
     let result: AttemptResult;
     try {
@@ -109,18 +132,7 @@ export class CreateTransfer {
     return this.toOutcome(userId, result);
   }
 
-  private attempt(draft: {
-    userId: string;
-    idempotencyKey: string;
-    fingerprint: string;
-    kind: 'OWN' | 'THIRD_PARTY';
-    fromAccountId: string;
-    toAccountId: string;
-    beneficiaryId: string | null;
-    amount: Money;
-    concept: string;
-    reference: number;
-  }): Promise<AttemptResult> {
+  private attempt(draft: Draft): Promise<AttemptResult> {
     const { transactions, gate, locker, store, audit, clock, otpThreshold, poster, counter } =
       this.deps;
     const { codes, otpPolicy } = this.deps;
@@ -146,8 +158,11 @@ export class CreateTransfer {
         otpExpiresAt: null,
         createdAt: clock.now(),
         completedAt: null,
+        scheduledFor: draft.scheduledFor,
+        cancelledAt: null,
       });
       if (claim.kind === 'REPLAY') return claim;
+      if (draft.scheduledFor !== null) return this.schedule(tx, id, draft, draft.scheduledFor);
 
       const locks = await locker.acquire(tx, draft.userId, {
         kind: draft.kind,
@@ -225,6 +240,50 @@ export class CreateTransfer {
       });
       return { kind: 'CREATED', transferId: id, otp };
     });
+  }
+
+  /**
+   * Camino programado (TRF-27, D4), dentro de la transacción del reclamo y sin bloqueos de saldo ni
+   * de límite: ambos se validan al ejecutar. La fecha y el monto se validan aquí, después del
+   * reclamo, y no antes: un reintento que llega pasada la medianoche se reconoce como reintento (la
+   * original ya pasó la validación) en lugar de responder que su fecha ya no es programable. Una
+   * petición nueva inválida lanza y revierte el reclamo, así que la llave no se consume.
+   */
+  private async schedule(
+    tx: Transaction,
+    id: string,
+    draft: Draft,
+    scheduledFor: string,
+  ): Promise<AttemptResult> {
+    const { store, audit, clock, otpThreshold, dailyLimit } = this.deps;
+    const issues = [
+      scheduledDateIssue(scheduledFor, clock),
+      scheduledAmountIssue(draft.kind, draft.amount, dailyLimit),
+    ].filter((issue): issue is FieldError => issue !== null);
+    if (issues.length > 0) {
+      throw new DomainError('VALIDATION_FAILED', 'Revisa los campos marcados', { errors: issues });
+    }
+    if (draft.amount.isGreaterThan(otpThreshold)) {
+      // Programar arriba del umbral (PENDING_OTP con fecha) llega con la tarea 2.6.
+      throw new Error('Programar una transferencia mayor al umbral aún no está disponible');
+    }
+    const actor = { type: 'USER' as const, userId: draft.userId };
+    const entity = { type: 'transfer', id };
+    const amount = draft.amount.toDecimalString();
+    await store.schedule(tx, id);
+    await audit.record(tx, {
+      action: 'TRANSFER_CREATED',
+      actor,
+      entity,
+      metadata: { status: 'SCHEDULED', kind: draft.kind, amount, scheduledFor },
+    });
+    await audit.record(tx, {
+      action: 'TRANSFER_SCHEDULED',
+      actor,
+      entity,
+      metadata: { kind: draft.kind, amount, scheduledFor },
+    });
+    return { kind: 'CREATED', transferId: id, otp: null };
   }
 
   private async toOutcome(userId: string, result: AttemptResult): Promise<CreateTransferOutcome> {
