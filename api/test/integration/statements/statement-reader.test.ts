@@ -1,11 +1,19 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { AuditWriter } from '../../../src/modules/audit/application/audit-writer.js';
 import type { MovementRecord } from '../../../src/modules/movements/application/ports.js';
-import type { StatementSnapshot } from '../../../src/modules/statements/application/ports.js';
+import { GenerateStatement } from '../../../src/modules/statements/application/generate-statement.js';
+import type {
+  StatementReader,
+  StatementRenderer,
+  StatementSnapshot,
+} from '../../../src/modules/statements/application/ports.js';
+import type { ReconciledSummary } from '../../../src/modules/statements/domain/statement-summary.js';
 import { StatementPeriod } from '../../../src/modules/statements/domain/statement-period.js';
 import { PgStatementReader } from '../../../src/modules/statements/infrastructure/pg-statement-reader.js';
 import { buildTestApp, type TestApp } from '../../helpers/app.js';
 import { FakeClock } from '../../helpers/fake-clock.js';
 import { useIntegrationHarness } from '../../helpers/harness.js';
+import { captureLogger } from '../../helpers/logs.js';
 import {
   addBeneficiary,
   confirmTransfer,
@@ -223,5 +231,93 @@ describe('HIS-12 lector del estado de cuenta', () => {
         WHERE usename = 'wallet_app' AND state LIKE 'idle in transaction%'`,
     );
     expect(open).toBe(0);
+  });
+});
+
+describe('HIS-12 caso de uso GenerateStatement con una transferencia concurrente', () => {
+  it('HIS-12 una transferencia confirmada después de leer el saldo inicial no aparece en el estado y el resumen cuadra', async () => {
+    await fund(t, ana.principal.id, '20000.00'); // 31 de agosto, antes del periodo
+    const toLuis = await addBeneficiary(t, ana, {
+      name: 'Luis Pérez',
+      alias: 'Luis',
+      clabe: luis.principal.clabe,
+    });
+    // Mayor al umbral: queda PENDING_OTP y se confirma a mitad de la generación.
+    const pending = await send(ana, { type: 'BENEFICIARY', beneficiaryId: toLuis }, '15000.00');
+    expect(pending.status).toBe('PENDING_OTP');
+    const code = t.mailer.lastCode(ana.person.email);
+    t.clock.advance(3 * 60_000); // 1 de septiembre, 00:01 en CDMX: ya dentro del periodo
+    await send(ana, { type: 'OWN_ACCOUNT', accountId: ana.ahorro.id }, '100.00');
+
+    // Lector real; tras leer el saldo inicial, otra conexión confirma la transferencia pendiente.
+    const real = new PgStatementReader(harness.app);
+    let confirmedDuringRead = false;
+    const reader: StatementReader = {
+      withSnapshot: (work) =>
+        real.withSnapshot((snapshot) =>
+          work({
+            account: (userId, accountId) => snapshot.account(userId, accountId),
+            movements: (accountId, start, end) => snapshot.movements(accountId, start, end),
+            openingBalance: async (accountId, start) => {
+              const opening = await snapshot.openingBalance(accountId, start);
+              if (!confirmedDuringRead) {
+                confirmedDuringRead = true;
+                t.clock.advance(1_000);
+                const confirmed = await confirmTransfer(t, ana, pending.id, { otp: code });
+                expect(confirmed.body.status).toBe('COMPLETED');
+              }
+              return opening;
+            },
+          }),
+        ),
+    };
+    const rendered: MovementRecord[] = [];
+    let summary: ReconciledSummary | undefined;
+    const renderer: StatementRenderer = {
+      begin: () => ({
+        addRows: (rows) => rendered.push(...rows),
+        finish: async (reconciled) => {
+          summary = reconciled;
+          return new TextEncoder().encode('%PDF-falso');
+        },
+      }),
+    };
+    const audit = {
+      recordStandalone: async () => undefined,
+    } as unknown as AuditWriter;
+    const useCase = new GenerateStatement({
+      reader,
+      renderer,
+      audit,
+      // Septiembre ya terminó para el reloj del caso de uso; el de la app sigue dentro del mes.
+      clock: new FakeClock('2026-10-14T18:00:00.000Z'),
+      logger: captureLogger().logger,
+    });
+
+    await useCase.execute(ana.userId, ana.principal.id, '2026-09');
+
+    expect(confirmedDuringRead).toBe(true);
+    // La transferencia sí quedó confirmada en la base...
+    const [{ n }] = await harness.migrator.query(
+      `SELECT count(*)::int AS n FROM app.ledger_entries
+        WHERE account_id = $1 AND type = 'TRANSFER_OUT'`,
+      [ana.principal.id],
+    );
+    expect(n).toBe(1);
+    // ...pero la instantánea no la vio: solo el traspaso de 100.00 y un resumen que cuadra.
+    expect(rendered.map((row) => `${row.type} ${row.amountCents}`)).toEqual([
+      'OWN_TRANSFER_OUT -10000',
+    ]);
+    expect(summary).toEqual({
+      openingCents: 2_000_000n,
+      creditsCents: 0n,
+      debitsCents: 10_000n,
+      closingCents: 1_990_000n,
+      count: 1,
+    });
+    const figures = summary as ReconciledSummary;
+    expect(figures.openingCents + figures.creditsCents - figures.debitsCents).toBe(
+      figures.closingCents,
+    );
   });
 });
