@@ -16,11 +16,11 @@
 
 ## 2. Trazabilidad (`scripts/trace.sh`)
 
-- [ ] 2.1 [docs] Implementar la lectura de requisitos `### Requirement: XXX-NN` desde `openspec/specs/**/spec.md` y `openspec/changes/**/specs/**/spec.md` (todas las capabilities)
-- [ ] 2.2 [docs] Implementar la lectura de tareas con IDs desde `openspec/changes/**/tasks.md`, incluido `archive/`
-- [ ] 2.3 [docs] Implementar la lectura de commits con los trailers `Task:` y `Refs:` vía `git log --format='%(trailers…)'`
-- [ ] 2.4 [docs] Implementar la búsqueda de pruebas cuyo título empieza con un ID en `contract/`, `api/`, `web/` y `mobile/` (excluyendo `node_modules`)
-- [ ] 2.5 [docs] Generar la tabla Markdown `ID | Requisito | Change | Tareas | Commits | Pruebas` y la sección de huecos; agregar la opción `--check` que termina con error si hay huecos
+- [x] 2.1 [docs] Implementar la lectura de requisitos `### Requirement: XXX-NN` desde `openspec/specs/**/spec.md` y `openspec/changes/**/specs/**/spec.md` (todas las capabilities)
+- [x] 2.2 [docs] Implementar la lectura de tareas con IDs desde `openspec/changes/**/tasks.md`, incluido `archive/`
+- [x] 2.3 [docs] Implementar la lectura de commits con los trailers `Task:` y `Refs:` vía `git log --format='%(trailers…)'`
+- [x] 2.4 [docs] Implementar la búsqueda de pruebas cuyo título empieza con un ID en `contract/`, `api/`, `web/` y `mobile/` (excluyendo `node_modules`)
+- [x] 2.5 [docs] Generar la tabla Markdown `ID | Requisito | Change | Tareas | Commits | Pruebas` y la sección de huecos; agregar la opción `--check` que termina con error si hay huecos
 - [ ] 2.6 [docs] Ejecutar `scripts/trace.sh --check` sobre el repositorio, corregir o documentar cada hueco y guardar la salida en `docs/traceability.md`
 
 ## 3. README raíz
