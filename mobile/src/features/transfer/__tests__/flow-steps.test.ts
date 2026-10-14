@@ -53,4 +53,17 @@ describe('pasos del flujo', () => {
       }),
     ).toMatchObject({ step: 5, total: 5 });
   });
+
+  test('MOB-23 MOB-21 el título del comprobante sigue el estado real: enviada, programada o solo su estado', () => {
+    const completed = (status: 'COMPLETED' | 'SCHEDULED' | 'CANCELLED') =>
+      flowHeading({
+        status: 'completed',
+        transfer: status === 'COMPLETED' ? transfer() : transfer({ status, completedAt: null }),
+        replayed: false,
+      }).title;
+    expect(completed('COMPLETED')).toBe('Transferencia enviada');
+    // Una programada no se envió: como en la web, el título lo dice (y no "Transferencia enviada").
+    expect(completed('SCHEDULED')).toBe('Transferencia programada');
+    expect(completed('CANCELLED')).toBe('Estado de la transferencia');
+  });
 });

@@ -133,6 +133,9 @@ describe('estados de las programadas', () => {
 
     expect(screen.getByText('Programada')).toHaveStyle({ color: theme.colors.status.info.fg });
     expect(screen.queryByRole('alert')).toBeNull();
+    // El título del paso dice lo que pasó: se programó, no se envió.
+    expect(screen.getByRole('header', { name: 'Transferencia programada' })).toBeOnTheScreen();
+    expect(screen.queryByText('Transferencia enviada')).toBeNull();
   });
 
   test('MOB-23 el flujo de transferencia no ofrece elegir una fecha de envío', async () => {
