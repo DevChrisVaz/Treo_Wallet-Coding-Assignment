@@ -1,0 +1,79 @@
+import type { NavDestination } from '@devchrisvaz/wallet-design-tokens';
+import type { ReactNode } from 'react';
+import { AppHeader } from '@/components/ui/AppHeader';
+import { SideNav } from '@/components/ui/SideNav';
+import { TabBar, type NavItem } from '@/components/ui/TabBar';
+import { TopBar } from '@/components/ui/TopBar';
+import { MAIN_CONTENT_ID, SkipLink } from './PageShell';
+
+export const DEFAULT_NAV_ITEMS: readonly NavItem[] = [
+  { key: 'home', href: '/' },
+  { key: 'movements', href: '/movements' },
+  { key: 'transfer', href: '/transfers/new' },
+  { key: 'beneficiaries', href: '/beneficiaries' },
+];
+
+export interface AppShellProps {
+  current: NavDestination | null;
+  title: string;
+  primaryAction?: ReactNode;
+  user: { name: string; email: string };
+  onLogout?: () => void;
+  /** `flow`: el flujo de transferencia, sin barra de pestañas ni encabezado de la app en teléfono. */
+  mode?: 'tabs' | 'flow';
+  items?: readonly NavItem[];
+  children: ReactNode;
+}
+
+/**
+ * Estructura con sesión (WEB-24): forma de app bajo 1024 px (columna de 480 px, encabezado y
+ * pestañas) y forma de dashboard desde 1024 px (navegación lateral, barra superior y contenido de
+ * hasta 1200 px).
+ */
+export function AppShell({
+  current,
+  title,
+  primaryAction,
+  user,
+  onLogout,
+  mode = 'tabs',
+  items = DEFAULT_NAV_ITEMS,
+  children,
+}: AppShellProps) {
+  const tabs = mode === 'tabs';
+  return (
+    <div className="min-h-dvh bg-surface-canvas dashboard:flex">
+      <SkipLink />
+      <SideNav
+        items={items}
+        current={current}
+        user={user}
+        onLogout={onLogout}
+        className="hidden dashboard:flex"
+      />
+      <div className="mx-auto w-full max-w-app dashboard:max-w-content dashboard:px-10">
+        {tabs ? (
+          <AppHeader
+            user={user}
+            title={current === 'home' ? undefined : title}
+            onLogout={onLogout}
+            className="dashboard:hidden"
+          />
+        ) : null}
+        <TopBar title={title} action={primaryAction} className="hidden dashboard:flex" />
+        <main
+          id={MAIN_CONTENT_ID}
+          tabIndex={-1}
+          className={`grid gap-5 px-5 focus-visible:outline-none dashboard:px-0 dashboard:pb-10 ${
+            tabs
+              ? 'pb-[calc(var(--dt-layout-tab-bar-height)+env(safe-area-inset-bottom)+1.5rem)]'
+              : 'pb-6'
+          }`}
+        >
+          {children}
+        </main>
+      </div>
+      {tabs ? <TabBar items={items} current={current} className="dashboard:hidden" /> : null}
+    </div>
+  );
+}
