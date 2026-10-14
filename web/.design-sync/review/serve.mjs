@@ -12,7 +12,9 @@ const arg = (name, fallback) => {
   return i > 0 ? process.argv[i + 1] : fallback;
 };
 const roots = { web: resolve(arg('web', 'web/ds-bundle')), mobile: resolve(arg('mobile', 'mobile/ds-bundle')) };
-const here = fileURLToPath(new URL('.', import.meta.url));
+// Sin la barra final que deja `new URL('.')`: con ella, `base + sep` terminaba en "//" y la guarda de
+// abajo respondía 403 a todo lo que se sirve desde aquí (p. ej. /parity.html).
+const here = resolve(fileURLToPath(new URL('.', import.meta.url)));
 const port = Number.parseInt(arg('port', '4310'), 10);
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ttf': 'font/ttf', '.woff2': 'font/woff2' };
 
