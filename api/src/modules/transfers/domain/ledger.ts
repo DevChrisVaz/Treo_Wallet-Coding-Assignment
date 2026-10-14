@@ -2,8 +2,16 @@ import type { Money } from '../../../shared/money.js';
 
 export type TransferKind = 'FUNDING' | 'OWN' | 'THIRD_PARTY';
 
-export type MovementType =
-  'DEPOSIT' | 'TRANSFER_IN' | 'TRANSFER_OUT' | 'OWN_TRANSFER_IN' | 'OWN_TRANSFER_OUT';
+/** Tipos de asiento, que son también los tipos de movimiento del historial (HIS-03). */
+export const MOVEMENT_TYPES = [
+  'DEPOSIT',
+  'TRANSFER_IN',
+  'TRANSFER_OUT',
+  'OWN_TRANSFER_IN',
+  'OWN_TRANSFER_OUT',
+] as const;
+
+export type MovementType = (typeof MOVEMENT_TYPES)[number];
 
 /** Cuenta leída bajo bloqueo: su saldo es el vigente para esta transacción. */
 export interface LockedAccount {
