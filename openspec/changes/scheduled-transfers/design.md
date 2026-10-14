@@ -227,4 +227,17 @@ La app reinstala el contrato 1.2.0 y el paquete de diseño 1.1.0. Los mapeos de 
 
 1. Migraciones aditivas: columnas nulas, constraints que las filas existentes ya cumplen e índices parciales sobre un estado que no existe aún. Se aplican sin bloquear escrituras más que lo que dura el `ALTER TABLE`.
 2. Se despliega la API con el ejecutor habilitado. Las transferencias existentes no cambian de huella (D3).
-3. **Reversión:** se deshabilita `SCHEDULER_ENABLED`, se cancelan las programadas pendientes y se aplican los `down`.
+3. **Reversión:** se deshabilita `SCHEDULER_ENABLED` y se despliega la versión anterior de la API. Los `down` solo proceden si ninguna fila tiene `scheduled_for` (ver la corrección de D1 abajo). Con programadas ya creadas, la reversión es hacia adelante: no se borran datos.
+
+## Correcciones posteriores a la implementación
+
+- **D1, `down` protegido.** El `down` se niega si alguna fila tiene `scheduled_for`, no solo si hay filas en los estados nuevos. Quitar la columna borraría en silencio la fecha de las programadas ya ejecutadas o fallidas. Por eso el plan de reversión anterior ("cancelar las pendientes y aplicar los `down`") no podía ejecutarse: las canceladas son justo las filas que el `down` rechaza.
+- **D4, orden de las validaciones.** El rango de la fecha y el monto mayor al límite se validan justo después de reclamar la llave, no antes. Si se validaran antes, un reintento que llega después de medianoche recibiría `DATE_OUT_OF_RANGE` por una transferencia que ya existe y se va a ejecutar. Una petición nueva con fecha inválida sigue revirtiéndose sin consumir la llave.
+- **D6, lotes.** Un lote lleno continúa con un cursor por `(scheduled_for, created_at, id)` después de la última candidata, en lugar de repetir la misma consulta. Repetirla haría un ciclo infinito si un lote completo fallara siempre (por ejemplo, con la auditoría caída).
+- **D6, primera pasada.** Al arrancar, la API corre una pasada de inmediato y después una por intervalo. Así, las vencidas salen en cuanto la API vuelve después de estar caída.
+- **D6, servicio compartido.** La validación y el asiento de una transferencia ya bloqueada viven en `LockedTransferExecutor`, con la regla en el dominio. Lo usan la creación inmediata, la confirmación y el ejecutor.
+- **Decisiones abiertas que se cerraron:**
+  - Confirmar una programada que ya se ejecutó responde 200; si está cancelada o fallida responde 409 `TRANSFER_NOT_PENDING`.
+  - `SCHEDULER_BATCH_SIZE` va de 1 a 1,000.
+  - El aviso de falla que no se pudo enviar se registra con WARN, el `transferId` y sin destinatario.
+- **Riesgo que queda:** la confirmación de una programada no vuelve a contar el tope (D5). Con relojes de instancias desfasados unos segundos, podrían quedar 21 en `SCHEDULED`.
