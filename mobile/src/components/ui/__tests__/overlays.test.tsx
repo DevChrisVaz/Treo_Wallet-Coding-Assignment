@@ -23,6 +23,20 @@ describe('BottomSheet', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  test('DSG-17 tocar el fondo la cierra, y el fondo queda oculto para los lectores de pantalla', async () => {
+    const onClose = jest.fn();
+    await render(
+      <SafeAreaProvider initialMetrics={metrics}>
+        <BottomSheet open onClose={onClose} title="Cuenta de origen">
+          <Text>Principal</Text>
+        </BottomSheet>
+      </SafeAreaProvider>,
+    );
+    expect(screen.queryByTestId('bottom-sheet-backdrop')).toBeNull();
+    fireEvent.press(screen.getByTestId('bottom-sheet-backdrop', { includeHiddenElements: true }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   test('DSG-17 tiene botón Cerrar con nombre accesible', async () => {
     const onClose = jest.fn();
     await render(

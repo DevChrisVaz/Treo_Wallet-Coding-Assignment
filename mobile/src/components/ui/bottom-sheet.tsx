@@ -27,8 +27,8 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
     >
       <View style={styles.root}>
         <Pressable
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
+          testID="bottom-sheet-backdrop"
+          aria-hidden
           style={styles.backdrop}
           onPress={onClose}
         />
