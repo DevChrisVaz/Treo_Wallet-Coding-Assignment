@@ -67,7 +67,7 @@
 - [x] 7.5 [api] Pruebas de integración del umbral: 15,000.00 queda `PENDING_OTP` con saldo intacto, exactamente 10,000.00 se completa, 12,000.00 entre cuentas propias pide OTP (TRF-14, ACC-13)
 - [x] 7.6 [api] Pruebas de integración del correo contra Mailpit: el mensaje contiene monto, destino y últimos 4 dígitos; la respuesta y los logs no contienen el código; con SMTP caído responde 201 con `FAILED` (TRF-15)
 - [x] 7.7 [api] Pruebas de integración de confirmación: éxito, saldo gastado mientras esperaba (`FAILED` + `INSUFFICIENT_FUNDS`), código incorrecto con `attemptsRemaining`, tercer intento (`OTP_ATTEMPTS_EXHAUSTED`), dos confirmaciones simultáneas (dos asientos en total), reintento tras respuesta perdida sin consumir intentos, 409 `TRANSFER_NOT_PENDING` con `transferStatus` (TRF-16, TRF-17, TRF-18)
-- [ ] 7.8 [api] Pruebas de integración de vencimiento y medianoche: confirmar a los 6 minutos (409 `TRANSFER_EXPIRED`, consulta muestra `EXPIRED`) y OTP creado a las 23:58 confirmado a las 00:02 que consume el límite del día nuevo (TRF-19, TRF-12)
+- [x] 7.8 [api] Pruebas de integración de vencimiento y medianoche: confirmar a los 6 minutos (409 `TRANSFER_EXPIRED`, consulta muestra `EXPIRED`) y OTP creado a las 23:58 confirmado a las 00:02 que consume el límite del día nuevo (TRF-19, TRF-12)
 - [ ] 7.9 [api] Pruebas de integración de reenvío: el código anterior deja de servir y el cuarto reenvío responde `RESEND_LIMIT_REACHED` (TRF-20)
 
 ## 8. Transferencias: consulta
