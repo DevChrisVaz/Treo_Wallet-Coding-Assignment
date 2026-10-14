@@ -7,7 +7,17 @@ import type { TransferRow, TransferStore } from '../application/ports.js';
 
 export const TRANSFER_COLUMNS = `id, user_id, idempotency_key, request_fingerprint, kind, status,
   from_account_id, to_account_id, beneficiary_id, amount_cents, concept, reference, requires_otp,
-  rejection_reason, failure_reason, otp_expires_at, created_at, completed_at`;
+  rejection_reason, failure_reason, otp_expires_at, created_at, completed_at, scheduled_for,
+  cancelled_at`;
+
+/**
+ * Las mismas columnas para leer. `scheduled_for` sale como texto: el driver convierte un `date` en
+ * un `Date` a la medianoche local del proceso, que en otra zona horaria cambiaría el día.
+ */
+export const TRANSFER_SELECT = `id, user_id, idempotency_key, request_fingerprint, kind, status,
+  from_account_id, to_account_id, beneficiary_id, amount_cents, concept, reference, requires_otp,
+  rejection_reason, failure_reason, otp_expires_at, created_at, completed_at,
+  scheduled_for::text AS scheduled_for, cancelled_at`;
 
 export function transferValues(row: TransferRow): unknown[] {
   return [
@@ -29,10 +39,12 @@ export function transferValues(row: TransferRow): unknown[] {
     row.otpExpiresAt,
     row.createdAt,
     row.completedAt,
+    row.scheduledFor,
+    row.cancelledAt,
   ];
 }
 
-export const TRANSFER_PLACEHOLDERS = Array.from({ length: 18 }, (_, i) => `$${i + 1}`).join(', ');
+export const TRANSFER_PLACEHOLDERS = Array.from({ length: 20 }, (_, i) => `$${i + 1}`).join(', ');
 
 interface Row {
   id: string;
@@ -53,6 +65,8 @@ interface Row {
   otp_expires_at: Date | null;
   created_at: Date;
   completed_at: Date | null;
+  scheduled_for: string | null;
+  cancelled_at: Date | null;
 }
 
 export function transferFromRow(row: Row): TransferRow {
@@ -75,6 +89,8 @@ export function transferFromRow(row: Row): TransferRow {
     otpExpiresAt: row.otp_expires_at,
     createdAt: row.created_at,
     completedAt: row.completed_at,
+    scheduledFor: row.scheduled_for,
+    cancelledAt: row.cancelled_at,
   };
 }
 
@@ -106,7 +122,7 @@ export class PgTransferStore implements TransferStore {
   ): Promise<TransferRow | null> {
     const [row] = await queryIn<Row>(
       tx,
-      `SELECT ${TRANSFER_COLUMNS} FROM transfers WHERE user_id = $1 AND idempotency_key = $2`,
+      `SELECT ${TRANSFER_SELECT} FROM transfers WHERE user_id = $1 AND idempotency_key = $2`,
       [userId, idempotencyKey],
     );
     return row ? transferFromRow(row) : null;
@@ -129,6 +145,22 @@ export class PgTransferStore implements TransferStore {
     );
   }
 
+  async schedule(tx: Transaction, transferId: string): Promise<void> {
+    await queryIn(
+      tx,
+      `UPDATE transfers SET status = 'SCHEDULED', otp_expires_at = NULL WHERE id = $1`,
+      [transferId],
+    );
+  }
+
+  async cancel(tx: Transaction, transferId: string, at: Date): Promise<void> {
+    await queryIn(
+      tx,
+      `UPDATE transfers SET status = 'CANCELLED', cancelled_at = $2 WHERE id = $1`,
+      [transferId, at],
+    );
+  }
+
   async lockOwned(
     tx: Transaction,
     transferId: string,
@@ -136,7 +168,20 @@ export class PgTransferStore implements TransferStore {
   ): Promise<TransferRow | null> {
     const [row] = await queryForUpdate<Row>(
       tx,
-      `SELECT ${TRANSFER_COLUMNS} FROM transfers WHERE id = $1 AND user_id = $2 FOR UPDATE`,
+      `SELECT ${TRANSFER_SELECT} FROM transfers WHERE id = $1 AND user_id = $2 FOR UPDATE`,
+      [transferId, userId],
+    );
+    return row ? transferFromRow(row) : null;
+  }
+
+  async lockOwnedForStatus(
+    tx: Transaction,
+    transferId: string,
+    userId: string,
+  ): Promise<TransferRow | null> {
+    const [row] = await queryForUpdate<Row>(
+      tx,
+      `SELECT ${TRANSFER_SELECT} FROM transfers WHERE id = $1 AND user_id = $2 FOR NO KEY UPDATE`,
       [transferId, userId],
     );
     return row ? transferFromRow(row) : null;

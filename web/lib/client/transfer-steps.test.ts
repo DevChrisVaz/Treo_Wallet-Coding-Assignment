@@ -9,7 +9,13 @@ import {
   transfer,
 } from '@/test/fixtures';
 import type { TransferDraft, TransferFlowState } from './transfer-flow';
-import { OTP_NOTICE, flowHeading, requiresOtp, transferSummary } from './transfer-steps';
+import {
+  OTP_NOTICE,
+  flowHeading,
+  receiptTitle,
+  requiresOtp,
+  transferSummary,
+} from './transfer-steps';
 
 function draft(amount: string): TransferDraft {
   return {
@@ -21,6 +27,8 @@ function draft(amount: string): TransferDraft {
       amount,
       concept: 'Renta',
       reference: '1',
+      when: 'NOW',
+      scheduledFor: '',
     },
     request: {
       fromAccountId: PRINCIPAL.id,
@@ -140,6 +148,73 @@ describe('pasos del flujo', () => {
       transferSummary(toPrincipal, { ...CTX, live: { ...cleared, fromAccountId: AHORRO.id } }).rows
         .desde,
     ).toBe('Ahorro · •••• 9722');
+  });
+
+  it('WEB-33 el comprobante de una programada se titula "Transferencia programada", también tras el código', () => {
+    const scheduled = transfer({
+      status: 'SCHEDULED',
+      scheduledFor: '2026-10-20',
+      completedAt: null,
+    });
+    expect(receiptTitle(scheduled)).toBe('Transferencia programada');
+    expect(flowHeading({ step: 'receipt', transfer: scheduled, replayed: false })).toEqual({
+      title: 'Transferencia programada',
+      step: 4,
+      total: 4,
+      label: 'Comprobante',
+    });
+    expect(
+      flowHeading({
+        step: 'receipt',
+        transfer: { ...scheduled, amount: '15000.00', requiresOtp: true },
+        replayed: false,
+      }),
+    ).toMatchObject({ title: 'Transferencia programada', step: 5, total: 5 });
+    expect(receiptTitle(transfer({ status: 'CANCELLED' }))).toBe('Estado de la transferencia');
+  });
+
+  it('WEB-33 el resumen dice cuándo se enviará solo si es programada y la fecha ya es válida', () => {
+    const toLuis: TransferFlowState = {
+      step: 'form',
+      draft: null,
+      recipient: { destinationType: 'BENEFICIARY', beneficiaryId: BENEFICIARY.id },
+    };
+    const values = draft('1000').values;
+    const live = (when: 'NOW' | 'SCHEDULED', scheduledFor: string) => ({
+      ...CTX,
+      live: { ...values, when, scheduledFor },
+    });
+    expect(transferSummary(toLuis, live('SCHEDULED', '2026-10-20')).rows.programada).toBe(
+      '2026-10-20',
+    );
+    // "Ahora" no envía fecha aunque se haya escrito una; una fecha incompleta aún no se resume.
+    expect(transferSummary(toLuis, live('NOW', '2026-10-20')).rows).not.toHaveProperty(
+      'programada',
+    );
+    expect(transferSummary(toLuis, live('SCHEDULED', '2026-10')).rows).not.toHaveProperty(
+      'programada',
+    );
+
+    const scheduledDraft = draft('1000');
+    scheduledDraft.request = { ...scheduledDraft.request, scheduledFor: '2026-10-20' };
+    expect(
+      transferSummary({ step: 'confirm', draft: scheduledDraft, status: 'idle' }, CTX).rows
+        .programada,
+    ).toBe('2026-10-20');
+    expect(transferSummary(confirm('1000'), CTX).rows).not.toHaveProperty('programada');
+
+    const scheduled = transfer({
+      status: 'SCHEDULED',
+      scheduledFor: '2026-10-20',
+      completedAt: null,
+    });
+    expect(
+      transferSummary({ step: 'receipt', transfer: scheduled, replayed: false }, CTX).rows
+        .programada,
+    ).toBe('2026-10-20');
+    expect(
+      transferSummary({ step: 'receipt', transfer: transfer(), replayed: false }, CTX).rows,
+    ).not.toHaveProperty('programada');
   });
 
   it('WEB-18 si la API da el estado real de una transferencia que ya no está pendiente, el título lo sigue', () => {

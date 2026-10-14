@@ -203,6 +203,8 @@ describe('Receipt', () => {
     ['REJECTED', 'lucide-circle-alert'],
     ['PENDING_OTP', 'lucide-triangle-alert'],
     ['EXPIRED', 'lucide-info'],
+    ['SCHEDULED', 'lucide-info'],
+    ['CANCELLED', 'lucide-info'],
   ] as const)(
     'WEB-16 el icono del comprobante sigue el tono del estado %s (%s)',
     (status, icon) => {
@@ -211,6 +213,28 @@ describe('Receipt', () => {
       expect(avatar?.querySelector('svg')).toHaveClass(icon);
     },
   );
+
+  it('WEB-34 muestra la fecha programada en palabras cuando existe', () => {
+    render(
+      <Receipt
+        transfer={transfer({ status: 'SCHEDULED', scheduledFor: '2026-10-20', completedAt: null })}
+        fromAccount={PRINCIPAL}
+      />,
+    );
+    const receipt = screen.getByRole('region', { name: 'Comprobante' });
+    expect(receipt).toHaveTextContent('Programada para20 de octubre de 2026');
+    expect(within(receipt).getByText('20 de octubre de 2026')).toHaveAttribute(
+      'dateTime',
+      '2026-10-20',
+    );
+  });
+
+  it('WEB-34 una transferencia inmediata no muestra fecha programada', () => {
+    render(<Receipt transfer={transfer()} fromAccount={PRINCIPAL} />);
+    expect(screen.getByRole('region', { name: 'Comprobante' })).not.toHaveTextContent(
+      'Programada para',
+    );
+  });
 
   it('WEB-16 sin los datos de la cuenta de origen muestra su identificador', () => {
     render(<Receipt transfer={transfer()} />);

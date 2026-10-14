@@ -7,9 +7,11 @@ import {
 } from '../../../../platform/http/validation.js';
 import { DomainError } from '../../../../shared/errors.js';
 import { Money, MoneyParseError } from '../../../../shared/money.js';
+import { isValidCalendarDate } from '../../../identity/domain/calendar.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NO_EDGE_SPACES = /^\S(.*\S)?$/u;
+const SCHEDULED_DATE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 
 export type TransferDestinationInput =
   | { readonly type: 'OWN_ACCOUNT'; readonly id: string }
@@ -93,9 +95,25 @@ const destinationField = z
   });
 
 /**
- * `CreateTransferRequest` (TRF-08, TRF-09): monto como string decimal positivo con 0 a 2 decimales,
- * concepto de 1 a 40 caracteres sin espacios en los extremos y referencia de 1 a 7 dígitos, que
- * se interpreta como número (0 a 9999999).
+ * `ScheduledDate` del contrato (TRF-27): `YYYY-MM-DD` y una fecha que existe en el calendario. El
+ * rango (de mañana a 90 días) depende de la hora, así que lo valida el caso de uso con el `Clock`.
+ */
+const scheduledDateField = textField({
+  check: (value, ctx) => {
+    if (!SCHEDULED_DATE.test(value)) {
+      return addFieldIssue(ctx, 'INVALID_FORMAT', 'La fecha debe tener la forma AAAA-MM-DD');
+    }
+    const [year, month, day] = value.split('-').map(Number) as [number, number, number];
+    if (!isValidCalendarDate(year, month, day)) {
+      addFieldIssue(ctx, 'INVALID_DATE', 'La fecha no existe');
+    }
+  },
+});
+
+/**
+ * `CreateTransferRequest` (TRF-08, TRF-09, TRF-27): monto como string decimal positivo con 0 a 2
+ * decimales, concepto de 1 a 40 caracteres sin espacios en los extremos, referencia de 1 a 7
+ * dígitos, que se interpreta como número (0 a 9999999), y fecha programada opcional.
  */
 export const createTransferRequestSchema = z.strictObject({
   fromAccountId: uuidField,
@@ -124,6 +142,7 @@ export const createTransferRequestSchema = z.strictObject({
       if (value.length > 7) addFieldIssue(ctx, 'TOO_LONG', 'La referencia admite máximo 7 dígitos');
     },
   }).transform((value) => Number.parseInt(value, 10)),
+  scheduledFor: scheduledDateField.optional(),
 });
 
 export type CreateTransferInput = z.output<typeof createTransferRequestSchema>;

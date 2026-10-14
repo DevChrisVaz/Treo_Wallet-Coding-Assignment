@@ -1,6 +1,7 @@
 import {
   amountInput,
   formatMXN,
+  scheduledDate,
   toCents,
   type Account,
   type Beneficiary,
@@ -47,9 +48,11 @@ export function defaultOriginId(
   return (origins.find((account) => account.id === preferredId) ?? origins[0])?.id;
 }
 
-/** Título del comprobante: "enviada" solo si se completó. */
+/** Título del comprobante: "enviada" solo si se completó; "programada" si quedó programada (WEB-33). */
 export function receiptTitle(transfer: Pick<Transfer, 'status'>): string {
-  return transfer.status === 'COMPLETED' ? 'Transferencia enviada' : 'Estado de la transferencia';
+  if (transfer.status === 'COMPLETED') return 'Transferencia enviada';
+  if (transfer.status === 'SCHEDULED') return 'Transferencia programada';
+  return 'Estado de la transferencia';
 }
 
 /**
@@ -113,6 +116,8 @@ export interface SummaryRows {
   monto?: string;
   concepto?: string;
   referencia?: string;
+  /** Fecha programada (`YYYY-MM-DD`); sin ella la transferencia es inmediata y no hay fila "Cuándo". */
+  programada?: string;
 }
 
 export interface SummaryContext {
@@ -132,6 +137,12 @@ const beneficiaryText = (beneficiary: Beneficiary | undefined) =>
   beneficiary ? `${beneficiary.alias} · ${maskClabe(beneficiary.clabe)}` : undefined;
 const transferText = (transfer: Transfer) =>
   `${transfer.destination.displayName} · •••• ${transfer.destination.clabeLast4}`;
+
+/** La fecha elegida con "Programar" si ya es una fecha válida para el contrato; si no, nada (WEB-33). */
+function typedSchedule(values: TransferFormValues): string | undefined {
+  if (values.when !== 'SCHEDULED') return undefined;
+  return scheduledDate.safeParse(values.scheduledFor).success ? values.scheduledFor : undefined;
+}
 
 /** El monto escrito si ya es válido para el contrato (sin separadores); si no, nada. */
 function typedAmount(text: string): string | undefined {
@@ -180,6 +191,7 @@ export function transferSummary(
           monto: amount ? formatMXN(amount) : undefined,
           concepto: values?.concept || undefined,
           referencia: values?.reference || undefined,
+          programada: values ? typedSchedule(values) : undefined,
         }),
         note: note(amount, false),
       };
@@ -193,6 +205,7 @@ export function transferSummary(
           monto: formatMXN(request.amount),
           concepto: request.concept,
           referencia: request.reference,
+          programada: request.scheduledFor,
         }),
         note: note(request.amount, false),
       };
@@ -209,6 +222,7 @@ export function transferSummary(
           monto: formatMXN(transfer.amount),
           concepto: transfer.concept,
           referencia: transfer.reference,
+          programada: transfer.scheduledFor ?? undefined,
         }),
         note: note(transfer.amount, state.step !== 'otp'),
       };

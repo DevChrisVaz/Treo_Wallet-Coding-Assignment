@@ -21,6 +21,12 @@ describe('mapa de iconos', () => {
     }
   });
 
+  it('DSG-15 "scheduled" (transferencias programadas) usa CalendarClock, distinto de "transfer"', () => {
+    expect(iconConcepts).toContain('scheduled');
+    expect(iconNames.scheduled).toBe('CalendarClock');
+    expect(iconNames.scheduled).not.toBe(iconNames.transfer);
+  });
+
   it('DSG-15 cada concepto tiene un nombre de Lucide en PascalCase', () => {
     for (const concept of iconConcepts) expect(iconNames[concept]).toMatch(/^[A-Z][A-Za-z0-9]*$/);
   });

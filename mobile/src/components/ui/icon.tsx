@@ -2,6 +2,7 @@ import { iconSize, type IconConcept } from '@devchrisvaz/wallet-design-tokens';
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  CalendarClock,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -30,6 +31,7 @@ export const ICONS = {
   home: House,
   movements: ReceiptText,
   transfer: Send,
+  scheduled: CalendarClock,
   beneficiaries: Users,
   logout: LogOut,
   moneyIn: ArrowDownLeft,

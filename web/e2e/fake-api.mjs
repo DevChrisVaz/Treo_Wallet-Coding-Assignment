@@ -151,6 +151,18 @@ const pending = {
   createdAt: '2026-10-13T17:41:00Z',
   completedAt: null,
 };
+// Programada (WEB-34): $1,000.00 a Luis para el 20 de octubre de 2026, la que lista
+// `GET /transfers/scheduled`.
+const scheduled = {
+  ...sent,
+  id: '9a3b5c7d-2e4f-4a6b-8c0d-1e3f5a7b9c2d',
+  status: 'SCHEDULED',
+  amount: '1000.00',
+  scheduledFor: '2026-10-20',
+  cancelledAt: null,
+  createdAt: '2026-10-13T16:50:00Z',
+  completedAt: null,
+};
 
 const DEFAULTS = { accounts: 'ok', beneficiaries: 'ok', movements: 'ok' };
 let scenario = { ...DEFAULTS };
@@ -270,6 +282,7 @@ createServer(async (req, res) => {
   }
   if (route === 'GET /beneficiaries')
     return send(res, 200, { items: scenario.beneficiaries === 'empty' ? [] : [luis, mama] });
+  if (route === 'GET /transfers/scheduled') return send(res, 200, { items: [scheduled] });
   if (route === `GET /transfers/${sent.id}`) return send(res, 200, sent);
   if (route === `GET /transfers/${pending.id}`) return send(res, 200, pending);
   if (route === 'POST /transfers') {

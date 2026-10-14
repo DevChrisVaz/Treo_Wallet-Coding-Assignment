@@ -1,5 +1,13 @@
 /** Estados que se guardan. `EXPIRED` no se guarda: se calcula al leer (TRF-19). */
-export type StoredTransferStatus = 'PENDING_OTP' | 'COMPLETED' | 'REJECTED' | 'FAILED';
+export type StoredTransferStatus =
+  | 'PENDING_OTP'
+  | 'COMPLETED'
+  | 'REJECTED'
+  | 'FAILED'
+  /** Programada: espera su fecha sin haber movido dinero (TRF-27, TRF-34). */
+  | 'SCHEDULED'
+  /** Programada que el usuario canceló: final y sin dinero (TRF-32). */
+  | 'CANCELLED';
 export type TransferStatus = StoredTransferStatus | 'EXPIRED';
 
 export type TransferEvent =
@@ -14,7 +22,15 @@ export type TransferEvent =
   /** Revalidación de saldo o límite fallida al confirmar. */
   | 'FAIL_REVALIDATION'
   /** Tercer OTP incorrecto. */
-  | 'EXHAUST_OTP';
+  | 'EXHAUST_OTP'
+  /** Programada de hasta el umbral al crearla, o programada con su OTP correcto (TRF-27, TRF-28). */
+  | 'SCHEDULE'
+  /** Ejecución de una programada con saldo y límite suficientes (TRF-30). */
+  | 'EXECUTE_OK'
+  /** Ejecución de una programada sin saldo o sin límite (TRF-30). */
+  | 'EXECUTE_FAIL'
+  /** Cancelación del usuario (TRF-32). */
+  | 'CANCEL';
 
 export class InvalidTransferTransition extends Error {
   constructor(
@@ -33,12 +49,18 @@ const TRANSITIONS: Record<string, StoredTransferStatus> = {
   'PENDING_OTP:CONFIRM': 'COMPLETED',
   'PENDING_OTP:FAIL_REVALIDATION': 'FAILED',
   'PENDING_OTP:EXHAUST_OTP': 'FAILED',
+  // Programadas (D2 de scheduled-transfers): una SCHEDULED solo se ejecuta o se cancela.
+  'null:SCHEDULE': 'SCHEDULED',
+  'PENDING_OTP:SCHEDULE': 'SCHEDULED',
+  'SCHEDULED:EXECUTE_OK': 'COMPLETED',
+  'SCHEDULED:EXECUTE_FAIL': 'FAILED',
+  'SCHEDULED:CANCEL': 'CANCELLED',
 };
 
 /**
  * Máquina de estados de la transferencia como función pura: estado actual (o `null` si se está
- * creando) + evento → nuevo estado, o error si la transición no existe. COMPLETED, REJECTED y FAILED
- * son finales.
+ * creando) + evento → nuevo estado, o error si la transición no existe. COMPLETED, REJECTED, FAILED
+ * y CANCELLED son finales.
  */
 export function transition(
   from: StoredTransferStatus | null,

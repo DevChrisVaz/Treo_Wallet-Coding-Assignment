@@ -12,6 +12,8 @@ const DRAFT: TransferDraft = {
     amount: '5,000',
     concept: 'Renta',
     reference: '1',
+    when: 'NOW',
+    scheduledFor: '',
   },
   request: {
     fromAccountId: PRINCIPAL.id,
@@ -110,6 +112,28 @@ describe('useTransferFlow', () => {
     expect(result.current.key).toBeNull();
 
     act(() => result.current.edit());
+    act(() => result.current.review(DRAFT));
+    expect(result.current.key).toBe('key-2');
+  });
+
+  it('WEB-33 WEB-17 un error de campo de la API vuelve al formulario con el problema y descarta la llave', () => {
+    const invalid = problem('VALIDATION_FAILED', {
+      errors: [{ pointer: '/scheduledFor', code: 'DATE_OUT_OF_RANGE', message: 'Fuera de rango' }],
+    });
+    const { result } = renderHook(({ generate }) => useTransferFlow(generate), {
+      initialProps: { generate: keys() },
+    });
+    act(() => result.current.review(DRAFT));
+    act(() => result.current.sending());
+    act(() => result.current.invalid(invalid));
+
+    expect(result.current.state).toEqual({
+      step: 'form',
+      draft: DRAFT,
+      recipient: { destinationType: 'BENEFICIARY', beneficiaryId: BENEFICIARY.id },
+      problem: invalid,
+    });
+    expect(result.current.key).toBeNull();
     act(() => result.current.review(DRAFT));
     expect(result.current.key).toBe('key-2');
   });

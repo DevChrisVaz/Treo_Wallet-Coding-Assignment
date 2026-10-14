@@ -83,6 +83,27 @@ describe('ReceiptStep', () => {
     expect(client.getQueryState(queryKeys.accounts)?.isInvalidated).toBe(false);
   });
 
+  it('WEB-33 una programada dice cuándo se enviará con el enlace a las programadas, y no invalida la caché', () => {
+    const client = clientWithData();
+    renderWithClient(
+      <ReceiptStep
+        transfer={transfer({ status: 'SCHEDULED', scheduledFor: '2026-10-20', completedAt: null })}
+        accounts={OVERVIEW.accounts}
+        onRestart={vi.fn()}
+      />,
+      { client },
+    );
+    // El título "Transferencia programada" lo da FlowHeader (`receiptTitle`, transfer-steps.test.ts)
+    // o el detalle (abajo); el paso no repite un encabezado propio.
+    expect(screen.queryByRole('heading', { name: 'Transferencia enviada' })).toBeNull();
+    expect(screen.getByText(/Se enviará el 20 de octubre de 2026\./)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'tus transferencias programadas' })).toHaveAttribute(
+      'href',
+      '/transfers/scheduled',
+    );
+    expect(client.getQueryState(queryKeys.accounts)?.isInvalidated).toBe(false);
+  });
+
   it('WEB-16 ofrece volver a las cuentas o hacer otra transferencia', async () => {
     const onRestart = vi.fn();
     const user = userEvent.setup();
@@ -190,6 +211,31 @@ describe('TransferDetailScreen', () => {
     expect(screen.getByRole('heading', { name: 'La transferencia no se realizó' })).toBeVisible();
     const receipt = screen.getByRole('region', { name: 'Comprobante' });
     expect(within(receipt).getByText('Fallida')).toBeVisible();
+  });
+
+  it.each([
+    ['SCHEDULED', 'Programada', null],
+    ['CANCELLED', 'Cancelada', '2026-10-15T17:00:00.000Z'],
+  ] as const)(
+    'WEB-34 el comprobante de una %s muestra la fecha programada y la insignia "%s"',
+    async (status, label, cancelledAt) => {
+      reads(transfer({ status, scheduledFor: '2026-10-20', completedAt: null, cancelledAt }));
+      renderWithClient(<TransferDetailScreen transferId={transfer().id} />);
+      const receipt = await screen.findByRole('region', { name: 'Comprobante' });
+      expect(within(receipt).getByText(label)).toBeVisible();
+      expect(receipt).toHaveTextContent('Programada para20 de octubre de 2026');
+    },
+  );
+
+  it('WEB-33 el detalle de una programada se titula "Transferencia programada" y enlaza a las programadas', async () => {
+    reads(transfer({ status: 'SCHEDULED', scheduledFor: '2026-10-20', completedAt: null }));
+    renderWithClient(<TransferDetailScreen transferId={transfer().id} />);
+    expect(await screen.findByRole('heading', { name: 'Transferencia programada' })).toBeVisible();
+    expect(screen.getByText(/Se enviará el 20 de octubre de 2026\./)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'tus transferencias programadas' })).toHaveAttribute(
+      'href',
+      '/transfers/scheduled',
+    );
   });
 
   it('WEB-20 si la lectura falla muestra el error con "Reintentar"', async () => {

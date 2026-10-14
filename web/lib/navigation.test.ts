@@ -63,6 +63,15 @@ describe('appSection', () => {
       { current: null, title: 'Transferencia', mode: 'tabs', primary: 'transfer' },
     ],
     [
+      '/transfers/scheduled',
+      {
+        current: 'scheduled',
+        title: 'Transferencias programadas',
+        mode: 'tabs',
+        primary: 'transfer',
+      },
+    ],
+    [
       '/beneficiaries',
       { current: 'beneficiaries', title: 'Beneficiarios', mode: 'tabs', primary: 'beneficiary' },
     ],

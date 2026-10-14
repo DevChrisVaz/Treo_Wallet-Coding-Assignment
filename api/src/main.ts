@@ -1,12 +1,17 @@
 import { ConfigError, loadConfig } from './platform/config/config.js';
+import { gracefulShutdown } from './platform/lifecycle/graceful-shutdown.js';
 import {
   assertRuntimeRoleIsNotSchemaOwner,
   createAppDataSource,
 } from './platform/persistence/data-sources.js';
+import { PeriodicTask } from './platform/scheduling/periodic-task.js';
 
 /**
  * Punto de entrada del proceso: valida la configuración (PLT-08), se conecta con el rol de
- * ejecución, verifica que no sea el dueño del esquema y empieza a aceptar peticiones.
+ * ejecución, verifica que no sea el dueño del esquema, empieza a aceptar peticiones y, si está
+ * habilitado, programa el ejecutor de transferencias programadas (TRF-30, D6). Con `SIGTERM` o
+ * `SIGINT` se apaga en orden: deja de aceptar peticiones y detiene el ejecutor, espera la pasada en
+ * curso y solo entonces cierra el pool.
  */
 export async function main(): Promise<void> {
   const config = loadConfig(process.env);
@@ -17,14 +22,32 @@ export async function main(): Promise<void> {
   await dataSource.initialize();
   await assertRuntimeRoleIsNotSchemaOwner(dataSource);
   const container = await createContainer(config, { dataSource });
+  const scheduler = config.scheduler.enabled
+    ? new PeriodicTask({
+        name: 'scheduled-transfers',
+        intervalMs: config.scheduler.intervalMs,
+        run: () => container.scheduler.runner.runOnce(),
+        logger: container.logger,
+      })
+    : null;
   const server = createApp(container).listen(config.port, config.host, () => {
     container.logger.info({ host: config.host, port: config.port }, 'api listening');
+    scheduler?.start();
+    container.logger.info(
+      { enabled: config.scheduler.enabled, intervalMs: config.scheduler.intervalMs },
+      'scheduled transfers runner',
+    );
   });
-  const shutdown = () => {
-    server.close(() => void dataSource.destroy().then(() => process.exit(0)));
+  const shutdown = gracefulShutdown({
+    stopWork: async () => scheduler?.stop(),
+    closeServer: () => new Promise<void>((resolve) => server.close(() => resolve())),
+    closePool: () => dataSource.destroy(),
+  });
+  const onSignal = () => {
+    void shutdown().then(() => process.exit(0));
   };
-  process.on('SIGTERM', shutdown);
-  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', onSignal);
+  process.on('SIGINT', onSignal);
 }
 
 main().catch((error: unknown) => {

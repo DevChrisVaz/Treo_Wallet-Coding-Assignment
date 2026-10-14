@@ -38,6 +38,8 @@ async function ownTransfer(t: TestApp, user: FixtureUser, amount: string) {
       otpExpiresAt: null,
       createdAt: t.clock.now(),
       completedAt: null,
+      scheduledFor: null,
+      cancelledAt: null,
     });
     const locked = await locks.lock(tx, [user.principalId, user.ahorroId], {
       ownedBy: user.userId,

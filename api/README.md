@@ -1,8 +1,8 @@
 # API de la billetera (`/api`)
 
-Backend de la billetera digital en MXN: identidad (registro con verificación por correo, sesiones con refresh rotativo), cuentas con CLABE, beneficiarios, transferencias con ledger de partida doble (idempotencia, límite diario, OTP por correo), historial con paginación por cursor, estado de cuenta mensual en PDF y bitácora de auditoría inmutable. Express 5 + TypeScript estricto + PostgreSQL 16 con TypeORM (sin `synchronize`, migraciones con SQL explícito).
+Backend de la billetera digital en MXN: identidad (registro con verificación por correo, sesiones con refresh rotativo), cuentas con CLABE, beneficiarios, transferencias con ledger de partida doble (idempotencia, límite diario, OTP por correo), transferencias programadas con fecha futura, historial con paginación por cursor, estado de cuenta mensual en PDF y bitácora de auditoría inmutable. Express 5 + TypeScript estricto + PostgreSQL 16 con TypeORM (sin `synchronize`, migraciones con SQL explícito).
 
-El contrato es [`contract/openapi.yaml`](../contract/openapi.yaml) (paquete `@devchrisvaz/wallet-contract`). Especificación: `openspec/changes/api-foundation/` (requisitos PLT, IDN, AUD y ACC-01 a ACC-09) `openspec/changes/api-ledger/` (ACC-10 a ACC-16, BEN, TRF e HIS-01 a HIS-10) y `openspec/changes/account-statements/` (HIS-11, HIS-12 y AUD-07).
+El contrato es [`contract/openapi.yaml`](../contract/openapi.yaml) (paquete `@devchrisvaz/wallet-contract`). Especificación: `openspec/changes/api-foundation/` (requisitos PLT, IDN, AUD y ACC-01 a ACC-09) `openspec/changes/api-ledger/` (ACC-10 a ACC-16, BEN, TRF-01 a TRF-26 e HIS-01 a HIS-10), `openspec/changes/account-statements/` (HIS-11, HIS-12 y AUD-07) y `openspec/changes/scheduled-transfers/` (TRF-27 a TRF-36 y AUD-08).
 
 ## Requisitos
 
@@ -168,6 +168,93 @@ Para el mes en curso, `fin` es el momento de la generación. Sin movimientos en 
 
 La migración `1760600000000-audit-statement-exported` agrega `STATEMENT_EXPORTED` al catálogo de la bitácora: una base creada antes necesita `npm run db:migrate`.
 
+## Transferencias programadas
+
+`POST /transfers` con `scheduledFor` (`AAAA-MM-DD`, día de la Ciudad de México, de mañana a 90 días después de hoy) programa la transferencia en lugar de ejecutarla:
+
+- **Hasta 10,000.00:** `201` con estado `SCHEDULED`, sin asientos y sin tocar saldo ni límite. **Arriba de 10,000.00:** `201` en `PENDING_OTP`, con la fecha en el correo del código ("Programada para el 20 de octubre de 2026."); al confirmar el código queda `SCHEDULED`, también sin mover dinero ni revalidar.
+- **Validación al programar:** la fecha (`422 VALIDATION_FAILED` en `/scheduledFor` con `DATE_OUT_OF_RANGE`, incluida la de hoy, o `INVALID_DATE`), las mismas reglas de propiedad, monto, concepto y referencia que una inmediata, y que una programada a un tercero no supere el límite diario (`TOO_LARGE` en `/amount`: nunca podría ejecutarse). El saldo y el límite **de hoy** no se validan: se validan al ejecutar.
+- **Idempotencia:** la fecha forma parte del contenido que se compara (`IDEMPOTENCY_KEY_REUSED` con otra fecha), pero entra en la huella **solo cuando existe**: la huella de las inmediatas ya guardadas no cambió. La fecha y el monto se validan después de reclamar la llave: un reintento que llega pasada la medianoche se reconoce como reintento en lugar de responder que su fecha ya no es programable, y una petición nueva inválida revierte el reclamo, así que no consume la llave.
+- **Tope:** 20 activas por usuario (las `SCHEDULED` y las programadas en `PENDING_OTP` vigentes). La número 21 responde `422 SCHEDULED_LIMIT_REACHED` sin guardarse ni consumir la llave.
+- **Consultar y cancelar:** `GET /transfers/scheduled` (`listScheduledTransfers`) devuelve las `SCHEDULED` del usuario por fecha y luego por creación. `POST /transfers/{transferId}/cancel` (`cancelTransfer`) pasa una `SCHEDULED` a `CANCELLED` con `cancelledAt`; cancelarla otra vez responde `200` sin cambios y cualquier otro estado, `409 TRANSFER_NOT_CANCELLABLE` con `transferStatus`.
+- Hasta ejecutarse, una programada no aparece en el historial ni consume límite. `GET /transfers/{transferId}` muestra `scheduledFor` en cualquier estado y `cancelledAt` en las canceladas.
+- **Auditoría:** `TRANSFER_CREATED` (con el estado inicial y la fecha), `TRANSFER_SCHEDULED` al quedar programada (al crearla o al confirmar su código) y `TRANSFER_CANCELLED` con actor `USER`; la ejecución deja `TRANSFER_COMPLETED` o `TRANSFER_FAILED` con actor `SYSTEM` y el id del dueño en los metadatos.
+
+### El ejecutor
+
+`ScheduledTransferRunner` (`src/modules/transfers/application/scheduled-transfer-runner.ts`) corre dentro de la API. `main.ts` lo programa con una pasada al arrancar y luego una por intervalo, **una a la vez por instancia** (si una pasada sigue en curso, la siguiente se omite):
+
+| Variable                | Valor por defecto | Qué controla                                                                                   |
+| ----------------------- | ----------------- | ---------------------------------------------------------------------------------------------- |
+| `SCHEDULER_ENABLED`     | `true`            | `false` lo apaga (las pruebas llaman a `runOnce()` directamente)                               |
+| `SCHEDULER_INTERVAL_MS` | `60000`           | Cada cuánto corre una pasada; de 1,000 a 3,600,000                                             |
+| `SCHEDULER_BATCH_SIZE`  | `100`             | Candidatas por lote (1 a 1,000); si un lote viene lleno, la pasada sigue con el siguiente lote |
+
+Una pasada lee sin bloqueo las `SCHEDULED` con `scheduled_for` menor o igual al día de hoy en la Ciudad de México, en orden de fecha y creación (índice parcial `ix_transfers_scheduled_due`), y ejecuta cada una en su propia transacción:
+
+1. Si es a un tercero, crea y bloquea la fila contador del límite del usuario para el día de ahora.
+2. Bloquea la transferencia con `SELECT … WHERE id = $1 AND status = 'SCHEDULED' FOR NO KEY UPDATE SKIP LOCKED`. Sin fila: otra instancia o una cancelación la tiene, o ya cambió de estado; se deja y se sigue.
+3. Bloquea las cuentas en orden de id; toma la hora después de los bloqueos y, si ya cambió el día de la Ciudad de México, revierte y reintenta una vez (el mismo mecanismo que una inmediata).
+4. Valida saldo y límite **del día de ejecución** con el mismo servicio que la creación inmediata (`LockedTransferExecutor`) y la deja `COMPLETED` (dos asientos, `completedAt` = hora de ejecución, límite de ese día) o `FAILED` con `INSUFFICIENT_FUNDS` o `DAILY_LIMIT_EXCEEDED`.
+5. Después del `COMMIT`, si quedó `FAILED`, envía al dueño "Tu transferencia programada no se realizó" (monto, destino con los últimos 4 dígitos de la CLABE, fecha y motivo). Si el correo falla, queda un WARN con el `transferId`; la transferencia sigue `FAILED` y no se repite.
+
+Una programada vencida mientras la API no corría se ejecuta en la siguiente pasada y consume el límite del día en que se ejecuta. Si algo lanza dentro de la transacción de una transferencia (por ejemplo, la auditoría), solo esa se revierte: queda un ERROR con su id, la pasada sigue con las demás y esa transferencia se reintenta en la siguiente pasada. Con `SIGTERM` el proceso deja de aceptar peticiones, detiene el ejecutor, espera la pasada en curso y solo entonces cierra el pool.
+
+### Concurrencia
+
+Cada programada se ejecuta exactamente una vez aunque corran varias instancias de la API (en AWS, una por tarea de Fargate; todas corren el ejecutor):
+
+- **Orden global de bloqueos**, el mismo de las inmediatas: contador del usuario → transferencia → cuentas por id. Nadie toma un bloqueo "hacia atrás", así que no hay ciclos de espera.
+- **`SKIP LOCKED`** sobre la transferencia: dos ejecutores no se esperan entre sí; se reparten el trabajo sin coordinarse.
+- **Estado re-verificado bajo bloqueo:** con `READ COMMITTED`, PostgreSQL vuelve a evaluar `status = 'SCHEDULED'` sobre la versión vigente de la fila, así que lo que otra instancia ya ejecutó o el usuario canceló se descarta. La base es la red: un segundo par de asientos choca con `uq_ledger_entries_transfer_account` y ejecutar una cancelada, con `ck_transfers_cancelled_at_by_status`.
+- **Cancelación contra ejecución:** la cancelación bloquea solo la transferencia. Si el ejecutor la tiene, la cancelación espera y responde `409` con `COMPLETED` o `FAILED`; si la tiene la cancelación, el ejecutor la salta y en la siguiente pasada ya no está `SCHEDULED`. Gana exactamente una.
+- **Tope por usuario:** programar bloquea la fila del usuario (`FOR NO KEY UPDATE`, que no choca con el `FOR KEY SHARE` de las llaves foráneas), así que dos programaciones simultáneas hacen fila y la segunda cuenta a la primera.
+
+Lo demuestran las pruebas de `test/integration/concurrency/` (`scheduled-runners`, `cancel-race`, `scheduled-cap-race`): dos ejecutores sobre 50 vencidas con conciliación, el ejecutor contra transferencias manuales de la misma cuenta, las tres variantes de la carrera con la cancelación (con barreras dentro de las transacciones) y el tope con dos peticiones simultáneas. Como alternativa en AWS queda EventBridge Scheduler invocando `runOnce` cada minuto en una tarea aparte.
+
+Las migraciones `1760700000000-scheduled-transfers` (columnas, estados, constraints e índices parciales) y `1760700001000-audit-scheduled-transfers` (catálogo de la bitácora) necesitan `npm run db:migrate` en una base creada antes. El `down` de la primera se niega mientras exista alguna transferencia programada (pendiente, ejecutada o cancelada), para no borrar sus fechas.
+
+### Verlas ejecutarse en local
+
+Una programada vence a las 00:00 de su fecha; para no esperar a la medianoche, se adelanta su fecha en la base:
+
+```bash
+# 1. Pasadas cada 5 s: en .env, SCHEDULER_INTERVAL_MS=5000; después `npm run dev`.
+
+# 2. Sesión de Ana y los ids de su "Principal" y de su beneficiario Luis
+TOKEN=$(curl -s localhost:4000/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"ana@example.com","password":"Ana-demo-2026!"}' | jq -r .tokens.accessToken)
+FROM=$(curl -s localhost:4000/accounts -H "Authorization: Bearer $TOKEN" \
+  | jq -r '.accounts[] | select(.name == "Principal") | .id')
+LUIS=$(curl -s localhost:4000/beneficiaries -H "Authorization: Bearer $TOKEN" \
+  | jq -r '.items[] | select(.alias == "Luis") | .id')
+
+# 3. Programar 100.00 para mañana (fecha de la Ciudad de México)
+TOMORROW=$(TZ=America/Mexico_City date -d tomorrow +%F)
+ID=$(curl -s localhost:4000/transfers -H "Authorization: Bearer $TOKEN" \
+  -H "Idempotency-Key: $(uuidgen)" -H 'Content-Type: application/json' \
+  -d "{\"fromAccountId\":\"$FROM\",\"destination\":{\"type\":\"BENEFICIARY\",\"beneficiaryId\":\"$LUIS\"},\"amount\":\"100.00\",\"concept\":\"Prueba programada\",\"reference\":\"1\",\"scheduledFor\":\"$TOMORROW\"}" \
+  | jq -r .id)
+curl -s localhost:4000/transfers/scheduled -H "Authorization: Bearer $TOKEN" | jq '.items[] | {id, status, scheduledFor}'
+
+# 4. "Llega" su fecha: solo en desarrollo, con el rol dueño
+docker compose exec -T postgres psql -U wallet_migrator -d wallet -c \
+  "UPDATE app.transfers SET scheduled_for = (now() AT TIME ZONE 'America/Mexico_City')::date
+    WHERE id = '$ID' AND status = 'SCHEDULED'"
+
+# 5. En menos de 5 s el log de la API muestra "scheduled transfers pass" con completed: 1
+curl -s localhost:4000/transfers/$ID -H "Authorization: Bearer $TOKEN" | jq '{status, scheduledFor, completedAt}'
+```
+
+Para ver una falla, programa un monto mayor al saldo de la cuenta: queda `FAILED` con `INSUFFICIENT_FUNDS` y el aviso llega a Mailpit (http://localhost:8025). En la base, los asientos y la auditoría de la ejecución (las consultas de conciliación de arriba deben seguir en cero):
+
+```bash
+docker compose exec -T postgres psql -U wallet_migrator -d wallet -c \
+  "SELECT type, amount_cents, created_at FROM app.ledger_entries WHERE transfer_id = '$ID'"
+docker compose exec -T postgres psql -U wallet_migrator -d wallet -c \
+  "SELECT action, actor_type, actor_user_id, metadata FROM app.audit_log WHERE entity_id = '$ID' ORDER BY id"
+```
+
 ## Base de datos y privilegios
 
 - `wallet_migrator` es dueño de las bases y del esquema `app`: ejecuta migraciones y seed.
@@ -193,14 +280,14 @@ src/
     accounts/   domain (CLABE) · application (apertura de cuentas) · infrastructure
     audit/      domain (catálogo de eventos) · application (puerto) · infrastructure (escritor en PostgreSQL)
     beneficiaries/  alta por CLABE de la plataforma y listado
-    transfers/  domain (ledger, máquina de estados, huella) · application (creación, OTP, confirmación, fondeo) · infrastructure
+    transfers/  domain (ledger, máquina de estados, huella, rango programable, regla de saldo y límite) · application (creación, OTP, confirmación, programadas: ejecutor, cancelación y lista; fondeo) · infrastructure
     movements/  historial: filtros, cursor firmado y consulta keyset
     statements/ estado de cuenta: periodo y resumen (dominio), caso de uso, lector con instantánea y PDF
-  platform/     config, contexto de petición, http (app, errores RFC 9457, validación, auth, rate limit, docs), logging, mail, persistencia
+  platform/     config, contexto de petición, http (app, errores RFC 9457, validación, auth, rate limit, docs), logging, mail, persistencia, trabajo periódico y apagado ordenado
   shared/       núcleo sin dependencias: errores de dominio, Clock, transacción opaca, enmascarado
   seed/         datos de desarrollo (usuarios, beneficiarios, fondeo y volumen)
   composition.ts  raíz de composición con inyección manual
-  main.ts         arranque del proceso
+  main.ts         arranque del proceso, ejecutor de programadas y apagado ordenado
 migrations/     migraciones TypeORM con SQL explícito (constraints, funciones, triggers y GRANTs)
 db/             bootstrap.sql
 test/           unit/, integration/, helpers/ (arnés, contrato, reloj falso, correo en memoria), vectors/

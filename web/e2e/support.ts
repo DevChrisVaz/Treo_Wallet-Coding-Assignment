@@ -18,6 +18,7 @@ export const PRIVATE_PATHS = [
   '/beneficiaries',
   '/beneficiaries/new',
   '/transfers/new',
+  '/transfers/scheduled',
   `/transfers/${SENT_TRANSFER_ID}`,
 ];
 

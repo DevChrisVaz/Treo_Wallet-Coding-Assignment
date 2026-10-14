@@ -33,6 +33,15 @@ function renderFrame(path: string) {
   );
 }
 
+/** Barra de pestañas: la navegación "Principal" que no está en la navegación lateral (`aside`). */
+function tabBar(): HTMLElement {
+  const nav = screen
+    .getAllByRole('navigation', { name: 'Principal' })
+    .find((item) => !item.closest('aside'));
+  if (!nav) throw new Error('Sin barra de pestañas');
+  return nav;
+}
+
 function sideNav(): HTMLElement {
   const aside = screen.getAllByRole('navigation', { name: 'Principal' })[0]?.closest('aside');
   if (!aside) throw new Error('Sin navegación lateral');
@@ -73,6 +82,58 @@ describe('AppFrame', () => {
     expect(screen.getByRole('link', { name: 'Agregar beneficiario' })).toHaveAttribute(
       'href',
       '/beneficiaries/new',
+    );
+  });
+
+  it('WEB-34 WEB-26 la navegación lateral ofrece "Programadas", que lleva a /transfers/scheduled', () => {
+    renderFrame('/');
+    const link = within(sideNav()).getByRole('link', { name: 'Programadas' });
+    expect(link).toHaveAttribute('href', '/transfers/scheduled');
+    expect(link).toHaveAttribute('data-next-link');
+    // Va después de "Transferir", con su propio icono (concepto `scheduled` del paquete, R58).
+    const labels = within(sideNav())
+      .getAllByRole('link')
+      .map((item) => item.textContent);
+    expect(labels).toEqual(['Inicio', 'Movimientos', 'Transferir', 'Programadas', 'Beneficiarios']);
+    expect(link.querySelector('svg')).toHaveClass('lucide-calendar-clock');
+    expect(
+      within(sideNav()).getByRole('link', { name: 'Transferir' }).querySelector('svg'),
+    ).toHaveClass('lucide-send');
+  });
+
+  it('WEB-34 WEB-27 en teléfono "Programadas" no es pestaña: siguen las cuatro', () => {
+    renderFrame('/');
+    expect(
+      within(tabBar())
+        .getAllByRole('link')
+        .map((item) => item.textContent),
+    ).toEqual(['Inicio', 'Movimientos', 'Transferir', 'Beneficiarios']);
+  });
+
+  it('WEB-34 WEB-23 en la página de programadas marca "Programadas" y no "Transferir"', () => {
+    renderFrame('/transfers/scheduled');
+    expect(within(sideNav()).getByRole('link', { name: 'Programadas' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(sideNav()).getByRole('link', { name: 'Transferir' })).not.toHaveAttribute(
+      'aria-current',
+    );
+    for (const tab of within(tabBar()).getAllByRole('link')) {
+      expect(tab).not.toHaveAttribute('aria-current');
+    }
+  });
+
+  it('WEB-34 WEB-26 la página de programadas se titula "Transferencias programadas" con "Nueva transferencia" como acción', () => {
+    renderFrame('/transfers/scheduled');
+    const titles = screen.getAllByRole('heading', { level: 1 });
+    expect(titles.map((title) => title.textContent)).toEqual([
+      'Transferencias programadas',
+      'Transferencias programadas',
+    ]);
+    expect(screen.getByRole('link', { name: 'Nueva transferencia' })).toHaveAttribute(
+      'href',
+      '/transfers/new',
     );
   });
 

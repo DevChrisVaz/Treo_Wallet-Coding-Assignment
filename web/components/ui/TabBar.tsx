@@ -1,18 +1,23 @@
 'use client';
 
-import { navDestinations, type NavDestination } from '@devchrisvaz/wallet-design-tokens';
 import { useEffect, useRef } from 'react';
+import { APP_DESTINATIONS, type AppDestination } from '@/lib/navigation';
 import { Icon } from './Icon';
 import { RouterLink } from './RouterLink';
 
 export interface NavItem {
-  key: NavDestination;
+  key: AppDestination;
   href: string;
+  /**
+   * Solo en la navegación lateral del dashboard (WEB-26): la barra de pestañas conserva sus cuatro
+   * destinos (WEB-27), como en la app móvil.
+   */
+  sideOnly?: boolean;
 }
 
 export interface TabBarProps {
   items: readonly NavItem[];
-  current: NavDestination | null;
+  current: AppDestination | null;
   /** `static` para mostrarla dentro de una tarjeta (previews); en la app va fija abajo. */
   position?: 'fixed' | 'static';
   className?: string;
@@ -25,11 +30,13 @@ export const TAB_BAR_HEIGHT_VAR = '--tab-bar-height';
  * Barra de pestañas de la forma de app (WEB-27). La pestaña actual lleva el icono en lima dentro de
  * una píldora verde profundo (lima solo sobre oscuro, DSG-14). Las cuatro pestañas miden lo mismo:
  * con el texto agrandado (200 %, WCAG 1.4.4) la píldora se ajusta al ancho de la pestaña, la etiqueta
- * pasa de línea y la barra crece, sin que ninguna pestaña salga de la pantalla.
+ * pasa de línea y la barra crece, sin que ninguna pestaña salga de la pantalla. Los destinos
+ * `sideOnly` (como "Programadas") no son pestañas.
  */
 export function TabBar({ items, current, position = 'fixed', className = '' }: TabBarProps) {
   const list = useRef<HTMLUListElement>(null);
   const fixed = position === 'fixed';
+  const tabs = items.filter((item) => !item.sideOnly);
 
   // Fija abajo, publica su alto real para que el contenido no quede debajo cuando crece.
   // jsdom no tiene ResizeObserver; AppShell usa entonces el alto del token.
@@ -54,8 +61,8 @@ export function TabBar({ items, current, position = 'fixed', className = '' }: T
       className={`${fixed ? 'fixed inset-x-0 bottom-0 z-20' : ''} border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] ${className}`.trim()}
     >
       <ul ref={list} className="mx-auto flex min-h-(--dt-layout-tab-bar-height) max-w-app">
-        {items.map(({ key, href }) => {
-          const { label, icon } = navDestinations[key];
+        {tabs.map(({ key, href }) => {
+          const { label, icon } = APP_DESTINATIONS[key];
           const active = key === current;
           return (
             <li key={key} className="flex min-w-0 flex-1">
