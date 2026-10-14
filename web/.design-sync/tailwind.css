@@ -6,11 +6,12 @@
  * composición de sus pantallas (colores semánticos, tipografía, radios, espaciado y layout).
  */
 
-/* La app sirve Work Sans con next/font/google; aquí se carga desde Google Fonts. */
-@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600&display=swap');
 @import '../app/globals.css';
 
-/* next/font define --font-work-sans en <html>; globals.css arma --dt-font-sans con ella. */
+/*
+ * next/font define --font-work-sans en <html>; globals.css arma --dt-font-sans con ella. Aquí apunta
+ * a la familia de fonts.css, el mismo archivo de Work Sans que sirve la app (app/fonts/).
+ */
 :root {
   --font-work-sans: 'Work Sans';
 }
@@ -34,3 +35,4 @@
 @source inline("self-{start,center,end,stretch} place-items-center place-content-center whitespace-nowrap overflow-y-auto overflow-x-auto");
 @source inline("sticky fixed top-0 bottom-0 left-0 right-0 inset-x-0 z-{10,20,50} {bg-surface-inverse,bg-fg}/{40,60,80} opacity-{50,60,80}");
 @source inline("ring-2 ring-action underline underline-offset-2 no-underline cursor-pointer transition-colors");
+

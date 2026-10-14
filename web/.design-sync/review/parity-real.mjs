@@ -7,11 +7,9 @@
 //                     compara: A web real↔aprobada a 390, B a 1280, C móvil real↔aprobada, D web real↔móvil real.
 // `ratio` es una guía (Work Sans variable en la web y TTF estáticos en móvil): se revisa cada -diff.png con la
 // regla de veredicto de NOTES.md ("Paridad").
-//   --font canvas     La web real con el mismo archivo de Work Sans que el lienzo. Google Fonts entrega otra
-//                     compilación de la fuente según el navegador: next/font guarda la de su agente (Chrome 104)
-//                     y el Chromium de captura recibe otra, con otros anchos de letra. Sin esa diferencia, lo que
-//                     queda en A/B es de la pantalla y de ahí sale su veredicto; úsese con otro --out que tenga
-//                     una copia de approved/ (la corrida normal es lo que ve la persona usuaria).
+// Fuente: la app (next/font/local) y el lienzo (.design-sync/fonts.css) usan el mismo archivo versionado,
+// app/fonts/WorkSans-latin.woff2, así que A/B no dependen de lo que Google Fonts entregue a cada navegador
+// (la tarea 8.1 necesitaba una opción --font canvas para eso; ya no existe y el script no usa la red).
 // D completa compara las dos como un teléfono tan alto como su contenido (`-tall.png`, ver `shoot`).
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -29,7 +27,6 @@ const base = arg('base', 'http://127.0.0.1:4310');
 const app = arg('app', 'http://127.0.0.1:3101');
 const api = arg('api', 'http://127.0.0.1:4999');
 const out = resolve(arg('out', '.design-sync/.cache/parity-real'));
-const font = arg('font', 'app');
 const NOW = new Date('2026-10-13T18:00:00Z');
 const PHONE = { width: 390, height: 844 };
 const DESKTOP = { width: 1280, height: 800 };
@@ -112,29 +109,13 @@ async function canvasShot(url, story, dir, name, size, tall) {
 
 const scenario = (value) => fetch(`${api}/__scenario`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value ?? {}) });
 
-/** El archivo latino de Work Sans que el lienzo recibe de Google Fonts con el agente de este navegador. */
-let canvasFont;
-async function canvasFontFile() {
-  if (canvasFont) return canvasFont;
-  const page = await browser.newPage();
-  const agent = await page.evaluate(() => navigator.userAgent);
-  await page.close();
-  const css = await (await fetch('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600&display=swap', { headers: { 'user-agent': agent } })).text();
-  const latin = /\/\* latin \*\/[^}]*?url\((https:[^)]+\.woff2)\)/.exec(css)[1];
-  canvasFont = Buffer.from(await (await fetch(latin)).arrayBuffer());
-  return canvasFont;
-}
-
 async function newPage(size, signedIn) {
   const context = await browser.newContext({ viewport: size });
-  if (font === 'canvas') {
-    const body = await canvasFontFile();
-    await context.route('**/_next/static/media/*.woff2', (route) => route.fulfill({ body, contentType: 'font/woff2' }));
-  }
   const page = await context.newPage();
   await page.clock.setFixedTime(NOW);
   if (signedIn) {
-    await page.goto(`${app}/login`);
+    // Sin red pendiente: el formulario ya está hidratado (antes, el envío nativo mandaba un GET).
+    await page.goto(`${app}/login`, { waitUntil: 'networkidle' });
     await page.getByLabel('Correo').fill('ana@example.com');
     await page.getByLabel('Contraseña').fill('Ana-demo-2026!');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();

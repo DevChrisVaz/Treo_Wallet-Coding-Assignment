@@ -16,6 +16,9 @@
   },
   "tokensPkg": "@devchrisvaz/wallet-design-tokens",
   "tokensGlob": "generated/tokens.css",
+  "extraFonts": [
+    "../../fonts.css"
+  ],
   "docsDir": "../../docs",
   "overrides": {
     "AccountCard": {
