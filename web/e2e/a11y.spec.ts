@@ -58,6 +58,7 @@ for (const width of [390, 1280] as const) {
       '/beneficiaries',
       '/beneficiaries/new',
       '/transfers/new',
+      '/transfers/scheduled',
       `/transfers/${SENT_TRANSFER_ID}`,
     ]) {
       await page.goto(path);
