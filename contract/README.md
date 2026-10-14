@@ -2,23 +2,24 @@
 
 Contrato de la API de la billetera y todo lo que los demás proyectos derivan de él: tipos generados, cliente HTTP tipado, validadores de entrada y formato de montos.
 
-`openapi.yaml` (OpenAPI 3.1) es la **fuente de verdad**: se escribió antes que el código y lo consumen `/api`, `/web` y `/mobile`. Especificación vigente: `openspec/specs/api-contract/spec.md` (requisitos CTR-01 a CTR-17); propuesta, diseño y tareas en `openspec/changes/archive/2026-10-13-contract-v1/`.
+`openapi.yaml` (OpenAPI 3.1) es la **fuente de verdad**: se escribió antes que el código y lo consumen `/api`, `/web` y `/mobile`. Especificación vigente: `openspec/specs/api-contract/spec.md` (requisitos CTR-01 a CTR-17); propuesta, diseño y tareas en `openspec/changes/archive/2026-10-13-contract-v1/`. Los cambios posteriores están en `openspec/changes/contract-v1-1/` (1.1.0) y `openspec/changes/contract-v1-2/` (1.2.0, requisitos CTR-18 y CTR-19).
 
 ## Qué exporta
 
-| Export                                                                                                                       | Para qué                                                                                                                                                                                                                                                                    |
-| ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `paths`, `components`, `operations` y alias (`Account`, `Movement`, `Transfer`, `Problem`, `ProblemCode`, `FieldErrorCode`…) | Tipos generados desde `openapi.yaml` con openapi-typescript                                                                                                                                                                                                                 |
-| `PROBLEM_CODES`                                                                                                              | Todos los valores de `ProblemCode`, para `switch` exhaustivos                                                                                                                                                                                                               |
-| `createApiClient({ baseUrl, getAccessToken?, getRequestId?, fetch? })`                                                       | Cliente tipado por rutas (openapi-fetch). Envía `X-Request-Id` y `Authorization: Bearer`; **nunca guarda el token**                                                                                                                                                         |
-| `ProblemError`, `NetworkError`, `toProblemError`                                                                             | Las respuestas de error llegan como `ProblemError` (con `code`, `requestId`, las extensiones y `retryAfter`, los segundos de `Retry-After` si la respuesta los trae); los fallos sin respuesta, como `NetworkError`, la única condición que se reintenta con la misma llave |
-| `createIdempotencyKey(generator?)`                                                                                           | Llave UUID, una por intento de transferencia                                                                                                                                                                                                                                |
-| `amountInput`, `toCents`, `centsToDecimalString`                                                                             | Montos como string, convertidos a centavos con `BigInt`; nunca floats ni redondeo                                                                                                                                                                                           |
-| `clabe`, `curp`, `rfc`, `phone`, `concept`, `reference`, `otpCode`                                                           | Validadores de campo (Zod) con dígito verificador (CLABE, CURP) y fecha (CURP, RFC)                                                                                                                                                                                         |
-| `registerForm`, `verifyEmailForm`, `loginForm`, `beneficiaryForm`, `transferForm`, `transferDestination`                     | Esquemas de formularios alineados con los requests del contrato                                                                                                                                                                                                             |
-| `toFieldErrors`                                                                                                              | Convierte un error de Zod en `FieldError[]` del contrato (JSON Pointer + `FieldErrorCode`)                                                                                                                                                                                  |
-| `formatMXN(amount)`                                                                                                          | `"1250.50"` → `$1,250.50`, solo con operaciones de texto                                                                                                                                                                                                                    |
-| `./openapi.yaml` (subpath)                                                                                                   | El contrato, para Swagger UI y las pruebas de contrato de la API                                                                                                                                                                                                            |
+| Export                                                                                                                              | Para qué                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `paths`, `components`, `operations` y alias (`Account`, `Movement`, `Transfer`, `Problem`, `ProblemCode`, `FieldErrorCode`…)        | Tipos generados desde `openapi.yaml` con openapi-typescript                                                                                                                                                                                                                 |
+| `PROBLEM_CODES`                                                                                                                     | Todos los valores de `ProblemCode`, para `switch` exhaustivos                                                                                                                                                                                                               |
+| `createApiClient({ baseUrl, getAccessToken?, getRequestId?, fetch? })`                                                              | Cliente tipado por rutas (openapi-fetch). Envía `X-Request-Id` y `Authorization: Bearer`; **nunca guarda el token**                                                                                                                                                         |
+| `ProblemError`, `NetworkError`, `toProblemError`                                                                                    | Las respuestas de error llegan como `ProblemError` (con `code`, `requestId`, las extensiones y `retryAfter`, los segundos de `Retry-After` si la respuesta los trae); los fallos sin respuesta, como `NetworkError`, la única condición que se reintenta con la misma llave |
+| `createIdempotencyKey(generator?)`                                                                                                  | Llave UUID, una por intento de transferencia                                                                                                                                                                                                                                |
+| `amountInput`, `toCents`, `centsToDecimalString`                                                                                    | Montos como string, convertidos a centavos con `BigInt`; nunca floats ni redondeo                                                                                                                                                                                           |
+| `clabe`, `curp`, `rfc`, `phone`, `concept`, `reference`, `otpCode`, `scheduledDate`                                                 | Validadores de campo (Zod) con dígito verificador (CLABE, CURP) y fecha (CURP, RFC, fecha programada)                                                                                                                                                                       |
+| `registerForm`, `verifyEmailForm`, `loginForm`, `beneficiaryForm`, `transferForm`, `transferFormAt(instant)`, `transferDestination` | Esquemas de formularios alineados con los requests del contrato. `transferFormAt` agrega el rango de la fecha programada (`DATE_OUT_OF_RANGE`)                                                                                                                              |
+| `toFieldErrors`                                                                                                                     | Convierte un error de Zod en `FieldError[]` del contrato (JSON Pointer + `FieldErrorCode`)                                                                                                                                                                                  |
+| `formatMXN(amount)`                                                                                                                 | `"1250.50"` → `$1,250.50`, solo con operaciones de texto                                                                                                                                                                                                                    |
+| `mexicoCityDate(instant)`, `schedulableRange(instant)`                                                                              | Fecha calendario de un instante en `America/Mexico_City` y rango programable (de mañana a 90 días). Reciben el instante; no leen el reloj                                                                                                                                   |
+| `./openapi.yaml` (subpath)                                                                                                          | El contrato, para Swagger UI y las pruebas de contrato de la API                                                                                                                                                                                                            |
 
 ## Uso en cada consumidor
 
@@ -82,6 +83,16 @@ try {
 }
 ```
 
+**Estado de cuenta en PDF (CTR-19):** `getAccountStatement` responde `application/pdf`. Se pide con `parseAs` para recibir los bytes o un stream; un error en esa ruta sigue llegando como `ProblemError`.
+
+```ts
+const { data, response } = await api.GET('/accounts/{accountId}/statements/{period}', {
+  params: { path: { accountId, period: '2026-09' } },
+  parseAs: 'stream', // o 'arrayBuffer'
+});
+const filename = response.headers.get('Content-Disposition');
+```
+
 ## Desarrollo
 
 Herramientas en **Node 24**; el paquete construido funciona desde **Node 20** (la prueba de humo del CI lo comprueba en 20, 22 y 24).
@@ -119,6 +130,16 @@ npm run build          # dist/: ESM, CJS y declaraciones
 
 Un `code` de error que el paquete no conoce se reporta como `INTERNAL_ERROR` (conservando el original en `rawCode`), así que una API más nueva no rompe los `switch` de clientes más viejos.
 
+**Enums de respuesta que crecen:** agregar un valor a un enum que la API devuelve (como `TransferStatus`) es una versión menor, porque no está en la lista de cambios incompatibles. Pero un consumidor con un mapa exhaustivo (`Record<TransferStatus, …>`) deja de compilar al instalar la versión nueva hasta que agrega el valor. Es intencional: el compilador señala cada pantalla que debe mostrar el estado nuevo.
+
+### Historial
+
+| Versión | Cambios                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.2.0   | Estado de cuenta en PDF (`getAccountStatement`) y descarga binaria. Transferencias programadas: `scheduledFor` en `CreateTransferRequest` y `Transfer`, `cancelledAt`, estados `SCHEDULED` y `CANCELLED`, `listScheduledTransfers`, `cancelTransfer`, códigos `TRANSFER_NOT_CANCELLABLE`, `SCHEDULED_LIMIT_REACHED` y `DATE_OUT_OF_RANGE`. `mexicoCityDate`, `schedulableRange`, `scheduledDate` y `transferFormAt` |
+| 1.1.0   | `ProblemError.retryAfter` y salida CommonJS funcional                                                                                                                                                                                                                                                                                                                                                               |
+| 1.0.1   | Primera versión consumida por la API, la web y la app                                                                                                                                                                                                                                                                                                                                                               |
+
 ## Publicación al separar los repositorios
 
 Hoy el paquete **no se publica**: `"private": true` y los consumidores usan `file:../contract`. Cuando cada proyecto tenga su propio repositorio:
@@ -126,7 +147,7 @@ Hoy el paquete **no se publica**: `"private": true` y los consumidores usan `fil
 1. En este paquete: quitar `"private": true`, agregar `"publishConfig": { "registry": "https://npm.pkg.github.com" }` y un workflow que publique al crear un tag `v*` (con `permissions: packages: write`). GitHub Packages exige que el scope sea el dueño del repositorio (`@devchrisvaz`).
 2. En cada consumidor, cambiar **una línea** del `package.json` y el `.npmrc`:
    ```jsonc
-   "@devchrisvaz/wallet-contract": "^1.1.0"   // antes: "file:../contract"
+   "@devchrisvaz/wallet-contract": "^1.2.0"   // antes: "file:../contract"
    ```
    ```ini
    @devchrisvaz:registry=https://npm.pkg.github.com
