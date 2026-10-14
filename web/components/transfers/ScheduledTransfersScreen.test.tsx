@@ -281,6 +281,28 @@ describe('ScheduledTransfersScreen · cancelar', () => {
     expect(confirm).toHaveFocus();
   });
 
+  it('WEB-23 con un error a la vista, Tab y Shift+Tab desde la alerta no salen del diálogo', async () => {
+    listReads([RENTA, LUZ]);
+    cancelMock.mockResolvedValue({
+      ok: false,
+      problem: problem('INTERNAL_ERROR', { status: 503 }),
+    });
+    const user = userEvent.setup();
+    renderWithClient(<ScheduledTransfersScreen />);
+
+    const dialog = await openCancelDialog(user);
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar transferencia' }));
+    const alert = await within(dialog).findByRole('alert');
+    await waitFor(() => expect(alert).toHaveFocus());
+
+    await user.tab({ shift: true });
+    expect(within(dialog).getByRole('button', { name: 'Volver' })).toHaveFocus();
+
+    alert.focus();
+    await user.tab();
+    expect(within(dialog).getByRole('button', { name: 'Cancelar transferencia' })).toHaveFocus();
+  });
+
   it('WEB-23 con el teclado: Enter abre el diálogo y Espacio confirma', async () => {
     listReads([RENTA, LUZ], [LUZ]);
     cancelMock.mockResolvedValue({ ok: true, data: { ...RENTA, status: 'CANCELLED' } });

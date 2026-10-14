@@ -86,13 +86,11 @@ function CancelDialog({ transfer, cancelling, error, onConfirm, onClose }: Cance
       event.preventDefault();
       return;
     }
-    const active = document.activeElement;
-    if (event.shiftKey && (active === first || active === dialogRef.current)) {
+    // El foco puede estar en algo que no entra con Tab (el diálogo o su alerta): también da vuelta.
+    const index = focusable.indexOf(document.activeElement as HTMLElement);
+    if (event.shiftKey ? index <= 0 : index === -1 || index === focusable.length - 1) {
       event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && active === last) {
-      event.preventDefault();
-      first.focus();
+      (event.shiftKey ? last : first).focus();
     }
   }
 
