@@ -97,6 +97,8 @@ export function transfer(overrides: Partial<Transfer> = {}): Transfer {
     otp: null,
     rejectionReason: null,
     failureReason: null,
+    scheduledFor: null,
+    cancelledAt: null,
     createdAt: '2026-10-13T16:42:00.000Z',
     completedAt: '2026-10-13T16:42:01.000Z',
     ...overrides,
