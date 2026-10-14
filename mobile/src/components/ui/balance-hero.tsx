@@ -21,26 +21,23 @@ export function BalanceHero({ total, available, actions }: BalanceHeroProps) {
   const amountStyle = theme.typography[heroAmountSize(formatted)];
   return (
     <View style={styles.hero}>
-      <Svg
-        width={theme.spacing[16] * 3}
-        height={theme.spacing[16] * 3}
-        style={styles.glow}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Defs>
-          <RadialGradient id="glow" cx="50%" cy="50%" r="50%">
-            <Stop offset="0" stopColor={theme.colors.accent.onDark} stopOpacity={0.35} />
-            <Stop offset="0.7" stopColor={theme.colors.accent.onDark} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Circle
-          cx={theme.spacing[16] * 1.5}
-          cy={theme.spacing[16] * 1.5}
-          r={theme.spacing[16] * 1.5}
-          fill="url(#glow)"
-        />
-      </Svg>
+      {/* Decorativo: `aria-hidden` va en la View porque el Svg no lo traduce en nativo. */}
+      <View testID="hero-glow" aria-hidden style={styles.glow}>
+        <Svg width={theme.spacing[16] * 3} height={theme.spacing[16] * 3}>
+          <Defs>
+            <RadialGradient id="glow" cx="50%" cy="50%" r="50%">
+              <Stop offset="0" stopColor={theme.colors.accent.onDark} stopOpacity={0.35} />
+              <Stop offset="0.7" stopColor={theme.colors.accent.onDark} stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Circle
+            cx={theme.spacing[16] * 1.5}
+            cy={theme.spacing[16] * 1.5}
+            r={theme.spacing[16] * 1.5}
+            fill="url(#glow)"
+          />
+        </Svg>
+      </View>
       <View accessible accessibilityLabel={`Saldo total ${formatted}`}>
         <Text style={styles.title}>Saldo total</Text>
         <Text

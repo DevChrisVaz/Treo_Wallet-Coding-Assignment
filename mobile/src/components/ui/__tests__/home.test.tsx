@@ -24,6 +24,12 @@ describe('BalanceHero', () => {
     expect(screen.getByText('Disponible hoy $31,500.00')).toBeOnTheScreen();
   });
 
+  test('DSG-13 el resplandor lima es decorativo: queda oculto para los lectores de pantalla', async () => {
+    await render(<BalanceHero total="35000.00" available="31500.00" />);
+    expect(screen.queryByTestId('hero-glow')).toBeNull();
+    expect(screen.getByTestId('hero-glow', { includeHiddenElements: true })).toBeTruthy();
+  });
+
   test('DSG-13 un saldo muy grande baja de tamaño para caber en una línea', async () => {
     await render(<BalanceHero total="1234567890.00" available="0.00" />);
     expect(screen.getByTestId('hero-amount', { includeHiddenElements: true })).toHaveStyle({
