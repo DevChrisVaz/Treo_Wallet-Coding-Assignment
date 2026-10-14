@@ -16,6 +16,7 @@ export function MovementRow({ movement }: { movement: Movement }) {
   const detail = movement.counterparty
     ? `${movement.counterparty.name} · ${movement.concept}`
     : movement.concept;
+  const reference = `Ref. ${movement.reference}`;
   return (
     <View testID="movement-row" style={styles.row}>
       <View testID="movement-avatar">
@@ -29,8 +30,12 @@ export function MovementRow({ movement }: { movement: Movement }) {
         <Text style={styles.detail} numberOfLines={1}>
           {detail}
         </Text>
-        <Text style={styles.caption} accessibilityLabel={formatDateTime(movement.occurredAt)}>
-          {`${formatTime(movement.occurredAt)} · Ref. ${movement.reference}`}
+        {/* La etiqueta reemplaza al texto para los lectores de pantalla: lleva la fecha y la referencia. */}
+        <Text
+          style={styles.caption}
+          accessibilityLabel={`${formatDateTime(movement.occurredAt)} · ${reference}`}
+        >
+          {`${formatTime(movement.occurredAt)} · ${reference}`}
         </Text>
       </View>
       <View style={styles.amounts}>

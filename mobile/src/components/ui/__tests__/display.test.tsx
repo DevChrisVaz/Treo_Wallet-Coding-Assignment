@@ -50,7 +50,12 @@ describe('MovementRow', () => {
       fontVariant: ['tabular-nums'],
     });
     expect(screen.getByText('Saldo $24,850.00')).toBeOnTheScreen();
-    expect(screen.getByLabelText('12 oct, 19:05')).toBeOnTheScreen();
+  });
+
+  test('MOB-06 los lectores de pantalla oyen la fecha completa y la referencia', async () => {
+    await render(<MovementRow movement={movement({})} />);
+    expect(screen.getByLabelText('12 oct, 19:05 · Ref. 1')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('12 oct, 19:05')).toBeNull();
   });
 
   test('MOB-20 muestra hora, referencia y saldo, con avatar por tipo', async () => {
