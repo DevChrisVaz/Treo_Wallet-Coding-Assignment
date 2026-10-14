@@ -33,6 +33,15 @@ function renderFrame(path: string) {
   );
 }
 
+/** Barra de pestañas: la navegación "Principal" que no está en la navegación lateral (`aside`). */
+function tabBar(): HTMLElement {
+  const nav = screen
+    .getAllByRole('navigation', { name: 'Principal' })
+    .find((item) => !item.closest('aside'));
+  if (!nav) throw new Error('Sin barra de pestañas');
+  return nav;
+}
+
 function sideNav(): HTMLElement {
   const aside = screen.getAllByRole('navigation', { name: 'Principal' })[0]?.closest('aside');
   if (!aside) throw new Error('Sin navegación lateral');
@@ -81,19 +90,21 @@ describe('AppFrame', () => {
     const link = within(sideNav()).getByRole('link', { name: 'Programadas' });
     expect(link).toHaveAttribute('href', '/transfers/scheduled');
     expect(link).toHaveAttribute('data-next-link');
-    // Va después de "Transferir" y reusa su icono (sin concepto nuevo en el paquete de diseño).
+    // Va después de "Transferir", con su propio icono (concepto `scheduled` del paquete, R58).
     const labels = within(sideNav())
       .getAllByRole('link')
       .map((item) => item.textContent);
     expect(labels).toEqual(['Inicio', 'Movimientos', 'Transferir', 'Programadas', 'Beneficiarios']);
-    expect(link.querySelector('svg')).toHaveClass('lucide-send');
+    expect(link.querySelector('svg')).toHaveClass('lucide-calendar-clock');
+    expect(
+      within(sideNav()).getByRole('link', { name: 'Transferir' }).querySelector('svg'),
+    ).toHaveClass('lucide-send');
   });
 
   it('WEB-34 WEB-27 en teléfono "Programadas" no es pestaña: siguen las cuatro', () => {
     renderFrame('/');
-    const tabs = screen.getAllByRole('navigation', { name: 'Principal' })[1];
     expect(
-      within(tabs!)
+      within(tabBar())
         .getAllByRole('link')
         .map((item) => item.textContent),
     ).toEqual(['Inicio', 'Movimientos', 'Transferir', 'Beneficiarios']);
@@ -108,8 +119,7 @@ describe('AppFrame', () => {
     expect(within(sideNav()).getByRole('link', { name: 'Transferir' })).not.toHaveAttribute(
       'aria-current',
     );
-    const tabs = screen.getAllByRole('navigation', { name: 'Principal' })[1];
-    for (const tab of within(tabs!).getAllByRole('link')) {
+    for (const tab of within(tabBar()).getAllByRole('link')) {
       expect(tab).not.toHaveAttribute('aria-current');
     }
   });

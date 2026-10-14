@@ -75,12 +75,14 @@ describe('destinos solo laterales', () => {
     expect(within(nav).queryByRole('link', { name: 'Programadas' })).not.toBeInTheDocument();
   });
 
-  it('WEB-34 WEB-26 la navegación lateral muestra "Programadas" con el icono de transferir y la marca', () => {
+  it('WEB-34 WEB-26 la navegación lateral muestra "Programadas" con su propio icono y la marca', () => {
     render(<SideNav items={WITH_SCHEDULED} current="scheduled" user={USER} />);
     const link = screen.getByRole('link', { name: 'Programadas' });
     expect(link).toHaveAttribute('href', '/transfers/scheduled');
     expect(link).toHaveAttribute('aria-current', 'page');
-    expect(link.querySelector('svg')).toHaveClass('lucide-send');
+    // CalendarClock (concepto `scheduled`, R58), no el Send de "Transferir".
+    expect(link.querySelector('svg')).toHaveClass('lucide-calendar-clock');
+    expect(link.querySelector('svg')).not.toHaveClass('lucide-send');
   });
 });
 

@@ -37,12 +37,12 @@ export function loginPath(next?: string | null, reason?: 'expired'): string {
 
 /**
  * Destinos de la navegación de la web: los compartidos con móvil (`navDestinations` del paquete de
- * diseño) y "Programadas" (WEB-34), que solo existe en la web y reusa el icono de "Transferir" (sin
- * concepto nuevo en el paquete).
+ * diseño) y "Programadas" (WEB-34), que solo existe en la web. Su icono es el concepto `scheduled`
+ * del paquete (CalendarClock, R58), distinto del de "Transferir".
  */
 export const APP_DESTINATIONS = {
   ...navDestinations,
-  scheduled: { label: 'Programadas', icon: 'transfer' },
+  scheduled: { label: 'Programadas', icon: 'scheduled' },
 } as const satisfies Record<string, { label: string; icon: IconConcept }>;
 
 export type AppDestination = keyof typeof APP_DESTINATIONS;

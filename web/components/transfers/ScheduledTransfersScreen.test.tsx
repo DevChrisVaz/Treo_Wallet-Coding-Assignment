@@ -135,6 +135,8 @@ describe('ScheduledTransfersScreen · lista', () => {
       'href',
       '/transfers/new',
     );
+    // El icono decorativo es el de "Programadas" (concepto `scheduled`, R58).
+    expect(document.querySelector('svg.lucide-calendar-clock')).toBeInTheDocument();
   });
 
   it('WEB-20 mientras carga muestra el estado de carga', () => {

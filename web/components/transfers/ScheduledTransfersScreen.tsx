@@ -237,7 +237,7 @@ export function ScheduledTransfersScreen() {
         />
       ) : scheduled.data.items.length === 0 ? (
         <EmptyState
-          icon="transfer"
+          icon="scheduled"
           title="No tienes transferencias programadas"
           description='Al hacer una transferencia, elige "Programar" en "Cuándo" para enviarla en otra fecha.'
           action={
