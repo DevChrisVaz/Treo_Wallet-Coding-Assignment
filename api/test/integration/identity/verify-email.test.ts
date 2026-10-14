@@ -7,7 +7,7 @@ import { auditEvents } from '../../helpers/audit.js';
 import { buildTestApp, type TestApp } from '../../helpers/app.js';
 import { expectToMatchContract } from '../../helpers/contract.js';
 import { useIntegrationHarness } from '../../helpers/harness.js';
-import { registerPerson, wrongCode } from '../../helpers/identity.js';
+import { registerPerson, verifiedUser, wrongCode } from '../../helpers/identity.js';
 
 const harness = useIntegrationHarness();
 let t: TestApp;
@@ -99,6 +99,16 @@ describe('IDN-06 verificación de correo', () => {
     expect(comparable(unknown.body)).toEqual(comparable(wrong.body));
   });
 
+  it('IDN-06 un email ya verificado responde exactamente igual que un código incorrecto', async () => {
+    const { person, code } = await registerPerson(t);
+    const wrong = await verify(person.email, wrongCode(code));
+    expect(wrong.body.attemptsRemaining).toBe(2);
+    const verified = await verifiedUser(t);
+    const again = await verify(verified.person.email, '123456');
+    expect(again.status).toBe(wrong.status);
+    expect(comparable(again.body)).toEqual(comparable(wrong.body));
+  });
+
   it('ACC-04 una verificación repetida no abre cuentas adicionales y responde como código inválido', async () => {
     const { person, code } = await registerPerson(t);
     await verify(person.email, code);
@@ -121,6 +131,19 @@ describe('IDN-06 verificación de correo', () => {
     expect(res.body).toMatchObject({ code: 'VERIFICATION_CODE_INVALID', attemptsRemaining: 0 });
   });
 
+  it('IDN-05 el código vence exactamente a los 15 minutos y sirve un segundo antes', async () => {
+    const early = await registerPerson(t);
+    t.clock.advance(15 * 60_000 - 1_000);
+    expect((await verify(early.person.email, early.code)).status).toBe(200);
+
+    const { person, code } = await registerPerson(t);
+    t.clock.advance(15 * 60_000);
+    const res = await verify(person.email, code);
+    expect(res.status).toBe(422);
+    expect(res.body).toMatchObject({ code: 'VERIFICATION_CODE_INVALID', attemptsRemaining: 0 });
+    expect((await userByEmail(person.email)).email_verified_at).toBeNull();
+  });
+
   it('AUD-01 audita la verificación y los intentos fallidos con su propósito', async () => {
     const { person, code } = await registerPerson(t);
     await verify(person.email, wrongCode(code));
@@ -134,6 +157,31 @@ describe('IDN-06 verificación de correo', () => {
     ]);
     expect(events[1]).toMatchObject({ metadata: { purpose: 'EMAIL_VERIFICATION' } });
     expect(events[2]).toMatchObject({ actor_type: 'USER', actor_user_id: user.id });
+  });
+
+  it('AUD-01 el tercer fallo audita OTP_ATTEMPTS_EXHAUSTED y los rechazos posteriores no auditan', async () => {
+    const { person, code } = await registerPerson(t);
+    for (let i = 0; i < 3; i += 1) await verify(person.email, wrongCode(code));
+    // Código ya agotado (UNUSABLE) y otro vencido (EXPIRED): no son intentos fallidos.
+    await verify(person.email, code);
+    const other = await registerPerson(t);
+    t.clock.advance(16 * 60_000);
+    await verify(other.person.email, other.code);
+
+    const user = await userByEmail(person.email);
+    const events = (await auditEvents(harness.migrator)).filter(
+      (event) => event.action !== 'USER_REGISTERED',
+    );
+    expect(events.map((event) => event.action)).toEqual([
+      'OTP_ATTEMPT_FAILED',
+      'OTP_ATTEMPT_FAILED',
+      'OTP_ATTEMPTS_EXHAUSTED',
+    ]);
+    expect(events[2]).toMatchObject({
+      actor_type: 'ANONYMOUS',
+      entity_id: user.id,
+      metadata: { purpose: 'EMAIL_VERIFICATION', attemptsRemaining: 0 },
+    });
   });
 
   it('AUD-03 si falla la escritura de EMAIL_VERIFIED, el usuario sigue sin verificar y sin cuentas', async () => {

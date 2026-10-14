@@ -39,6 +39,17 @@ async function activeTokens(familyId: string) {
   );
 }
 
+/** Todos los tokens de la familia, usados o no, con su revocación. */
+async function familyRows(
+  familyId: string,
+): Promise<{ used_at: Date | null; revoked_at: Date | null; revoked_reason: string | null }[]> {
+  return harness.migrator.query(
+    `SELECT used_at, revoked_at, revoked_reason FROM app.refresh_tokens
+      WHERE family_id = $1 ORDER BY issued_at, id`,
+    [familyId],
+  );
+}
+
 describe('IDN-11 refresh token opaco con rotación', () => {
   it('IDN-11 un refresh vigente devuelve un par nuevo y marca el anterior como usado', async () => {
     const user = await verifiedUser(t);
@@ -105,12 +116,19 @@ describe('IDN-12 detección de reuso con ventana de gracia', () => {
   it('IDN-12 un token usado hace más de 30 segundos revoca toda la familia y se audita', async () => {
     const user = await verifiedUser(t);
     const first = await refresh(user.refreshToken);
+    const second = await refresh(first.body.refreshToken);
     t.clock.advance(31_000);
     const reuse = await refresh(user.refreshToken);
     expect(reuse.status).toBe(401);
     expect(reuse.body.code).toBe('SESSION_REVOKED');
     const row = await tokenRow(user.refreshToken);
     expect(await activeTokens(row.family_id)).toEqual([]);
+    // activeTokens ignora los usados: aquí se comprueba que también ellos quedaron revocados.
+    const rows = await familyRows(row.family_id);
+    expect(rows).toHaveLength(3);
+    expect(rows.filter((r) => r.used_at !== null)).toHaveLength(2);
+    expect(rows.map((r) => r.revoked_reason)).toEqual(Array(3).fill('REUSE_DETECTED'));
+    expect((await refresh(second.body.refreshToken)).body.code).toBe('SESSION_REVOKED');
     expect((await refresh(first.body.refreshToken)).body.code).toBe('SESSION_REVOKED');
     const events = await auditEvents(harness.migrator);
     expect(events.find((event) => event.action === 'REFRESH_TOKEN_REUSE_DETECTED')).toMatchObject({
@@ -124,8 +142,74 @@ describe('IDN-12 detección de reuso con ventana de gracia', () => {
     const second = await refresh(first.body.refreshToken);
     expect(second.status).toBe(200);
     t.clock.advance(3_000);
-    expect((await refresh(user.refreshToken)).status).toBe(401);
+    const reuse = await refresh(user.refreshToken);
+    expect(reuse.status).toBe(401);
+    expect(reuse.body.code).toBe('SESSION_REVOKED');
+    const row = await tokenRow(user.refreshToken);
+    // Los dos tokens usados y el vigente quedan revocados.
+    const rows = await familyRows(row.family_id);
+    expect(rows.map((r) => r.revoked_reason)).toEqual(Array(3).fill('REUSE_DETECTED'));
     expect((await refresh(second.body.refreshToken)).body.code).toBe('SESSION_REVOKED');
+    const events = await auditEvents(harness.migrator);
+    expect(events.filter((e) => e.action === 'REFRESH_TOKEN_REUSE_DETECTED')).toMatchObject([
+      { actor_type: 'ANONYMOUS', entity_id: user.userId, metadata: { familyId: row.family_id } },
+    ]);
+  });
+
+  it('IDN-12 exactamente 30 segundos después todavía es un reintento', async () => {
+    const user = await verifiedUser(t);
+    const first = await refresh(user.refreshToken);
+    t.clock.advance(30_000);
+    const retry = await refresh(user.refreshToken);
+    expect(retry.status).toBe(200);
+    expect(retry.body.refreshToken).not.toBe(first.body.refreshToken);
+    expect(await tokenRow(first.body.refreshToken)).toMatchObject({
+      revoked_reason: 'GRACE_SUPERSEDED',
+    });
+  });
+
+  it('IDN-12 la ventana se mide desde el primer uso, no desde el último reintento', async () => {
+    const user = await verifiedUser(t);
+    await refresh(user.refreshToken);
+    t.clock.advance(20_000);
+    const retry = await refresh(user.refreshToken);
+    expect(retry.status).toBe(200);
+    // 40 s después del primer uso (20 s después del reintento): fuera de la ventana.
+    t.clock.advance(20_000);
+    const late = await refresh(user.refreshToken);
+    expect(late.status).toBe(401);
+    expect(late.body.code).toBe('SESSION_REVOKED');
+    const row = await tokenRow(user.refreshToken);
+    // El sucesor perdido ya estaba revocado por la gracia; los otros dos caen por el reuso.
+    expect((await familyRows(row.family_id)).map((r) => r.revoked_reason).sort()).toEqual([
+      'GRACE_SUPERSEDED',
+      'REUSE_DETECTED',
+      'REUSE_DETECTED',
+    ]);
+    expect((await refresh(retry.body.refreshToken)).body.code).toBe('SESSION_REVOKED');
+  });
+
+  it('IDN-12 dentro de la ventana, si el sucesor ya está revocado, es reuso y revoca la familia', async () => {
+    const user = await verifiedUser(t);
+    const first = await refresh(user.refreshToken);
+    await harness.migrator.query(
+      `UPDATE app.refresh_tokens SET revoked_at = $2, revoked_reason = 'GRACE_SUPERSEDED'
+        WHERE token_hash = $1`,
+      [hashRefreshToken(first.body.refreshToken), t.clock.now()],
+    );
+    t.clock.advance(3_000);
+    const reuse = await refresh(user.refreshToken);
+    expect(reuse.status).toBe(401);
+    expect(reuse.body.code).toBe('SESSION_REVOKED');
+    const row = await tokenRow(user.refreshToken);
+    const rows = await familyRows(row.family_id);
+    // Solo el sucesor ya estaba revocado por otra razón; el resto cae por el reuso.
+    expect(rows.map((r) => r.revoked_reason).sort()).toEqual([
+      'GRACE_SUPERSEDED',
+      'REUSE_DETECTED',
+    ]);
+    const events = await auditEvents(harness.migrator);
+    expect(events.filter((e) => e.action === 'REFRESH_TOKEN_REUSE_DETECTED')).toHaveLength(1);
   });
 
   it('IDN-12 dos refresh simultáneos con el mismo token responden 200 y dejan un solo token vigente', async () => {

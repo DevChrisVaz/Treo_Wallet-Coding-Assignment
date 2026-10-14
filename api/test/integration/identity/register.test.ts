@@ -80,6 +80,100 @@ describe('IDN-01 registro con respuesta uniforme', () => {
     expect(code.resend_count).toBe(1);
   });
 
+  it('IDN-05 al registrar de nuevo un email sin verificar, el código anterior deja de servir y el nuevo sí', async () => {
+    const person = newRegistration();
+    await register(person);
+    const first = t.mailer.lastCode(person.email);
+
+    await register(person);
+    const second = t.mailer.lastCode(person.email);
+    expect(t.mailer.to(person.email)).toHaveLength(2);
+
+    // Con 1 de cada millón de sorteos el código nuevo coincide con el anterior; ahí no hay qué probar.
+    if (second !== first) {
+      const stale = await request(t.app)
+        .post('/auth/verify-email')
+        .send({ email: person.email, code: first });
+      expect(stale.status).toBe(422);
+      expect(stale.body.code).toBe('VERIFICATION_CODE_INVALID');
+    }
+    // El intento fallido no gastó el desafío: el código del segundo correo todavía verifica.
+    const fresh = await request(t.app)
+      .post('/auth/verify-email')
+      .send({ email: person.email, code: second });
+    expect(fresh.status).toBe(200);
+    const [user] = await usersWith('email', person.email);
+    expect(user.email_verified_at).not.toBeNull();
+  });
+
+  it('IDN-07 registrar un email sin verificar agotados los reenvíos no envía correo ni audita', async () => {
+    const person = newRegistration();
+    const created = await register(person);
+    // Cada registro repetido es un reenvío: quedan 2, 1 y 0.
+    for (const resendsRemaining of [2, 1, 0]) {
+      expect((await register(person)).status).toBe(202);
+      const resent = (await auditEvents(harness.migrator)).at(-1);
+      expect(resent).toMatchObject({
+        action: 'EMAIL_VERIFICATION_RESENT',
+        actor_type: 'ANONYMOUS',
+        metadata: { trigger: 'REGISTER', resendsRemaining },
+      });
+    }
+    expect(t.mailer.to(person.email)).toHaveLength(4);
+    const eventsBefore = (await auditEvents(harness.migrator)).length;
+
+    const exhausted = await register(person);
+    expect(exhausted.status).toBe(202);
+    expect(exhausted.body).toEqual(created.body);
+    expect(t.mailer.to(person.email)).toHaveLength(4);
+    expect(await auditEvents(harness.migrator)).toHaveLength(eventsBefore);
+    const [{ resend_count }] = await harness.migrator.query(
+      `SELECT resend_count FROM app.one_time_codes`,
+    );
+    expect(resend_count).toBe(3);
+  });
+
+  it('IDN-01 dos registros simultáneos con el mismo email nuevo dejan un solo usuario', async () => {
+    // Barrera: los dos ven que el email no existe antes de que alguno inserte; el que pierde recibe
+    // el choque de uq_users_email y su reintento cae en la rama del email sin verificar.
+    const real = new PgUserRepository(harness.app);
+    let arrived = 0;
+    let release!: () => void;
+    const bothLooked = new Promise<void>((resolve) => (release = resolve));
+    const users: UserRepository = Object.assign(Object.create(real) as UserRepository, {
+      findByEmailForUpdate: async (...args: Parameters<UserRepository['findByEmailForUpdate']>) => {
+        const found = await real.findByEmailForUpdate(...args);
+        arrived += 1;
+        if (arrived === 2) release();
+        // Solo las dos primeras consultas esperan; la del reintento pasa de largo.
+        if (arrived <= 2) await bothLooked;
+        return found;
+      },
+    });
+    t = await buildTestApp(harness, { overrides: { users } });
+
+    const first = newRegistration();
+    const second = newRegistration({ email: first.email });
+    const responses = await Promise.all([register(first), register(second)]);
+    expect(responses.map((res) => res.status)).toEqual([202, 202]);
+    expect(responses[1]?.body).toEqual(responses[0]?.body);
+    expect(arrived).toBe(3);
+
+    expect(await usersWith('email', first.email)).toHaveLength(1);
+    const [{ users: total }] = await harness.migrator.query(
+      `SELECT count(*)::int AS users FROM app.users`,
+    );
+    expect(total).toBe(1);
+    // Un código del alta y otro del reenvío: solo el último verifica.
+    expect(t.mailer.to(first.email)).toHaveLength(2);
+    const actions = (await auditEvents(harness.migrator)).map((event) => event.action).sort();
+    expect(actions).toEqual(['EMAIL_VERIFICATION_RESENT', 'USER_REGISTERED']);
+    const verified = await request(t.app)
+      .post('/auth/verify-email')
+      .send({ email: first.email, code: t.mailer.lastCode(first.email) });
+    expect(verified.status).toBe(200);
+  });
+
   it('IDN-01 todas las ramas responden exactamente el mismo cuerpo', async () => {
     const person = newRegistration();
     const created = await register(person);
