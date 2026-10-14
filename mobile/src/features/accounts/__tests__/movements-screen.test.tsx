@@ -1,5 +1,5 @@
 import type { Movement } from '@devchrisvaz/wallet-contract';
-import { act, screen, userEvent, within } from '@testing-library/react-native';
+import { act, screen, userEvent, waitFor, within } from '@testing-library/react-native';
 
 import { createFakeApi, json, problem } from '@/test-utils/fake-api';
 import { ahorro, me, overview, principal } from '@/test-utils/fixtures';
@@ -101,12 +101,15 @@ describe('últimos 20 movimientos', () => {
 
   test('MOB-06 mientras carga muestra esqueletos', async () => {
     jest.useFakeTimers();
-    const fake = createFakeApi().on('GET', MOVEMENTS_PATH, 'hang');
-    await openMovements(fake);
-    expect(
-      screen.getAllByTestId('skeleton', { includeHiddenElements: true }).length,
-    ).toBeGreaterThan(0);
-    jest.useRealTimers();
+    try {
+      const fake = createFakeApi().on('GET', MOVEMENTS_PATH, 'hang');
+      await openMovements(fake);
+      expect(
+        screen.getAllByTestId('skeleton', { includeHiddenElements: true }).length,
+      ).toBeGreaterThan(0);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 
@@ -219,12 +222,16 @@ describe('selector de cuenta y día', () => {
 
   test('MOB-20 mientras cargan las cuentas muestra esqueletos', async () => {
     jest.useFakeTimers();
-    const fake = createFakeApi().on('GET', '/me', json(200, me)).on('GET', '/accounts', 'hang');
-    await renderApp({ fake, routes: { movements: MovementsScreen }, initialUrl: '/movements' });
-    expect(
-      screen.getAllByTestId('skeleton', { includeHiddenElements: true }).length,
-    ).toBeGreaterThan(0);
-    jest.useRealTimers();
+    try {
+      const fake = createFakeApi().on('GET', '/me', json(200, me)).on('GET', '/accounts', 'hang');
+      await renderApp({ fake, routes: { movements: MovementsScreen }, initialUrl: '/movements' });
+      expect(
+        screen.getAllByTestId('skeleton', { includeHiddenElements: true }).length,
+      ).toBeGreaterThan(0);
+    } finally {
+      // Si una aserción falla, los temporizadores falsos no deben pasar a las pruebas siguientes.
+      jest.useRealTimers();
+    }
   });
 
   test('MOB-20 sin cuentas termina en el estado vacío, no en esqueletos', async () => {
@@ -235,5 +242,8 @@ describe('selector de cuenta y día', () => {
     expect(await screen.findByText('Aún no tienes cuentas')).toBeOnTheScreen();
     expect(screen.queryByTestId('skeleton', { includeHiddenElements: true })).toBeNull();
     expect(fake.requests.filter((request) => request.path.includes('/movements'))).toHaveLength(0);
+
+    await userEvent.press(screen.getByRole('button', { name: 'Volver a cargar' }));
+    await waitFor(() => expect(fake.requestsTo('GET', '/accounts')).toHaveLength(2));
   });
 });
