@@ -16,7 +16,11 @@ export interface BalanceHeroProps {
   actions?: ReactNode;
 }
 
-/** Hero del saldo (WEB-28, DSG-13): verde profundo, resplandor lima y centavos más chicos. */
+/**
+ * Hero del saldo (WEB-28, DSG-13): verde profundo, resplandor lima y centavos más chicos. Los tamaños
+ * de `heroAmountSize` dejan el monto en una línea con el texto al 100 %; con el texto agrandado pasa
+ * de línea en lugar de quedar cortado por el `overflow-hidden` del hero.
+ */
 export function BalanceHero({ total, available, actions }: BalanceHeroProps) {
   const titleId = useId();
   const formatted = formatMXN(total);
@@ -39,7 +43,7 @@ export function BalanceHero({ total, available, actions }: BalanceHeroProps) {
       </h2>
       <p
         data-testid="hero-amount"
-        className={`relative mt-1 whitespace-nowrap tabular-nums ${AMOUNT_SIZE[heroAmountSize(formatted)]}`}
+        className={`relative mt-1 [overflow-wrap:anywhere] tabular-nums ${AMOUNT_SIZE[heroAmountSize(formatted)]}`}
       >
         <span className="sr-only">{formatted}</span>
         <span aria-hidden="true">

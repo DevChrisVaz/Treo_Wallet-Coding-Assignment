@@ -14,6 +14,8 @@ export const queryKeys = {
   allMovements: ['movements'] as const,
   movements: (accountId: string, filters: MovementFilters) =>
     ['movements', accountId, filters] as const,
+  /** Últimos movimientos de Inicio: bajo `allMovements`, el comprobante también los refresca. */
+  latestMovements: (accountId: string) => ['movements', accountId, 'latest'] as const,
   beneficiaries: ['beneficiaries'] as const,
   transfer: (transferId: string) => ['transfer', transferId] as const,
 };

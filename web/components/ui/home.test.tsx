@@ -21,6 +21,13 @@ describe('BalanceHero', () => {
     expect(amount).toHaveClass('text-h1');
     expect(amount).not.toHaveClass('text-display-xl');
   });
+
+  it('WEB-28 DSG-13 con el texto agrandado el monto pasa de línea en lugar de cortarse', () => {
+    render(<BalanceHero total="35000.00" available="31500.00" />);
+    const amount = screen.getByTestId('hero-amount');
+    expect(amount).not.toHaveClass('whitespace-nowrap');
+    expect(amount).toHaveClass('[overflow-wrap:anywhere]');
+  });
 });
 
 describe('QuickActions', () => {

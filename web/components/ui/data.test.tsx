@@ -73,6 +73,16 @@ describe('AccountCard', () => {
     const { container } = render(<AccountCard account={PRINCIPAL} />);
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it('WEB-23 el anillo de foco rodea toda la tarjeta seleccionable, no solo el nombre', () => {
+    render(<AccountCard account={PRINCIPAL} onSelect={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Principal' })).toHaveClass(
+      'focus-visible:outline-none',
+      'focus-visible:after:outline-2',
+      'focus-visible:after:outline-offset-2',
+      'focus-visible:after:outline-focus',
+    );
+  });
 });
 
 describe('MovementRow', () => {
