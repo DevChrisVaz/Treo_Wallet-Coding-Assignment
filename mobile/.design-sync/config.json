@@ -15,7 +15,15 @@
     "StyleSheet": null,
     "Text": null,
     "TextInput": null,
-    "View": null
+    "View": null,
+    "HomeView": null,
+    "MovementsView": null,
+    "LoginView": null,
+    "RecipientView": null,
+    "TransferFlowView": null,
+    "StartupLoading": null,
+    "StartupOffline": null,
+    "ProblemError": null
   },
   "provider": {
     "component": "SafeAreaProvider",

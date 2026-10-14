@@ -1,43 +1,26 @@
 /*
  * Mapa de pantallas rediseñadas de la app móvil (MOB-18 a MOB-22): una historia por pantalla y por
  * estado, en un marco de 390x844, con los mismos nombres que las historias de `AppShell` en la web
- * para el lienzo de paridad. Las pantallas reales no se pueden importar (expo-router, TanStack
- * Query, sesión): cada historia compone el kit con la estructura del rediseño (pestañas, flujo por
- * pasos, superficie de marca) y los textos de `src/features/**` y `src/navigation/root-navigator.tsx`.
+ * para el lienzo de paridad. Cada historia renderiza la vista real de la pantalla (los `*-view.tsx`
+ * puros de `src/features/**` y `src/navigation/startup-views.tsx`, tarea 8.1) con los datos
+ * canónicos: lo que se ve aquí es el código de presentación de la app, con el mismo tema y
+ * react-native-web. Los contenedores (expo-router, TanStack Query, sesión) no entran en el lienzo;
+ * la barra de pestañas es el `TabBar` del kit que monta el layout de pestañas.
  * Los datos son el bloque canónico del plan, idéntico en la web.
  */
 import type { ReactNode } from 'react';
 import {
-  AccountCard,
-  ActivityIndicator,
-  AmountField,
-  AppHeader,
-  Avatar,
-  BalanceHero,
-  BrandScreen,
-  Button,
-  DailyLimitMeter,
-  EmptyState,
-  FlowHeader,
-  Icon,
-  InlineAlert,
-  ListSection,
-  MovementList,
-  OtpField,
-  Pressable,
-  QuickActions,
-  Receipt,
-  Screen,
-  Select,
-  Skeleton,
+  HomeView,
+  LoginView,
+  MovementsView,
+  ProblemError,
+  RecipientView,
+  StartupLoading as StartupLoadingView,
+  StartupOffline as StartupOfflineView,
   StyleSheet,
   TabBar,
-  Text,
-  TextField,
+  TransferFlowView,
   View,
-  Wordmark,
-  initials,
-  theme,
 } from 'wallet-mobile-ui';
 
 const noop = () => {};
@@ -64,13 +47,8 @@ const movements = [
 
 // --- Derivados -----------------------------------------------------------------------------------
 
-// sumAmounts([principal.balance, ahorro.balance]) de src/lib/display.ts (no está en el bundle).
-const TOTAL = '35000.00';
 const TABS = ['home', 'movements', 'transfer'] as const;
 type Tab = (typeof TABS)[number];
-
-// maskClabe() de src/lib/display.ts.
-const mask = (clabe: string) => `•••• ${clabe.slice(-4)}`;
 
 // La transferencia de $1,250.00 tal como la devuelve la API (su movimiento es mv-1).
 const completedTransfer = {
@@ -96,11 +74,12 @@ const completedTransfer = {
   completedAt: '2026-10-13T16:42:00Z',
 };
 
-// La de $15,000.00 pidió código y se canceló al agotar los intentos (422 OTP_ATTEMPTS_EXHAUSTED).
+// La de $15,000.00 tal como quedó al pedir el código (PENDING_OTP). Al agotar los intentos la API
+// responde 422 OTP_ATTEMPTS_EXHAUSTED y la vista la muestra "Fallida" con ese veredicto.
 const failedTransfer = {
   ...completedTransfer,
   id: '4c8e2f6a-1b3d-4e5f-9a7b-6c8d0e2f4a6b',
-  status: 'FAILED' as const,
+  status: 'PENDING_OTP' as const,
   amount: '15000.00',
   requiresOtp: true,
   otp: {
@@ -111,7 +90,6 @@ const failedTransfer = {
     attemptsRemaining: 0,
     resendsRemaining: 3,
   },
-  failureReason: 'OTP_ATTEMPTS_EXHAUSTED' as const,
   createdAt: '2026-10-13T17:41:00Z',
   completedAt: null,
 };
@@ -121,9 +99,6 @@ const failedTransfer = {
 const NETWORK_ERROR_MESSAGE =
   'No pudimos conectar con TreoWallet. Revisa tu conexión e intenta de nuevo.';
 const RATE_LIMITED = 'Hiciste demasiados intentos. Espera un momento y vuelve a intentar.';
-const UNCERTAIN_TITLE = 'No pudimos confirmar el estado de tu transferencia';
-const INSUFFICIENT_FUNDS = 'No tienes saldo suficiente para esta transferencia.';
-const OTP_ATTEMPTS_EXHAUSTED = 'Agotaste los intentos. Cancelamos la transferencia.';
 
 // --- Estilos (solo `theme`) ------------------------------------------------------------------------
 
@@ -131,630 +106,271 @@ const styles = StyleSheet.create({
   // Marco de teléfono: el mismo de `initialMetrics` del proveedor.
   phone: { width: 390, height: 844 },
   fill: { flex: 1 },
-  // root-navigator.tsx
-  startup: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing[4],
-    padding: theme.spacing[6],
-    backgroundColor: theme.colors.surface.default,
-  },
-  startupTitle: { ...theme.typography.h3, color: theme.colors.text.primary, textAlign: 'center' },
-  startupBody: {
-    ...theme.typography.body,
-    color: theme.colors.text.secondary,
-    textAlign: 'center',
-  },
-  // login-screen.tsx
-  form: { gap: theme.spacing[4] },
-  countdown: { ...theme.typography.bodySm, ...theme.amount, color: theme.colors.text.secondary },
-  note: { ...theme.typography.caption, color: theme.colors.text.muted, textAlign: 'center' },
-  // Inicio y Movimientos
-  stack: { gap: theme.spacing[3] },
-  list: { gap: theme.spacing[4] },
-  link: { minHeight: theme.touchTarget, justifyContent: 'center' },
-  linkText: { ...theme.typography.label, color: theme.colors.action.primary },
-  segmented: { flexDirection: 'row', gap: theme.spacing[2] },
-  segment: { flex: 1 },
-  // Filas de lista (destinatario y resumen)
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[3],
-    minHeight: theme.touchTarget,
-    paddingVertical: theme.spacing[3],
-  },
-  divider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border.default,
-  },
-  rowText: { flex: 1, minWidth: 0, gap: theme.spacing[1] },
-  rowTitle: { ...theme.typography.label, color: theme.colors.text.primary },
-  rowDetail: { ...theme.typography.caption, color: theme.colors.text.secondary },
-  summaryLabel: { ...theme.typography.bodySm, color: theme.colors.text.secondary },
-  // Dígitos tabulares, como el resumen de la web (CLABE y referencia alineadas).
-  summaryValue: {
-    ...theme.typography.label,
-    ...theme.amount,
-    flexShrink: 1,
-    color: theme.colors.text.primary,
-    textAlign: 'right',
-  },
-  // Monto protagonista de la revisión y del código
-  amountBlock: { alignItems: 'center', gap: theme.spacing[1], paddingVertical: theme.spacing[2] },
-  amountLabel: { ...theme.typography.label, color: theme.colors.text.secondary },
-  amount: { ...theme.typography.display, ...theme.amount, color: theme.colors.text.primary },
-  amountCaption: { ...theme.typography.bodySm, color: theme.colors.text.secondary },
-  // otp-view.tsx
-  body: { ...theme.typography.body, color: theme.colors.text.primary },
-  meta: { ...theme.typography.bodySm, ...theme.amount, color: theme.colors.text.secondary },
-  tight: { gap: theme.spacing[1] },
 });
 
-// --- Estructuras de pantalla -----------------------------------------------------------------------
+// --- Marcos y datos de las vistas --------------------------------------------------------------------
 
-/** Pestaña con sesión (MOB-18): encabezado con el avatar, contenido y barra de pestañas. */
-function TabScreen({
-  current,
-  title,
-  children,
-}: {
-  current: Tab;
-  title?: string;
-  children: ReactNode;
-}) {
+/** Pestaña con sesión (MOB-18): la vista y, abajo, la barra de pestañas del layout. */
+function TabFrame({ current, children }: { current: Tab; children: ReactNode }) {
   return (
     <View style={styles.phone}>
       <View style={styles.fill}>
-        <Screen tabBar header={<AppHeader user={user} title={title} onLogout={noop} />}>
-          {children}
-        </Screen>
+        {children}
         <TabBar items={TABS} current={current} onSelect={noop} />
       </View>
     </View>
   );
 }
 
-/** Paso del flujo de transferencia (MOB-21): a pantalla completa, sin pestañas; acciones abajo. */
-function FlowScreen({
-  title,
-  step,
-  total,
-  stepLabel,
-  footer,
-  children,
-}: {
-  title: string;
-  step: number;
-  total: number;
-  stepLabel: string;
-  footer?: ReactNode;
-  children: ReactNode;
-}) {
+const OVERVIEW = { status: 'success', data: { accounts: [principal, ahorro], dailyLimit } } as const;
+const LATEST = { status: 'success', data: movements } as const;
+const PENDING = { status: 'pending' } as const;
+
+// Lecturas del flujo listas: las dos cuentas y el beneficiario elegido en el paso 1.
+const READY = { status: 'success', data: { accounts: [principal, ahorro], beneficiary: luis } } as const;
+const ACTIONS = {
+  onClose: noop,
+  onReload: noop,
+  onChange: noop,
+  onContinue: noop,
+  onSubmit: noop,
+  onEdit: noop,
+  onRetry: noop,
+  onCodeChange: noop,
+  onConfirm: noop,
+  onResend: noop,
+  onRestart: noop,
+  onHome: noop,
+  onAnother: noop,
+};
+const VALUES = { fromAccountId: principal.id, amount: '1250.00', concept: 'Renta', reference: '1' };
+// Datos congelados del intento al pasar a revisión.
+const FROZEN = {
+  key: 'k',
+  payload: '{}',
+  draft: { fromAccountId: principal.id, beneficiaryId: luis.id, amount: '1250.00', concept: 'Renta', reference: '1' },
+};
+
+function Flow({ state, code = '' }: { state: Parameters<typeof TransferFlowView>[0]['state']; code?: string }) {
   return (
     <View style={styles.phone}>
-      <Screen
-        header={
-          <FlowHeader
-            title={title}
-            step={step}
-            total={total}
-            stepLabel={stepLabel}
-            onClose={noop}
-          />
-        }
-        footer={footer}
-      >
-        {children}
-      </Screen>
+      <TransferFlowView state={state} data={READY} values={VALUES} errors={{}} code={code} actions={ACTIONS} />
     </View>
   );
 }
 
-// --- Piezas compartidas ----------------------------------------------------------------------------
-
-const quickActions = (
-  <QuickActions
-    actions={[
-      { key: 'transfer', label: 'Transferir', icon: 'transfer', onPress: noop },
-      { key: 'movements', label: 'Movimientos', icon: 'movements', onPress: noop },
-    ]}
-  />
-);
-
-function SeeAll() {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Ver todos los movimientos"
-      onPress={noop}
-      style={styles.link}
-    >
-      <Text style={styles.linkText}>Ver todos</Text>
-    </Pressable>
-  );
-}
-
-/** Selector de cuenta de Movimientos (control segmentado con las dos cuentas, D9). */
-function AccountSwitch() {
-  return (
-    <View style={styles.segmented}>
-      <View style={styles.segment}>
-        <Button label={principal.name} onPress={noop} />
-      </View>
-      <View style={styles.segment}>
-        <Button label={ahorro.name} variant="secondary" onPress={noop} />
-      </View>
-    </View>
-  );
-}
-
-/** Beneficiario elegible (beneficiary-picker-screen.tsx): toda la fila es el botón. */
-function RecipientRow({
-  beneficiary,
-  first,
-}: {
-  beneficiary: typeof luis;
-  first: boolean;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${beneficiary.alias}, ${beneficiary.name}, CLABE terminación ${beneficiary.clabe.slice(-4)}`}
-      onPress={noop}
-      style={[styles.row, first ? null : styles.divider]}
-    >
-      <Avatar initials={initials(beneficiary.name)} />
-      <View style={styles.rowText}>
-        <Text style={styles.rowTitle}>{beneficiary.alias}</Text>
-        <Text style={styles.rowDetail} numberOfLines={1}>
-          {`${beneficiary.name} · CLABE ${mask(beneficiary.clabe)}`}
-        </Text>
-      </View>
-      <Icon name="forward" color={theme.colors.text.muted} />
-    </Pressable>
-  );
-}
-
-function SummaryRow({ label, value, first = false }: { label: string; value: string; first?: boolean }) {
-  return (
-    <View style={[styles.row, first ? null : styles.divider]}>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <View style={styles.fill} />
-      <Text style={styles.summaryValue}>{value}</Text>
-    </View>
-  );
-}
-
-function AmountBlock({ amount, caption }: { amount: string; caption?: string }) {
-  return (
-    <View style={styles.amountBlock}>
-      <Text style={styles.amountLabel}>Monto</Text>
-      <Text style={styles.amount}>{amount}</Text>
-      {caption ? <Text style={styles.amountCaption}>{caption}</Text> : null}
-    </View>
-  );
-}
-
-/**
- * review-view.tsx: el monto y el resumen con los datos congelados del intento; arriba de
- * $10,000.00 avisa que pedirá un código (y el flujo tiene 5 pasos).
- */
-function ReviewSummary({ amount = '$1,250.00', requiresOtp = false }: { amount?: string; requiresOtp?: boolean }) {
-  return (
-    <>
-      <AmountBlock amount={amount} />
-      <ListSection>
-        <SummaryRow first label="Desde" value={`${principal.name} · ${mask(principal.clabe)}`} />
-        <SummaryRow label="Para" value={`${luis.alias} · ${mask(luis.clabe)}`} />
-        <SummaryRow label="Concepto" value="Renta" />
-        <SummaryRow label="Referencia" value="1" />
-      </ListSection>
-      {requiresOtp ? (
-        <InlineAlert
-          tone="info"
-          message="Como el monto es mayor a $10,000.00, te enviaremos un código de confirmación a tu correo."
-        />
-      ) : null}
-    </>
-  );
-}
-
-const reviewProps = { title: 'Revisa tu transferencia', step: 3, total: 4, stepLabel: 'Revisión' };
-
-// --- Arranque: navigation/root-navigator.tsx (sin Screen, como en la app) -----------------------
+// --- Arranque: navigation/startup-views.tsx (sin Screen, como en la app) ------------------------
 
 export const StartupLoading = () => (
   <View style={styles.phone}>
-    <View style={styles.startup} accessibilityLabel="Cargando">
-      <Wordmark />
-      <ActivityIndicator color={theme.colors.action.primary} />
-    </View>
+    <StartupLoadingView />
   </View>
 );
 
 export const StartupOffline = () => (
   <View style={styles.phone}>
-    <View style={styles.startup}>
-      <Wordmark />
-      <Text style={styles.startupTitle} accessibilityRole="header">
-        No pudimos conectar con TreoWallet
-      </Text>
-      <Text style={styles.startupBody}>Revisa tu conexión e intenta de nuevo.</Text>
-      <Button label="Reintentar" onPress={noop} />
-    </View>
+    <StartupOfflineView onRetry={noop} />
   </View>
 );
 
-// --- Inicio de sesión (MOB-22): features/auth/login-screen.tsx sobre la superficie de marca -------
-
-const loginNote = (
-  <Text style={styles.note}>
-    ¿Aún no tienes cuenta? El registro y la verificación del correo se hacen en la web de
-    TreoWallet.
-  </Text>
-);
+// --- Inicio de sesión (MOB-22): features/auth/login-view.tsx sobre la superficie de marca ---------
 
 export const Login = () => (
   <View style={styles.phone}>
-    <BrandScreen title="Inicia sesión">
-      <View style={styles.form}>
-        <TextField
-          label="Correo"
-          variant="email"
-          value=""
-          onChangeText={noop}
-          returnKeyType="next"
-        />
-        <TextField
-          label="Contraseña"
-          variant="password"
-          value=""
-          onChangeText={noop}
-          returnKeyType="go"
-        />
-        <Button label="Iniciar sesión" onPress={noop} />
-      </View>
-      {loginNote}
-    </BrandScreen>
+    <LoginView
+      email=""
+      password=""
+      fieldErrors={{}}
+      alert={null}
+      lockRemaining={0}
+      submitting={false}
+      onChangeEmail={noop}
+      onChangePassword={noop}
+      onSubmit={noop}
+    />
   </View>
 );
 
 // 429 con Retry-After: aviso, cuenta regresiva y botón deshabilitado (la contraseña se conserva).
 export const LoginRateLimited = () => (
   <View style={styles.phone}>
-    <BrandScreen title="Inicia sesión">
-      <InlineAlert tone="warning" message={RATE_LIMITED} />
-      <View style={styles.form}>
-        <TextField
-          label="Correo"
-          variant="email"
-          value={user.email}
-          onChangeText={noop}
-          returnKeyType="next"
-        />
-        <TextField
-          label="Contraseña"
-          variant="password"
-          value="contraseña-segura"
-          onChangeText={noop}
-          returnKeyType="go"
-        />
-        <Text style={styles.countdown}>Podrás intentar de nuevo en 42 s.</Text>
-        <Button label="Iniciar sesión" onPress={noop} disabled />
-      </View>
-      {loginNote}
-    </BrandScreen>
+    <LoginView
+      email={user.email}
+      password="contraseña-segura"
+      fieldErrors={{}}
+      alert={{ tone: 'warning', message: RATE_LIMITED }}
+      lockRemaining={42}
+      submitting={false}
+      onChangeEmail={noop}
+      onChangePassword={noop}
+      onSubmit={noop}
+    />
   </View>
 );
 
-// --- Inicio (MOB-19): hero del saldo, cuentas seleccionables, límite y últimos movimientos -------
+// --- Inicio (MOB-19): features/accounts/home-view.tsx ----------------------------------------------
+
+const homeProps = {
+  user,
+  onLogout: noop,
+  selectedId: principal.id,
+  latest: LATEST,
+  now: NOW,
+  onSelect: noop,
+  onRetryOverview: noop,
+  onRetryLatest: noop,
+  onTransfer: noop,
+  onSeeAll: noop,
+};
 
 export const Home = () => (
-  <TabScreen current="home">
-    <BalanceHero total={TOTAL} available={dailyLimit.remaining} actions={quickActions} />
-    <View style={styles.stack}>
-      <AccountCard
-        name={principal.name}
-        clabe={principal.clabe}
-        balance={principal.balance}
-        selected
-        onPress={noop}
-      />
-      <AccountCard
-        name={ahorro.name}
-        clabe={ahorro.clabe}
-        balance={ahorro.balance}
-        onPress={noop}
-      />
-    </View>
-    <ListSection>
-      <DailyLimitMeter dailyLimit={dailyLimit} />
-    </ListSection>
-    <ListSection title="Últimos movimientos" action={<SeeAll />}>
-      <MovementList movements={movements} now={NOW} />
-    </ListSection>
-  </TabScreen>
+  <TabFrame current="home">
+    <HomeView {...homeProps} overview={OVERVIEW} />
+  </TabFrame>
 );
 
 // Sin cuentas: el total es cero y no se ha usado nada del límite.
 export const HomeEmpty = () => (
-  <TabScreen current="home">
-    <BalanceHero total="0.00" available={dailyLimit.limit} />
-    <EmptyState
-      icon="account"
-      title="Aún no tienes cuentas"
-      description="Cuando tu cuenta esté lista, aquí verás su saldo."
-      action={{ label: 'Volver a cargar', onPress: noop }}
+  <TabFrame current="home">
+    <HomeView
+      {...homeProps}
+      overview={{
+        status: 'success',
+        data: { accounts: [], dailyLimit: { ...dailyLimit, used: '0.00', remaining: dailyLimit.limit } },
+      }}
+      selectedId={undefined}
+      latest={PENDING}
     />
-  </TabScreen>
+  </TabFrame>
 );
 
+// Cargando: el encabezado ya saluda a Ana (la sesión trae a la persona).
 export const HomeLoading = () => (
-  <TabScreen current="home">
-    <Skeleton variant="card" />
-    <View style={styles.stack}>
-      <Skeleton variant="card" />
-      <Skeleton variant="card" />
-    </View>
-    <ListSection>
-      <View style={styles.stack}>
-        <Skeleton />
-        <Skeleton />
-        <Skeleton />
-        <Skeleton />
-      </View>
-    </ListSection>
-  </TabScreen>
+  <TabFrame current="home">
+    <HomeView {...homeProps} overview={PENDING} latest={PENDING} />
+  </TabFrame>
 );
 
-// La consulta falló (sin red): no se muestran saldos anteriores, solo el error y Reintentar. El
-// título dice qué lectura falló, como el ErrorState de la web (WEB-20, paridad WEB-25).
+// La consulta falló (sin red): no se muestran saldos anteriores, solo el error y Reintentar.
 export const HomeError = () => (
-  <TabScreen current="home">
-    <View style={styles.list}>
-      <InlineAlert
-        tone="danger"
-        title="No pudimos cargar tus cuentas"
-        message={NETWORK_ERROR_MESSAGE}
-      />
-      <Button label="Reintentar" variant="secondary" onPress={noop} />
-    </View>
-  </TabScreen>
+  <TabFrame current="home">
+    <HomeView
+      {...homeProps}
+      overview={{ status: 'error', message: NETWORK_ERROR_MESSAGE }}
+      latest={PENDING}
+    />
+  </TabFrame>
 );
 
-// --- Movimientos (MOB-20): selector de cuenta y últimos 20 movimientos agrupados por día ---------
+// --- Movimientos (MOB-20): features/accounts/movements-view.tsx ------------------------------------
+
+const movementsProps = {
+  user,
+  onLogout: noop,
+  overview: OVERVIEW,
+  selectedId: principal.id,
+  now: NOW,
+  onSelect: noop,
+  onRetryAccounts: noop,
+  onRetryMovements: noop,
+};
 
 export const Movements = () => (
-  <TabScreen current="movements" title="Movimientos">
-    <AccountSwitch />
-    <ListSection>
-      <MovementList movements={movements} now={NOW} />
-    </ListSection>
-  </TabScreen>
+  <TabFrame current="movements">
+    <MovementsView {...movementsProps} movements={LATEST} />
+  </TabFrame>
 );
 
 export const MovementsEmpty = () => (
-  <TabScreen current="movements" title="Movimientos">
-    <AccountSwitch />
-    <EmptyState
-      icon="movements"
-      title="Aún no hay movimientos"
-      description="Aquí verás los depósitos y las transferencias de esta cuenta."
-    />
-  </TabScreen>
+  <TabFrame current="movements">
+    <MovementsView {...movementsProps} movements={{ status: 'success', data: [] }} />
+  </TabFrame>
 );
 
 // --- Transferir (MOB-21): Destinatario → Monto → Revisión → Código (si aplica) → Comprobante -----
 
+// features/transfer/recipient-view.tsx
 export const TransferRecipient = () => (
-  <FlowScreen title="¿A quién le envías?" step={1} total={5} stepLabel="Destinatario">
-    <ListSection title="Beneficiarios">
-      {[luis, mama].map((beneficiary, index) => (
-        <RecipientRow key={beneficiary.id} beneficiary={beneficiary} first={index === 0} />
-      ))}
-    </ListSection>
-  </FlowScreen>
+  <View style={styles.phone}>
+    <RecipientView
+      beneficiaries={{ status: 'success', data: { items: [luis, mama] } }}
+      onPick={noop}
+      onRetry={noop}
+      onClose={noop}
+    />
+  </View>
 );
 
 // La app no da de alta beneficiarios: sin ninguno, indica registrarlos en la web.
 export const TransferRecipientEmpty = () => (
-  <FlowScreen title="¿A quién le envías?" step={1} total={5} stepLabel="Destinatario">
-    <EmptyState
-      icon="beneficiaries"
-      title="Aún no tienes beneficiarios"
-      description="Regístralos en la web de TreoWallet para poder enviarles dinero desde aquí."
+  <View style={styles.phone}>
+    <RecipientView
+      beneficiaries={{ status: 'success', data: { items: [] } }}
+      onPick={noop}
+      onRetry={noop}
+      onClose={noop}
     />
-  </FlowScreen>
+  </View>
 );
 
-// form-view.tsx con el monto como protagonista; AmountField quita las comas al escribir.
-export const TransferAmount = () => (
-  <FlowScreen
-    title="¿Cuánto envías?"
-    step={2}
-    total={5}
-    stepLabel="Monto"
-    footer={<Button label="Continuar" onPress={noop} />}
-  >
-    <ListSection>
-      <View style={styles.row}>
-        <Avatar initials={initials(luis.name)} />
-        <View style={styles.rowText}>
-          <Text style={styles.rowDetail}>Para</Text>
-          <Text style={styles.rowTitle}>{`${luis.alias} · CLABE ${mask(luis.clabe)}`}</Text>
-        </View>
-      </View>
-    </ListSection>
-    <AmountField
-      variant="hero"
-      label="Monto"
-      value="1250.00"
-      onChangeText={noop}
-      help="Hasta 2 decimales, sin comas."
-    />
-    <Select
-      label="Cuenta de origen"
-      placeholder="Elige una cuenta"
-      options={[
-        {
-          value: principal.id,
-          label: principal.name,
-          description: `CLABE ${mask(principal.clabe)} · $25,000.00`,
-        },
-        {
-          value: ahorro.id,
-          label: ahorro.name,
-          description: `CLABE ${mask(ahorro.clabe)} · $10,000.00`,
-        },
-      ]}
-      value={principal.id}
-      onChange={noop}
-    />
-    <TextField label="Concepto" value="Renta" onChangeText={noop} help="De 1 a 40 caracteres." />
-    <TextField
-      label="Referencia"
-      value="1"
-      onChangeText={noop}
-      help="De 1 a 7 dígitos."
-      keyboardType="number-pad"
-      inputMode="numeric"
-    />
-  </FlowScreen>
-);
+// features/transfer/transfer-flow-view.tsx, un estado del intento por historia.
+export const TransferAmount = () => <Flow state={{ status: 'editing' }} />;
 
-// reviewing -> attempt-actions.tsx (Enviar / Editar). Sin código: el flujo tiene 4 pasos.
-export const TransferReview = () => (
-  <FlowScreen
-    {...reviewProps}
-    footer={
-      <>
-        <Button label="Enviar" onPress={noop} />
-        <Button label="Editar" variant="ghost" onPress={noop} />
-      </>
-    }
-  >
-    <ReviewSummary />
-  </FlowScreen>
-);
+// Sin código: el flujo tiene 4 pasos.
+export const TransferReview = () => <Flow state={{ status: 'reviewing', ...FROZEN }} />;
 
-// waitingRetry -> se perdió la red: la misma operación, con Enviar ocupado (MOB-10).
+// Se perdió la red: la misma operación, con Enviar ocupado (MOB-10).
 export const TransferRetrying = () => (
-  <FlowScreen
-    {...reviewProps}
-    title="Enviando tu transferencia"
-    footer={<Button label="Enviar" onPress={noop} loading />}
-  >
-    <ReviewSummary />
-    <InlineAlert
-      tone="warning"
-      message="Perdimos la conexión. Reintentaremos la misma operación (1 de 5)."
-    />
-  </FlowScreen>
+  <Flow state={{ status: 'waitingRetry', retry: 1, delayMs: 1000, ...FROZEN }} />
 );
 
-// uncertain -> reintentos agotados: ni éxito ni falla, solo Reintentar con la misma llave.
-export const TransferUncertain = () => (
-  <FlowScreen
-    {...reviewProps}
-    title="Estado sin confirmar"
-    footer={<Button label="Reintentar" onPress={noop} />}
-  >
-    <ReviewSummary />
-    <InlineAlert
-      tone="warning"
-      title={UNCERTAIN_TITLE}
-      message="Puede que se haya realizado. Reintenta para conocer el resultado: no se enviará dos veces."
-    />
-  </FlowScreen>
-);
+// Reintentos agotados: ni éxito ni falla, solo Reintentar con la misma llave.
+export const TransferUncertain = () => <Flow state={{ status: 'uncertain', ...FROZEN }} />;
 
-// rejected -> 422 INSUFFICIENT_FUNDS al crearla: $30,000.00 supera los $25,000.00 de Principal.
-// Es mayor a $10,000.00, así que la revisión avisa del código y el flujo tiene 5 pasos.
+// 422 INSUFFICIENT_FUNDS al crearla: $30,000.00 supera los $25,000.00 de Principal. Es mayor a
+// $10,000.00, así que la revisión avisa del código y el flujo tiene 5 pasos.
 export const TransferRejected = () => (
-  <FlowScreen
-    {...reviewProps}
-    total={5}
-    title="Transferencia rechazada"
-    footer={<Button label="Corregir" variant="secondary" onPress={noop} />}
-  >
-    <ReviewSummary amount="$30,000.00" requiresOtp />
-    <InlineAlert tone="danger" message={INSUFFICIENT_FUNDS} />
-  </FlowScreen>
+  <Flow
+    state={{
+      status: 'rejected',
+      ...FROZEN,
+      draft: { ...FROZEN.draft, amount: '30000.00' },
+      error: new ProblemError(422, { code: 'INSUFFICIENT_FUNDS', title: 'Saldo insuficiente', status: 422 }),
+    }}
+  />
 );
 
-// pendingOtp -> otp-view.tsx para $15,000.00 (3 intentos), con el código ya escrito y Confirmar
-// habilitado, igual que la historia de la web.
+// Código para $15,000.00 (3 intentos), ya escrito y con Confirmar habilitado, como en la web. El
+// vencimiento es relativo al render: la cuenta regresiva arranca en 4:32.
 export const TransferOtp = () => (
-  <FlowScreen
-    title="Confirma con tu código"
-    step={4}
-    total={5}
-    stepLabel="Código"
-    footer={
-      <>
-        <Button label="Confirmar" onPress={noop} />
-        <Button label="Reenviar código" variant="ghost" onPress={noop} />
-      </>
-    }
-  >
-    <AmountBlock
-      amount="$15,000.00"
-      caption={`Para ${luis.alias} · CLABE ${mask(luis.clabe)}`}
-    />
-    <View style={styles.list}>
-      <Text style={styles.body}>Te enviamos un código de 6 dígitos a an***@example.com.</Text>
-      <View style={styles.tight}>
-        <Text style={styles.meta}>El código vence en 4:32.</Text>
-        <Text style={styles.meta}>Te quedan 3 intentos.</Text>
-      </View>
-      <OtpField value="482913" onChangeText={noop} />
-    </View>
-  </FlowScreen>
+  <Flow
+    state={{
+      status: 'pendingOtp',
+      transfer: {
+        ...failedTransfer,
+        otp: {
+          ...failedTransfer.otp,
+          attemptsRemaining: 3,
+          expiresAt: new Date(Date.now() + 272_000).toISOString(),
+        },
+      },
+    }}
+    code="482913"
+  />
 );
 
-// completed -> outcome-view.tsx: el comprobante con lo que devolvió la API (MOB-13).
+// El comprobante con lo que devolvió la API (MOB-13).
 export const TransferCompleted = () => (
-  <FlowScreen
-    title="Transferencia enviada"
-    step={4}
-    total={4}
-    stepLabel="Comprobante"
-    footer={
-      <>
-        <Button label="Ver mis cuentas" variant="secondary" onPress={noop} />
-        <Button label="Hacer otra transferencia" variant="ghost" onPress={noop} />
-      </>
-    }
-  >
-    <Receipt
-      transfer={completedTransfer}
-      fromAccountName={principal.name}
-      fromAccountClabe={principal.clabe}
-    />
-  </FlowScreen>
+  <Flow state={{ status: 'completed', transfer: completedTransfer, replayed: false }} />
 );
 
-// failed -> outcome-view.tsx: 422 OTP_ATTEMPTS_EXHAUSTED al confirmar el código.
+// 422 OTP_ATTEMPTS_EXHAUSTED al confirmar el código.
 export const TransferFailed = () => (
-  <FlowScreen
-    title="La transferencia no se realizó"
-    step={5}
-    total={5}
-    stepLabel="Comprobante"
-    footer={
-      <>
-        <Button label="Intentar de nuevo" onPress={noop} />
-        <Button label="Ver mis cuentas" variant="secondary" onPress={noop} />
-      </>
-    }
-  >
-    <InlineAlert tone="danger" message={OTP_ATTEMPTS_EXHAUSTED} />
-    <Receipt
-      transfer={failedTransfer}
-      fromAccountName={principal.name}
-      fromAccountClabe={principal.clabe}
-    />
-  </FlowScreen>
+  <Flow
+    state={{
+      status: 'failed',
+      transfer: failedTransfer,
+      error: new ProblemError(422, { code: 'OTP_ATTEMPTS_EXHAUSTED', title: 'Intentos agotados', status: 422 }),
+    }}
+  />
 );
