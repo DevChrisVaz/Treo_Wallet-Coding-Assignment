@@ -9,6 +9,9 @@ export const AllStatuses = () => (
     <StatusBadge status="REJECTED" />
     <StatusBadge status="FAILED" />
     <StatusBadge status="EXPIRED" />
+    {/* Bonus (WEB-34, DSG-18): programada en el tono informativo y cancelada en el neutro. */}
+    <StatusBadge status="SCHEDULED" />
+    <StatusBadge status="CANCELLED" />
   </div>
 );
 

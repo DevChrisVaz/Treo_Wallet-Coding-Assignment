@@ -31,3 +31,16 @@ export const Transfer = () => (
     />
   </div>
 );
+
+/** Bonus (WEB-34, R58): "Programadas", con su propio icono (CalendarClock), como destino actual. */
+export const Scheduled = () => (
+  <div className="h-[640px] w-sidebar">
+    <SideNav
+      items={DEFAULT_NAV_ITEMS}
+      current="scheduled"
+      user={user}
+      onLogout={noop}
+      className="flex h-full!"
+    />
+  </div>
+);

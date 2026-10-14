@@ -1,7 +1,8 @@
 /*
  * Superficie del sistema de diseño de la web que se sincroniza con Claude Design: el inventario de
- * components/ui, los estados, las estructuras de página (AppShell con sesión y BrandShell pública)
- * y StepHeading. Lo que no está aquí no llega al bundle.
+ * components/ui, los estados, las estructuras de página (AppShell con sesión y BrandShell pública),
+ * StepHeading y las piezas de las funciones propias de la web (ScheduleField y StatementDownload).
+ * Lo que no está aquí no llega al bundle.
  */
 export { AccountCard, type AccountCardProps } from '@/components/ui/AccountCard';
 export { AmountField, type AmountFieldProps } from '@/components/ui/AmountField';
@@ -34,6 +35,10 @@ export { ErrorState, LoadingState } from '@/components/states/states';
 export { AppShell, DEFAULT_NAV_ITEMS, type AppShellProps } from '@/components/layout/AppShell';
 export { BrandShell } from '@/components/layout/BrandShell';
 export { StepHeading } from '@/components/transfers/StepHeading';
+// Funciones propias de la web (bonus): "Cuándo" del paso de monto (WEB-33) y el estado de cuenta de
+// Movimientos (WEB-32).
+export { ScheduleField, type ScheduleFieldProps } from '@/components/transfers/ScheduleField';
+export { StatementDownload } from '@/components/accounts/StatementDownload';
 /*
  * Aritmética y formato de montos (no son componentes): suma en centavos para el saldo total del
  * hero y las primitivas del contrato (BigInt, nunca Number) para restar y mostrar montos.
