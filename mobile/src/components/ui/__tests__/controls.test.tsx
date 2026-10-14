@@ -27,7 +27,7 @@ describe('Button', () => {
     expect(button).toHaveStyle({
       backgroundColor: '#1C4B42',
       borderRadius: theme.radius.pill,
-      minHeight: theme.touchTarget,
+      minHeight: theme.spacing[12],
     });
     expect(screen.getByText('Enviar')).toHaveStyle({ color: '#FFFFFF' });
   });
@@ -62,7 +62,7 @@ describe('Button', () => {
     const button = screen.getByRole('button', { name: 'Enviar' });
     expect(button).toBeDisabled();
     expect(button).toBeBusy();
-    expect(button).toHaveStyle({ minHeight: theme.touchTarget });
+    expect(button).toHaveStyle({ minHeight: theme.spacing[12] });
     expect(screen.getByText('Enviar')).toBeOnTheScreen();
     await fireEvent.press(button);
     expect(onPress).not.toHaveBeenCalled();

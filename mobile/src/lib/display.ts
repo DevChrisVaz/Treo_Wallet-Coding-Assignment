@@ -115,6 +115,12 @@ export function formatDateTime(iso: string, options: { withYear?: boolean } = {}
   return `${date}, ${hour}:${minute}`;
 }
 
+/** Hora en America/Mexico_City, como "10:52". */
+export function formatTime(iso: string): string {
+  const { hour, minute } = partsInBusinessTimeZone(new Date(iso));
+  return `${hour}:${minute}`;
+}
+
 /** Porcentaje entero usado del límite diario, con aritmética de centavos (sin floats). */
 export function limitUsedPercent({ limit, used }: Pick<DailyLimit, 'limit' | 'used'>): number {
   const limitCents = toCents(limit);

@@ -48,7 +48,14 @@ describe('MovementRow', () => {
       fontVariant: ['tabular-nums'],
     });
     expect(screen.getByText('Saldo $24,850.00')).toBeOnTheScreen();
-    expect(screen.getByText('12 oct, 19:05')).toBeOnTheScreen();
+    expect(screen.getByLabelText('12 oct, 19:05')).toBeOnTheScreen();
+  });
+
+  test('MOB-20 muestra hora, referencia y saldo, con avatar por tipo', async () => {
+    await render(<MovementRow movement={movement({})} />);
+    expect(screen.getByText('19:05 · Ref. 1')).toBeOnTheScreen();
+    expect(screen.getByText('Saldo $24,850.00')).toBeOnTheScreen();
+    expect(screen.getByTestId('movement-avatar', { includeHiddenElements: true })).toBeTruthy();
   });
 
   test('DSG-10 un depósito de la Tesorería (sin contraparte) muestra +$ en verde', async () => {
@@ -90,6 +97,11 @@ describe('InlineAlert', () => {
     expect(screen.getByText('No tienes saldo suficiente.')).toHaveStyle({
       color: theme.colors.status.danger.fg,
     });
+  });
+
+  test('DSG-15 la alerta de error lleva su icono, decorativo', async () => {
+    await render(<InlineAlert tone="danger" message="No tienes saldo suficiente." />);
+    expect(screen.getByTestId('inline-alert-icon', { includeHiddenElements: true })).toBeTruthy();
   });
 
   test('DSG-11 un aviso informativo se anuncia sin interrumpir', async () => {
