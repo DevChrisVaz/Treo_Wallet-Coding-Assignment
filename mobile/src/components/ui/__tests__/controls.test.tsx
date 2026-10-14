@@ -148,6 +148,14 @@ describe('OtpField', () => {
     await fireEvent.changeText(input, '482 913');
     expect(onChangeText).toHaveBeenCalledWith('482913');
   });
+
+  test('DSG-09 los dígitos del código son tabulares y van a 8 px, como en la web', async () => {
+    await render(<OtpField value="482913" onChangeText={() => {}} />);
+    expect(screen.getByLabelText('Código de 6 dígitos')).toHaveStyle({
+      fontVariant: ['tabular-nums'],
+      letterSpacing: theme.spacing[2],
+    });
+  });
 });
 
 describe('Select', () => {

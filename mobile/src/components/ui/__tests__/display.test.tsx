@@ -34,7 +34,7 @@ describe('AccountCard', () => {
   test('DSG-09 muestra nombre, CLABE enmascarada y saldo con formatMXN y dígitos tabulares', async () => {
     await render(<AccountCard name="Principal" clabe="646180157000009719" balance="25000.00" />);
     expect(screen.getByText('Principal')).toBeOnTheScreen();
-    expect(screen.getByText('CLABE •••• 9719')).toBeOnTheScreen();
+    expect(screen.getByText('CLABE •••• 9719')).toHaveStyle({ fontVariant: ['tabular-nums'] });
     expect(screen.queryByText(/646180157000009719/)).toBeNull();
     expect(screen.getByText('$25,000.00')).toHaveStyle({ fontVariant: ['tabular-nums'] });
   });
@@ -203,6 +203,18 @@ describe('Receipt', () => {
     expect(screen.getByText('1234567')).toBeOnTheScreen();
     expect(screen.getByText('13 oct 2026, 10:42')).toBeOnTheScreen();
     expect(screen.getByText(transfer.id)).toBeOnTheScreen();
+  });
+
+  test('MOB-13 con la CLABE de origen, el origen lleva su terminación como en la revisión', async () => {
+    await render(
+      <Receipt
+        transfer={transfer}
+        fromAccountName="Principal"
+        fromAccountClabe="646180157000009719"
+      />,
+    );
+    expect(screen.getByText('Principal · •••• 9719')).toBeOnTheScreen();
+    expect(screen.queryByText('Principal')).toBeNull();
   });
 
   test('MOB-13 el comprobante usa el icono de éxito solo si la transferencia se completó', async () => {

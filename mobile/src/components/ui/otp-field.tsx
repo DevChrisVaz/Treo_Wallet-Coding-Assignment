@@ -30,6 +30,7 @@ export function OtpField({ label = 'Código de 6 dígitos', onChangeText, ...pro
   );
 }
 
+// Dígitos tabulares, como el código de la web (WEB-25 / DSG-09).
 const styles = StyleSheet.create({
-  code: { letterSpacing: theme.spacing[2] },
+  code: { ...theme.amount, letterSpacing: theme.spacing[2] },
 });

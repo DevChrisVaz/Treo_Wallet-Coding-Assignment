@@ -11,6 +11,8 @@ interface ReceiptProps {
   /** Transferencia tal como la devolvió la API: el comprobante no usa lo capturado (MOB-13). */
   transfer: Transfer;
   fromAccountName?: string | undefined;
+  /** CLABE de la cuenta de origen: con ella el origen lleva su terminación, como en la revisión. */
+  fromAccountClabe?: string | undefined;
 }
 
 function Row({ label, value, selectable }: { label: string; value: string; selectable?: boolean }) {
@@ -24,10 +26,15 @@ function Row({ label, value, selectable }: { label: string; value: string; selec
   );
 }
 
-/** Comprobante: estado, monto, origen, destino, concepto, referencia, fecha y folio. */
-export function Receipt({ transfer, fromAccountName }: ReceiptProps) {
+/**
+ * Comprobante: estado, monto, origen, destino, concepto, referencia, fecha y folio. Tarjeta blanca
+ * con la elevación `card`, sin borde, como las demás superficies grandes (D4).
+ */
+export function Receipt({ transfer, fromAccountName, fromAccountClabe }: ReceiptProps) {
   const { destination } = transfer;
   const completed = transfer.status === 'COMPLETED';
+  const accountName = fromAccountName ?? 'Tu cuenta';
+  const origin = fromAccountClabe ? `${accountName} · ${maskClabe(fromAccountClabe)}` : accountName;
   return (
     <View style={styles.card}>
       <View testID="receipt-avatar">
@@ -39,7 +46,7 @@ export function Receipt({ transfer, fromAccountName }: ReceiptProps) {
       </View>
       <StatusBadge status={transfer.status} />
       <Text style={styles.amount}>{formatMXN(transfer.amount)}</Text>
-      <Row label="Origen" value={fromAccountName ?? 'Tu cuenta'} />
+      <Row label="Origen" value={origin} />
       <Row
         label="Destino"
         value={`${destination.displayName} · ${maskClabe(destination.clabeLast4)}`}
@@ -59,8 +66,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface.default,
     borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border.default,
     padding: theme.spacing[6],
     gap: theme.spacing[3],
     ...theme.elevation.card,
