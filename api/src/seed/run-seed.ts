@@ -49,7 +49,12 @@ async function adjustBalances(migrator: DataSource): Promise<void> {
  */
 export async function verifySeed(
   migrator: DataSource,
-  options: { readonly now: Date; readonly minEntries: number },
+  options: {
+    readonly now: Date;
+    readonly minEntries: number;
+    /** Solo los asientos con id mayor cuentan para "nada del día actual" (los de esta corrida). */
+    readonly sinceEntryId?: string;
+  },
 ): Promise<number> {
   const today = startOfBusinessDay(businessDayOf(options.now));
   const [row] = await migrator.query(
@@ -69,8 +74,9 @@ export async function verifySeed(
               WHERE a.balance_cents <> COALESCE(last.balance_after_cents, 0))::int AS stale,
             ((SELECT balance_cents FROM app.accounts WHERE type = 'SYSTEM')
               + (SELECT COALESCE(sum(balance_cents), 0) FROM app.accounts WHERE type = 'USER'))::text AS gap,
-            (SELECT count(*) FROM app.ledger_entries WHERE created_at >= $1)::int AS today`,
-    [today],
+            (SELECT count(*) FROM app.ledger_entries
+              WHERE created_at >= $1 AND id > $2::bigint)::int AS today`,
+    [today, options.sinceEntryId ?? '0'],
   );
   const failures: string[] = [];
   if (row.entries < options.minEntries) {
@@ -97,6 +103,11 @@ export async function verifySeed(
  * invariantes, que hace fallar el comando si alguna no se cumple. Idempotente.
  */
 export async function runSeed(migrator: DataSource, options: SeedOptions): Promise<SeedSummary> {
+  // Lo que ya existía (por ejemplo un `db:fund` de hoy) no es del seed: la regla de "nada del día
+  // actual" solo aplica a los asientos que agrega esta corrida.
+  const [{ last }] = await migrator.query(
+    'SELECT COALESCE(max(id), 0)::text AS last FROM app.ledger_entries',
+  );
   const window = seedWindow(options.now);
   const data = await seedDemoData(migrator, {
     clabe: options.clabe,
@@ -111,7 +122,7 @@ export async function runSeed(migrator: DataSource, options: SeedOptions): Promi
   });
   await adjustBalances(migrator);
   await migrator.query('ANALYZE app.accounts, app.transfers, app.ledger_entries');
-  const entries = await verifySeed(migrator, options);
+  const entries = await verifySeed(migrator, { ...options, sinceEntryId: last });
   const [{ n }] = await migrator.query(
     'SELECT count(*)::int AS n FROM app.ledger_entries WHERE account_id = $1',
     [data.ana.principal.id],

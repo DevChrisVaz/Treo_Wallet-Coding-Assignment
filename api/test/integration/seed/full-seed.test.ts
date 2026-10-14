@@ -23,6 +23,19 @@ const small = {
   minEntries: 600,
 };
 
+/** Fondeo con fecha de hoy (11:00 de CDMX), como el que haría `db:fund` después del seed. */
+async function fundToday(accountId: string): Promise<void> {
+  const clock = { now: () => new Date('2026-10-13T17:00:00.000Z') };
+  await new FundAccount({
+    transactions: new TypeormTransactionRunner(harness.migrator),
+    transfers: new PgTransferStore(),
+    locks: new PgAccountLocks(harness.migrator),
+    poster: new LedgerPoster(new PgLedgerStore()),
+    audit: new PgAuditWriter(harness.migrator, clock),
+    clock,
+  }).execute({ account: accountId, amount: Money.parse('1.00') });
+}
+
 describe('HIS-10 seed completo en pequeño', () => {
   it('HIS-10 deja los saldos en el último balance_after y cumple todas las invariantes', async () => {
     const summary = await runSeed(harness.migrator, small);
@@ -50,15 +63,7 @@ describe('HIS-10 seed completo en pequeño', () => {
 
   it('HIS-10 la verificación falla si hay un movimiento del día actual de CDMX', async () => {
     const summary = await runSeed(harness.migrator, small);
-    const clock = { now: () => new Date('2026-10-13T17:00:00.000Z') };
-    await new FundAccount({
-      transactions: new TypeormTransactionRunner(harness.migrator),
-      transfers: new PgTransferStore(),
-      locks: new PgAccountLocks(harness.migrator),
-      poster: new LedgerPoster(new PgLedgerStore()),
-      audit: new PgAuditWriter(harness.migrator, clock),
-      clock,
-    }).execute({ account: summary.anaPrincipalId, amount: Money.parse('1.00') });
+    await fundToday(summary.anaPrincipalId);
     const failure = await verifySeed(harness.migrator, { now, minEntries: 600 }).catch(
       (error: unknown) => error,
     );
@@ -66,6 +71,14 @@ describe('HIS-10 seed completo en pequeño', () => {
     expect((failure as SeedInvariantError).failures).toEqual([
       'hay 2 asientos del día actual de America/Mexico_City',
     ]);
+  });
+
+  it('HIS-10 un fondeo manual de hoy (db:fund) no hace fallar otra corrida del seed: solo cuentan sus propios movimientos', async () => {
+    const first = await runSeed(harness.migrator, small);
+    await fundToday(first.anaPrincipalId);
+    const again = await runSeed(harness.migrator, small);
+    expect(again.entries).toBe(first.entries + 2);
+    expect(again.volume.skipped).toBe(true);
   });
 
   it('HIS-10 la verificación falla si hay menos asientos de los pedidos', async () => {
