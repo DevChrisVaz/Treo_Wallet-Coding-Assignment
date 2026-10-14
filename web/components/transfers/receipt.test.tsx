@@ -83,6 +83,25 @@ describe('ReceiptStep', () => {
     expect(client.getQueryState(queryKeys.accounts)?.isInvalidated).toBe(false);
   });
 
+  it('WEB-33 una programada dice "Transferencia programada" con la fecha y el enlace, y no invalida la caché', () => {
+    const client = clientWithData();
+    renderWithClient(
+      <ReceiptStep
+        transfer={transfer({ status: 'SCHEDULED', scheduledFor: '2026-10-20', completedAt: null })}
+        accounts={OVERVIEW.accounts}
+        onRestart={vi.fn()}
+      />,
+      { client },
+    );
+    expect(screen.getByRole('heading', { name: 'Transferencia programada' })).toBeVisible();
+    expect(screen.getByText(/Se enviará el 20 de octubre de 2026\./)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'tus transferencias programadas' })).toHaveAttribute(
+      'href',
+      '/transfers/scheduled',
+    );
+    expect(client.getQueryState(queryKeys.accounts)?.isInvalidated).toBe(false);
+  });
+
   it('WEB-16 ofrece volver a las cuentas o hacer otra transferencia', async () => {
     const onRestart = vi.fn();
     const user = userEvent.setup();

@@ -8,6 +8,7 @@ import { ErrorState, LoadingState } from '@/components/states/states';
 import { InlineAlert } from '@/components/ui/InlineAlert';
 import { useAccountsOverview, useBeneficiaries } from '@/lib/client/queries';
 import { queryKeys } from '@/lib/client/query-keys';
+import { serverFieldErrors } from '@/lib/client/transfer-form';
 import { useTransferFlow } from '@/lib/client/transfer-flow';
 import { ActionProblemError, isUncertainFailure } from '@/lib/client/unwrap';
 import { loginPath } from '@/lib/navigation';
@@ -63,6 +64,11 @@ export function TransferFlow({
         flow.uncertain(new ActionProblemError(problem));
         return;
       }
+      // Un error de campo (por ejemplo, la fecha fuera de rango) se corrige junto al campo (WEB-33).
+      if (Object.keys(serverFieldErrors(problem)).length > 0) {
+        flow.invalid(problem);
+        return;
+      }
       // El saldo mostrado junto al rechazo debe ser el vigente.
       void queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
       flow.rejected(problem);
@@ -101,6 +107,7 @@ export function TransferFlow({
           initialValues={state.draft?.values}
           defaultFromAccountId={defaultFromAccountId}
           defaultBeneficiaryId={defaultBeneficiaryId}
+          problem={state.problem}
           onSubmit={flow.review}
         />
       );

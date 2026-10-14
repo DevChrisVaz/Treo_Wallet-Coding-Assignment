@@ -17,6 +17,9 @@ export interface TransferFormValues {
   amount: string;
   concept: string;
   reference: string;
+  /** "Ahora" o "Programar" (WEB-33); la fecha solo se envía con "Programar". */
+  when: 'NOW' | 'SCHEDULED';
+  scheduledFor: string;
 }
 
 /** Un intento: lo que se escribió (para editar) y la petición validada (para enviar). */
@@ -28,7 +31,7 @@ export interface TransferDraft {
 export type ConfirmStatus = 'idle' | 'sending' | 'uncertain' | 'rejected';
 
 export type TransferFlowState =
-  | { step: 'form'; draft: TransferDraft | null }
+  | { step: 'form'; draft: TransferDraft | null; problem?: ActionProblem }
   | {
       step: 'confirm';
       draft: TransferDraft;
@@ -46,6 +49,7 @@ type FlowEvent =
   | { type: 'SENDING' }
   | { type: 'UNCERTAIN'; error: unknown }
   | { type: 'REJECTED'; problem: ActionProblem }
+  | { type: 'INVALID'; problem: ActionProblem }
   | { type: 'SENT'; transfer: Transfer; replayed: boolean }
   | { type: 'CONFIRMED'; transfer: Transfer }
   | { type: 'ENDED'; problem: ActionProblem }
@@ -74,6 +78,11 @@ export function transferFlowReducer(state: TransferFlowState, event: FlowEvent):
     case 'REJECTED':
       return state.step === 'confirm'
         ? { step: 'confirm', draft: state.draft, status: 'rejected', problem: event.problem }
+        : state;
+    case 'INVALID':
+      // Un error de campo de la API se corrige en el formulario, junto al campo (WEB-33).
+      return state.step === 'confirm'
+        ? { step: 'form', draft: state.draft, problem: event.problem }
         : state;
     case 'SENT':
       return event.transfer.status === 'PENDING_OTP'
@@ -131,6 +140,10 @@ export function useTransferFlow(generate?: () => string) {
       rejected(problem: ActionProblem) {
         discard();
         dispatch({ type: 'REJECTED', problem });
+      },
+      invalid(problem: ActionProblem) {
+        discard();
+        dispatch({ type: 'INVALID', problem });
       },
       sent(transfer: Transfer, replayed: boolean) {
         discard();

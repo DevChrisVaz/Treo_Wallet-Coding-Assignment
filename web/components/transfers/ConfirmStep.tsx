@@ -8,6 +8,7 @@ import type { ActionProblem } from '@/lib/action-result';
 import { describeProblem } from '@/lib/client/problem-messages';
 import type { ConfirmStatus, TransferDraft } from '@/lib/client/transfer-flow';
 import { maskClabe } from '@/lib/money';
+import { scheduledSendText } from './ScheduleField';
 import { StepHeading } from './StepHeading';
 
 export interface ConfirmStepProps {
@@ -84,6 +85,9 @@ export function ConfirmStep({
         <Row term="Destino">{destinationText}</Row>
         <Row term="Concepto">{request.concept}</Row>
         <Row term="Referencia">{request.reference}</Row>
+        {request.scheduledFor ? (
+          <Row term="Cuándo">{scheduledSendText(request.scheduledFor)}</Row>
+        ) : null}
       </dl>
 
       {status === 'uncertain' ? (
