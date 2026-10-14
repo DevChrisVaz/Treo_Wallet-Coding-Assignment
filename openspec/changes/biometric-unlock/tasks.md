@@ -12,7 +12,7 @@
 
 ## 3. Activación
 
-- [ ] 3.1 [mobile] Tarjeta "Entrar con tu <tipo>" después del inicio de sesión con "Activar" (solo con éxito biométrico) y "Ahora no" (guardado hasta el siguiente cierre de sesión); pruebas de los escenarios de MOB-24 (MOB-24)
+- [x] 3.1 [mobile] Tarjeta "Entrar con tu <tipo>" después del inicio de sesión con "Activar" (solo con éxito biométrico) y "Ahora no" (guardado hasta el siguiente cierre de sesión); pruebas de los escenarios de MOB-24 (MOB-24)
 - [ ] 3.2 [mobile] Interruptor "Desbloqueo con <tipo>" en la pantalla de inicio: encender pide biometría, apagar borra la preferencia, deshabilitado con explicación sin biometría registrada; pruebas de accesibilidad del interruptor (MOB-24, MOB-27)
 
 ## 4. Documentación y verificación

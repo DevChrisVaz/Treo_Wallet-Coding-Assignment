@@ -12,6 +12,7 @@ import {
   Skeleton,
   Wordmark,
 } from '@/components/ui';
+import { UnlockOffer } from '@/features/unlock/unlock-offer';
 import { errorMessage } from '@/lib/errors';
 import { useRefreshByUser } from '@/lib/use-refresh-by-user';
 import { logout } from '@/session/logout';
@@ -46,6 +47,8 @@ export function HomeScreen() {
           Tus cuentas
         </Text>
       </View>
+
+      <UnlockOffer />
 
       {overview.isPending ? (
         <View style={styles.list}>

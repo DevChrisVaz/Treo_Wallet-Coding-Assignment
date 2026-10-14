@@ -23,8 +23,7 @@ export interface BiometricSupport {
  */
 export type UnlockResult = 'success' | 'cancelled' | 'lockout' | 'unavailable' | 'error';
 
-const PROMPT: LocalAuthentication.LocalAuthenticationOptions = {
-  promptMessage: 'Desbloquea TreoWallet',
+const PROMPT_OPTIONS: LocalAuthentication.LocalAuthenticationOptions = {
   // Android solo muestra esta etiqueta si no se permite la credencial del dispositivo.
   cancelLabel: 'Cancelar',
   disableDeviceFallback: false,
@@ -94,10 +93,15 @@ export function useBiometricSupport(): BiometricSupport | null {
  * en Android, sin huellas pero con PIN, el diálogo caería a la credencial del dispositivo y el
  * desbloqueo seguiría activo aunque la persona retiró sus huellas (MOB-26).
  */
-export async function requestUnlock(): Promise<UnlockResult> {
+export async function requestUnlock(
+  promptMessage = 'Desbloquea TreoWallet',
+): Promise<UnlockResult> {
   try {
     if (!(await isAvailable())) return 'unavailable';
-    const result = await LocalAuthentication.authenticateAsync(PROMPT);
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage,
+      ...PROMPT_OPTIONS,
+    });
     if (result.success) return 'success';
     return RESULTS[result.error] ?? 'error';
   } catch {
