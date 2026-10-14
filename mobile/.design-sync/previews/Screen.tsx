@@ -335,17 +335,26 @@ function AmountBlock({ amount, caption }: { amount: string; caption?: string }) 
   );
 }
 
-/** review-view.tsx: el monto y el resumen con los datos congelados del intento. */
-function ReviewSummary() {
+/**
+ * review-view.tsx: el monto y el resumen con los datos congelados del intento; arriba de
+ * $10,000.00 avisa que pedirá un código (y el flujo tiene 5 pasos).
+ */
+function ReviewSummary({ amount = '$1,250.00', requiresOtp = false }: { amount?: string; requiresOtp?: boolean }) {
   return (
     <>
-      <AmountBlock amount="$1,250.00" />
+      <AmountBlock amount={amount} />
       <ListSection>
         <SummaryRow first label="Desde" value={`${principal.name} · ${mask(principal.clabe)}`} />
         <SummaryRow label="Para" value={`${luis.alias} · ${mask(luis.clabe)}`} />
         <SummaryRow label="Concepto" value="Renta" />
         <SummaryRow label="Referencia" value="1" />
       </ListSection>
+      {requiresOtp ? (
+        <InlineAlert
+          tone="info"
+          message="Como el monto es mayor a $10,000.00, te enviaremos un código de confirmación a tu correo."
+        />
+      ) : null}
     </>
   );
 }
@@ -654,19 +663,22 @@ export const TransferUncertain = () => (
   </FlowScreen>
 );
 
-// rejected -> 422 INSUFFICIENT_FUNDS al crearla: el mensaje y Corregir.
+// rejected -> 422 INSUFFICIENT_FUNDS al crearla: $30,000.00 supera los $25,000.00 de Principal.
+// Es mayor a $10,000.00, así que la revisión avisa del código y el flujo tiene 5 pasos.
 export const TransferRejected = () => (
   <FlowScreen
     {...reviewProps}
+    total={5}
     title="Transferencia rechazada"
     footer={<Button label="Corregir" variant="secondary" onPress={noop} />}
   >
-    <ReviewSummary />
+    <ReviewSummary amount="$30,000.00" requiresOtp />
     <InlineAlert tone="danger" message={INSUFFICIENT_FUNDS} />
   </FlowScreen>
 );
 
-// pendingOtp -> otp-view.tsx para $15,000.00 (3 intentos), con el código ya escrito.
+// pendingOtp -> otp-view.tsx para $15,000.00 (3 intentos), con el código ya escrito y Confirmar
+// habilitado, igual que la historia de la web.
 export const TransferOtp = () => (
   <FlowScreen
     title="Confirma con tu código"
