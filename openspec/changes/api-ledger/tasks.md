@@ -25,7 +25,7 @@
 - [x] 3.2 [api] Fondeo desde la Tesorería con el servicio de asientos (kind `FUNDING`, movimiento `DEPOSIT`, evento `FUNDING_POSTED` con actor `SYSTEM` en la misma transacción) (ACC-15)
 - [x] 3.3 [api] Script `npm run db:fund -- --account <id|clabe> --amount <monto>` sobre el servicio de fondeo, con validación del monto por `Money.parse` y error sin escrituras si es inválido (ACC-15)
 - [x] 3.4 [api] Consultas de conciliación (saldo = suma de asientos, suma global cero, cadena de `balance_after`) como helper de pruebas, con prueba de integración tras fondear y transferir (ACC-14, TRF-22)
-- [ ] 3.5 [api] Prueba de integración: el fondeo deja la Tesorería en negativo sin violar constraints y nunca se expone por HTTP (ACC-15)
+- [x] 3.5 [api] Prueba de integración: el fondeo deja la Tesorería en negativo sin violar constraints y nunca se expone por HTTP (ACC-15)
 
 ## 4. Cuentas
 
