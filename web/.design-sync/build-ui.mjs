@@ -59,6 +59,8 @@ await esbuild.build({
   target: 'es2020',
   jsx: 'automatic',
   tsconfig: join(app, 'tsconfig.json'),
+  // next/link es CommonJS y necesita el router de Next: en el lienzo, el enlace del kit (next-link.ts).
+  alias: { 'next/link': join(here, 'next-link.ts') },
   external: ['react', 'react/*', 'react-dom', 'react-dom/*'],
   logLevel: 'warning',
   logOverride: { 'module-level-directive': 'silent' },
