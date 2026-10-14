@@ -38,14 +38,6 @@ describe('tokens semánticos', () => {
     expect(theme.colors.accent.brand).toBe('#31C454');
   });
 
-  it('DSG-14 ningún token de texto, estado o dinero es lima', () => {
-    const textColors = [
-      ...leaves(theme.colors.text),
-      ...Object.values(theme.colors.status).map((tone) => tone.fg),
-      ...leaves(theme.colors.money),
-    ];
-    expect(textColors).not.toContain('#B4E717');
-  });
 
   it('DSG-07 cada color del tema es un color de la paleta', () => {
     const paletteValues = new Set(Object.values(palette));

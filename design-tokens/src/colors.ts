@@ -17,7 +17,7 @@ export const palette = {
   slate600: '#5F6B63',
   slate400: '#7F8A82', // borde de campos: ≥ 3:1 sobre blanco, arena y verde suave
   slate200: '#DCE2DE',
-  green200: '#BFCDCA', // texto atenuado sobre el hero: 6.56:1 sobre green900
+  green200: '#BFCDCA', // texto atenuado sobre el hero: 6.00:1 sobre green900
   success700: '#1E7B3A',
   warning700: '#8A5A00',
   warning50: '#FFF8E5',
