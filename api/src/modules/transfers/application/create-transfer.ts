@@ -17,10 +17,11 @@ import {
   scheduledAmountIssue,
   scheduledDateIssue,
 } from '../domain/schedule.js';
+import { declineFor, type Decline } from '../domain/settlement.js';
 import type { TransferDestinationResolver, TransferRequest } from './destination-resolver.js';
 import type { IdempotencyGate } from './idempotency-gate.js';
+import type { LockedTransferExecutor } from './locked-transfer-executor.js';
 import type { RejectionReason, ScheduledCap, TransferRow, TransferStore } from './ports.js';
-import type { LedgerPoster } from './ledger-poster.js';
 import type { TransferOtpMailer } from './transfer-emails.js';
 import { balanceOrLimitError } from './transfer-errors.js';
 import {
@@ -28,11 +29,7 @@ import {
   type TransferDetails,
   type TransferDetailsReader,
 } from './transfer-view.js';
-import {
-  DayChangedWhileWaiting,
-  type DailyUsageCounter,
-  type TransferLocker,
-} from './transfer-locker.js';
+import { DayChangedWhileWaiting, type TransferLocker } from './transfer-locker.js';
 
 export interface CreateTransferDeps {
   readonly transactions: TransactionRunner;
@@ -50,8 +47,8 @@ export interface CreateTransferDeps {
   /** Códigos de un solo uso (propósito TRANSFER_CONFIRMATION) y su política. */
   readonly codes: OneTimeCodeService;
   readonly otpPolicy: CodePolicy;
-  readonly poster: LedgerPoster;
-  readonly counter: DailyUsageCounter;
+  /** Validación y asientos de una transferencia ya bloqueada, compartidos con el ejecutor. */
+  readonly executor: LockedTransferExecutor;
   /** Transferencia con su destino y su desafío: comprobante y datos del correo del OTP. */
   readonly details: TransferDetailsReader;
   readonly otpMail: TransferOtpMailer;
@@ -139,8 +136,7 @@ export class CreateTransfer {
   }
 
   private attempt(draft: Draft): Promise<AttemptResult> {
-    const { transactions, gate, locker, store, audit, clock, otpThreshold, poster, counter } =
-      this.deps;
+    const { transactions, gate, locker, audit, clock, otpThreshold, executor } = this.deps;
     return transactions.run(async (tx): Promise<AttemptResult> => {
       const id = randomUUID();
       const claim = await gate.claim(tx, {
@@ -176,44 +172,18 @@ export class CreateTransfer {
         beneficiaryId: draft.beneficiaryId,
       });
 
-      let reason: RejectionReason | null = null;
-      let remaining: Money | null = null;
-      if (locks.from.balance.isLessThan(draft.amount)) reason = 'INSUFFICIENT_FUNDS';
-      else if (
-        locks.counter &&
-        locks.counter.used.plus(draft.amount).isGreaterThan(locks.counter.limit)
-      ) {
-        reason = 'DAILY_LIMIT_EXCEEDED';
-        remaining = locks.counter.limit.minus(locks.counter.used);
-      }
       const amount = draft.amount.toDecimalString();
-      if (reason) {
-        await store.reject(tx, id, reason);
-        await audit.record(tx, {
-          action: 'TRANSFER_CREATED',
-          actor: { type: 'USER', userId: draft.userId },
-          entity: { type: 'transfer', id },
-          metadata: { status: 'REJECTED', kind: draft.kind, amount },
-        });
-        await audit.record(tx, {
-          action: 'TRANSFER_REJECTED',
-          actor: { type: 'USER', userId: draft.userId },
-          entity: { type: 'transfer', id },
-          metadata: { reason, amount },
-        });
-        return { kind: 'REJECTED', transferId: id, reason, remaining };
-      }
       if (!draft.amount.isGreaterThan(otpThreshold)) {
-        // Camino inmediato (TRF-01, TRF-21, TRF-22): asientos, saldos, contador y COMPLETED juntos.
-        await poster.post(tx, {
+        // Camino inmediato (TRF-01, TRF-21, TRF-22): asientos, saldos, contador y COMPLETED juntos,
+        // con el mismo servicio que la confirmación y el ejecutor de programadas.
+        const execution = await executor.execute(tx, {
           transferId: id,
+          userId: draft.userId,
           kind: draft.kind,
-          from: locks.from,
-          to: locks.to,
           amount: draft.amount,
-          at: locks.at,
+          locks,
         });
-        if (locks.counter) await counter.add(tx, draft.userId, locks.day, draft.amount);
+        if (execution.kind === 'DECLINED') return this.reject(tx, id, draft, execution);
         await audit.record(tx, {
           action: 'TRANSFER_CREATED',
           actor: { type: 'USER', userId: draft.userId },
@@ -228,9 +198,48 @@ export class CreateTransfer {
         });
         return { kind: 'CREATED', transferId: id, otp: null };
       }
-      // Camino con OTP (TRF-14): sin asientos ni contador; el dinero se mueve al confirmar.
+      // Camino con OTP (TRF-14): valida saldo y límite antes de crearla, sin asientos ni contador;
+      // el dinero se mueve al confirmar.
+      const decline = declineFor({
+        balance: locks.from.balance,
+        amount: draft.amount,
+        usage: locks.counter,
+      });
+      if (decline) return this.reject(tx, id, draft, decline);
       return this.awaitOtp(tx, id, draft);
     });
+  }
+
+  /** Rechazo de negocio al crear (TRF-10, TRF-11): REJECTED con su motivo, sin asientos. */
+  private async reject(
+    tx: Transaction,
+    id: string,
+    draft: Draft,
+    decline: Decline,
+  ): Promise<AttemptResult> {
+    const { store, audit } = this.deps;
+    const actor = { type: 'USER' as const, userId: draft.userId };
+    const entity = { type: 'transfer', id };
+    const amount = draft.amount.toDecimalString();
+    await store.reject(tx, id, decline.reason);
+    await audit.record(tx, {
+      action: 'TRANSFER_CREATED',
+      actor,
+      entity,
+      metadata: { status: 'REJECTED', kind: draft.kind, amount },
+    });
+    await audit.record(tx, {
+      action: 'TRANSFER_REJECTED',
+      actor,
+      entity,
+      metadata: { reason: decline.reason, amount },
+    });
+    return {
+      kind: 'REJECTED',
+      transferId: id,
+      reason: decline.reason,
+      remaining: decline.remaining,
+    };
   }
 
   /**

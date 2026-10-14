@@ -40,6 +40,11 @@ export interface AppConfig {
   };
   /** Firma HMAC de los cursores de paginación (HIS-05). */
   readonly cursorSigningSecret: Buffer;
+  /** Ejecutor de transferencias programadas (TRF-30, D6). */
+  readonly scheduler: {
+    /** Candidatas por lote; si el lote viene lleno, la pasada pide el siguiente. */
+    readonly batchSize: number;
+  };
 }
 
 /** Error de arranque: nombra las variables inválidas, nunca sus valores. */
@@ -218,5 +223,6 @@ export function loadConfig(env: Record<string, string | undefined>): AppConfig {
       otpMaxResends: e.OTP_MAX_RESENDS,
     },
     cursorSigningSecret: e.CURSOR_SIGNING_SECRET,
+    scheduler: { batchSize: 100 },
   };
 }

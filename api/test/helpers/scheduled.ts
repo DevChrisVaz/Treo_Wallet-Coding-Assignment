@@ -1,5 +1,23 @@
 import { randomUUID } from 'node:crypto';
+import request from 'supertest';
 import type { DataSource } from 'typeorm';
+import { expect } from 'vitest';
+import type { TestApp } from './app.js';
+import { expectToMatchContract } from './contract.js';
+import type { VerifiedUser } from './identity.js';
+
+/**
+ * Inicia sesión otra vez a la hora actual del reloj falso: las pruebas del ejecutor mueven el reloj
+ * horas o días y el access token dura 10 minutos. Devuelve el usuario con su token nuevo.
+ */
+export async function signInAgain<U extends VerifiedUser>(t: TestApp, user: U): Promise<U> {
+  const res = await request(t.app)
+    .post('/auth/login')
+    .send({ email: user.person.email.trim().toLowerCase(), password: user.person.password });
+  expectToMatchContract(res, 'login');
+  expect(res.status).toBe(200);
+  return { ...user, accessToken: res.body.tokens.accessToken };
+}
 
 /** Dueño de las transferencias: sus dos cuentas (la programada va de "Principal" a "Ahorro"). */
 export interface ScheduledOwner {

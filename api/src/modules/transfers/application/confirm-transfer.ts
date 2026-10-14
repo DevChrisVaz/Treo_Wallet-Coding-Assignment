@@ -11,14 +11,10 @@ import type {
 } from '../../identity/application/one-time-codes.js';
 import { effectiveStatus } from '../domain/transfer-status.js';
 import { notFound, type ResolvedRoute } from './destination-resolver.js';
-import type { LedgerPoster } from './ledger-poster.js';
-import type { RejectionReason, TransferStore } from './ports.js';
+import type { LockedTransferExecutor } from './locked-transfer-executor.js';
+import type { TransferStore } from './ports.js';
 import { balanceOrLimitError, transferExpired, transferNotPending } from './transfer-errors.js';
-import {
-  DayChangedWhileWaiting,
-  type DailyUsageCounter,
-  type TransferLocker,
-} from './transfer-locker.js';
+import { DayChangedWhileWaiting, type TransferLocker } from './transfer-locker.js';
 import { toTransferView, type TransferDetailsReader } from './transfer-view.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -29,8 +25,8 @@ export interface ConfirmTransferDeps {
   readonly store: TransferStore;
   readonly codes: OneTimeCodeService;
   readonly otpPolicy: CodePolicy;
-  readonly poster: LedgerPoster;
-  readonly counter: DailyUsageCounter;
+  /** Validación y asientos de una transferencia ya bloqueada, compartidos con el ejecutor. */
+  readonly executor: LockedTransferExecutor;
   readonly audit: AuditWriter;
   readonly clock: Clock;
   readonly details: TransferDetailsReader;
@@ -90,8 +86,7 @@ export class ConfirmTransfer {
     route: ResolvedRoute,
     code: string,
   ): Promise<AttemptResult> {
-    const { transactions, locker, store, codes, otpPolicy, poster, counter, audit, clock } =
-      this.deps;
+    const { transactions, locker, store, codes, otpPolicy, executor, audit, clock } = this.deps;
     const actor = { type: 'USER' as const, userId };
     const entity = { type: 'transfer', id: transferId };
     return transactions.run(async (tx): Promise<AttemptResult> => {
@@ -107,15 +102,16 @@ export class ConfirmTransfer {
       const check = await codes.verify(tx, 'TRANSFER_CONFIRMATION', transferId, code, otpPolicy);
       if (check.status !== 'VALID') return this.rejectCode(tx, transferId, actor, amount, check);
 
-      const locks = await locker.lockAccounts(tx, userId, route, day, usage !== null);
-      let reason: RejectionReason | null = null;
-      let remaining: Money | null = null;
-      if (locks.from.balance.isLessThan(amount)) reason = 'INSUFFICIENT_FUNDS';
-      else if (usage && usage.used.plus(amount).isGreaterThan(usage.limit)) {
-        reason = 'DAILY_LIMIT_EXCEEDED';
-        remaining = usage.limit.minus(usage.used);
-      }
-      if (reason) {
+      const accounts = await locker.lockAccounts(tx, userId, route, day, usage !== null);
+      const execution = await executor.execute(tx, {
+        transferId,
+        userId,
+        kind: route.kind,
+        amount,
+        locks: { day, counter: usage, ...accounts },
+      });
+      if (execution.kind === 'DECLINED') {
+        const { reason, remaining } = execution;
         await store.fail(tx, transferId, reason);
         await audit.record(tx, {
           action: 'TRANSFER_FAILED',
@@ -125,15 +121,6 @@ export class ConfirmTransfer {
         });
         return { kind: 'ERROR', error: balanceOrLimitError(reason, transferId, remaining) };
       }
-      await poster.post(tx, {
-        transferId,
-        kind: route.kind,
-        from: locks.from,
-        to: locks.to,
-        amount,
-        at: locks.at,
-      });
-      if (usage) await counter.add(tx, userId, day, amount);
       await audit.record(tx, {
         action: 'TRANSFER_COMPLETED',
         actor,

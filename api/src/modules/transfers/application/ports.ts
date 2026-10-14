@@ -1,8 +1,9 @@
 import type { Transaction } from '../../../shared/transaction.js';
 import type { LockedAccount, TransferKind } from '../domain/ledger.js';
+import type { DeclineReason } from '../domain/settlement.js';
 import type { StoredTransferStatus } from '../domain/transfer-status.js';
 
-export type RejectionReason = 'INSUFFICIENT_FUNDS' | 'DAILY_LIMIT_EXCEEDED';
+export type RejectionReason = DeclineReason;
 export type FailureReason = RejectionReason | 'OTP_ATTEMPTS_EXHAUSTED';
 
 export interface TransferRow {
@@ -78,6 +79,28 @@ export interface ScheduledCap {
     now: Date,
     exceptTransferId: string,
   ): Promise<number>;
+}
+
+/** Programada vencida, leída sin bloqueo: lo inmutable que se necesita para bloquear en orden. */
+export interface DueTransfer {
+  readonly id: string;
+  readonly userId: string;
+  readonly kind: Exclude<TransferKind, 'FUNDING'>;
+}
+
+/** Cola de programadas vencidas del ejecutor (TRF-30, TRF-31, D6). */
+export interface ScheduledQueue {
+  /**
+   * Candidatas sin bloqueo: SCHEDULED con `scheduled_for <= day`, en orden de ejecución
+   * (`scheduled_for`, creación, id), a partir de la siguiente de `after` (la última del lote
+   * anterior de la misma pasada) y hasta `limit`.
+   */
+  due(day: string, limit: number, after: string | null): Promise<DueTransfer[]>;
+  /**
+   * Bloquea la transferencia solo si sigue SCHEDULED, con `FOR NO KEY UPDATE SKIP LOCKED`: `null`
+   * si otra instancia (o una cancelación) la tiene bloqueada o si ya cambió de estado.
+   */
+  lockDue(tx: Transaction, transferId: string): Promise<TransferRow | null>;
 }
 
 /** Bloqueo y resolución de cuentas para mover dinero. */

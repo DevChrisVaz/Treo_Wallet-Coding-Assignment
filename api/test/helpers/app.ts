@@ -43,6 +43,7 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
       otpMaxResends: 3,
     },
     cursorSigningSecret: Buffer.alloc(32, 17),
+    scheduler: { batchSize: 100 },
     ...overrides,
   };
 }

@@ -70,6 +70,8 @@ import { PgAccountLocks } from './modules/transfers/infrastructure/pg-account-lo
 import { PgLedgerStore } from './modules/transfers/infrastructure/pg-ledger-store.js';
 import { PgTransferStore } from './modules/transfers/infrastructure/pg-transfer-store.js';
 import { PgScheduledTransfers } from './modules/transfers/infrastructure/pg-scheduled-transfers.js';
+import { LockedTransferExecutor } from './modules/transfers/application/locked-transfer-executor.js';
+import { ScheduledTransferRunner } from './modules/transfers/application/scheduled-transfer-runner.js';
 import { PgDailyUsage } from './modules/transfers/infrastructure/pg-daily-usage.js';
 import { TypeormTransactionRunner } from './platform/persistence/transaction.js';
 import type { Clock } from './shared/clock.js';
@@ -130,6 +132,10 @@ export interface Container {
   readonly ledger: {
     readonly fundAccount: FundAccount;
   };
+  /** Ejecutor de transferencias programadas; `main` lo programa y las pruebas llaman `runOnce`. */
+  readonly scheduler: {
+    readonly runner: ScheduledTransferRunner;
+  };
 }
 
 /**
@@ -153,10 +159,11 @@ export async function createContainer(
 
   const users = overrides.users ?? new PgUserRepository(dataSource);
   const transferStore = new PgTransferStore();
-  const scheduledTransfers = new PgScheduledTransfers();
+  const scheduledTransfers = new PgScheduledTransfers(dataSource);
   const accountLocks = new PgAccountLocks(dataSource);
   const poster = new LedgerPoster(new PgLedgerStore());
   const dailyUsage = new PgDailyUsage(dataSource);
+  const executor = new LockedTransferExecutor(poster, dailyUsage);
   const beneficiaryStore = new PgBeneficiaryStore(dataSource);
   const codes = new OneTimeCodeService(new PgOneTimeCodeStore(), clock, config.otpHmacSecret);
   const accounts = new PgAccountRepository(dataSource);
@@ -279,8 +286,7 @@ export async function createContainer(
         dailyLimit: config.transfers.dailyLimit,
         codes,
         otpPolicy,
-        poster,
-        counter: dailyUsage,
+        executor,
         details: transferDetails,
         otpMail,
         remainingToday: async (userId) => {
@@ -296,8 +302,7 @@ export async function createContainer(
         store: transferStore,
         codes,
         otpPolicy,
-        poster,
-        counter: dailyUsage,
+        executor,
         audit,
         clock,
         details: transferDetails,
@@ -322,6 +327,19 @@ export async function createContainer(
         poster,
         audit,
         clock,
+      }),
+    },
+    scheduler: {
+      runner: new ScheduledTransferRunner({
+        transactions,
+        queue: scheduledTransfers,
+        locker,
+        executor,
+        store: transferStore,
+        audit,
+        clock,
+        logger,
+        batchSize: config.scheduler.batchSize,
       }),
     },
   };
