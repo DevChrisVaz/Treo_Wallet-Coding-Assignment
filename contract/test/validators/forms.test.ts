@@ -47,6 +47,11 @@ describe('esquemas de formularios', () => {
     expect(errorsOf(schema, input)).toEqual([]);
   });
 
+  it('CTR-11 registerForm acepta un RFC que no coincide con la CURP', () => {
+    // La CURP es de 1990-01-01 y el RFC de 1985-06-15: no se exige que se correspondan.
+    expect(errorsOf(registerForm, { ...validRegister, rfc: 'PEGL850615XY2' })).toEqual([]);
+  });
+
   it('CTR-13 transferForm rechaza un destino OWN_ACCOUNT con beneficiaryId', () => {
     const errors = errorsOf(transferForm, {
       ...validTransfer,
