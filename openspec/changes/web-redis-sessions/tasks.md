@@ -13,4 +13,4 @@
 ## 3. Documentación
 
 - [x] 3.1 [docs] README de `/web` y README raíz: `docker compose up -d` de `/web`, `REDIS_URL` y `TEST_REDIS_URL` (WEB-37)
-- [ ] 3.2 [docs] `docs/ai-log.md` con la causa de la sesión perdida y las decisiones de este change (WEB-37)
+- [x] 3.2 [docs] `docs/ai-log.md` con la causa de la sesión perdida y las decisiones de este change (WEB-37)

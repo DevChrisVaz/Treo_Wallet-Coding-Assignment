@@ -497,6 +497,29 @@ Pedí cerrar todo con subagentes. La AI escribió y validó el change `domain-te
 - **Arranque desde un clon limpio (tarea 5.2).** Se clonó el repositorio y se siguieron los pasos del README: `npm ci` y build de `contract` y `design-tokens`, `npm ci` de la API, la web y la app, `docker compose up`, `db:bootstrap`, `db:migrate`, `db:seed` (120,128 asientos en 17.8 s), la API, `/health`, Swagger UI en `/docs` y el contrato en `/openapi.yaml`, el inicio de sesión de Ana por HTTP, la web en `/login` y `npx expo export --platform android`. Todo funcionó y el README no necesitó cambios. Límites de la prueba: se usaron puertos alternos (55433, 51025, 58025, 4010 y 3010) y un proyecto de compose distinto, porque los puertos habituales ya estaban ocupados por el entorno de desarrollo del usuario; no se recorrió la web con el navegador ni la app en un teléfono. Un hallazgo: `db:bootstrap` sin `psql` instalado usa `docker compose exec` en la carpeta de la API y, con el proyecto de compose por defecto, **ejecutó los roles contra el contenedor ya existente del usuario** antes de que se fijara `COMPOSE_PROJECT_NAME`. Fue inocuo (idempotente y con las mismas contraseñas de desarrollo), pero la herramienta no distingue entre dos entornos con el mismo nombre de proyecto.
 - **El diagrama de Mermaid no se renderizó.** El repositorio no incluye ninguna herramienta para validarlo; se revisó la sintaxis a mano (etiquetas con acentos y puntos entre comillas, sin palabras reservadas como identificadores). Falta abrirlo en GitHub para confirmarlo.
 
+## Sesión 7 — 2026-10-14 · Sesiones de la web en Redis
+
+**Quién:** Claude Code (Claude Opus 5.5) conmigo, en la sesión principal, mientras otras cuatro sesiones trabajaban en la misma copia del repositorio. Por eso el change se hizo en un worktree propio (`dev/web-redis-sessions`, desde `release`).
+
+**Prompt clave:** "Mi sesión en el navegador se cerró, ¿por qué? ¿No funcionó el refresh token?" y, después de la explicación, "Configura Redis también para desarrollo y agrégalo a los servicios de Docker".
+
+**El diagnóstico, con evidencia y no con una suposición.** Antes de proponer nada, la AI cruzó la tabla `app.refresh_tokens` y `app.audit_log` con los procesos del sistema. La sesión de las 16:16 tenía un refresh token **nunca usado ni revocado**; a las 16:23 otra sesión de trabajo había hecho `next build` y levantado de nuevo `next start`. El `Map` de sesiones murió con el proceso anterior: la cookie seguía apuntando a un id que el proceso nuevo no conocía. El refresh token no falló; nunca llegó a usarse. No había ningún `REUSE_DETECTED` en el día.
+
+**Decisiones (`openspec/changes/web-redis-sessions`):**
+- **Dónde va Redis:** la AI preguntó en lugar de suponer, porque mi pedido ("los servicios de Docker") apuntaba al `docker-compose.yml` de `/api`, pero eso rompe la regla de proyectos independientes. Elegí un `docker-compose.yml` propio de `/web`.
+- **`REDIS_URL` opcional:** sin ella sigue el `Map`, así que las pruebas unitarias, el build del CI y el e2e con la API simulada no necesitan Docker.
+- **`touch` atómico en Lua.** La AI señaló el riesgo antes de escribir código: un `touch` que lee y reescribe la sesión completa podría devolverle un refresh token ya rotado por una renovación concurrente; la siguiente renovación sería reuso y la API revocaría la familia. Con un hash por sesión, `touch` solo cambia `lastSeenAt` y el TTL, y no revive una sesión cerrada.
+- **Fallar rápido.** La AI probó node-redis 5.12 antes de diseñar la conexión: con la estrategia por defecto, `connect()` queda pendiente para siempre si Redis no está, y las páginas se habrían quedado colgadas. La conexión se rinde tras dos reintentos al arrancar, `disableOfflineQueue` hace fallar los comandos sin conexión, y no se cae al `Map` en silencio.
+
+**Cómo se comprobó:**
+- **Mutaciones:** un `touch` que reescribe la sesión hace fallar las dos pruebas concurrentes (con `set` y con `delete`). Un `HSET` + `PEXPIRE` sin comprobar la llave sobrevivió a las primeras pruebas; se agregaron dos (`touch` tras cerrar la sesión y TTL tope en la vigencia absoluta) y se vio fallar el mutante antes de restaurar el archivo desde una copia.
+- **La misma suite en las dos implementaciones:** el comportamiento de WEB-03 pasó a `test/support/session-store-contract.ts`; memoria con reloj falso y Redis con tiempo real.
+- **A mano contra la API real:** inicio de sesión de Ana en un build de la rama con `REDIS_URL`, reinicio del proceso de Next.js y la pantalla de cuentas siguió cargando; luego, con el access token marcado como vencido en Redis, la siguiente carga rotó el par por la API (token usado, sucesor emitido, sin revocación) y lo guardó de vuelta.
+
+**Corrección a la AI:** la suite completa falló de forma intermitente en una prueba de Redis que pasaba sola. La AI no la reintentó ni subió los márgenes de tiempo: grabó los comandos con `redis-cli MONITOR` y encontró la causa. Los dos archivos de pruebas de Redis hacían `FLUSHDB` en `beforeEach` y, al correr en paralelo, uno borraba la sesión que el otro esperaba. Cada archivo borra ahora solo sus llaves; tres corridas completas pasaron.
+
+**Pendiente:** el *single-flight* de la renovación sigue siendo por proceso (aceptado en D2 de `web-app`), y el rate limiting de la API sigue en memoria.
+
 ## Correcciones a la AI, en conjunto
 
 Índice de lo que la AI propuso mal o dejó inseguro, ordenado por lo que importa en un sistema de dinero. Cada punto está explicado en la sesión que se indica.
@@ -539,7 +562,8 @@ Pedí cerrar todo con subagentes. La AI escribió y validó el change `domain-te
 - **`git checkout` para revertir una mutación** descartó ediciones sin commit (sesión 3, en dos ocasiones); desde entonces se respalda el archivo antes.
 - **El contrato 1.2.0 rompió los tres consumidores** porque el diseño supuso que instalarían la versión nueva cuando quisieran (sesión 4).
 - **Los subagentes heredaron Opus** sin que lo pidiera y, en otra ocasión, copiaron una atribución equivocada (sesión 5).
-- **Trailers en un párrafo aparte** (esta sesión).
+- **Trailers en un párrafo aparte** (sesión 6).
+- **`FLUSHDB` en pruebas que corren en paralelo** sobre la misma base de Redis (sesión 7).
 
 ## Resumen del flujo spec-first
 
