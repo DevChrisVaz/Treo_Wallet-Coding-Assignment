@@ -54,6 +54,7 @@ import { GenerateStatement } from './modules/statements/application/generate-sta
 import { statementRoutes } from './modules/statements/infrastructure/http/routes.js';
 import { PdfKitStatementRenderer } from './modules/statements/infrastructure/pdfkit-statement-renderer.js';
 import { PgStatementReader } from './modules/statements/infrastructure/pg-statement-reader.js';
+import { CancelTransfer } from './modules/transfers/application/cancel-transfer.js';
 import { ConfirmTransfer } from './modules/transfers/application/confirm-transfer.js';
 import { CreateTransfer } from './modules/transfers/application/create-transfer.js';
 import { GetTransfer } from './modules/transfers/application/get-transfer.js';
@@ -131,6 +132,7 @@ export interface Container {
     readonly confirmTransfer: ConfirmTransfer;
     readonly resendTransferOtp: ResendTransferOtp;
     readonly getTransfer: GetTransfer;
+    readonly cancelTransfer: CancelTransfer;
   };
   readonly ledger: {
     readonly fundAccount: FundAccount;
@@ -321,6 +323,14 @@ export async function createContainer(
         otpMail,
       }),
       getTransfer: new GetTransfer({ details: transferDetails, clock, otpPolicy }),
+      cancelTransfer: new CancelTransfer({
+        transactions,
+        store: transferStore,
+        audit,
+        clock,
+        details: transferDetails,
+        otpPolicy,
+      }),
     },
     ledger: {
       fundAccount: new FundAccount({

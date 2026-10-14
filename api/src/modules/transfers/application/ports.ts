@@ -43,6 +43,8 @@ export interface TransferStore {
   awaitOtp(tx: Transaction, transferId: string, otpExpiresAt: Date): Promise<void>;
   /** Deja una programada en SCHEDULED, esperando su fecha (sin asientos, TRF-27, TRF-28). */
   schedule(tx: Transaction, transferId: string): Promise<void>;
+  /** Cancela una SCHEDULED con el momento de la cancelación (sin asientos, TRF-32). */
+  cancel(tx: Transaction, transferId: string, at: Date): Promise<void>;
   /** Bloquea (`FOR UPDATE`) la transferencia si es del usuario; `null` si no existe o es ajena. */
   lockOwned(tx: Transaction, transferId: string, userId: string): Promise<TransferRow | null>;
   /**

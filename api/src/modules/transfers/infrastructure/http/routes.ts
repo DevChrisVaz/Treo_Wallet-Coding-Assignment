@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express';
 import { routeTable } from '../../../../platform/http/auth.js';
 import { parseBody } from '../../../../platform/http/validation.js';
+import type { CancelTransfer } from '../../application/cancel-transfer.js';
 import type { ConfirmTransfer } from '../../application/confirm-transfer.js';
 import type { CreateTransfer } from '../../application/create-transfer.js';
 import type { GetTransfer } from '../../application/get-transfer.js';
@@ -16,6 +17,7 @@ export interface TransferHandlers {
   readonly confirmTransfer: ConfirmTransfer;
   readonly resendTransferOtp: ResendTransferOtp;
   readonly getTransfer: GetTransfer;
+  readonly cancelTransfer: CancelTransfer;
 }
 
 /** Rutas de transferencias: solo traducen HTTP y delegan en los casos de uso (PLT-18). */
@@ -65,6 +67,14 @@ export function transferRoutes(handlers: TransferHandlers, authenticateRequest: 
       String(req.params.transferId),
     );
     res.status(202).json(challenge);
+  });
+
+  routes.post('/transfers/:transferId/cancel', async (req, res) => {
+    const transfer = await handlers.cancelTransfer.execute(
+      res.locals.userId as string,
+      String(req.params.transferId),
+    );
+    res.status(200).json(transfer);
   });
 
   return routes;

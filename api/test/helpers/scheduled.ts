@@ -6,6 +6,26 @@ import type { TestApp } from './app.js';
 import { expectToMatchContract } from './contract.js';
 import type { VerifiedUser } from './identity.js';
 
+/** Espera a que haya al menos `n` bloqueos sin conceder en la base (una transacción esperando). */
+export async function waitForLockWaiters(db: DataSource, n: number): Promise<void> {
+  for (let i = 0; i < 150; i++) {
+    const [{ waiting }] = await db.query(
+      'SELECT count(*)::int AS waiting FROM pg_locks WHERE NOT granted',
+    );
+    if (waiting >= n) return;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  throw new Error(`No hubo ${n} bloqueos en espera`);
+}
+
+/** Resuelve con `'bloqueada'` si la promesa no termina en `ms`. */
+export function within<T>(promise: Promise<T>, ms: number): Promise<T | 'bloqueada'> {
+  return Promise.race([
+    promise,
+    new Promise<'bloqueada'>((resolve) => setTimeout(() => resolve('bloqueada'), ms)),
+  ]);
+}
+
 /**
  * Inicia sesión otra vez a la hora actual del reloj falso: las pruebas del ejecutor mueven el reloj
  * horas o días y el access token dura 10 minutos. Devuelve el usuario con su token nuevo.

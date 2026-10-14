@@ -153,6 +153,14 @@ export class PgTransferStore implements TransferStore {
     );
   }
 
+  async cancel(tx: Transaction, transferId: string, at: Date): Promise<void> {
+    await queryIn(
+      tx,
+      `UPDATE transfers SET status = 'CANCELLED', cancelled_at = $2 WHERE id = $1`,
+      [transferId, at],
+    );
+  }
+
   async lockOwned(
     tx: Transaction,
     transferId: string,

@@ -30,6 +30,15 @@ export function transferNotPending(status: TransferStatus): DomainError {
   });
 }
 
+/** Solo una SCHEDULED se cancela (TRF-32); el problema dice en qué estado está. */
+export function transferNotCancellable(status: TransferStatus): DomainError {
+  return new DomainError(
+    'TRANSFER_NOT_CANCELLABLE',
+    'Solo se puede cancelar una transferencia programada que no se ha ejecutado',
+    { transferStatus: status },
+  );
+}
+
 export function transferExpired(): DomainError {
   return new DomainError('TRANSFER_EXPIRED', 'El código de la transferencia venció');
 }
