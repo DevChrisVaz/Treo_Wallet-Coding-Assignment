@@ -16,6 +16,9 @@ export default function nextConfig(phase: string): NextConfig {
     poweredByHeader: false,
     // `next dev` escribe un AGENTS.md cuando detecta un agente de IA; el proyecto no lo versiona.
     agentRules: false,
+    // En desarrollo, Next.js registra los argumentos de cada Server Action: contraseñas, códigos
+    // OTP y montos terminarían en los logs.
+    logging: { serverFunctions: false },
     experimental: {
       serverActions: {
         // Las Server Actions comparan Origin con Host; detrás de un proxy se permiten estos hosts.

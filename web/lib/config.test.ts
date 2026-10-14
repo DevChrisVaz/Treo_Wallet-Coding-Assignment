@@ -105,6 +105,11 @@ describe('next.config', () => {
     expect(config.agentRules).toBe(false);
   });
 
+  it('WEB-08 no registra los argumentos de las Server Actions (contraseñas y códigos)', () => {
+    const config = nextConfig(PHASE_DEVELOPMENT_SERVER);
+    expect(config.logging).toMatchObject({ serverFunctions: false });
+  });
+
   it('WEB-06 next.config falla al arrancar si el entorno es inválido', () => {
     vi.stubEnv('ALLOWED_ORIGINS', 'no-es-un-origen');
     expect(() => nextConfig(PHASE_DEVELOPMENT_SERVER)).toThrow(/ALLOWED_ORIGINS/);
