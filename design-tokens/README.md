@@ -59,13 +59,13 @@ La hoja define las variables `--dt-*` en `:root` y **elimina la paleta, la escal
 | Forma               | `rounded-sm`, `rounded-md` (tarjetas), `rounded-lg` (_hero_, hojas, paneles), `rounded-pill` (botones, insignias), `shadow-card`, `shadow-raised` (tarjetas flotantes), `shadow-sheet` (hojas inferiores)                                                               |
 | Layout              | `max-w-app` (columna de 480 px de la forma de app), `max-w-content` (contenido del _dashboard_, 1200 px), `w-sidebar` (navegación lateral, 248 px), `h-(--dt-layout-tab-bar-height)` (barra de pestañas, 64 px); variantes `app:` (≥ 480 px) y `dashboard:` (≥ 1024 px) |
 
-**Fuente con `next/font`:** `next/font/google` sirve Work Sans con un nombre de familia generado, así que la pila `"Work Sans", …` no la encuentra. Expón su variable y redefine `--dt-font-sans`:
+**Fuente con `next/font`:** `next/font` sirve Work Sans con un nombre de familia generado, así que la pila `"Work Sans", …` no la encuentra. Expón su variable y redefine `--dt-font-sans`. La web usa `next/font/local` con un archivo versionado (`web/app/fonts/WorkSans-latin.woff2`, OFL): Google Fonts entrega otra compilación de la fuente a cada navegador, con otros anchos de letra, y así la app y el lienzo de design-sync dibujan el mismo texto.
 
 ```ts
 // app/layout.tsx
-const workSans = Work_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
+const workSans = localFont({
+  src: './fonts/WorkSans-latin.woff2',
+  weight: '400 600',
   variable: '--font-work-sans',
 });
 // <html className={workSans.variable}>

@@ -579,11 +579,17 @@ El prompt con el que empezó el rediseño no quedó registrado textualmente. La 
 - **Navegador real** (`npm run test:e2e`): sin desplazamiento horizontal de 320 a 1920 px, un solo `h1` visible, la transferencia solo con teclado, las hojas y axe con el CSS real.
 - **Paridad:** las 15 parejas del prototipo salieron idénticas, con diferencias de suavizado o con diferencias por diseño acordadas. En 8.1, con el mismo archivo de fuente, la web real dio 0.0000 contra sus historias fuera de las zonas acordadas, la vista móvil real dio 0.0000 contra la suya, y cada pareja repitió la medición del prototipo. Las tablas están en `web/.design-sync/NOTES.md`.
 
+### Resincronización de los lienzos (8.3)
+
+- **La fuente, fija.** La web servía Work Sans con `next/font/google` y el lienzo la pedía a Google Fonts, que entrega otra compilación a cada navegador. Ahora las dos usan el mismo archivo versionado (`web/app/fonts/WorkSans-latin.woff2`, OFL) con `next/font/local`, y una prueba lo comprueba. El archivo es el que recibía el lienzo, así que las historias aprobadas no cambiaron un píxel (116 capturas iguales) y la pantalla real pasó a coincidir con ellas: en la corrida normal, A y B dan 0.0000 fuera de las zonas acordadas, donde 8.1 nunca bajaba de ~0.002.
+- **Lo que quedaba desfasado:** las notas y convenciones de los lienzos todavía describían `PageShell` y las historias anteriores al rediseño; las previews de componentes de antes del rediseño se rehicieron sobre el lienzo de la app y con las props de la fase B; las historias usan el `StepActions` del kit, así que su final de página mide lo mismo que la pantalla real.
+- **Lo que encontró la revisión de las capturas:** en el lienzo, el fondo neutro de las insignias "Vencida" y "Cancelada" es del mismo color que el lienzo y la píldora no se veía; el saldo del *hero* se cortaba en teléfonos de 300 px de la historia de privacidad; y el pie fijo de `StepActions` quedaba fuera de la captura de 700 px. Se corrigieron las historias, no los componentes.
+- **El servidor de revisión** que servía los lienzos se cayó varias veces durante la sesión; esta tarea usó su propio servidor en otro puerto y solo detuvo los procesos que arrancó.
+
 ### Pendiente
 
-- **Subir los lienzos a Claude Design:** requiere `/design-login`, que no se ha hecho en este entorno.
+- **Subir los lienzos a Claude Design:** requiere `/design-login`, que no se ha hecho en este entorno; después, `resync` desde cada app.
 - **La lista de Expo Go del rediseño** (`mobile/README.md`): fechas en Hermes, texto agrandado, foco de las hojas, atrás de Android, área segura y el anuncio del paso.
-- **Resincronizar design-sync con la aplicación** (tarea 8.3): fijar el mismo archivo de Work Sans en la web y en el lienzo, y actualizar los mapas de pantallas, las previews anteriores al rediseño y las notas de paridad.
 
 ## Correcciones a la AI, en conjunto
 
