@@ -1,12 +1,15 @@
 /** Inventario de componentes del sistema de diseño (design-system, D7), con tokens del tema. */
 export { AccountCard } from './account-card';
+export { BottomSheet } from './bottom-sheet';
 export { AmountField } from './amount-field';
 export { Avatar, initials } from './avatar';
 export { BalanceHero } from './balance-hero';
+export { BrandScreen } from './brand-screen';
 export { Button, buttonColors, type ButtonVariant } from './button';
 export { DailyLimitMeter } from './daily-limit-meter';
 export { EmptyState } from './empty-state';
 export { ICONS, Icon, IconButton } from './icon';
+export { FlowHeader } from './flow-header';
 export { InlineAlert, type AlertTone } from './inline-alert';
 export { ListSection } from './list-section';
 export { MovementList } from './movement-list';
@@ -18,5 +21,6 @@ export { QuickActions, type QuickAction } from './quick-actions';
 export { OptionRow, Select, type SelectOption } from './select';
 export { Skeleton } from './skeleton';
 export { StatusBadge } from './status-badge';
+export { Stepper } from './stepper';
 export { TextField, type TextFieldProps } from './text-field';
 export { Wordmark } from './wordmark';
