@@ -2,14 +2,17 @@ import { screen, userEvent } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
 import TabsLayout from '@/app/(app)/(tabs)/_layout';
+import AppLayout from '@/app/(app)/_layout';
 import { createFakeApi } from '@/test-utils/fake-api';
 import { renderApp } from '@/test-utils/render-app';
 
+// El árbol real: la pila de `(app)` con las pestañas y, encima, el flujo de transferencia.
 const routes = {
-  '(tabs)/_layout': TabsLayout,
-  '(tabs)/index': () => <Text>Pantalla de inicio</Text>,
-  '(tabs)/movements': () => <Text>Pantalla de movimientos</Text>,
-  'transfer/index': () => <Text>Elegir destinatario</Text>,
+  '(app)/_layout': AppLayout,
+  '(app)/(tabs)/_layout': TabsLayout,
+  '(app)/(tabs)/index': () => <Text>Pantalla de inicio</Text>,
+  '(app)/(tabs)/movements': () => <Text>Pantalla de movimientos</Text>,
+  '(app)/transfer/index': () => <Text>Elegir destinatario</Text>,
 };
 
 describe('pestañas de la app', () => {
@@ -36,7 +39,8 @@ describe('pestañas de la app', () => {
     const { router } = await renderApp({ fake: createFakeApi(), routes });
     await userEvent.press(await screen.findByRole('tab', { name: 'Transferir' }));
     expect(await screen.findByText('Elegir destinatario')).toBeOnTheScreen();
+    expect(screen.queryByRole('tab')).toBeNull();
     expect(router.getPathname()).toBe('/transfer');
-    expect(router.getSegments()).toEqual(['transfer']);
+    expect(router.getSegments()).toEqual(['(app)', 'transfer']);
   });
 });

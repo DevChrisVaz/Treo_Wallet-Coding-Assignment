@@ -1,4 +1,6 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+
+import type { Session } from '@/session/session';
 
 export interface AccountSelection {
   accountId: string | null;
@@ -7,9 +9,25 @@ export interface AccountSelection {
 
 const SelectionContext = createContext<AccountSelection | null>(null);
 
-/** Cuenta elegida, compartida por Inicio y Movimientos durante la sesión (MOB-19, MOB-20). */
-export function AccountSelectionProvider({ children }: { children: ReactNode }) {
+/**
+ * Cuenta elegida, compartida por Inicio y Movimientos durante la sesión (MOB-19, MOB-20). Al cerrar
+ * sesión se olvida, como los demás datos en memoria de la persona (MOB-04).
+ */
+export function AccountSelectionProvider({
+  session,
+  children,
+}: {
+  session: Session;
+  children: ReactNode;
+}) {
   const [accountId, select] = useState<string | null>(null);
+  useEffect(
+    () =>
+      session.subscribe(() => {
+        if (session.getSnapshot().status === 'signedOut') select(null);
+      }),
+    [session],
+  );
   const value = useMemo(() => ({ accountId, select }), [accountId]);
   return <SelectionContext value={value}>{children}</SelectionContext>;
 }

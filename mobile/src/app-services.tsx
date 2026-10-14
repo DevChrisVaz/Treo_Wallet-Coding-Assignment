@@ -84,7 +84,7 @@ export function AppProviders({ baseUrl, fetch, services: given, children }: AppP
   return (
     <ServicesContext.Provider value={services}>
       <QueryClientProvider client={services.queryClient}>
-        <AccountSelectionProvider>{children}</AccountSelectionProvider>
+        <AccountSelectionProvider session={services.session}>{children}</AccountSelectionProvider>
       </QueryClientProvider>
     </ServicesContext.Provider>
   );
