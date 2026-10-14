@@ -1,23 +1,32 @@
 import { formatMXN, type Movement } from '@devchrisvaz/wallet-contract';
 import { movementIcon } from '@devchrisvaz/wallet-design-tokens';
 import { MONEY_CLASSES, MOVEMENT_TYPE } from '@/lib/conventions';
-import { formatDateTime, formatTime } from '@/lib/format';
+import { formatDate, formatDateTime, formatTime } from '@/lib/format';
 import { signedAmount } from '@/lib/money';
 import { Avatar } from './Avatar';
 
+export interface MovementRowProps {
+  movement: Movement;
+  /**
+   * Para listas que ya agrupan por día (MovementList, WEB-29): a la vista solo la hora, con la fecha
+   * completa para lectores de pantalla, y sin borde propio porque la lista pone los divisores. Por
+   * omisión, la fila muestra la fecha completa y su borde inferior, como en las listas planas.
+   */
+  timeOnly?: boolean;
+}
+
 /**
- * Fila del historial (WEB-14, WEB-29): avatar por tipo, tipo, contraparte y concepto, hora y
- * referencia, monto con signo y saldo. La fecha completa queda para lectores de pantalla: la lista
- * la agrupa visualmente por día. Como en la app móvil (WEB-25), el tipo no se corta (pasa a una
- * segunda línea si no cabe junto al monto) y solo la contraparte y el concepto se truncan.
+ * Fila del historial (WEB-14, WEB-29): avatar por tipo, tipo, contraparte y concepto, fecha (u hora,
+ * con `timeOnly`) y referencia, monto con signo y saldo. Como en la app móvil (WEB-25), el tipo no
+ * se corta (pasa a una segunda línea si no cabe junto al monto) y solo la contraparte y el concepto
+ * se truncan.
  */
-export function MovementRow({ movement }: { movement: Movement }) {
+export function MovementRow({ movement, timeOnly = false }: MovementRowProps) {
   const { direction, label } = MOVEMENT_TYPE[movement.type];
   const detail = [movement.counterparty?.name, movement.concept].filter(Boolean).join(' · ');
 
-  const dateTime = formatDateTime(movement.occurredAt);
   return (
-    <li className="flex items-center gap-3 py-3">
+    <li className={`flex items-center gap-3 py-3${timeOnly ? '' : ' border-b border-border'}`}>
       <Avatar
         tone={direction === 'in' ? 'success' : 'neutral'}
         icon={movementIcon[movement.type]}
@@ -27,8 +36,14 @@ export function MovementRow({ movement }: { movement: Movement }) {
         <p className="truncate text-caption text-fg-secondary">{detail}</p>
         <p className="text-caption text-fg-muted tabular-nums">
           <time dateTime={movement.occurredAt}>
-            <span className="sr-only">{dateTime.slice(0, dateTime.lastIndexOf(',') + 2)}</span>
-            {formatTime(movement.occurredAt)}
+            {timeOnly ? (
+              <>
+                <span className="sr-only">{`${formatDate(movement.occurredAt)}, `}</span>
+                {formatTime(movement.occurredAt)}
+              </>
+            ) : (
+              formatDateTime(movement.occurredAt)
+            )}
           </time>
           {' · '}Ref. {movement.reference}
         </p>

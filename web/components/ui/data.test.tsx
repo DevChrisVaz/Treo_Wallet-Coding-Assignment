@@ -112,6 +112,23 @@ describe('MovementRow', () => {
     expect(row).toHaveTextContent('Saldo $26,500.00');
   });
 
+  it('WEB-14 por omisión muestra a la vista la fecha completa y separa la fila con un borde', () => {
+    renderRow({ movement: movement() });
+    const date = screen.getByText('13 oct 2026, 10:42');
+    expect(date.tagName).toBe('TIME');
+    expect(date.querySelector('.sr-only')).toBeNull();
+    expect(screen.getByRole('listitem')).toHaveClass('border-b', 'border-border');
+  });
+
+  it('WEB-29 con timeOnly muestra solo la hora, sin borde; la fecha completa queda para lectores de pantalla', () => {
+    renderRow({ movement: movement(), timeOnly: true });
+    const time = screen.getByText('10:42');
+    expect(time.tagName).toBe('TIME');
+    expect(time).toHaveTextContent('13 oct 2026, 10:42');
+    expect(screen.getByText('13 oct 2026,', { exact: false })).toHaveClass('sr-only');
+    expect(screen.getByRole('listitem')).not.toHaveClass('border-b');
+  });
+
   it('WEB-25 el tipo de movimiento no se trunca: solo la contraparte y el concepto', () => {
     renderRow({ movement: movement({ type: 'TRANSFER_IN', amount: '150.00' }) });
     expect(screen.getByText('Transferencia recibida')).not.toHaveClass('truncate');

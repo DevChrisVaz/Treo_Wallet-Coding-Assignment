@@ -11,6 +11,13 @@ const dateTime = new Intl.DateTimeFormat('es-MX', {
   hourCycle: 'h23',
 });
 
+const date = new Intl.DateTimeFormat('es-MX', {
+  timeZone: BUSINESS_TIME_ZONE,
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
 const time = new Intl.DateTimeFormat('es-MX', {
   timeZone: BUSINESS_TIME_ZONE,
   hour: '2-digit',
@@ -21,6 +28,11 @@ const time = new Intl.DateTimeFormat('es-MX', {
 /** Fecha y hora en Ciudad de México: `13 oct 2026, 10:42`. */
 export function formatDateTime(iso: string): string {
   return dateTime.format(new Date(iso));
+}
+
+/** Fecha en Ciudad de México: `13 oct 2026`. */
+export function formatDate(iso: string): string {
+  return date.format(new Date(iso));
 }
 
 /** Hora en Ciudad de México: `10:52`. */

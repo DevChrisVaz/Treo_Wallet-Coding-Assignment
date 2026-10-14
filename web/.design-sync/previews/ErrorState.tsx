@@ -37,6 +37,7 @@ export const LoadMoreFailed = () => (
   <section className="grid max-w-3xl gap-4">
     <ul aria-label="Movimientos">
       <MovementRow
+        timeOnly
         movement={{
           id: '01JA8Z3K5Q7M2N4P6R8T0V2X4Z',
           type: 'TRANSFER_IN',
@@ -50,6 +51,7 @@ export const LoadMoreFailed = () => (
         }}
       />
       <MovementRow
+        timeOnly
         movement={{
           id: '01JA6W1H3M5K7N9Q1S3U5W7Y9A',
           type: 'TRANSFER_OUT',
