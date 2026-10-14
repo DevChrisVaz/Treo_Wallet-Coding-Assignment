@@ -5,6 +5,7 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { StatementDownload } from '@/components/accounts/StatementDownload';
 import { ErrorState, LoadingState } from '@/components/states/states';
 import { Button, buttonClasses } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -38,7 +39,7 @@ function isInvalidCursor(error: unknown): boolean {
 /**
  * Historial de movimientos (WEB-14): cuenta, rango de fechas y tipos, con paginación por cursor.
  * Los filtros forman parte de la clave de la consulta: al cambiar uno se descarta el cursor y se
- * empieza desde la primera página.
+ * empieza desde la primera página. Encima de los filtros, la descarga del estado de cuenta (WEB-32).
  */
 export function MovementsScreen({ accountId }: { accountId: string }) {
   const router = useRouter();
@@ -81,6 +82,9 @@ export function MovementsScreen({ accountId }: { accountId: string }) {
 
   return (
     <div className="grid gap-6">
+      {/* Componente aparte (D11 de account-statements): el rediseño lo reubica sin cambiarlo. */}
+      <StatementDownload key={accountId} accountId={accountId} />
+
       <div className="grid gap-4 sm:grid-cols-3">
         {overview.data ? (
           <Select

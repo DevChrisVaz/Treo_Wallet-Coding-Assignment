@@ -12,19 +12,58 @@ import { forwardHeaders, requestContextFrom, type RequestContext } from './reque
  */
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Forma `AAAA-MM`; el mes válido lo decide la API (422 con su mensaje). */
+const PERIOD = /^[0-9]{4}-[0-9]{2}$/;
+
+interface AllowedRead {
+  readonly matches: (segments: readonly string[]) => boolean;
+  /** El cuerpo son bytes (el PDF del estado de cuenta), no JSON. */
+  readonly binary?: true;
+}
 
 /** Lista blanca: cada patrón acepta exactamente sus segmentos; los ids deben ser UUID. */
-const ALLOWED_READS: ReadonlyArray<(segments: readonly string[]) => boolean> = [
-  (s) => s.length === 1 && s[0] === 'accounts',
-  (s) => s.length === 2 && s[0] === 'accounts' && UUID.test(s[1] ?? ''),
-  (s) => s.length === 3 && s[0] === 'accounts' && UUID.test(s[1] ?? '') && s[2] === 'movements',
-  (s) => s.length === 1 && s[0] === 'beneficiaries',
-  (s) => s.length === 2 && s[0] === 'transfers' && UUID.test(s[1] ?? ''),
+const ALLOWED_READS: readonly AllowedRead[] = [
+  { matches: (s) => s.length === 1 && s[0] === 'accounts' },
+  { matches: (s) => s.length === 2 && s[0] === 'accounts' && UUID.test(s[1] ?? '') },
+  {
+    matches: (s) =>
+      s.length === 3 && s[0] === 'accounts' && UUID.test(s[1] ?? '') && s[2] === 'movements',
+  },
+  {
+    matches: (s) =>
+      s.length === 4 &&
+      s[0] === 'accounts' &&
+      UUID.test(s[1] ?? '') &&
+      s[2] === 'statements' &&
+      PERIOD.test(s[3] ?? ''),
+    binary: true,
+  },
+  { matches: (s) => s.length === 1 && s[0] === 'beneficiaries' },
+  { matches: (s) => s.length === 2 && s[0] === 'transfers' && UUID.test(s[1] ?? '') },
 ];
 
-/** Ruta de la API para los segmentos pedidos, o `null` si no está en la lista blanca. */
-export function allowedApiPath(segments: readonly string[]): string | null {
-  return ALLOWED_READS.some((matches) => matches(segments)) ? `/${segments.join('/')}` : null;
+/** La lectura de la lista blanca que corresponde a los segmentos pedidos, si hay una. */
+function allowedRead(segments: readonly string[]): AllowedRead | undefined {
+  return ALLOWED_READS.find((read) => read.matches(segments));
+}
+
+/**
+ * Headers de la API que llegan al navegador. El estado de cuenta (D11 de account-statements) pasa
+ * además su nombre de archivo, su longitud y la espera de un 429; las demás lecturas, solo el tipo.
+ */
+function responseHeaders(upstream: Response, read: AllowedRead, context: RequestContext) {
+  const headers: Record<string, string> = {
+    'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json',
+    'Cache-Control': 'no-store',
+    'X-Request-Id': upstream.headers.get('X-Request-Id') ?? context.requestId,
+  };
+  if (read.binary) {
+    for (const name of ['Content-Disposition', 'Content-Length', 'Retry-After']) {
+      const value = upstream.headers.get(name);
+      if (value !== null) headers[name] = value;
+    }
+  }
+  return headers;
 }
 
 export function problemResponse(
@@ -57,8 +96,8 @@ export function problemResponse(
 /** Reenvía una lectura permitida a la API con el Bearer de la sesión. */
 export async function proxyRead(request: Request, segments: readonly string[]): Promise<Response> {
   const context = requestContextFrom(request.headers);
-  const path = allowedApiPath(segments);
-  if (!path) return problemResponse(context, 404, 'NOT_FOUND', 'No encontrado');
+  const read = allowedRead(segments);
+  if (!read) return problemResponse(context, 404, 'NOT_FOUND', 'No encontrado');
 
   const current = await currentSession();
   if (!current) {
@@ -68,25 +107,24 @@ export async function proxyRead(request: Request, segments: readonly string[]): 
 
   try {
     const token = await accessTokenFor(current.sessionId, context);
-    const url = new URL(path, serverEnv().apiBaseUrl);
+    const url = new URL(`/${segments.join('/')}`, serverEnv().apiBaseUrl);
     url.search = new URL(request.url).search;
     const upstream = await fetch(url, {
       method: 'GET',
       headers: {
         ...forwardHeaders(context),
         Authorization: `Bearer ${token}`,
-        Accept: 'application/json, application/problem+json',
+        Accept: read.binary
+          ? 'application/pdf, application/problem+json'
+          : 'application/json, application/problem+json',
       },
       cache: 'no-store',
     });
     if (upstream.status === 401) await endLocalSession();
-    return new Response(await upstream.text(), {
+    // Un cuerpo binario pasa tal cual: leerlo como texto corrompería los bytes del PDF.
+    return new Response(read.binary ? upstream.body : await upstream.text(), {
       status: upstream.status,
-      headers: {
-        'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json',
-        'Cache-Control': 'no-store',
-        'X-Request-Id': upstream.headers.get('X-Request-Id') ?? context.requestId,
-      },
+      headers: responseHeaders(upstream, read, context),
     });
   } catch (error) {
     if (error instanceof SessionEndedError) {

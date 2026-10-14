@@ -97,6 +97,8 @@ describe('TRF-26 comprobante', () => {
       otp: null,
       rejectionReason: null,
       failureReason: null,
+      scheduledFor: null,
+      cancelledAt: null,
       createdAt: '2026-10-13T18:00:00.000Z',
       completedAt: '2026-10-13T18:00:00.000Z',
     });

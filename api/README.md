@@ -1,8 +1,8 @@
 # API de la billetera (`/api`)
 
-Backend de la billetera digital en MXN: identidad (registro con verificación por correo, sesiones con refresh rotativo), cuentas con CLABE, beneficiarios, transferencias con ledger de partida doble (idempotencia, límite diario, OTP por correo), historial con paginación por cursor y bitácora de auditoría inmutable. Express 5 + TypeScript estricto + PostgreSQL 16 con TypeORM (sin `synchronize`, migraciones con SQL explícito).
+Backend de la billetera digital en MXN: identidad (registro con verificación por correo, sesiones con refresh rotativo), cuentas con CLABE, beneficiarios, transferencias con ledger de partida doble (idempotencia, límite diario, OTP por correo), historial con paginación por cursor, estado de cuenta mensual en PDF y bitácora de auditoría inmutable. Express 5 + TypeScript estricto + PostgreSQL 16 con TypeORM (sin `synchronize`, migraciones con SQL explícito).
 
-El contrato es [`contract/openapi.yaml`](../contract/openapi.yaml) (paquete `@devchrisvaz/wallet-contract`). Especificación: `openspec/changes/api-foundation/` (requisitos PLT, IDN, AUD y ACC-01 a ACC-09) y `openspec/changes/api-ledger/` (ACC-10 a ACC-16, BEN, TRF e HIS).
+El contrato es [`contract/openapi.yaml`](../contract/openapi.yaml) (paquete `@devchrisvaz/wallet-contract`). Especificación: `openspec/changes/api-foundation/` (requisitos PLT, IDN, AUD y ACC-01 a ACC-09) `openspec/changes/api-ledger/` (ACC-10 a ACC-16, BEN, TRF e HIS-01 a HIS-10) y `openspec/changes/account-statements/` (HIS-11, HIS-12 y AUD-07).
 
 ## Requisitos
 
@@ -13,8 +13,9 @@ El contrato es [`contract/openapi.yaml`](../contract/openapi.yaml) (paquete `@de
 ## Puesta en marcha
 
 ```bash
-# 0. El paquete del contrato se instala como copia (file:../contract + install-links=true):
+# 0. El contrato y el paquete de diseño se instalan como copia (file:../ + install-links=true):
 (cd ../contract && npm ci && npm run build)
+(cd ../design-tokens && npm ci && npm run build)
 
 # 1. Dependencias y configuración
 npm ci
@@ -111,6 +112,62 @@ SELECT (SELECT balance_cents FROM accounts WHERE type = 'SYSTEM')
 
 La base también lo protege por su cuenta: un trigger diferido rechaza al hacer `COMMIT` cualquier transferencia cuyos asientos no sean exactamente dos que sumen cero, y los asientos no se pueden modificar ni borrar (sin `UPDATE`/`DELETE`/`TRUNCATE` para `wallet_app` y un trigger que lo impide incluso al dueño).
 
+## Estado de cuenta
+
+`GET /accounts/{accountId}/statements/{period}` (`getAccountStatement`) devuelve el PDF del mes `period` (`AAAA-MM`, mes calendario de la Ciudad de México) de una cuenta del usuario:
+
+- **Respuesta:** `Content-Type: application/pdf`, `Content-Length`, `Cache-Control: no-store` y `Content-Disposition: attachment; filename="estado-de-cuenta-2026-09-0015.pdf"` (periodo y últimos 4 dígitos de la CLABE).
+- **Periodo:** de la medianoche de CDMX del día 1 a la del día 1 del mes siguiente (la conversión a UTC usa la base IANA, así que los meses con horario de verano, antes de 2023, quedan bien). El mes en curso se entrega como parcial, hasta el momento de la generación. Un mes futuro o un periodo mal formado responde `422 VALIDATION_FAILED` en `/period`; una cuenta ajena o inexistente, `404 NOT_FOUND`.
+- **Límite:** 10 por minuto por usuario (`429 RATE_LIMITED` con `Retry-After`).
+- **Auditoría:** cada descarga registra `STATEMENT_EXPORTED` con el usuario, la cuenta y el periodo, sin CLABE, nombre ni montos. Es la única lectura auditada; si el evento no se puede escribir, la respuesta es 500 y el documento no sale. Los rechazos no dejan evento.
+
+Cómo se arma (`src/modules/statements/`):
+
+1. El lector abre `BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY`: la cuenta, el titular, el saldo inicial y los movimientos salen de la misma instantánea, así que una transferencia que se completa mientras se genera el documento no aparece y el resumen cuadra.
+2. Saldo inicial: el `balance_after` del último asiento anterior al periodo (0 si no hay). Movimientos: tandas ascendentes de 1,000 por keyset, con la misma proyección que el historial (contraparte, concepto, referencia).
+3. Mientras pasan las tandas se acumulan abonos y cargos en centavos (`BigInt`); al final se verifica que saldo inicial + abonos − cargos = `balance_after` del último movimiento. Si no cuadra, la API responde 500 con un log ERROR de alerta y el documento no sale.
+4. El PDF se genera en memoria con PDFKit (carta, Work Sans incrustada): encabezado con la marca, titular, cuenta, CLABE completa, periodo y hora de generación; recuadro de resumen; tabla con fecha y hora de CDMX, tipo (etiquetas de `@devchrisvaz/wallet-design-tokens`), concepto, contraparte y referencia, cargo y abono en columnas separadas y saldo; encabezados de la tabla en cada página, "Página X de Y" y la leyenda "Documento informativo; no es un comprobante fiscal.". Los montos se escriben con `formatMXN` del contrato.
+
+La tipografía es Work Sans (Regular y SemiBold) del paquete `@fontsource/work-sans`, con licencia SIL Open Font License 1.1 (su `LICENSE` viene en el paquete). Se usa el WOFF del subconjunto latino, que el renderizador convierte una vez a TrueType al arrancar: fontkit no recorta bien el WOFF2 de ese paquete y, con WOFF, descomprimía las tablas en cada consulta (5,000 renglones tardaban 4.3 s solo en el PDF).
+
+Rendimiento medido en local (Node 24, PostgreSQL 16 en Docker, 2026-10-14):
+
+| Caso                                                                          | Movimientos | Tiempo                              | Tamaño              |
+| ----------------------------------------------------------------------------- | ----------- | ----------------------------------- | ------------------- |
+| Prueba automatizada (`statement-performance.test.ts`, petición HTTP completa) | 5,000       | 0.59 a 0.64 s                       | 409 KB, 162 páginas |
+| Seed: septiembre de 2026 de la "Principal" de Ana (lector, resumen y PDF)     | 4,933       | 0.84 a 1.0 s (1.5 s la primera vez) | 620 KB              |
+
+El documento completo vive en memoria mientras se genera (unos 0.6 MB con 5,000 movimientos). Un mes con decenas de miles de movimientos pediría un tope de renglones o una generación asíncrona.
+
+Para comprobar un estado de cuenta contra la base (con `psql` como `wallet_migrator`, esquema `app`), estas cifras en centavos deben coincidir con el resumen del documento:
+
+```sql
+-- La cuenta: "Principal" de Ana
+SELECT a.id FROM accounts a JOIN users u ON u.id = a.user_id
+ WHERE u.email = 'ana@example.com' AND a.name = 'Principal';
+
+-- Resumen de septiembre de 2026 (mes de CDMX); :cuenta es el id anterior
+WITH periodo AS (
+  SELECT timestamp '2026-09-01 00:00' AT TIME ZONE 'America/Mexico_City' AS inicio,
+         timestamp '2026-10-01 00:00' AT TIME ZONE 'America/Mexico_City' AS fin
+), mes AS (
+  SELECT e.* FROM ledger_entries e, periodo p
+   WHERE e.account_id = :'cuenta' AND e.created_at >= p.inicio AND e.created_at < p.fin
+)
+SELECT
+  COALESCE((SELECT e.balance_after_cents FROM ledger_entries e, periodo p
+             WHERE e.account_id = :'cuenta' AND e.created_at < p.inicio
+             ORDER BY e.created_at DESC, e.id DESC LIMIT 1), 0)              AS saldo_inicial,
+  (SELECT COALESCE(SUM(amount_cents), 0) FROM mes WHERE amount_cents > 0)    AS abonos,
+  (SELECT COALESCE(-SUM(amount_cents), 0) FROM mes WHERE amount_cents < 0)   AS cargos,
+  (SELECT balance_after_cents FROM mes ORDER BY created_at DESC, id DESC LIMIT 1) AS saldo_final,
+  (SELECT count(*) FROM mes)                                                  AS movimientos;
+```
+
+Para el mes en curso, `fin` es el momento de la generación. Sin movimientos en el mes, `saldo_final` sale nulo y el documento muestra el saldo inicial. Con el seed de la base local (4,933 movimientos en septiembre de 2026) cuadra con el documento.
+
+La migración `1760600000000-audit-statement-exported` agrega `STATEMENT_EXPORTED` al catálogo de la bitácora: una base creada antes necesita `npm run db:migrate`.
+
 ## Base de datos y privilegios
 
 - `wallet_migrator` es dueño de las bases y del esquema `app`: ejecuta migraciones y seed.
@@ -138,6 +195,7 @@ src/
     beneficiaries/  alta por CLABE de la plataforma y listado
     transfers/  domain (ledger, máquina de estados, huella) · application (creación, OTP, confirmación, fondeo) · infrastructure
     movements/  historial: filtros, cursor firmado y consulta keyset
+    statements/ estado de cuenta: periodo y resumen (dominio), caso de uso, lector con instantánea y PDF
   platform/     config, contexto de petición, http (app, errores RFC 9457, validación, auth, rate limit, docs), logging, mail, persistencia
   shared/       núcleo sin dependencias: errores de dominio, Clock, transacción opaca, enmascarado
   seed/         datos de desarrollo (usuarios, beneficiarios, fondeo y volumen)
