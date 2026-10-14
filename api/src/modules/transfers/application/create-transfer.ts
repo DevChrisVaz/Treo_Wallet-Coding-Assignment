@@ -9,7 +9,12 @@ import { transferFingerprint } from '../domain/fingerprint.js';
 import type { TransferDestinationResolver, TransferRequest } from './destination-resolver.js';
 import type { IdempotencyGate } from './idempotency-gate.js';
 import type { RejectionReason, TransferRow, TransferStore } from './ports.js';
-import { DayChangedWhileWaiting, type TransferLocker } from './transfer-locker.js';
+import type { LedgerPoster } from './ledger-poster.js';
+import {
+  DayChangedWhileWaiting,
+  type DailyUsageCounter,
+  type TransferLocker,
+} from './transfer-locker.js';
 
 export interface CreateTransferDeps {
   readonly transactions: TransactionRunner;
@@ -21,6 +26,8 @@ export interface CreateTransferDeps {
   readonly clock: Clock;
   readonly otpThreshold: Money;
   /** Estado actual de la transferencia como la ve su dueño (comprobante). */
+  readonly poster: LedgerPoster;
+  readonly counter: DailyUsageCounter;
   readonly view: (transferId: string) => Promise<Transfer>;
   /** Lo que queda del límite de hoy (para repetir un rechazo por límite). */
   readonly remainingToday: (userId: string) => Promise<Money>;
@@ -33,6 +40,7 @@ export type CreateTransferOutcome =
 
 type AttemptResult =
   | { readonly kind: 'REPLAY'; readonly existing: TransferRow }
+  | { readonly kind: 'CREATED'; readonly transferId: string }
   | {
       readonly kind: 'REJECTED';
       readonly transferId: string;
@@ -115,7 +123,8 @@ export class CreateTransfer {
     concept: string;
     reference: number;
   }): Promise<AttemptResult> {
-    const { transactions, gate, locker, store, audit, clock, otpThreshold } = this.deps;
+    const { transactions, gate, locker, store, audit, clock, otpThreshold, poster, counter } =
+      this.deps;
     return transactions.run(async (tx): Promise<AttemptResult> => {
       const id = randomUUID();
       const claim = await gate.claim(tx, {
@@ -175,11 +184,39 @@ export class CreateTransfer {
         });
         return { kind: 'REJECTED', transferId: id, reason, remaining };
       }
-      throw new Error('Camino de transferencia aceptada pendiente');
+      if (!draft.amount.isGreaterThan(otpThreshold)) {
+        // Camino inmediato (TRF-01, TRF-21, TRF-22): asientos, saldos, contador y COMPLETED juntos.
+        await poster.post(tx, {
+          transferId: id,
+          kind: draft.kind,
+          from: locks.from,
+          to: locks.to,
+          amount: draft.amount,
+          at: locks.at,
+        });
+        if (locks.counter) await counter.add(tx, draft.userId, locks.day, draft.amount);
+        await audit.record(tx, {
+          action: 'TRANSFER_CREATED',
+          actor: { type: 'USER', userId: draft.userId },
+          entity: { type: 'transfer', id },
+          metadata: { status: 'COMPLETED', kind: draft.kind, amount },
+        });
+        await audit.record(tx, {
+          action: 'TRANSFER_COMPLETED',
+          actor: { type: 'USER', userId: draft.userId },
+          entity: { type: 'transfer', id },
+          metadata: { kind: draft.kind, amount },
+        });
+        return { kind: 'CREATED', transferId: id };
+      }
+      throw new Error('Camino con OTP pendiente');
     });
   }
 
   private async toOutcome(userId: string, result: AttemptResult): Promise<CreateTransferOutcome> {
+    if (result.kind === 'CREATED') {
+      return { kind: 'CREATED', transfer: await this.deps.view(result.transferId) };
+    }
     if (result.kind === 'REJECTED') {
       return {
         kind: 'REJECTED',

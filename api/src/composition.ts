@@ -49,6 +49,8 @@ import { TransferDestinationResolver } from './modules/transfers/application/des
 import { CreateTransfer } from './modules/transfers/application/create-transfer.js';
 import { IdempotencyGate } from './modules/transfers/application/idempotency-gate.js';
 import { TransferLocker } from './modules/transfers/application/transfer-locker.js';
+import { toTransferView } from './modules/transfers/application/transfer-view.js';
+import { PgTransferDetails } from './modules/transfers/infrastructure/pg-transfer-details.js';
 import { businessDayOf } from './shared/business-day.js';
 import { Money } from './shared/money.js';
 import { LedgerPoster } from './modules/transfers/application/ledger-poster.js';
@@ -137,6 +139,11 @@ export async function createContainer(
   const accounts = new PgAccountRepository(dataSource);
   const openAccounts = new OpenDefaultAccounts({ accounts, clabe: config.clabe, clock });
   const destinations = new TransferDestinationResolver(accounts, beneficiaryStore);
+  const transferDetails = new PgTransferDetails(dataSource);
+  const otpPolicy = {
+    maxAttempts: config.transfers.otpMaxAttempts,
+    maxResends: config.transfers.otpMaxResends,
+  };
   const refreshTokens = new PgRefreshTokenStore();
   const sessions = new SessionService(refreshTokens, clock);
   const accessTokens = new JoseAccessTokens({
@@ -226,7 +233,13 @@ export async function createContainer(
         audit,
         clock,
         otpThreshold: config.transfers.otpThreshold,
-        view: () => Promise.reject(new Error('Vista de transferencia pendiente')),
+        poster,
+        counter: dailyUsage,
+        view: async (transferId) => {
+          const details = await transferDetails.find(transferId);
+          if (!details) throw new Error('La transferencia recién creada no existe');
+          return toTransferView(details, clock.now(), otpPolicy);
+        },
         remainingToday: async (userId) => {
           const today = await dailyUsage.usage(userId, businessDayOf(clock.now()));
           const limit = today?.limit ?? config.transfers.dailyLimit;
