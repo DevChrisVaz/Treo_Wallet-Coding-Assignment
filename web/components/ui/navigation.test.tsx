@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AppHeader } from './AppHeader';
-import { RouterLinkProvider, type RouterLinkProps } from './RouterLink';
+import { RouterLink, RouterLinkProvider, type RouterLinkProps } from './RouterLink';
 import { SideNav } from './SideNav';
 import { TabBar, type NavItem } from './TabBar';
 
@@ -98,4 +98,26 @@ describe('RouterLink', () => {
     expect(screen.getByRole('link', { name: 'Inicio' })).not.toHaveAttribute('data-app-link');
     expect(screen.getByRole('link', { name: 'Inicio' })).toHaveAttribute('href', '/');
   });
+
+  it.each([
+    'https://treo.mx',
+    '//treo.mx',
+    'mailto:ayuda@treo.mx',
+    'tel:+525555555555',
+    '#contenido',
+  ])(
+    'WEB-24 con el proveedor, el destino externo %s es un <a> normal y el interno usa el enlace de la app',
+    (href) => {
+      render(
+        <RouterLinkProvider value={AppLink}>
+          <RouterLink href="/beneficiaries">Beneficiarios</RouterLink>
+          <RouterLink href={href}>Externo</RouterLink>
+        </RouterLinkProvider>,
+      );
+      expect(screen.getByRole('link', { name: 'Beneficiarios' })).toHaveAttribute('data-app-link');
+      const external = screen.getByRole('link', { name: 'Externo' });
+      expect(external).not.toHaveAttribute('data-app-link');
+      expect(external).toHaveAttribute('href', href);
+    },
+  );
 });
