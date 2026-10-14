@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { cancelTransfer } from '@/app/actions/scheduled-transfers';
-import { MAIN_CONTENT_ID } from '@/components/layout/SkipLink';
+import { focusPageTitle } from '@/components/layout/page-title';
 import { ErrorState, LoadingState } from '@/components/states/states';
 import { Button, buttonClasses } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -189,9 +189,9 @@ export function ScheduledTransfersScreen() {
         void queryClient.invalidateQueries({ queryKey: scheduledTransfersKey });
         setTarget(null);
         setAnnouncement(CANCELLED_MESSAGE);
-        // El botón que abrió el diálogo ya no existe: el foco va al contenido de la página (el `main`
-        // de AppShell, destino de "Saltar al contenido"), justo bajo su título.
-        document.getElementById(MAIN_CONTENT_ID)?.focus();
+        // El botón que abrió el diálogo ya no existe: el foco va al h1 visible del shell; la región
+        // polite anuncia "Transferencia cancelada".
+        focusPageTitle();
         return;
       }
       const { problem } = result;

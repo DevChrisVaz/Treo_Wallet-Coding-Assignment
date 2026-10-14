@@ -55,6 +55,24 @@ const LUZ = scheduled({
 const CANCEL_RENTA = /^Cancelar la transferencia de \$1,000\.00 a Luis/;
 const USER = { name: 'Ana Gómez Castillo', email: 'ana@example.com' };
 
+/**
+ * Simula la forma visible (jsdom no aplica CSS ni tiene `checkVisibility`): en el dashboard se ocultan
+ * los elementos `dashboard:hidden` (AppHeader); en teléfono, los `hidden` (TopBar).
+ */
+function showForm(form: 'app' | 'dashboard') {
+  const hiddenBy = form === 'dashboard' ? '[class~="dashboard:hidden"]' : '[class~="hidden"]';
+  Object.defineProperty(HTMLElement.prototype, 'checkVisibility', {
+    configurable: true,
+    value(this: HTMLElement) {
+      return this.closest(hiddenBy) === null;
+    },
+  });
+}
+
+afterEach(() => {
+  delete (HTMLElement.prototype as { checkVisibility?: unknown }).checkVisibility;
+});
+
 /** La pantalla dentro de AppShell, como en `/transfers/scheduled`: el shell da el h1 y el `main`. */
 function renderInShell() {
   return renderWithClient(
@@ -247,6 +265,7 @@ describe('ScheduledTransfersScreen · cancelar', () => {
       ok: true,
       data: { ...RENTA, status: 'CANCELLED', cancelledAt: '2026-10-14T18:00:00.000Z' },
     });
+    showForm('dashboard');
     const user = userEvent.setup();
     const { client } = renderInShell();
 
@@ -259,15 +278,36 @@ describe('ScheduledTransfersScreen · cancelar', () => {
     expect(screen.queryByRole('button', { name: CANCEL_RENTA })).not.toBeInTheDocument();
     expect(rowsText()).toHaveLength(1);
     expect(screen.getByRole('status')).toHaveTextContent('Transferencia cancelada');
-    // El botón que abrió el diálogo ya no existe: el foco va al contenido (el `main` de AppShell),
-    // bajo el h1 "Transferencias programadas" del shell; no se pierde en <body>.
-    expect(screen.getByRole('main')).toHaveFocus();
-    expect(screen.getByRole('main')).toContainElement(
-      screen.getByRole('list', { name: 'Transferencias programadas' }),
-    );
+    // El botón que abrió el diálogo ya no existe: el foco va al título visible de la página, el h1
+    // del shell (en el dashboard, el de TopBar), y no se pierde en <body>.
+    const title = document.activeElement as HTMLElement;
+    expect(title.tagName).toBe('H1');
+    expect(title).toHaveTextContent('Transferencias programadas');
+    expect(title.closest('header')).toHaveClass('dashboard:flex');
     // La lista se vuelve a consultar y el comprobante en caché queda como cancelado.
     await waitFor(() => expect(listReadCount()).toBe(2));
     expect(client.getQueryData<Transfer>(queryKeys.transfer(RENTA.id))?.status).toBe('CANCELLED');
+  });
+
+  it('WEB-34 WEB-23 en teléfono, tras cancelar, el foco va al h1 visible de AppHeader y se anuncia la cancelación', async () => {
+    listReads([RENTA, LUZ], [LUZ]);
+    cancelMock.mockResolvedValue({ ok: true, data: { ...RENTA, status: 'CANCELLED' } });
+    showForm('app');
+    const user = userEvent.setup();
+    renderInShell();
+
+    const dialog = await openCancelDialog(user);
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar transferencia' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    const title = document.activeElement as HTMLElement;
+    expect(title.tagName).toBe('H1');
+    expect(title).toHaveTextContent('Transferencias programadas');
+    expect(title.closest('header')).toHaveClass('dashboard:hidden');
+    // El anuncio sigue en la región polite, aparte del foco.
+    const status = screen.getByRole('status');
+    expect(status).toHaveAttribute('aria-live', 'polite');
+    expect(status).toHaveTextContent('Transferencia cancelada');
   });
 
   it('WEB-34 con doble clic en la confirmación llama a cancelTransfer una sola vez', async () => {
