@@ -480,3 +480,79 @@ Pedí cerrar todo con subagentes. La AI escribió y validó el change `domain-te
 - **Sin cambios en código de producción** (`api/src`, migraciones, `contract/src` y `openapi.yaml` siguen iguales).
 
 **Lo que queda fuera de este change:** la máquina de estados de transferencias no se usa en producción, `deliveryStatus` no se guarda, no hay herramienta para detectar cambios incompatibles del contrato (CTR-02), `passWithNoTests` sigue activo en `/api`, la redacción de logs llega solo a cuatro niveles, y la traducción de la violación de unicidad de beneficiarios a `BENEFICIARY_CONFLICT` en el store solo la alcanza a veces una prueba de carrera.
+
+## Sesión 6 — 2026-10-14 · Entrega: propuesta de AWS, trazabilidad y cierre de la bitácora
+
+**Quién:** esta sesión la ejecutó un subagente (Claude Haiku 5.5, según el trailer de sus commits) con el change `delivery` y una lista cerrada de tareas. No grabó el video, no creó la rama `main` ni cambió los disparadores de los workflows, y no revisó con el usuario las decisiones D1 a D12 (tarea 1.1).
+
+**Qué se hizo:**
+- **`docs/aws-deploy.md`:** diagrama en Mermaid, las seis filas de la tabla de la Fase 4 y las tres preguntas por escrito. Parte de `design.md` de `delivery` y lo contrasta con el repositorio: el documento dice de forma explícita qué **no** existe hoy (Dockerfiles, colector de OpenTelemetry, sesiones y rate limiting en Redis, `lock_timeout`) y que el pool de la API es de 20 conexiones.
+- **`scripts/trace.sh`:** Bash con `git`, `find`, `grep` y `awk`. Genera la matriz requisito → change → tareas → commits → pruebas y la lista de huecos; con `--check` termina con error si hay alguno.
+- **README:** Mapa de la especificación (HU1 a HU6 y bonus) y enlaces a los `design.md` de cada change.
+
+**Hallazgos de esta sesión:**
+- **Los trailers no se leían.** El primer commit puso las líneas `Task:` en un párrafo separado del `Co-Authored-By:`. Git solo reconoce como trailers el último párrafo, así que `trace.sh` no habría visto ninguna tarea. Se detectó al leer los trailers con `git log --format='%(trailers)'` y se corrigió ese commit antes de seguir (aún no estaba compartido).
+- **El script encontró huecos reales, no un error suyo.** Cuatro requisitos (CTR-01, CTR-03, CTR-17 y PLT-17) no tienen ninguna prueba cuyo título empiece con su ID. Se comprobó con `grep` que no existe ninguna: se verifican con pasos del CI (lint del contrato, tipos al día, los propios workflows). Se documentaron en `docs/traceability.md` en lugar de forzar una cobertura con pruebas que solo comprobarían que un archivo existe.
+- **La tarea 2.4 no mencionaba `design-tokens/`.** Los requisitos DSG se prueban ahí, así que el script también busca en esa carpeta; sin ella, todos los DSG habrían salido como huecos falsos.
+- **El diagrama de Mermaid no se renderizó.** El repositorio no incluye ninguna herramienta para validarlo; se revisó la sintaxis a mano (etiquetas con acentos y puntos entre comillas, sin palabras reservadas como identificadores). Falta abrirlo en GitHub para confirmarlo.
+
+## Correcciones a la AI, en conjunto
+
+Índice de lo que la AI propuso mal o dejó inseguro, ordenado por lo que importa en un sistema de dinero. Cada punto está explicado en la sesión que se indica.
+
+### Con el dinero y la integridad de datos
+
+| Qué pasó | Sesión | Cómo se detectó | Resolución |
+| -------- | ------ | --------------- | ---------- |
+| Los montos con `float` pierden un centavo (`Math.round(1.005 * 100)` da `100`) y PostgreSQL redondea en silencio al convertir | 1 | La AI lo señaló al revisar el enunciado | Montos como string decimal validado; `BIGINT` en centavos; lo inválido se rechaza, nunca se redondea |
+| Proponía eximir del OTP las transferencias entre cuentas propias | 1 | Lo rechacé al revisar la propuesta | Todo monto mayor al umbral pide OTP, sin excepciones |
+| El "día" del límite diario en UTC se reiniciaría a las 18:00 en México | 1 | Riesgo señalado antes de implementar | Día calendario en `America/Mexico_City` con pruebas en 17:59, 18:00, 23:59 y 00:00 |
+| Carrera en el límite diario: dos transferencias desde cuentas distintas del mismo usuario podían superarlo | 1 | Riesgo señalado antes de implementar | Fila contador por usuario protegida por `CHECK` |
+| IDOR en `fromAccountId`: sin verificar la propiedad, un usuario podría vaciar la cuenta de otro | 1 | Riesgo señalado antes de implementar | La propiedad se verifica en la misma consulta que toma el lock |
+| `now()` de PostgreSQL devuelve la hora de inicio de la transacción | 1 | Riesgo señalado antes de implementar | La hora se toma después de obtener los locks |
+| El diseño de bloqueo con `FOR UPDATE` producía un deadlock real con las llaves foráneas (`FOR KEY SHARE`) | 1 | La AI corrigió su propio diseño al bajarlo al detalle | `FOR NO KEY UPDATE` en orden global y determinista |
+| El OTP guardado con un hash simple se revierte por fuerza bruta si la tabla se filtra | 1 | La AI corrigió su propio diseño | HMAC-SHA256 con un secreto del servidor |
+| Cambio de día mientras se espera un lock | 1 | La AI corrigió su propio diseño | `ROLLBACK` y un reintento |
+| Una prueba de doble clic de la web no probaba el candado: pasaba sin él | 4 | El subagente de las programadas, al revisar su propio trabajo | Pruebas con dos clics dentro de un mismo `act`, que sí fallan sin el candado |
+| `HEAD` sobre el estado de cuenta generaba el PDF y registraba `STATEMENT_EXPORTED` sin entregar nada | 4 | Lo reportó el subagente; la AI principal escribió primero la prueba | La ruta responde 405 con `Allow: GET` antes de generar |
+| Una aserción de las programadas filtraba logs por un nivel numérico que pino no escribe, así que nunca podía fallar | 4 | El subagente, una tarea después | Aserción corregida; es la que detecta la doble ejecución |
+| La barrera de la carrera del tope de programadas se rendía en silencio | 5 | La auditoría de cobertura | Usa el helper que lanza error, y retrasar la segunda petición la hace fallar |
+| Una mutación de BEN-07 que la prueba de integración no detectaba (el índice único lo impide antes) | 5 | Mutación deliberada | La prueba unitaria sí falla |
+
+### Con la seguridad y la identidad
+
+| Qué pasó | Sesión | Resolución |
+| -------- | ------ | ---------- |
+| Aceptar el 409 de "email ya registrado" como riesgo permite enumerar cuentas | 1 | Verificación por correo: el registro siempre responde 202 |
+| Entregar el OTP por consola, y luego como `devOtp` en la respuesta (podía llegar a producción) | 1 | Correo vía Mailpit |
+| Refresh token en cookie `httpOnly` emitida por la API | 1 | BFF con la sesión en el servidor; los tokens nunca llegan al navegador |
+| La rotación estricta del refresh token rompe con una red móvil inestable | 1 | Ventana de gracia de 30 segundos |
+| Con el BFF, la API ve la IP del BFF y el rate limiting por IP deja de servir | 1 | Solo se confía en `X-Forwarded-For` del BFF o del ALB |
+| `next dev` registraba la contraseña en los argumentos de la Server Action | 3 | `logging.serverFunctions: false`, con una prueba |
+| Una afirmación sobre Amplify ("deja menos control de `allowedOrigins`") era falsa | 1 | Se verificó contra la documentación; se mantuvo Fargate con los argumentos que sí pesan |
+| El paquete se nombró con el usuario de GitHub que devolvía `gh api user`, sin confirmarlo | 2 | Mi usuario es DevChrisVaz; no se infiere la identidad del entorno |
+
+### De proceso
+
+- **Tuberías que ocultan el código de salida** (`| tail`): ocurrió en las sesiones 2, 3 y 4, también en subagentes. La regla es no canalizar una verificación.
+- **`git checkout` para revertir una mutación** descartó ediciones sin commit (sesión 3, en dos ocasiones); desde entonces se respalda el archivo antes.
+- **El contrato 1.2.0 rompió los tres consumidores** porque el diseño supuso que instalarían la versión nueva cuando quisieran (sesión 4).
+- **Los subagentes heredaron Opus** sin que lo pidiera y, en otra ocasión, copiaron una atribución equivocada (sesión 5).
+- **Trailers en un párrafo aparte** (esta sesión).
+
+## Resumen del flujo spec-first
+
+**Qué se hizo.** Primero se exploró el alcance con el enunciado, decisión por decisión (sesión 1). Después se escribió el contrato (`openapi.yaml`) y se especificaron los seis changes completos, cada uno con propuesta, requisitos con escenarios, diseño y tareas, y cada uno validado con `openspec validate --strict`. Solo entonces se escribió código de aplicación: el historial lo muestra, porque el commit `3caff74` ("define API contract and specify all six OpenSpec changes") es anterior al primer commit de `api/`, `web/` y `mobile/`. Cada tarea se implementó con TDD, con un commit y los trailers `Task:` y `Refs:`, y cada prueba lleva en su título el ID del requisito.
+
+**Qué funcionó:**
+- **Los IDs de requisito como hilo común.** Permiten que un subagente reciba una tarea acotada y que un revisor compruebe el resultado contra el requisito, no contra una opinión. La matriz de trazabilidad se genera con un script, no se afirma.
+- **Escribir el contrato antes que los clientes.** Web, móvil y API se implementaron en paralelo sin integrarse a ciegas, y los tipos generados detectaron los cambios incompatibles en tiempo de compilación.
+- **Las mutaciones para demostrar las pruebas.** Casi todos los errores serios de dinero (locks, orden de bloqueo, vencimiento del OTP, día en UTC) se descubrieron o se fijaron rompiendo la regla a propósito y viendo fallar una prueba.
+- **Dejar que la AI se contradiga por escrito.** Varias de las mejores correcciones (el deadlock de `FOR UPDATE`, el hash del OTP) las hizo la propia AI al bajar el diseño al detalle, antes de escribir código.
+
+**Qué no funcionó o costó caro:**
+- **Specs que se desactualizan.** Hubo textos de escenarios, descripciones de tareas y planes de reversión que el código obligó a corregir; se corrigieron en el mismo commit y se dejó constancia.
+- **Verificar solo el paquete que se cambió** (el contrato 1.2.0) rompió a los consumidores. Un cambio compartido se verifica con todos sus consumidores.
+- **Alcance mayor al estimado:** el trabajo excedió las 10 a 14 horas del enunciado. Fue una decisión mía, consciente, y está declarada en el README.
+
+**Lo que la bitácora todavía no cubre:** la sesión del rediseño (`redesign`) se ejecutó en su propia rama y su entrada se integrará con ella.
