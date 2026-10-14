@@ -81,6 +81,37 @@ describe('PLT-12 validación de respuestas contra el contrato', () => {
     ).toThrow(/X-Request-Id/);
   });
 
+  it('HIS-11 una respuesta binaria se valida por status, Content-Type, headers declarados y un cuerpo de bytes', () => {
+    const pdf = (overrides: Partial<ContractResponse> = {}) =>
+      response({
+        headers: {
+          'content-type': 'application/pdf',
+          'x-request-id': 'r-1',
+          'cache-control': 'no-store',
+          'content-disposition': 'attachment; filename="estado-de-cuenta-2026-09-0015.pdf"',
+        },
+        body: Buffer.from('%PDF-1.3\n'),
+        text: '',
+        ...overrides,
+      });
+    expect(() => expectToMatchContract(pdf(), 'getAccountStatement')).not.toThrow();
+    expect(() => expectToMatchContract(pdf({ body: {} }), 'getAccountStatement')).toThrow(
+      /getAccountStatement 200.*bytes/,
+    );
+    expect(() =>
+      expectToMatchContract(
+        pdf({
+          headers: {
+            'content-type': 'application/pdf',
+            'x-request-id': 'r-1',
+            'cache-control': 'max-age=60',
+          },
+        }),
+        'getAccountStatement',
+      ),
+    ).toThrow(/Cache-Control/);
+  });
+
   it('PLT-12 un 204 no debe traer cuerpo', () => {
     expect(() =>
       expectToMatchContract(response({ status: 204, body: {}, text: '' }), 'logout'),
