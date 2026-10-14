@@ -139,7 +139,9 @@ describe('TRF-31 ejecución única ante concurrencia', () => {
     expect(usage[0]?.mismatched).toBe(0);
     for (const t of [first, second]) {
       expect(t.logs.text()).not.toContain('40P01');
-      expect(t.logs.entries().filter((entry) => Number(entry.level) >= 50)).toEqual([]);
+      expect(
+        t.logs.entries().filter((entry) => entry.level === 'error' || entry.level === 'fatal'),
+      ).toEqual([]);
     }
   });
 
