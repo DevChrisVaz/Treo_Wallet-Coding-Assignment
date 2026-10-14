@@ -640,11 +640,12 @@ export const TransferAmount = () => (
       <option value={principal.id}>Principal · $25,000.00</option>
       <option value={ahorro.id}>Ahorro · $10,000.00</option>
     </Select>
-    <TextField label="Concepto" hint="Hasta 40 caracteres." autoComplete="off" defaultValue="Renta" />
+    {/* Ayudas con la redacción de la app móvil (R30); la del monto sigue siendo la de cada app. */}
+    <TextField label="Concepto" hint="De 1 a 40 caracteres." autoComplete="off" defaultValue="Renta" />
     <TextField
       label="Referencia"
       inputMode="numeric"
-      hint="Hasta 7 dígitos."
+      hint="De 1 a 7 dígitos."
       autoComplete="off"
       defaultValue="1"
     />
