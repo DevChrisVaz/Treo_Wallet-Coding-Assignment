@@ -60,6 +60,11 @@ describe('AppHeader', () => {
     expect(onLogout).toHaveBeenCalledOnce();
   });
 
+  it('WEB-27 el botón del menú de la cuenta tiene un área de 44 px', () => {
+    render(<AppHeader user={USER} />);
+    expect(screen.getByRole('button', { name: 'Menú de la cuenta' })).toHaveClass('size-11');
+  });
+
   it('WEB-27 en otras pestañas muestra el título de la página', () => {
     render(<AppHeader user={USER} title="Movimientos" />);
     expect(screen.getByRole('heading', { level: 1, name: 'Movimientos' })).toBeInTheDocument();

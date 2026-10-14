@@ -34,7 +34,7 @@ export function AppHeader({ user, title, onLogout, className = '' }: AppHeaderPr
         aria-label="Menú de la cuenta"
         aria-haspopup="dialog"
         onClick={() => setOpen(true)}
-        className="rounded-pill"
+        className="inline-flex size-11 items-center justify-center rounded-pill"
       >
         <Avatar tone="hero" initials={initials(user.name)} />
       </button>
