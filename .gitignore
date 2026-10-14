@@ -29,6 +29,16 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# Terraform: proveedores descargados, estado local y planes. Los .terraform.lock.hcl de
+# infrastructure/bootstrap/ y infrastructure/stack/ sí se versionan; los de los módulos no.
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfstate.d/
+*.tfplan
+crash.log
+infrastructure/modules/**/.terraform.lock.hcl
+
 # Editor
 .idea/
 .vscode/*
