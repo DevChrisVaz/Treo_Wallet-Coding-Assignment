@@ -60,6 +60,22 @@ describe('RecipientStep', () => {
     );
   });
 
+  it('WEB-34 WEB-27 en teléfono lleva a las transferencias programadas, que no son pestaña', () => {
+    renderStep();
+    const link = screen.getByRole('link', { name: 'Transferencias programadas' });
+    expect(link).toHaveAttribute('href', '/transfers/scheduled');
+    // Secundario y solo en la forma de app: en el dashboard lo da la navegación lateral.
+    expect(link).toHaveClass('text-action', 'dashboard:hidden');
+  });
+
+  it('WEB-34 también sin beneficiarios ofrece las transferencias programadas', () => {
+    renderStep({ beneficiaries: [] });
+    expect(screen.getByRole('link', { name: 'Transferencias programadas' })).toHaveAttribute(
+      'href',
+      '/transfers/scheduled',
+    );
+  });
+
   it('WEB-23 no tiene problemas de accesibilidad', async () => {
     const { container } = renderStep();
     expect(await axe(container)).toHaveNoViolations();

@@ -2,10 +2,12 @@ import { formatMXN, type Account, type Beneficiary } from '@devchrisvaz/wallet-c
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Avatar, initials } from '@/components/ui/Avatar';
+import { buttonClasses } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { ListSection } from '@/components/ui/ListSection';
 import type { TransferRecipient } from '@/lib/client/transfer-flow';
 import { maskClabe } from '@/lib/money';
+import { SCHEDULED_TRANSFERS_PATH } from '@/lib/navigation';
 
 export interface RecipientStepProps {
   accounts: Account[];
@@ -45,7 +47,8 @@ function RecipientOption({
 
 /**
  * Paso 1 del flujo (WEB-30): a quién se envía. Ofrece todas las cuentas propias (R38: el origen se
- * elige en el paso siguiente, que ya no ofrece la cuenta elegida aquí) y los beneficiarios.
+ * elige en el paso siguiente, que ya no ofrece la cuenta elegida aquí) y los beneficiarios. En
+ * teléfono también lleva a las transferencias programadas (WEB-34), que no son pestaña.
  */
 export function RecipientStep({ accounts, beneficiaries, onChoose }: RecipientStepProps) {
   return (
@@ -87,6 +90,10 @@ export function RecipientStep({ accounts, beneficiaries, onChoose }: RecipientSt
           </p>
         )}
       </ListSection>
+      {/* En el dashboard "Programadas" está en la navegación lateral (WEB-26). */}
+      <Link href={SCHEDULED_TRANSFERS_PATH} className={buttonClasses('ghost', 'dashboard:hidden')}>
+        Transferencias programadas
+      </Link>
     </>
   );
 }
