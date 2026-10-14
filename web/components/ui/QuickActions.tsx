@@ -22,7 +22,9 @@ export function QuickActions({ actions }: { actions: readonly QuickAction[] }) {
             <span className="text-caption font-medium text-fg-on-inverse">{label}</span>
           </>
         );
-        const classes = 'flex flex-col items-center gap-2 rounded-md';
+        // Anillo lima: el de sistema no se ve sobre el hero oscuro (WEB-23, DSG-04).
+        const classes =
+          'flex flex-col items-center gap-2 rounded-md focus-visible:outline-accent-on-dark';
         return (
           <li key={key}>
             {href ? (

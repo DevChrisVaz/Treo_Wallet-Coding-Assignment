@@ -98,9 +98,10 @@ export function IconButton({
   tone = 'default',
   className = '',
 }: IconButtonProps) {
+  // Sobre superficies oscuras el anillo de foco es lima: el de sistema (#1C4B42) no se vería (WEB-23, DSG-04).
   const classes = `inline-flex size-11 items-center justify-center rounded-pill ${
     tone === 'onDark'
-      ? 'text-fg-on-inverse hover:bg-fg-on-inverse/10'
+      ? 'text-fg-on-inverse hover:bg-fg-on-inverse/10 focus-visible:outline-accent-on-dark'
       : 'text-fg hover:bg-surface-subtle'
   } ${className}`.trim();
   return href ? (

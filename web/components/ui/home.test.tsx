@@ -33,6 +33,23 @@ describe('QuickActions', () => {
       '/transfers/new',
     );
   });
+
+  it('WEB-23 cada acción sobre el hero muestra un anillo de foco lima', () => {
+    render(
+      <QuickActions
+        actions={[
+          { key: 't', label: 'Transferir', icon: 'transfer', href: '/transfers/new' },
+          { key: 'm', label: 'Movimientos', icon: 'movements', onClick: () => {} },
+        ]}
+      />,
+    );
+    expect(screen.getByRole('link', { name: 'Transferir' })).toHaveClass(
+      'focus-visible:outline-accent-on-dark',
+    );
+    expect(screen.getByRole('button', { name: 'Movimientos' })).toHaveClass(
+      'focus-visible:outline-accent-on-dark',
+    );
+  });
 });
 
 describe('MovementList', () => {

@@ -25,6 +25,20 @@ describe('Icon', () => {
     const button = screen.getByRole('button', { name: 'Cerrar' });
     expect(button.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
   });
+
+  it('WEB-23 el botón sobre superficie oscura usa anillo de foco lima', () => {
+    render(<IconButton icon="close" label="Cerrar" tone="onDark" onClick={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Cerrar' })).toHaveClass(
+      'focus-visible:outline-accent-on-dark',
+    );
+  });
+
+  it('WEB-23 el botón de superficie clara conserva el anillo de sistema', () => {
+    render(<IconButton icon="close" label="Cerrar" onClick={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Cerrar' })).not.toHaveClass(
+      'focus-visible:outline-accent-on-dark',
+    );
+  });
 });
 
 describe('Avatar', () => {
