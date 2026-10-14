@@ -2,7 +2,7 @@ Requiere `contract-v1-2` (paquete 1.2.0). La tarea 1.1 va antes de que cualquier
 
 ## 1. Sistema de diseño
 
-- [ ] 1.1 [design-tokens] Estados `SCHEDULED` ("Programada", tono informativo) y `CANCELLED` ("Cancelada", tono neutro), mensajes de `TRANSFER_NOT_CANCELLABLE` y `SCHEDULED_LIMIT_REACHED`, prueba de que la lista de estados cubre los siete valores de `TransferStatus` de 1.2.0 y versión 1.1.0 (DSG-18)
+- [x] 1.1 [design-tokens] Estados `SCHEDULED` ("Programada", tono informativo) y `CANCELLED` ("Cancelada", tono neutro), mensajes de `TRANSFER_NOT_CANCELLABLE` y `SCHEDULED_LIMIT_REACHED`, prueba de que la lista de estados cubre los siete valores de `TransferStatus` de 1.2.0 y versión 1.1.0 (DSG-18)
 
 ## 2. API
 

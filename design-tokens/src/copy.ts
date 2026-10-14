@@ -16,6 +16,7 @@ export const problemMessages = {
   BENEFICIARY_CONFLICT: 'Ya tienes un beneficiario con esa CLABE o con ese alias.',
   TRANSFER_NOT_PENDING: 'Esta transferencia ya no está pendiente.',
   TRANSFER_EXPIRED: 'El código venció. Crea la transferencia de nuevo.',
+  TRANSFER_NOT_CANCELLABLE: 'Esta transferencia ya no se puede cancelar.',
   VALIDATION_FAILED: 'Revisa los campos marcados.',
   INSUFFICIENT_FUNDS: 'No tienes saldo suficiente para esta transferencia.',
   DAILY_LIMIT_EXCEEDED: 'Esta transferencia supera lo que te queda del límite de hoy.',
@@ -29,6 +30,8 @@ export const problemMessages = {
   OTP_INVALID: 'El código no es correcto.',
   OTP_ATTEMPTS_EXHAUSTED: 'Agotaste los intentos. Cancelamos la transferencia.',
   RESEND_LIMIT_REACHED: 'Ya reenviamos el código el máximo de veces.',
+  SCHEDULED_LIMIT_REACHED:
+    'Llegaste al máximo de 20 transferencias programadas. Cancela alguna para programar otra.',
   VERIFICATION_CODE_INVALID: 'El código no es correcto o ya venció.',
   RATE_LIMITED: 'Hiciste demasiados intentos. Espera un momento y vuelve a intentar.',
   INTERNAL_ERROR: 'Algo falló de nuestro lado. Intenta de nuevo en unos minutos.',
