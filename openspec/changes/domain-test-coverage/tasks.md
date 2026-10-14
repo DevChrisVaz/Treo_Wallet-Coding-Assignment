@@ -35,7 +35,7 @@ Cada tarea agrega o corrige pruebas sin tocar código de producción. Cada prueb
 
 - [x] 4.1 [api] Después del reintento de un alta, el usuario tiene exactamente un beneficiario con esa CLABE (BEN-07)
 - [x] 4.2 [api] Si falla la auditoría de `BENEFICIARY_CREATED`, el alta se revierte (BEN-11)
-- [ ] 4.3 [api] El límite disponible del día usa el `limit_cents` guardado en la fila del día y no el valor de la configuración (ACC-11)
+- [x] 4.3 [api] El límite disponible del día usa el `limit_cents` guardado en la fila del día y no el valor de la configuración (ACC-11)
 - [ ] 4.4 [api] La metadata de auditoría rechaza `name`, `fullName`, `token`, `accessToken` y `refreshToken`, sin importar mayúsculas (AUD-02)
 
 ## 5. Historial y estado de cuenta
