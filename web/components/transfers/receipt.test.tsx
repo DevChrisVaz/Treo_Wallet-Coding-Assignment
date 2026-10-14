@@ -227,15 +227,46 @@ describe('TransferDetailScreen', () => {
     },
   );
 
-  it('WEB-33 el detalle de una programada se titula "Transferencia programada" y enlaza a las programadas', async () => {
+  // Reemplaza "el detalle de una programada se titula «Transferencia programada»…" (superseded by
+  // WEB-25: al abrir el detalle de una transferencia resuelta no hay título de paso, como en la
+  // historia aprobada `TransferDetail`). El título se mudó al detalle confirmado aquí (prueba siguiente).
+  it('WEB-33 WEB-25 el detalle de una programada dice cuándo se enviará, enlaza a las programadas y no lleva título de paso', async () => {
     reads(transfer({ status: 'SCHEDULED', scheduledFor: '2026-10-20', completedAt: null }));
     renderWithClient(<TransferDetailScreen transferId={transfer().id} />);
-    expect(await screen.findByRole('heading', { name: 'Transferencia programada' })).toBeVisible();
-    expect(screen.getByText(/Se enviará el 20 de octubre de 2026\./)).toBeVisible();
+    expect(await screen.findByText(/Se enviará el 20 de octubre de 2026\./)).toBeVisible();
     expect(screen.getByRole('link', { name: 'tus transferencias programadas' })).toHaveAttribute(
       'href',
       '/transfers/scheduled',
     );
+    const receipt = screen.getByRole('region', { name: 'Comprobante' });
+    expect(within(receipt).getByText('Programada')).toBeVisible();
+    expect(
+      screen.queryByRole('heading', { name: 'Transferencia programada' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('WEB-33 WEB-23 al confirmar en el detalle el código de una programada, "Transferencia programada" toma el foco', async () => {
+    reads(pendingOtpTransfer());
+    confirmMock.mockResolvedValue({
+      ok: true,
+      data: transfer({
+        amount: '15000.00',
+        status: 'SCHEDULED',
+        scheduledFor: '2026-10-20',
+        completedAt: null,
+      }),
+    });
+    const user = userEvent.setup();
+    renderWithClient(<TransferDetailScreen transferId={transfer().id} />);
+
+    await user.type(await screen.findByLabelText('Código de 6 dígitos'), '123456');
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+
+    expect(await screen.findByRole('heading', { name: 'Transferencia programada' })).toHaveFocus();
+    expect(
+      screen.queryByRole('heading', { name: 'Transferencia enviada' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Se enviará el 20 de octubre de 2026\./)).toBeVisible();
   });
 
   it('WEB-20 si la lectura falla muestra el error con "Reintentar"', async () => {
