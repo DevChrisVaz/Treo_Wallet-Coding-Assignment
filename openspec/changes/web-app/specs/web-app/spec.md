@@ -136,7 +136,7 @@ La web SHALL ofrecer un registro con email, contraseña, nombre completo, CURP, 
 
 #### Scenario: Registro enviado
 - **WHEN** el usuario envía un registro válido
-- **THEN** la web muestra "Si los datos son correctos, recibirás un correo con las instrucciones" y la pantalla de verificación
+- **THEN** la web muestra "Si los datos son correctos, recibirás un correo con las instrucciones." y la pantalla de verificación
 
 #### Scenario: CURP con dígito verificador inválido
 - **WHEN** el usuario escribe una CURP cuyo último dígito no corresponde al cálculo del verificador
@@ -144,7 +144,7 @@ La web SHALL ofrecer un registro con email, contraseña, nombre completo, CURP, 
 
 #### Scenario: Código incorrecto
 - **WHEN** el usuario envía un código incorrecto y la API responde `VERIFICATION_CODE_INVALID` con `attemptsRemaining` 2
-- **THEN** la web muestra "Código incorrecto. Te quedan 2 intentos"
+- **THEN** la web muestra "El código no es correcto o ya venció. Te quedan 2 intentos." (mensaje de `VERIFICATION_CODE_INVALID` del paquete de diseño más los intentos)
 
 #### Scenario: Verificación exitosa
 - **WHEN** el usuario envía el código correcto
@@ -155,7 +155,7 @@ La web SHALL ofrecer un inicio de sesión con email y contraseña. Ante credenci
 
 #### Scenario: Credenciales inválidas
 - **WHEN** la API responde `INVALID_CREDENTIALS`
-- **THEN** la web muestra "Email o contraseña incorrectos" sin indicar cuál de los dos falló
+- **THEN** la web muestra "El correo o la contraseña no coinciden." (mensaje de `INVALID_CREDENTIALS` del paquete de diseño) sin indicar cuál de los dos falló
 
 #### Scenario: Correo sin verificar
 - **WHEN** la API responde `403` con `code` `EMAIL_NOT_VERIFIED`
@@ -163,7 +163,7 @@ La web SHALL ofrecer un inicio de sesión con email y contraseña. Ante credenci
 
 #### Scenario: Demasiados intentos
 - **WHEN** la API responde `429` con `Retry-After: 300`
-- **THEN** la web muestra "Demasiados intentos. Intenta de nuevo en 5 minutos"
+- **THEN** la web muestra "Hiciste demasiados intentos. Espera un momento y vuelve a intentar. Intenta de nuevo en 5 minutos." (mensaje de `RATE_LIMITED` del paquete de diseño más la espera de `Retry-After`)
 
 ### Requirement: WEB-13 Resumen de cuentas
 La web SHALL mostrar las cuentas del usuario con su nombre, CLABE y saldo, y el límite diario de transferencias con lo usado y lo restante del día ("Te quedan $X hoy").
@@ -209,7 +209,7 @@ La web SHALL listar los beneficiarios del usuario y permitir dar de alta uno con
 
 #### Scenario: CLABE de una cuenta propia
 - **WHEN** la API responde `BENEFICIARY_IS_OWN_ACCOUNT`
-- **THEN** la web muestra "Esa CLABE es de una de tus cuentas. Usa la transferencia entre tus cuentas"
+- **THEN** la web muestra `Esa CLABE es tuya. Para mover dinero entre tus cuentas, elige "Mis cuentas".` (mensaje de `BENEFICIARY_IS_OWN_ACCOUNT` del paquete de diseño)
 
 #### Scenario: Alta exitosa
 - **WHEN** la API responde `201` con el beneficiario
@@ -231,11 +231,11 @@ La web SHALL guiar la transferencia en pasos: formulario (cuenta origen, destino
 #### Scenario: Transferencia a la propia cuenta
 - **WHEN** el usuario elige "Principal" como origen
 - **THEN** la lista de destinos propios no incluye "Principal"
-- **AND** si la API responde `SAME_ACCOUNT_TRANSFER`, la web muestra "El origen y el destino no pueden ser la misma cuenta"
+- **AND** si la API responde `SAME_ACCOUNT_TRANSFER`, la web muestra "Elige una cuenta de destino distinta a la de origen." (mensaje de `SAME_ACCOUNT_TRANSFER` del paquete de diseño)
 
 #### Scenario: Saldo insuficiente
 - **WHEN** la API responde `422` con `code` `INSUFFICIENT_FUNDS`
-- **THEN** la web muestra "Saldo insuficiente" junto al saldo disponible de la cuenta origen
+- **THEN** la web muestra la alerta "Saldo insuficiente" con el mensaje "No tienes saldo suficiente para esta transferencia." (mensaje de `INSUFFICIENT_FUNDS` del paquete de diseño) junto al saldo disponible de la cuenta origen
 - **AND** permite corregir el monto, lo que inicia un intento nuevo
 
 ### Requirement: WEB-17 Una sola transferencia por intento
@@ -261,7 +261,7 @@ La web SHALL permitir capturar el código de 6 dígitos, mostrar los intentos re
 
 #### Scenario: Código incorrecto
 - **WHEN** la API responde `OTP_INVALID` con `attemptsRemaining` 1
-- **THEN** la web muestra "Código incorrecto. Te queda 1 intento"
+- **THEN** la web muestra "El código no es correcto. Te queda 1 intento." (mensaje de `OTP_INVALID` del paquete de diseño más los intentos)
 
 #### Scenario: Intentos agotados
 - **WHEN** la API responde `OTP_ATTEMPTS_EXHAUSTED`
@@ -269,7 +269,7 @@ La web SHALL permitir capturar el código de 6 dígitos, mostrar los intentos re
 
 #### Scenario: Transferencia expirada
 - **WHEN** la API responde `409` con `code` `TRANSFER_EXPIRED`
-- **THEN** la web muestra "El código expiró. Inicia la transferencia de nuevo"
+- **THEN** la web muestra "El código venció. Crea la transferencia de nuevo." (mensaje de `TRANSFER_EXPIRED` del paquete de diseño)
 
 #### Scenario: Doble clic en "Confirmar"
 - **WHEN** el usuario hace doble clic en "Confirmar"
@@ -277,18 +277,18 @@ La web SHALL permitir capturar el código de 6 dígitos, mostrar los intentos re
 
 #### Scenario: Revalidación fallida al confirmar
 - **WHEN** la API responde `DAILY_LIMIT_EXCEEDED` al confirmar
-- **THEN** la web muestra "Superaste tu límite diario" con el monto restante del día
+- **THEN** la web muestra la alerta "Superaste tu límite diario" con el mensaje de `DAILY_LIMIT_EXCEEDED` del paquete de diseño y el monto restante del día
 
 ### Requirement: WEB-19 Mensajes por código de error
 La web SHALL decidir qué mensaje mostrar según el `code` del problema, con un mensaje en español para cada código del contrato que pueda ocurrir en sus pantallas, y MUST usar un mensaje genérico con el `requestId` para `INTERNAL_ERROR` o cualquier código no previsto.
 
 #### Scenario: Límite diario
 - **WHEN** la API responde `DAILY_LIMIT_EXCEEDED` con `remaining` `"2000.00"`
-- **THEN** la web muestra "Superaste tu límite diario. Hoy puedes enviar hasta $2,000.00"
+- **THEN** la web muestra la alerta "Superaste tu límite diario" con "Esta transferencia supera lo que te queda del límite de hoy. Hoy puedes enviar hasta $2,000.00." (mensaje de `DAILY_LIMIT_EXCEEDED` del paquete de diseño más `remaining`)
 
 #### Scenario: Error interno
 - **WHEN** la API responde `INTERNAL_ERROR` con `requestId` `01JABC`
-- **THEN** la web muestra "Algo salió mal. Si contactas a soporte, menciona el código 01JABC"
+- **THEN** la web muestra "Algo falló de nuestro lado. Intenta de nuevo en unos minutos. Si contactas a soporte, menciona el código 01JABC." (mensaje de `INTERNAL_ERROR` del paquete de diseño más el `requestId`)
 
 ### Requirement: WEB-20 Estados de carga, vacío y error
 Cada pantalla con datos del servidor SHALL mostrar un estado de carga mientras espera, un estado vacío con una acción sugerida cuando no hay datos y un estado de error con opción de reintentar cuando la lectura falla.
@@ -314,7 +314,7 @@ La web SHALL mostrar todos los montos con el formato de moneda `es-MX` en MXN a 
 
 #### Scenario: Monto con tres decimales
 - **WHEN** el usuario escribe `100.005` como monto
-- **THEN** el formulario muestra "Máximo 2 decimales" y no envía la petición
+- **THEN** el formulario muestra "El monto admite máximo 2 decimales" (mensaje del validador del contrato) y no envía la petición
 
 #### Scenario: Monto con separadores
 - **WHEN** el usuario escribe `1,250.50`
