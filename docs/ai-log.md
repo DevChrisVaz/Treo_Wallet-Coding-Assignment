@@ -205,3 +205,20 @@ Después integró con `--no-ff`: web 35/36 tareas, móvil 32/33.
 **Pendiente de verificación manual:**
 - **Móvil 6.3:** prueba en un teléfono con Expo Go. La hago yo.
 - **Web 9.2:** teclado y Lighthouse. Se hizo contra una API simulada con la forma del contrato y falta repetirla contra la API real.
+
+### Correcciones tras la integración
+
+Decidí alinear los textos de las specs con el paquete de diseño y corregir el contrato en ese momento, con una versión 1.1.0.
+
+**Textos.** Los escenarios de `web-app` ahora citan el mensaje de `problemMessage` más el dato variable que agrega la web, igual que ya hacía `mobile-app`.
+
+**Change `contract-v1-1`** (5 tareas, TDD):
+- **Salida CommonJS.** Primero se amplió la prueba de humo para que cree un cliente y haga una petición con `import` y con `require`; falló con `require`. Después se corrigió el interop con el `default` de openapi-fetch. Pasa en Node 20, 22 y 24.
+- **`ProblemError.retryAfter`.** Las pruebas cubren `300`, la ausencia del header y cinco valores inválidos. Una mutación temporal con un parser permisivo hizo fallar los casos `-5` y `1.5`.
+- **Clientes.** Web y móvil eliminaron sus middlewares y leen `error.retryAfter`. Sus pruebas de WEB-12 y MOB-01 pasaron sin cambios. Quitar `retryAfter` del camino hizo fallar esas pruebas.
+
+**Errores de la AI en esta parte:**
+- **Una tubería volvió a ocultar un código de salida.** `check:version | tail` mostró `exit: 0` con las versiones desalineadas. La AI lo notó y repitió la verificación sin la tubería, que sí dio 1.
+- **Perdió una edición sin commit.** Para revertir una mutación en `action.ts` usó `git checkout`, que también descartó su propia edición sin commit de ese archivo. Lo detectó al revisar el archivo y la volvió a aplicar. Las mutaciones siguientes se revirtieron desde una copia del archivo.
+
+**Hallazgo de npm.** Al reinstalar el paquete con `file:`, npm instala la versión nueva pero conserva la anterior en el lockfile, porque la ruta no cambia. Se actualizó con `npm install @devchrisvaz/wallet-contract@file:../contract`.
