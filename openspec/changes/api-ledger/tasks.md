@@ -72,7 +72,7 @@
 
 ## 8. Transferencias: consulta
 
-- [ ] 8.1 [api] Endpoint `GET /transfers/{transferId}` (`getTransfer`) como comprobante, con `destination.displayName`, `clabeLast4`, estado `EXPIRED` calculado y 404 para transferencias de otros usuarios (TRF-26, TRF-19)
+- [x] 8.1 [api] Endpoint `GET /transfers/{transferId}` (`getTransfer`) como comprobante, con `destination.displayName`, `clabeLast4`, estado `EXPIRED` calculado y 404 para transferencias de otros usuarios (TRF-26, TRF-19)
 - [ ] 8.2 [api] Pruebas de integración del comprobante propio y del 404 ajeno (TRF-26)
 
 ## 9. Historial de movimientos

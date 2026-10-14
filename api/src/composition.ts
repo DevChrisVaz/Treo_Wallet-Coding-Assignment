@@ -48,6 +48,7 @@ import { FundAccount } from './modules/transfers/application/fund-account.js';
 import { TransferDestinationResolver } from './modules/transfers/application/destination-resolver.js';
 import { ConfirmTransfer } from './modules/transfers/application/confirm-transfer.js';
 import { CreateTransfer } from './modules/transfers/application/create-transfer.js';
+import { GetTransfer } from './modules/transfers/application/get-transfer.js';
 import { ResendTransferOtp } from './modules/transfers/application/resend-transfer-otp.js';
 import { IdempotencyGate } from './modules/transfers/application/idempotency-gate.js';
 import { TransferLocker } from './modules/transfers/application/transfer-locker.js';
@@ -109,6 +110,7 @@ export interface Container {
     readonly createTransfer: CreateTransfer;
     readonly confirmTransfer: ConfirmTransfer;
     readonly resendTransferOtp: ResendTransferOtp;
+    readonly getTransfer: GetTransfer;
   };
   readonly ledger: {
     readonly fundAccount: FundAccount;
@@ -276,6 +278,7 @@ export async function createContainer(
         details: transferDetails,
         otpMail,
       }),
+      getTransfer: new GetTransfer({ details: transferDetails, clock, otpPolicy }),
     },
     ledger: {
       fundAccount: new FundAccount({
