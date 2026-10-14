@@ -19,6 +19,11 @@ export interface AppShellProps {
   primaryAction?: ReactNode;
   user: { name: string; email: string };
   onLogout?: () => void;
+  /**
+   * Cierre de sesión en curso: los botones de la navegación lateral y del menú de la cuenta muestran
+   * "Cerrando…", ocupados y deshabilitados (WEB-05).
+   */
+  loggingOut?: boolean;
   /** `flow`: el flujo de transferencia, sin barra de pestañas ni encabezado de la app en teléfono. */
   mode?: 'tabs' | 'flow';
   items?: readonly NavItem[];
@@ -36,6 +41,7 @@ export function AppShell({
   primaryAction,
   user,
   onLogout,
+  loggingOut,
   mode = 'tabs',
   items = DEFAULT_NAV_ITEMS,
   children,
@@ -49,6 +55,7 @@ export function AppShell({
         current={current}
         user={user}
         onLogout={onLogout}
+        loggingOut={loggingOut}
         className="hidden dashboard:flex"
       />
       <div className="w-full min-w-0 dashboard:px-10">
@@ -58,6 +65,7 @@ export function AppShell({
               user={user}
               title={current === 'home' ? undefined : title}
               onLogout={onLogout}
+              loggingOut={loggingOut}
               className="dashboard:hidden"
             />
           ) : null}

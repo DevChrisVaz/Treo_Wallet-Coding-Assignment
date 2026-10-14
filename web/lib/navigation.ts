@@ -64,7 +64,7 @@ export function appSection(pathname: string): AppSection {
       primary: 'transfer',
     };
   }
-  if (pathname.startsWith('/beneficiaries')) {
+  if (pathname === '/beneficiaries' || pathname.startsWith('/beneficiaries/')) {
     return {
       current: 'beneficiaries',
       title: 'Beneficiarios',

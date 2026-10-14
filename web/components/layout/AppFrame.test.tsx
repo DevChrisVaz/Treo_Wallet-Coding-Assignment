@@ -130,6 +130,26 @@ describe('AppFrame', () => {
     expect(logoutMock).toHaveBeenCalledTimes(1);
   });
 
+  it('WEB-05 mientras se cierra la sesión, los dos botones muestran "Cerrando…", ocupados y deshabilitados', async () => {
+    logoutMock.mockReturnValue(new Promise(() => undefined));
+    const user = userEvent.setup();
+    renderFrame('/');
+
+    await user.click(screen.getByRole('button', { name: 'Menú de la cuenta' }));
+    const sheet = screen.getByRole('dialog', { name: 'Tu cuenta' });
+    await user.click(within(sheet).getByRole('button', { name: 'Cerrar sesión' }));
+
+    for (const region of [sideNav(), sheet]) {
+      const button = within(region).getByRole('button', { name: 'Cerrando…' });
+      expect(button).toBeDisabled();
+      expect(button).toHaveAttribute('aria-busy', 'true');
+      expect(
+        within(region).queryByRole('button', { name: 'Cerrar sesión' }),
+      ).not.toBeInTheDocument();
+    }
+    expect(logoutMock).toHaveBeenCalledTimes(1);
+  });
+
   it('WEB-23 la estructura de la app no tiene problemas de accesibilidad', async () => {
     const { container } = renderFrame('/');
     // jsdom no aplica `display: none`: las dos navegaciones y los dos encabezados están a la vez en el DOM

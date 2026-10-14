@@ -10,6 +10,8 @@ export interface SideNavProps {
   current: NavDestination | null;
   user: { name: string; email: string };
   onLogout?: () => void;
+  /** Cierre de sesión en curso: el botón muestra "Cerrando…", ocupado y deshabilitado (WEB-05). */
+  loggingOut?: boolean;
   className?: string;
 }
 
@@ -18,7 +20,14 @@ const ITEM =
   'flex min-h-11 items-center gap-3 rounded-md px-3 text-label focus-visible:outline-accent-on-dark';
 
 /** Navegación lateral del dashboard (WEB-26): verde profundo, destino actual en lima. */
-export function SideNav({ items, current, user, onLogout, className = '' }: SideNavProps) {
+export function SideNav({
+  items,
+  current,
+  user,
+  onLogout,
+  loggingOut = false,
+  className = '',
+}: SideNavProps) {
   return (
     <aside
       className={`sticky top-0 h-dvh w-sidebar shrink-0 flex-col gap-8 bg-surface-hero px-4 py-6 text-fg-on-inverse ${className}`.trim()}
@@ -58,10 +67,12 @@ export function SideNav({ items, current, user, onLogout, className = '' }: Side
           <button
             type="button"
             onClick={onLogout}
-            className={`${ITEM} text-fg-on-hero-muted hover:bg-fg-on-inverse/10 hover:text-fg-on-inverse`}
+            disabled={loggingOut}
+            aria-busy={loggingOut || undefined}
+            className={`${ITEM} text-fg-on-hero-muted enabled:hover:bg-fg-on-inverse/10 enabled:hover:text-fg-on-inverse disabled:cursor-not-allowed`}
           >
             <Icon name="logout" />
-            Cerrar sesión
+            {loggingOut ? 'Cerrando…' : 'Cerrar sesión'}
           </button>
         ) : null}
       </div>

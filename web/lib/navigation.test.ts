@@ -75,6 +75,7 @@ describe('appSection', () => {
         primary: 'transfer',
       },
     ],
+    ['/beneficiariesx', { current: 'home', title: 'Inicio', mode: 'tabs', primary: 'transfer' }],
   ] as const)('WEB-26 WEB-27 %s tiene su destino, su título y su forma', (path, expected) => {
     expect(appSection(path)).toEqual(expected);
   });
