@@ -12,7 +12,6 @@ import { Button, buttonClasses } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { InlineAlert } from '@/components/ui/InlineAlert';
 import { ListSection } from '@/components/ui/ListSection';
-import { TONE_CLASSES } from '@/lib/conventions';
 import { describeError, describeProblem } from '@/lib/client/problem-messages';
 import { queryKeys } from '@/lib/client/query-keys';
 import { scheduledTransfersKey, useScheduledTransfers } from '@/lib/client/scheduled-transfers';
@@ -218,10 +217,13 @@ export function ScheduledTransfersScreen() {
 
   return (
     <>
-      {/* La región de anuncio existe siempre (WEB-23); vacía queda fuera del flujo y no suma espacio. */}
+      {/* La región de anuncio existe siempre (WEB-23); vacía queda fuera del flujo y no suma espacio.
+          A la vista, el aviso de éxito del kit, sin rol propio: lo anuncia esta región. */}
       <div role="status" aria-live="polite" className={announcement ? undefined : 'sr-only'}>
         {announcement ? (
-          <p className={`rounded-md p-4 text-body-sm ${TONE_CLASSES.success}`}>{announcement}</p>
+          <InlineAlert tone="success" announce={false}>
+            {announcement}
+          </InlineAlert>
         ) : null}
       </div>
       {pageError ? (

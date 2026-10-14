@@ -308,6 +308,9 @@ describe('ScheduledTransfersScreen · cancelar', () => {
     const status = screen.getByRole('status');
     expect(status).toHaveAttribute('aria-live', 'polite');
     expect(status).toHaveTextContent('Transferencia cancelada');
+    // A la vista, el aviso de éxito del kit (InlineAlert con su icono), sin un segundo rol.
+    expect(status.firstElementChild).toHaveClass('bg-success-soft', 'text-success');
+    expect(status.querySelector('svg.lucide-circle-check')).not.toBeNull();
   });
 
   it('WEB-34 con doble clic en la confirmación llama a cancelTransfer una sola vez', async () => {

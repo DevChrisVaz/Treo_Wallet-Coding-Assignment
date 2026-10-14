@@ -13,6 +13,11 @@ export interface InlineAlertProps {
   children?: ReactNode;
   /** Mueve el foco a la alerta al aparecer, para anunciar un error de operación (WEB-23). */
   focusOnMount?: boolean;
+  /**
+   * `false`: sin rol propio, para ponerla dentro de una región viva que ya existe en la página (la
+   * región la anuncia; un segundo rol la duplicaría). Por omisión, `true`.
+   */
+  announce?: boolean;
   className?: string;
 }
 
@@ -22,6 +27,7 @@ export function InlineAlert({
   title,
   children,
   focusOnMount = false,
+  announce = true,
   className = '',
 }: InlineAlertProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -33,7 +39,7 @@ export function InlineAlert({
   return (
     <div
       ref={ref}
-      role={tone === 'danger' ? 'alert' : 'status'}
+      role={announce ? (tone === 'danger' ? 'alert' : 'status') : undefined}
       tabIndex={focusOnMount ? -1 : undefined}
       className={`flex gap-3 rounded-md p-4 text-body-sm ${TONE_CLASSES[tone]} ${className}`.trim()}
     >
