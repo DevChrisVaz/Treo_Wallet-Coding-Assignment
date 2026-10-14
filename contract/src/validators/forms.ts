@@ -2,6 +2,7 @@ import * as z from 'zod';
 import { amountInput } from './amount';
 import { clabe } from './clabe';
 import { curp } from './curp';
+import { schedulableRange, scheduledDate, scheduledDateWithin } from './dates';
 import { addFieldIssue, textField } from './field-errors';
 import { concept, otpCode, phone, reference } from './fields';
 import { rfc } from './rfc';
@@ -74,11 +75,22 @@ export const transferDestination = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('BENEFICIARY'), beneficiaryId: uuid }),
 ]);
 
-/** Formulario de transferencia (`CreateTransferRequest`). */
+/**
+ * Formulario de transferencia (`CreateTransferRequest`). Valida la fecha programada igual que el
+ * contrato (patrón y calendario); el rango depende de la hora, así que lo agrega `transferFormAt`.
+ */
 export const transferForm = z.strictObject({
   fromAccountId: uuid,
   destination: transferDestination,
   amount: amountInput,
   concept,
   reference,
+  scheduledFor: scheduledDate.optional(),
 });
+
+/** `transferForm` con la fecha programada limitada al rango programable del instante (CTR-18). */
+export function transferFormAt(instant: Date) {
+  return transferForm.extend({
+    scheduledFor: scheduledDateWithin(schedulableRange(instant)).optional(),
+  });
+}

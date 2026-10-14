@@ -1,3 +1,5 @@
+import { addFieldIssue, textField, type FieldContext } from './field-errors';
+
 /** Indica si la fecha existe en el calendario gregoriano (considera años bisiestos). */
 export function isValidCalendarDate(year: number, month: number, day: number): boolean {
   if (month < 1 || month > 12 || day < 1) return false;
@@ -47,4 +49,40 @@ function addDays(date: string, days: number): string {
 export function schedulableRange(instant: Date): { min: string; max: string } {
   const today = mexicoCityDate(instant);
   return { min: addDays(today, 1), max: addDays(today, MAX_SCHEDULE_DAYS) };
+}
+
+const SCHEDULED_DATE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
+
+/** Revisa el patrón y el calendario de una fecha `YYYY-MM-DD`; reporta el error y dice si pasó. */
+function checkCalendarDate(value: string, ctx: FieldContext): boolean {
+  if (!SCHEDULED_DATE.test(value)) {
+    addFieldIssue(ctx, 'INVALID_FORMAT', 'La fecha debe tener la forma AAAA-MM-DD');
+    return false;
+  }
+  const [year, month, day] = value.split('-').map(Number) as [number, number, number];
+  if (!isValidCalendarDate(year, month, day)) {
+    addFieldIssue(ctx, 'INVALID_DATE', 'La fecha no existe');
+    return false;
+  }
+  return true;
+}
+
+/** Fecha programada (`ScheduledDate`): patrón del contrato y fecha real del calendario. */
+export const scheduledDate = textField('La fecha es obligatoria', (value, ctx) => {
+  checkCalendarDate(value, ctx);
+});
+
+/** Fecha programada dentro de un rango (`DATE_OUT_OF_RANGE` si queda fuera). */
+export function scheduledDateWithin(range: { min: string; max: string }) {
+  return textField('La fecha es obligatoria', (value, ctx) => {
+    if (!checkCalendarDate(value, ctx)) return;
+    // Las fechas `YYYY-MM-DD` válidas se comparan bien como texto.
+    if (value < range.min || value > range.max) {
+      addFieldIssue(
+        ctx,
+        'DATE_OUT_OF_RANGE',
+        'Elige una fecha entre mañana y 90 días después de hoy',
+      );
+    }
+  });
 }

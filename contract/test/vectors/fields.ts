@@ -50,3 +50,20 @@ export const otpVectors: Vector[] = [
   { input: 123456, valid: false, code: 'INVALID_TYPE' },
   { input: '', valid: false, code: 'REQUIRED' },
 ];
+
+/**
+ * Esquema `ScheduledDate` del contrato (CTR-13). El patrón no sabe de calendario: una fecha que no
+ * existe pasa el patrón y solo el paquete la rechaza.
+ */
+export const scheduledDateVectors: Vector[] = [
+  { input: '2026-10-20', valid: true },
+  { input: '2028-02-29', valid: true, note: 'año bisiesto' },
+  { input: '2026-02-30', valid: false, code: 'INVALID_DATE', contractValid: true },
+  { input: '2027-02-29', valid: false, code: 'INVALID_DATE', contractValid: true },
+  { input: '2026-13-01', valid: false, code: 'INVALID_DATE', contractValid: true },
+  { input: '2026-10-20T00:00:00Z', valid: false, code: 'INVALID_FORMAT', note: 'con hora' },
+  { input: '20-10-2026', valid: false, code: 'INVALID_FORMAT' },
+  { input: '2026-1-5', valid: false, code: 'INVALID_FORMAT' },
+  { input: 20261020, valid: false, code: 'INVALID_TYPE' },
+  { input: '', valid: false, code: 'REQUIRED' },
+];
