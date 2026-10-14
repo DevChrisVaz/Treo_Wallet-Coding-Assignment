@@ -1,5 +1,6 @@
 /** Inventario de componentes del sistema de diseño (design-system, D7), con tokens del tema. */
 export { AccountCard } from './account-card';
+export { AppHeader } from './app-header';
 export { BottomSheet } from './bottom-sheet';
 export { AmountField } from './amount-field';
 export { Avatar, initials } from './avatar';
@@ -22,5 +23,6 @@ export { OptionRow, Select, type SelectOption } from './select';
 export { Skeleton } from './skeleton';
 export { StatusBadge } from './status-badge';
 export { Stepper } from './stepper';
+export { TabBar } from './tab-bar';
 export { TextField, type TextFieldProps } from './text-field';
 export { Wordmark } from './wordmark';
