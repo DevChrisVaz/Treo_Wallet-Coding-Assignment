@@ -51,7 +51,7 @@
 - [x] 6.4 [api] Bloqueos en orden global: fila contador (solo `THIRD_PARTY`), cuentas `ORDER BY id FOR NO KEY UPDATE` con propiedad en la misma sentencia, hora tomada después de los bloqueos y reintento único si el día cambió durante la espera (TRF-06, TRF-12, TRF-13, TRF-24)
 - [x] 6.5 [api] Validaciones de negocio bajo bloqueo y rechazo persistido como `REJECTED` con motivo, 422 con `transferId` (y `remaining` en límite) y evento `TRANSFER_REJECTED` (TRF-10, TRF-11, TRF-25)
 - [x] 6.6 [api] Camino inmediato (monto ≤ umbral): asientos, saldos, contador, `COMPLETED`, eventos `TRANSFER_CREATED` y `TRANSFER_COMPLETED` en la misma transacción, respuesta 201 (TRF-01, TRF-21, TRF-22, TRF-25)
-- [ ] 6.7 [api] Endpoint `POST /transfers` (`createTransfer`) que solo traduce HTTP y delega en el caso de uso (TRF-01)
+- [x] 6.7 [api] Endpoint `POST /transfers` (`createTransfer`) que solo traduce HTTP y delega en el caso de uso (TRF-01)
 - [ ] 6.8 [api] Pruebas de integración de creación: a beneficiario y a cuenta propia, saldo exacto, saldo insuficiente con `REJECTED` y saldo intacto, misma cuenta (422), monto `"100.005"`, número JSON, `"0.00"` y `"1250.5"` → 125050 centavos, referencia con letras, sin llave, la validación no consume la llave (TRF-01, TRF-02, TRF-07, TRF-08, TRF-09, TRF-10)
 - [ ] 6.9 [api] Pruebas de integración de idempotencia: doble envío (una transferencia, 200 con `Idempotent-Replayed`), respuesta perdida y reintento, rechazo reintentado tras fondear (mismo 422), llave con otro monto (422 `IDEMPOTENCY_KEY_REUSED`), `"100.5"` contra `"100.50"` (TRF-03, TRF-04)
 - [ ] 6.10 [api] Pruebas de integración IDOR: origen ajeno, `OWN_ACCOUNT` ajena, beneficiario ajeno y Tesorería como destino responden 404 sin cambiar saldos (TRF-06, ACC-16)

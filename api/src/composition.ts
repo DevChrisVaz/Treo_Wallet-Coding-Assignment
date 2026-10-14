@@ -51,6 +51,7 @@ import { IdempotencyGate } from './modules/transfers/application/idempotency-gat
 import { TransferLocker } from './modules/transfers/application/transfer-locker.js';
 import { toTransferView } from './modules/transfers/application/transfer-view.js';
 import { PgTransferDetails } from './modules/transfers/infrastructure/pg-transfer-details.js';
+import { transferRoutes } from './modules/transfers/infrastructure/http/routes.js';
 import { businessDayOf } from './shared/business-day.js';
 import { Money } from './shared/money.js';
 import { LedgerPoster } from './modules/transfers/application/ledger-poster.js';
@@ -268,6 +269,7 @@ export function createApp(container: Container): Express {
     identityRoutes(container.identity, authenticateRequest, container.clock),
     accountRoutes(container.accounts, authenticateRequest),
     beneficiaryRoutes(container.beneficiaries, authenticateRequest, container.clock),
+    transferRoutes(container.transfers, authenticateRequest),
   ];
   for (const table of tables) assertPublicRoutesAllowed(table.table);
   return createHttpApp({
