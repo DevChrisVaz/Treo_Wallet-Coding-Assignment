@@ -25,13 +25,9 @@
 
 ## 3. README raíz
 
-- [ ] 3.1 [docs] Escribir la introducción, la estructura de los cuatro proyectos independientes y la justificación de las desviaciones del enunciado (sin `/specs`, sin monorepo, web con BFF en lugar de S3 + CloudFront)
-- [ ] 3.2 [docs] Escribir el arranque local en orden (bootstrap, migraciones, seed de 100k, API, Mailpit, Swagger UI, web, app móvil con Expo Go o simulador apuntando a la API local) tomando comandos y puertos reales de los README de cada proyecto, y listar los usuarios demo del seed (PLT, MOB)
-- [ ] 3.3 [docs] Escribir cómo correr las pruebas de cada proyecto, incluidas las de integración contra PostgreSQL real y la de concurrencia de 100 transferencias (TRF)
-- [ ] 3.4 [docs] Escribir el Mapa de la especificación: tabla HU1–HU6 → IDs de requisito → change → secciones de tareas, con enlace a `docs/traceability.md` y a `openspec/specs/` (todas las capabilities)
-- [ ] 3.5 [docs] Escribir la sección de decisiones clave con enlaces a los `design.md` de cada change (archivados)
-- [ ] 3.6 [docs] Escribir "Qué haría con más tiempo": tabla genérica `idempotency_keys`, recuperar el intento tras matar la app, retención de fondos durante el OTP, ventana móvil de 24 h para el límite, outbox para correos, Pact y política de versiones del contrato, encadenamiento por hash de la auditoría, cifrado por columna con índice ciego, OTP o espera al agregar beneficiarios, KYC y mayoría de edad, recuperación de contraseña y cierre de todas las sesiones, biometría, política de redondeo para comisiones, publicación del contrato en GitHub Packages al separar repositorios
-- [ ] 3.7 [docs] Escribir la nota de alcance: se aceptó exceder las 10–14 h estimadas, con la razón, y enlazar a la entrada correspondiente del ai-log
+- [ ] 3.1 [docs] README raíz único que reúne la información de los README de los cinco proyectos en secciones comunes: qué incluye, estructura y desviaciones del enunciado (sin `/specs`, sin monorepo, web con BFF en lugar de S3 + CloudFront), arquitectura, requisitos, instalación de todos los proyectos, configuración, ejecución en local con los usuarios demo, pruebas (incluidas las de integración contra PostgreSQL real y las de concurrencia), scripts, cómo funciona, verificaciones manuales, especificación y avisos conocidos; la nota de alcance enlazada al ai-log y, al final, una sola sección "¿Qué haría con más tiempo?" con la lista acordada actualizada. Los README de cada proyecto se conservan (PLT, MOB, TRF)
+- [ ] 3.2 [docs] Escribir el Mapa de la especificación: tabla HU1–HU6 → IDs de requisito → change → secciones de tareas, con enlace a `docs/traceability.md` y a `openspec/specs/` (todas las capabilities)
+- [ ] 3.3 [docs] Escribir la sección de decisiones clave con enlaces a los `design.md` de cada change (archivados)
 
 ## 4. Bitácora de AI y video
 
