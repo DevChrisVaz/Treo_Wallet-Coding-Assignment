@@ -11,3 +11,7 @@
 ## 3. Móvil
 
 - [x] 3.1 [mobile] Reinstalar el paquete 1.1.0 y reemplazar `retryAfterMiddleware` y `retryAfterSeconds` por `error.retryAfter`; las pruebas de MOB-01 siguen pasando (MOB-01, CTR-07)
+
+## 4. API
+
+- [x] 4.1 [api] Al integrar la rama de la API, reinstalar el paquete 1.1.0 en `/api` y actualizar su lockfile; sus pruebas siguen pasando (CTR-02)
