@@ -33,7 +33,7 @@ Las pantallas reales (`web/app`, `web/components/{auth,accounts,beneficiaries,tr
 ### D2. Estructura: forma de app y forma de *dashboard*
 
 **Forma de app** (app móvil, y la web por debajo de 1024 px):
-- Barra de pestañas inferior: **Inicio · Movimientos · Transferir**; la web agrega **Beneficiarios** como cuarta pestaña. La pestaña actual se marca con el verde de acción y un indicador lima.
+- Barra de pestañas inferior: **Inicio · Movimientos · Transferir**; la web agrega **Beneficiarios** como cuarta pestaña. La pestaña actual lleva su icono en lima dentro de una píldora verde profundo (lima sobre oscuro, D4) y su etiqueta en el verde de acción.
 - Encabezado de Inicio con saludo ("Hola, Ana") y un avatar con las iniciales que abre el menú con "Cerrar sesión".
 - El flujo de transferencia ocupa la pantalla completa y oculta la barra de pestañas.
 - Entre 480 y 1023 px la forma de app se centra en una columna de 480 px para que no se estire en tabletas.

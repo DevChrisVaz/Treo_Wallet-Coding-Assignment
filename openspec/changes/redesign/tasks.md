@@ -31,8 +31,8 @@
 
 ## 5. Pantallas en los lienzos y revisión
 
-- [ ] 5.1 [web] Historias rediseñadas de todas las pantallas web (mismos nombres que el mapa vigente), verificadas a 1280 px y a 390 px (WEB-24, WEB-26, WEB-27, WEB-28, WEB-29, WEB-30, WEB-31)
-- [ ] 5.2 [mobile] Historias rediseñadas de todas las pantallas móviles a 390×844 (MOB-18, MOB-19, MOB-20, MOB-21, MOB-22)
+- [ ] 5.1 [web] Historias rediseñadas de todas las pantallas web, con el mismo nombre que su pantalla equivalente en móvil (`Home`, `TransferReview`, …) para que el lienzo de paridad las empareje, verificadas a 1280 px y a 390 px (WEB-24, WEB-26, WEB-27, WEB-28, WEB-29, WEB-30, WEB-31)
+- [ ] 5.2 [mobile] Historias rediseñadas de todas las pantallas móviles a 390×844, con los mismos nombres compartidos que la web (MOB-18, MOB-19, MOB-20, MOB-21, MOB-22)
 - [ ] 5.3 [web] Lienzo de paridad (escritorio, web a 390×844 y móvil a 390×844 por pantalla, con superposición) y captura comparada de todas las parejas equivalentes (WEB-25)
 - [ ] 5.4 [docs] Revisión visual con el usuario en los lienzos; iterar hasta la aprobación y registrar en `design.md` los valores y decisiones abiertas que se cerraron (DSG-13, DSG-16, WEB-25)
 
