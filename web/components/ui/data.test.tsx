@@ -38,12 +38,26 @@ describe('AccountCard', () => {
     render(<AccountCard account={AHORRO} onSelect={vi.fn()} />);
     const card = screen.getByRole('article', { name: 'Ahorro' });
     expect(card).toHaveClass('border-2', 'border-transparent', 'gap-1');
-    // Los controles conservan los 44 px de área táctil sin agrandar la fila.
-    expect(screen.getByRole('button', { name: 'Ahorro' })).toHaveClass('min-h-11', '-my-3');
-    expect(screen.getByRole('button', { name: 'Mostrar CLABE de Ahorro' })).toHaveClass(
-      'min-h-11',
-      '-my-3.5',
-    );
+  });
+
+  it('WEB-25 toda la tarjeta selecciona y el botón de la CLABE queda encima con su área de 44 px', () => {
+    render(<AccountCard account={AHORRO} onSelect={vi.fn()} />);
+    expect(screen.getByRole('article', { name: 'Ahorro' })).toHaveClass('relative');
+    // El botón del nombre sigue dentro del h3 (R2) y se estira sobre la tarjeta (R31).
+    const select = screen.getByRole('button', { name: 'Ahorro' });
+    expect(select.closest('h3')).not.toBeNull();
+    expect(select).toHaveClass('after:absolute', 'after:-inset-0.5');
+    expect(select).not.toHaveClass('-my-3');
+    const toggle = screen.getByRole('button', { name: 'Mostrar CLABE de Ahorro' });
+    expect(toggle).toHaveClass('relative', 'z-10', 'after:h-11');
+    expect(toggle).not.toHaveClass('-my-3.5');
+  });
+
+  it('WEB-13 la CLABE completa queda sobre el área de selección para poder copiarla', async () => {
+    const user = userEvent.setup();
+    render(<AccountCard account={AHORRO} onSelect={vi.fn()} />);
+    await user.click(screen.getByRole('button', { name: 'Mostrar CLABE de Ahorro' }));
+    expect(screen.getByText(`CLABE ${AHORRO.clabe}`)).toHaveClass('relative', 'z-10');
   });
 
   it('WEB-28 la tarjeta seleccionable anuncia su estado', async () => {

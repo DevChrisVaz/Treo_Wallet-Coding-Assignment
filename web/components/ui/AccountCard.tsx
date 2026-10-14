@@ -17,8 +17,11 @@ export interface AccountCardProps {
  * saldo en `h2` con dígitos tabulares. La CLABE completa se puede mostrar para compartirla.
  *
  * Mide lo mismo que la tarjeta de la app móvil (WEB-25): borde de 2 px (transparente o, si está
- * seleccionada, el anillo en verde de acción), 4 px entre filas y controles de 44 px que devuelven
- * con margen negativo el alto que no ocupa su línea de texto.
+ * seleccionada, el anillo en verde de acción) y 4 px entre filas. Con `onSelect`, toda la tarjeta
+ * selecciona, como el Pressable de la app móvil: el botón del nombre (dentro del `h3`, R2) se estira
+ * sobre la tarjeta con un `::after` (R31). Lo que debe seguir siendo propio va encima (`z-10`): el
+ * botón de la CLABE, con su área de 44 px en otro `::after`, la CLABE completa (para copiarla) y las
+ * acciones de la tarjeta.
  */
 export function AccountCard({ account, selected = false, onSelect, children }: AccountCardProps) {
   const titleId = useId();
@@ -29,7 +32,7 @@ export function AccountCard({ account, selected = false, onSelect, children }: A
   return (
     <article
       aria-labelledby={titleId}
-      className={`grid gap-1 rounded-md border-2 bg-surface p-5 shadow-card ${selected ? 'border-action' : 'border-transparent'}`}
+      className={`relative grid gap-1 rounded-md border-2 bg-surface p-5 shadow-card ${selected ? 'border-action' : 'border-transparent'}`}
     >
       <h3 id={titleId} className="text-label text-fg">
         {onSelect ? (
@@ -38,7 +41,7 @@ export function AccountCard({ account, selected = false, onSelect, children }: A
             aria-pressed={selected}
             aria-describedby={balanceId}
             onClick={onSelect}
-            className="-my-3 min-h-11 text-left"
+            className="text-left after:absolute after:-inset-0.5 after:rounded-md"
           >
             {account.name}
           </button>
@@ -47,7 +50,10 @@ export function AccountCard({ account, selected = false, onSelect, children }: A
         )}
       </h3>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <p id={clabeId} className="text-caption text-fg-secondary tabular-nums">
+        <p
+          id={clabeId}
+          className={`text-caption text-fg-secondary tabular-nums ${showClabe ? 'relative z-10' : ''}`.trim()}
+        >
           {showClabe ? (
             `CLABE ${account.clabe}`
           ) : (
@@ -65,7 +71,7 @@ export function AccountCard({ account, selected = false, onSelect, children }: A
           aria-controls={clabeId}
           aria-label={`${showClabe ? 'Ocultar' : 'Mostrar'} CLABE de ${account.name}`}
           onClick={() => setShowClabe((value) => !value)}
-          className="-my-3.5 min-h-11 rounded-sm px-1 text-caption text-action underline underline-offset-2"
+          className="relative z-10 rounded-sm px-1 text-caption text-action underline underline-offset-2 after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2"
         >
           {showClabe ? 'Ocultar CLABE' : 'Mostrar CLABE'}
         </button>
@@ -73,7 +79,7 @@ export function AccountCard({ account, selected = false, onSelect, children }: A
       <p id={balanceId} className="text-h2 text-fg tabular-nums">
         {formatMXN(account.balance)}
       </p>
-      {children ? <div className="flex flex-wrap gap-2 pt-1">{children}</div> : null}
+      {children ? <div className="relative z-10 flex flex-wrap gap-2 pt-1">{children}</div> : null}
     </article>
   );
 }
