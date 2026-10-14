@@ -1,7 +1,7 @@
 import { problemMessage } from '@devchrisvaz/wallet-design-tokens';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { confirmTransfer, createTransfer, resendTransferOtp } from '@/app/actions/transfers';
 import { bffGet } from '@/lib/client/bff';
 import { pendingOtpTransfer, problem, transfer } from '@/test/fixtures';
@@ -152,5 +152,84 @@ describe('TransferFlow · flujo completo', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Iniciar una nueva transferencia' }));
     expect(screen.getByLabelText('Monto')).toHaveValue('');
+  });
+});
+
+describe('TransferFlow · programar', () => {
+  // 14 de octubre de 2026, 12:00 en la Ciudad de México.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-14T18:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('WEB-33 programar 1000.00 a Luis el 20 de octubre: la revisión lo dice y el resultado es "Transferencia programada" con la insignia, la fecha y el enlace', async () => {
+    const scheduled = transfer({
+      status: 'SCHEDULED',
+      amount: '1000.00',
+      scheduledFor: '2026-10-20',
+      completedAt: null,
+    });
+    createMock.mockResolvedValue({ ok: true, data: { transfer: scheduled, replayed: false } });
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+
+    await fillTransfer(user, '1,000', '2026-10-20');
+    expect(
+      await screen.findByRole('region', { name: 'Confirma la transferencia' }),
+    ).toHaveTextContent('Se enviará el 20 de octubre de 2026');
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+
+    const heading = await screen.findByRole('heading', { name: 'Transferencia programada' });
+    expect(heading).toHaveFocus();
+    expect(
+      screen.queryByRole('heading', { name: 'Transferencia enviada' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Se enviará el 20 de octubre de 2026\./)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'tus transferencias programadas' })).toHaveAttribute(
+      'href',
+      '/transfers/scheduled',
+    );
+    const receipt = screen.getByRole('region', { name: 'Comprobante' });
+    expect(within(receipt).getByText('Programada')).toBeVisible();
+    expect(receipt).toHaveTextContent('$1,000.00');
+    expect(receipt).toHaveTextContent('Programada para20 de octubre de 2026');
+    expect(createMock.mock.calls[0]?.[0]).toMatchObject({ scheduledFor: '2026-10-20' });
+  });
+
+  it('WEB-33 WEB-18 programada mayor al umbral: tras el código correcto muestra "Transferencia programada" y no "Transferencia enviada"', async () => {
+    const pending = pendingOtpTransfer({ scheduledFor: '2026-10-20' });
+    const scheduled = transfer({
+      status: 'SCHEDULED',
+      amount: '15000.00',
+      requiresOtp: true,
+      scheduledFor: '2026-10-20',
+      completedAt: null,
+    });
+    createMock.mockResolvedValue({ ok: true, data: { transfer: pending, replayed: false } });
+    confirmMock.mockResolvedValue({ ok: true, data: scheduled });
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+
+    await fillTransfer(user, '15,000', '2026-10-20');
+    await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+    expect(createMock.mock.calls[0]?.[0]).toMatchObject({
+      amount: '15000',
+      scheduledFor: '2026-10-20',
+    });
+
+    await user.type(await screen.findByLabelText('Código de 6 dígitos'), '123456');
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+
+    expect(await screen.findByRole('heading', { name: 'Transferencia programada' })).toBeVisible();
+    expect(
+      screen.queryByRole('heading', { name: 'Transferencia enviada' }),
+    ).not.toBeInTheDocument();
+    const receipt = screen.getByRole('region', { name: 'Comprobante' });
+    expect(within(receipt).getByText('Programada')).toBeVisible();
+    expect(receipt).toHaveTextContent('Programada para20 de octubre de 2026');
   });
 });

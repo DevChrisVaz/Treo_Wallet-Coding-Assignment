@@ -104,6 +104,28 @@ describe('Receipt', () => {
     expect(receipt).toHaveTextContent('4f1b0d9c-8a7f-4e6d-9c5b-0d9c8b7a6f5e');
   });
 
+  it('WEB-34 muestra la fecha programada en palabras cuando existe', () => {
+    render(
+      <Receipt
+        transfer={transfer({ status: 'SCHEDULED', scheduledFor: '2026-10-20', completedAt: null })}
+        fromAccount={PRINCIPAL}
+      />,
+    );
+    const receipt = screen.getByRole('region', { name: 'Comprobante' });
+    expect(receipt).toHaveTextContent('Programada para20 de octubre de 2026');
+    expect(within(receipt).getByText('20 de octubre de 2026')).toHaveAttribute(
+      'dateTime',
+      '2026-10-20',
+    );
+  });
+
+  it('WEB-34 una transferencia inmediata no muestra fecha programada', () => {
+    render(<Receipt transfer={transfer()} fromAccount={PRINCIPAL} />);
+    expect(screen.getByRole('region', { name: 'Comprobante' })).not.toHaveTextContent(
+      'Programada para',
+    );
+  });
+
   it('WEB-16 sin los datos de la cuenta de origen muestra su identificador', () => {
     render(<Receipt transfer={transfer()} />);
     expect(screen.getByRole('region', { name: 'Comprobante' })).toHaveTextContent(PRINCIPAL.id);

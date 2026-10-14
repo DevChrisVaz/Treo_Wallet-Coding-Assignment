@@ -83,6 +83,25 @@ describe('ReceiptStep', () => {
     expect(client.getQueryState(queryKeys.accounts)?.isInvalidated).toBe(false);
   });
 
+  it('WEB-33 una programada dice "Transferencia programada" con la fecha y el enlace, y no invalida la caché', () => {
+    const client = clientWithData();
+    renderWithClient(
+      <ReceiptStep
+        transfer={transfer({ status: 'SCHEDULED', scheduledFor: '2026-10-20', completedAt: null })}
+        accounts={OVERVIEW.accounts}
+        onRestart={vi.fn()}
+      />,
+      { client },
+    );
+    expect(screen.getByRole('heading', { name: 'Transferencia programada' })).toBeVisible();
+    expect(screen.getByText(/Se enviará el 20 de octubre de 2026\./)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'tus transferencias programadas' })).toHaveAttribute(
+      'href',
+      '/transfers/scheduled',
+    );
+    expect(client.getQueryState(queryKeys.accounts)?.isInvalidated).toBe(false);
+  });
+
   it('WEB-16 ofrece volver a las cuentas o hacer otra transferencia', async () => {
     const onRestart = vi.fn();
     const user = userEvent.setup();
@@ -135,6 +154,20 @@ describe('TransferDetailScreen', () => {
     expect(receipt).toHaveTextContent('$15,000.00');
     expect(within(receipt).getByText('Completada')).toBeVisible();
   });
+
+  it.each([
+    ['SCHEDULED', 'Programada', null],
+    ['CANCELLED', 'Cancelada', '2026-10-15T17:00:00.000Z'],
+  ] as const)(
+    'WEB-34 el comprobante de una %s muestra la fecha programada y la insignia "%s"',
+    async (status, label, cancelledAt) => {
+      reads(transfer({ status, scheduledFor: '2026-10-20', completedAt: null, cancelledAt }));
+      renderWithClient(<TransferDetailScreen transferId={transfer().id} />);
+      const receipt = await screen.findByRole('region', { name: 'Comprobante' });
+      expect(within(receipt).getByText(label)).toBeVisible();
+      expect(receipt).toHaveTextContent('Programada para20 de octubre de 2026');
+    },
+  );
 
   it('WEB-20 si la lectura falla muestra el error con "Reintentar"', async () => {
     reads(new ProblemError(404, { code: 'NOT_FOUND' }));

@@ -2,14 +2,17 @@
 
 import { formatMXN, type Account, type Beneficiary } from '@devchrisvaz/wallet-contract';
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { AmountField } from '@/components/ui/AmountField';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { TextField } from '@/components/ui/TextField';
-import { transferResolver } from '@/lib/client/transfer-form';
+import type { ActionProblem } from '@/lib/action-result';
+import { serverFieldErrors, transferResolver } from '@/lib/client/transfer-form';
 import type { TransferDraft, TransferFormValues } from '@/lib/client/transfer-flow';
 import { maskClabe } from '@/lib/money';
+import { ScheduleField } from './ScheduleField';
 
 export interface TransferFormProps {
   accounts: Account[];
@@ -19,6 +22,8 @@ export interface TransferFormProps {
   /** Accesos directos desde una cuenta (`?from=`) o un beneficiario (`?beneficiary=`). */
   defaultFromAccountId?: string | undefined;
   defaultBeneficiaryId?: string | undefined;
+  /** Rechazo de validación de la API: sus errores se muestran junto a cada campo (WEB-33). */
+  problem?: ActionProblem | undefined;
   onSubmit: (draft: TransferDraft) => void;
 }
 
@@ -40,6 +45,8 @@ function defaults(props: TransferFormProps): TransferFormValues {
     amount: '',
     concept: '',
     reference: '',
+    when: 'NOW',
+    scheduledFor: '',
   };
 }
 
@@ -48,13 +55,14 @@ function defaults(props: TransferFormProps): TransferFormValues {
  * beneficiario, monto como texto, concepto y referencia. La validación es la del contrato.
  */
 export function TransferForm(props: TransferFormProps) {
-  const { accounts, beneficiaries, onSubmit } = props;
+  const { accounts, beneficiaries, problem, onSubmit } = props;
   const {
     register,
     handleSubmit,
     control,
     setValue,
     getValues,
+    setError,
     formState: { errors },
   } = useForm<TransferFormValues, unknown, TransferDraft>({
     resolver: transferResolver,
@@ -63,6 +71,18 @@ export function TransferForm(props: TransferFormProps) {
 
   const fromAccountId = useWatch({ control, name: 'fromAccountId' });
   const destinationType = useWatch({ control, name: 'destinationType' });
+  const when = useWatch({ control, name: 'when' });
+
+  // Errores de campo que devolvió la API: junto a su campo, con el foco en el primero (WEB-33).
+  useEffect(() => {
+    const entries = Object.entries(serverFieldErrors(problem)) as [
+      keyof TransferFormValues,
+      string,
+    ][];
+    entries.forEach(([field, message], index) => {
+      setError(field, { type: 'server', message }, { shouldFocus: index === 0 });
+    });
+  }, [problem, setError]);
   const origin = accounts.find((account) => account.id === fromAccountId);
   const ownDestinations = accounts.filter((account) => account.id !== fromAccountId);
 
@@ -171,6 +191,12 @@ export function TransferForm(props: TransferFormProps) {
         autoComplete="off"
         error={errors.reference?.message}
         {...register('reference')}
+      />
+      <ScheduleField
+        when={when}
+        whenField={register('when')}
+        dateField={register('scheduledFor')}
+        error={errors.scheduledFor?.message}
       />
       <Button type="submit">Continuar</Button>
     </form>

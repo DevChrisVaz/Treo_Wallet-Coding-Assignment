@@ -23,11 +23,11 @@ Requiere `contract-v1-2` (paquete 1.2.0). La tarea 1.1 va antes de que cualquier
 
 ## 3. Web
 
-- [ ] 3.1 [web] Instalar el contrato 1.2.0 y el paquete de diseño 1.1.0; insignias de los estados nuevos y comprobante con la fecha programada; las pruebas vigentes siguen pasando (WEB-34)
-- [ ] 3.2 [web] Selector "Cuándo" con el rango de `schedulableRange`, validación con `transferFormAt`, revisión con la fecha en palabras, envío de `scheduledFor` con la misma llave, resultado programado (también con OTP) y errores por código; pruebas de componentes y del doble clic (WEB-33)
-- [ ] 3.3 [web] Lista blanca con `transfers/scheduled` y Server Action `cancelTransfer` (origen, validación y resultado como valor); pruebas (WEB-34, WEB-06, WEB-07, WEB-08, WEB-09)
-- [ ] 3.4 [web] Página "Programadas" en la navegación: lista, estado vacío, diálogo de cancelación accesible, anuncio, 409 con recarga de la lista; pruebas de componentes, teclado y `axe` (WEB-34)
-- [ ] 3.5 [web] README de la web con la programación y la página de programadas (WEB-33, WEB-34)
+- [x] 3.1 [web] Instalar el contrato 1.2.0 y el paquete de diseño 1.1.0; insignias de los estados nuevos y comprobante con la fecha programada; las pruebas vigentes siguen pasando (WEB-34)
+- [x] 3.2 [web] Selector "Cuándo" con el rango de `schedulableRange`, validación con `transferFormAt`, revisión con la fecha en palabras, envío de `scheduledFor` con la misma llave, resultado programado (también con OTP) y errores por código; pruebas de componentes y del doble clic (WEB-33)
+- [x] 3.3 [web] Lista blanca con `transfers/scheduled` y Server Action `cancelTransfer` (origen, validación y resultado como valor); pruebas (WEB-34, WEB-06, WEB-07, WEB-08, WEB-09)
+- [x] 3.4 [web] Página "Programadas" en la navegación: lista, estado vacío, diálogo de cancelación accesible, anuncio, 409 con recarga de la lista; pruebas de componentes, teclado y `axe` (WEB-34)
+- [x] 3.5 [web] README de la web con la programación y la página de programadas (WEB-33, WEB-34)
 
 ## 4. Móvil
 

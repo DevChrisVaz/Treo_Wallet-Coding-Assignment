@@ -15,13 +15,20 @@ export function mockTransferReads(mock: ReturnType<typeof vi.mocked<typeof bffGe
   });
 }
 
-/** Llena el formulario con una transferencia a un beneficiario y pasa a la confirmación. */
-export async function fillTransfer(user: User, amount = '5,000') {
+/**
+ * Llena el formulario con una transferencia a un beneficiario y pasa a la confirmación. Con
+ * `scheduledFor`, elige "Programar" y escribe esa fecha (WEB-33).
+ */
+export async function fillTransfer(user: User, amount = '5,000', scheduledFor?: string) {
   await user.selectOptions(await screen.findByLabelText('Cuenta de origen'), PRINCIPAL.id);
   await user.click(screen.getByRole('radio', { name: 'Un beneficiario' }));
   await user.selectOptions(screen.getByLabelText('Beneficiario'), BENEFICIARY.id);
   await user.type(screen.getByLabelText('Monto'), amount);
   await user.type(screen.getByLabelText('Concepto'), 'Renta');
   await user.type(screen.getByLabelText('Referencia'), '1');
+  if (scheduledFor) {
+    await user.click(screen.getByRole('radio', { name: 'Programar' }));
+    await user.type(screen.getByLabelText('Fecha de envío'), scheduledFor);
+  }
   await user.click(screen.getByRole('button', { name: 'Continuar' }));
 }

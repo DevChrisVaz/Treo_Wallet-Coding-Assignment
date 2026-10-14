@@ -11,6 +11,7 @@ const SECTIONS = [
   { href: '/', label: 'Cuentas' },
   { href: '/beneficiaries', label: 'Beneficiarios' },
   { href: '/transfers/new', label: 'Transferir' },
+  { href: '/transfers/scheduled', label: 'Programadas' },
 ] as const;
 
 function isCurrent(pathname: string, href: string): boolean {
