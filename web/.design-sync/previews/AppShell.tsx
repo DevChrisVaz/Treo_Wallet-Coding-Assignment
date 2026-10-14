@@ -272,7 +272,7 @@ export const Home = () => (
           <AccountCard account={ahorro} onSelect={noop} />
         </section>
         <ListSection>
-          <DailyLimitMeter dailyLimit={dailyLimit} />
+          <DailyLimitMeter dailyLimit={dailyLimit} showHeader />
         </ListSection>
       </div>
       <ListSection

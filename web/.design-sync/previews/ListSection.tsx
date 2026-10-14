@@ -27,7 +27,7 @@ export const WithTitleAndAction = () => (
 export const Untitled = () => (
   <div className="max-w-md bg-surface-canvas p-4">
     <ListSection>
-      <DailyLimitMeter dailyLimit={dailyLimit} />
+      <DailyLimitMeter dailyLimit={dailyLimit} showHeader />
     </ListSection>
   </div>
 );
