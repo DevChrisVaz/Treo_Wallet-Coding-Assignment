@@ -410,10 +410,173 @@ Rollback: `db:migrate:revert` en orden inverso; los `down` eliminan triggers, fu
 
 ## EXPLAIN ANALYZE
 
-> **Pendiente:** se llena con la tarea 11.4, después de ejecutar `npm run db:seed`, con la salida real de `EXPLAIN (ANALYZE, BUFFERS)` de estas tres consultas sobre la cuenta "Principal" de Ana (~60k asientos, ~120k en total):
->
-> 1. Primera página sin filtros (`limit` 20).
-> 2. Filtrada por un tipo poco frecuente (`DEPOSIT`).
-> 3. Rango de fechas antiguo (un mes de hace 11 meses), segunda página con cursor.
->
-> Para cada una: el plan, el índice usado, la ausencia de nodo `Sort` y el tiempo de ejecución.
+Capturado con la tarea 11.4 el 2026-10-13 en el PostgreSQL 16.14 del `docker compose` local, después de `npm run db:seed` (120,128 asientos en total, 60,013 en la cuenta "Principal" de Ana; el seed termina con `ANALYZE`). Se ejecutó `EXPLAIN (ANALYZE, BUFFERS)` con el rol de la aplicación sobre el SQL exacto que genera `buildMovementQuery` (el mismo que usa `PgMovementReader`), con `limit` 20, es decir `LIMIT 21`.
+
+| Consulta | Índice del recorrido | Nodo `Sort` | Tiempo de ejecución |
+|---|---|---|---|
+| Primera página sin filtros (limit 20 → LIMIT 21) | `ix_ledger_entries_account_created` | no | 0.771 ms |
+| Filtrada por DEPOSIT (tipo poco frecuente) | `ix_ledger_entries_account_type_created` | no | 0.170 ms |
+| Rango antiguo 2025-11-01 a 2025-11-30, segunda página con cursor | `ix_ledger_entries_account_created` | no | 0.742 ms |
+
+**Hallazgo al capturarlos:** la primera versión de la consulta unía transferencia, asiento opuesto, cuenta, usuario y beneficiario con `JOIN` normales; el planificador eligió un `Hash Left Join` para `users` y tuvo que volver a ordenar al final, así que los tres planes terminaban en un nodo `Sort` (de solo 21 filas, pero HIS-09 pide que no exista). Se cambiaron esos joins por `JOIN LATERAL` sobre la página ya limitada: los `Nested Loop` conservan el orden del recorrido por índice y el `ORDER BY` externo queda satisfecho sin ordenar. La prueba automatizada de planes (tarea 11.5) fija este comportamiento. Las tablas pequeñas (`accounts`, `beneficiaries`) se leen con `Seq Scan` dentro del lateral porque tienen decenas de filas; con más usuarios el planificador pasaría a sus llaves primarias.
+
+### 1. Primera página sin filtros (limit 20 → LIMIT 21)
+
+Recorrido `Index Scan using ix_ledger_entries_account_created` con `Index Cond` sobre la cuenta; el `Limit` corta a las 21 filas (20 + 1 para saber si hay otra página) después de leer 4 páginas del índice.
+
+```text
+Nested Loop Left Join  (cost=5.47..330.46 rows=42 width=200) (actual time=0.082..0.678 rows=21 loops=1)
+  Buffers: shared hit=278
+  ->  Nested Loop  (cost=0.84..93.31 rows=21 width=120) (actual time=0.029..0.140 rows=21 loops=1)
+        Buffers: shared hit=88
+        ->  Limit  (cost=0.42..3.84 rows=21 width=77) (actual time=0.012..0.015 rows=21 loops=1)
+              Buffers: shared hit=4
+              ->  Index Scan using ix_ledger_entries_account_created on ledger_entries e  (cost=0.42..9815.46 rows=60300 width=77) (actual time=0.011..0.013 rows=21 loops=1)
+                    Index Cond: (account_id = 'c4319c65-6ad7-4a62-a537-bfd3c0241473'::uuid)
+                    Buffers: shared hit=4
+        ->  Memoize  (cost=0.42..8.44 rows=1 width=43) (actual time=0.006..0.006 rows=1 loops=21)
+              Cache Key: e.transfer_id
+              Cache Mode: logical
+              Hits: 0  Misses: 21  Evictions: 0  Overflows: 0  Memory Usage: 4kB
+              Buffers: shared hit=84
+              ->  Index Scan using pk_transfers on transfers t  (cost=0.41..8.43 rows=1 width=43) (actual time=0.005..0.005 rows=1 loops=21)
+                    Index Cond: (id = e.transfer_id)
+                    Buffers: shared hit=84
+  ->  Result  (cost=4.63..11.25 rows=2 width=64) (actual time=0.022..0.025 rows=1 loops=21)
+        One-Time Filter: (e.type <> 'DEPOSIT'::text)
+        Buffers: shared hit=190
+        ->  Nested Loop Left Join  (cost=4.63..11.24 rows=2 width=56) (actual time=0.022..0.024 rows=1 loops=21)
+              Buffers: shared hit=190
+              ->  Nested Loop Left Join  (cost=4.62..9.45 rows=2 width=51) (actual time=0.020..0.022 rows=1 loops=21)
+                    Buffers: shared hit=169
+                    ->  Hash Join  (cost=4.48..8.82 rows=2 width=43) (actual time=0.015..0.017 rows=1 loops=21)
+                          Hash Cond: (other.id = o.account_id)
+                          Buffers: shared hit=127
+                          ->  Seq Scan on accounts other  (cost=0.00..4.05 rows=105 width=59) (actual time=0.000..0.004 rows=105 loops=21)
+                                Buffers: shared hit=63
+                          ->  Hash  (cost=4.46..4.46 rows=2 width=16) (actual time=0.008..0.008 rows=1 loops=21)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=64
+                                ->  Index Only Scan using uq_ledger_entries_transfer_account on ledger_entries o  (cost=0.42..4.46 rows=2 width=16) (actual time=0.003..0.003 rows=1 loops=21)
+                                      Index Cond: (transfer_id = e.transfer_id)
+                                      Filter: (account_id <> e.account_id)
+                                      Rows Removed by Filter: 1
+                                      Heap Fetches: 0
+                                      Buffers: shared hit=64
+                    ->  Index Scan using pk_users on users sender  (cost=0.14..0.31 rows=1 width=40) (actual time=0.001..0.001 rows=1 loops=21)
+                          Index Cond: (id = other.user_id)
+                          Buffers: shared hit=42
+              ->  Materialize  (cost=0.00..1.77 rows=1 width=5) (actual time=0.002..0.002 rows=1 loops=21)
+                    Buffers: shared hit=21
+                    ->  Seq Scan on beneficiaries b  (cost=0.00..1.76 rows=1 width=5) (actual time=0.001..0.001 rows=1 loops=21)
+                          Filter: (id = t.beneficiary_id)
+                          Rows Removed by Filter: 27
+                          Buffers: shared hit=21
+Planning:
+  Buffers: shared hit=16
+Planning Time: 0.366 ms
+Execution Time: 0.771 ms
+```
+
+### 2. Filtrada por DEPOSIT (tipo poco frecuente)
+
+Recorrido `Index Scan using ix_ledger_entries_account_type_created` con `Index Cond` sobre cuenta y tipo: lee solo los 13 depósitos de la cuenta en lugar de filtrar 60,013 asientos.
+
+```text
+Nested Loop Left Join  (cost=5.47..410.72 rows=42 width=200) (actual time=0.026..0.107 rows=13 loops=1)
+  Buffers: shared hit=68
+  ->  Nested Loop  (cost=0.84..173.57 rows=21 width=120) (actual time=0.023..0.095 rows=13 loops=1)
+        Buffers: shared hit=68
+        ->  Limit  (cost=0.42..84.10 rows=21 width=77) (actual time=0.012..0.021 rows=13 loops=1)
+              Buffers: shared hit=16
+              ->  Index Scan using ix_ledger_entries_account_type_created on ledger_entries e  (cost=0.42..135.91 rows=34 width=77) (actual time=0.012..0.020 rows=13 loops=1)
+                    Index Cond: ((account_id = 'c4319c65-6ad7-4a62-a537-bfd3c0241473'::uuid) AND (type = 'DEPOSIT'::text))
+                    Buffers: shared hit=16
+        ->  Memoize  (cost=0.42..8.44 rows=1 width=43) (actual time=0.005..0.005 rows=1 loops=13)
+              Cache Key: e.transfer_id
+              Cache Mode: logical
+              Hits: 0  Misses: 13  Evictions: 0  Overflows: 0  Memory Usage: 2kB
+              Buffers: shared hit=52
+              ->  Index Scan using pk_transfers on transfers t  (cost=0.41..8.43 rows=1 width=43) (actual time=0.005..0.005 rows=1 loops=13)
+                    Index Cond: (id = e.transfer_id)
+                    Buffers: shared hit=52
+  ->  Result  (cost=4.63..11.25 rows=2 width=64) (actual time=0.000..0.000 rows=0 loops=13)
+        One-Time Filter: (e.type <> 'DEPOSIT'::text)
+        ->  Nested Loop Left Join  (cost=4.63..11.24 rows=2 width=56) (never executed)
+              ->  Nested Loop Left Join  (cost=4.62..9.45 rows=2 width=51) (never executed)
+                    ->  Hash Join  (cost=4.48..8.82 rows=2 width=43) (never executed)
+                          Hash Cond: (other.id = o.account_id)
+                          ->  Seq Scan on accounts other  (cost=0.00..4.05 rows=105 width=59) (never executed)
+                          ->  Hash  (cost=4.46..4.46 rows=2 width=16) (never executed)
+                                ->  Index Only Scan using uq_ledger_entries_transfer_account on ledger_entries o  (cost=0.42..4.46 rows=2 width=16) (never executed)
+                                      Index Cond: (transfer_id = e.transfer_id)
+                                      Filter: (account_id <> e.account_id)
+                                      Heap Fetches: 0
+                    ->  Index Scan using pk_users on users sender  (cost=0.14..0.31 rows=1 width=40) (never executed)
+                          Index Cond: (id = other.user_id)
+              ->  Materialize  (cost=0.00..1.77 rows=1 width=5) (never executed)
+                    ->  Seq Scan on beneficiaries b  (cost=0.00..1.76 rows=1 width=5) (never executed)
+                          Filter: (id = t.beneficiary_id)
+Planning:
+  Buffers: shared hit=16
+Planning Time: 0.351 ms
+Execution Time: 0.170 ms
+```
+
+### 3. Rango antiguo 2025-11-01 a 2025-11-30, segunda página con cursor
+
+Mismo índice que la primera consulta, con el rango de fechas y la comparación de filas `(created_at, id) < (…)` del cursor dentro del `Index Cond`: el recorrido empieza justo después del último movimiento de la página anterior, sin `OFFSET`.
+
+```text
+Nested Loop Left Join  (cost=5.47..395.55 rows=42 width=200) (actual time=0.066..0.631 rows=21 loops=1)
+  Buffers: shared hit=278
+  ->  Nested Loop  (cost=0.84..158.41 rows=21 width=120) (actual time=0.018..0.101 rows=21 loops=1)
+        Buffers: shared hit=88
+        ->  Limit  (cost=0.42..68.93 rows=21 width=77) (actual time=0.009..0.012 rows=21 loops=1)
+              Buffers: shared hit=4
+              ->  Index Scan using ix_ledger_entries_account_created on ledger_entries e  (cost=0.42..2166.82 rows=664 width=77) (actual time=0.009..0.011 rows=21 loops=1)
+                    Index Cond: ((account_id = 'c4319c65-6ad7-4a62-a537-bfd3c0241473'::uuid) AND (created_at >= '2025-11-01 06:00:00+00'::timestamp with time zone) AND (created_at < '2025-12-01 06:00:00+00'::timestamp with time zone) AND (ROW(created_at, id) < ROW('2025-12-01 03:09:58.8+00'::timestamp with time zone, '16179'::bigint)))
+                    Buffers: shared hit=4
+        ->  Memoize  (cost=0.42..8.44 rows=1 width=43) (actual time=0.004..0.004 rows=1 loops=21)
+              Cache Key: e.transfer_id
+              Cache Mode: logical
+              Hits: 0  Misses: 21  Evictions: 0  Overflows: 0  Memory Usage: 4kB
+              Buffers: shared hit=84
+              ->  Index Scan using pk_transfers on transfers t  (cost=0.41..8.43 rows=1 width=43) (actual time=0.004..0.004 rows=1 loops=21)
+                    Index Cond: (id = e.transfer_id)
+                    Buffers: shared hit=84
+  ->  Result  (cost=4.63..11.25 rows=2 width=64) (actual time=0.022..0.024 rows=1 loops=21)
+        One-Time Filter: (e.type <> 'DEPOSIT'::text)
+        Buffers: shared hit=190
+        ->  Nested Loop Left Join  (cost=4.63..11.24 rows=2 width=56) (actual time=0.022..0.024 rows=1 loops=21)
+              Buffers: shared hit=190
+              ->  Nested Loop Left Join  (cost=4.62..9.45 rows=2 width=51) (actual time=0.020..0.022 rows=1 loops=21)
+                    Buffers: shared hit=169
+                    ->  Hash Join  (cost=4.48..8.82 rows=2 width=43) (actual time=0.014..0.017 rows=1 loops=21)
+                          Hash Cond: (other.id = o.account_id)
+                          Buffers: shared hit=127
+                          ->  Seq Scan on accounts other  (cost=0.00..4.05 rows=105 width=59) (actual time=0.000..0.004 rows=105 loops=21)
+                                Buffers: shared hit=63
+                          ->  Hash  (cost=4.46..4.46 rows=2 width=16) (actual time=0.007..0.007 rows=1 loops=21)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=64
+                                ->  Index Only Scan using uq_ledger_entries_transfer_account on ledger_entries o  (cost=0.42..4.46 rows=2 width=16) (actual time=0.002..0.002 rows=1 loops=21)
+                                      Index Cond: (transfer_id = e.transfer_id)
+                                      Filter: (account_id <> e.account_id)
+                                      Rows Removed by Filter: 1
+                                      Heap Fetches: 0
+                                      Buffers: shared hit=64
+                    ->  Index Scan using pk_users on users sender  (cost=0.14..0.31 rows=1 width=40) (actual time=0.001..0.001 rows=1 loops=21)
+                          Index Cond: (id = other.user_id)
+                          Buffers: shared hit=42
+              ->  Materialize  (cost=0.00..1.77 rows=1 width=5) (actual time=0.002..0.002 rows=1 loops=21)
+                    Buffers: shared hit=21
+                    ->  Seq Scan on beneficiaries b  (cost=0.00..1.76 rows=1 width=5) (actual time=0.001..0.001 rows=1 loops=21)
+                          Filter: (id = t.beneficiary_id)
+                          Rows Removed by Filter: 29
+                          Buffers: shared hit=21
+Planning:
+  Buffers: shared hit=16
+Planning Time: 0.348 ms
+Execution Time: 0.742 ms
+```

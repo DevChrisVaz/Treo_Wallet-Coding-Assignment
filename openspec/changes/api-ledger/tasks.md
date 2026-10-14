@@ -95,7 +95,7 @@
 - [x] 11.1 [api] Seed de usuarios demo (Ana, Luis y ~50 generados) verificados, con CURP, RFC y teléfono sintéticos válidos y sus dos cuentas, beneficiarios ya registrados para Ana (al menos Luis, que la app móvil necesita para transferir) y fondeo inicial desde la Tesorería con `FUNDING_POSTED` (HIS-10, ACC-15, BEN-01)
 - [x] 11.2 [api] Generación de ~60k transferencias completadas (~120k asientos) por lotes con `generate_series`, 12 meses que terminan ayer a las 23:59 de CDMX, ~60k asientos en "Principal" de Ana y `balance_after` calculado en staging con función de ventana antes de insertar (HIS-10)
 - [x] 11.3 [api] Ajuste de saldos al último `balance_after`, `ANALYZE` y verificación de invariantes al final del seed que falla si alguna no se cumple, más prueba de integración del seed en pequeño (HIS-10, ACC-14)
-- [ ] 11.4 [api] Ejecutar `npm run db:seed` completo, capturar `EXPLAIN (ANALYZE, BUFFERS)` de las tres consultas del historial y pegarlo en la sección "EXPLAIN ANALYZE" de `design.md`, verificando uso de índice y ausencia de `Sort` (HIS-09)
+- [x] 11.4 [api] Ejecutar `npm run db:seed` completo, capturar `EXPLAIN (ANALYZE, BUFFERS)` de las tres consultas del historial y pegarlo en la sección "EXPLAIN ANALYZE" de `design.md`, verificando uso de índice y ausencia de `Sort` (HIS-09)
 - [ ] 11.5 [api] Prueba automatizada de planes: `EXPLAIN` (sin `ANALYZE`) de las consultas sin filtro y con `DEPOSIT` usa el índice esperado y no contiene `Sort` (HIS-09)
 - [ ] 11.6 [api] Documentar en el README de `/api` los comandos `db:seed` y `db:fund`, las credenciales demo, el tiempo medido del seed y las consultas de conciliación (ACC-14, ACC-15, HIS-10)
 
