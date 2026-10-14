@@ -17,6 +17,7 @@ import { PgRefreshTokenStore } from './modules/identity/infrastructure/pg-refres
 import { OpenDefaultAccounts } from './modules/accounts/application/open-default-accounts.js';
 import { PgAccountRepository } from './modules/accounts/infrastructure/pg-account-repository.js';
 import { ListAccounts } from './modules/accounts/application/list-accounts.js';
+import { GetAccount } from './modules/accounts/application/get-account.js';
 import { accountRoutes } from './modules/accounts/infrastructure/http/routes.js';
 import { Argon2PasswordHasher } from './modules/identity/infrastructure/argon2-password-hasher.js';
 import { identityRoutes } from './modules/identity/infrastructure/http/routes.js';
@@ -82,6 +83,7 @@ export interface Container {
   };
   readonly accounts: {
     readonly listAccounts: ListAccounts;
+    readonly getAccount: GetAccount;
   };
   readonly ledger: {
     readonly fundAccount: FundAccount;
@@ -181,6 +183,7 @@ export async function createContainer(
         dailyLimit: config.transfers.dailyLimit,
         clock,
       }),
+      getAccount: new GetAccount(accounts),
     },
     ledger: {
       fundAccount: new FundAccount({
