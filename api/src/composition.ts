@@ -46,6 +46,11 @@ import { PgErrorTranslator } from './platform/persistence/pg-errors.js';
 import { registerLedgerTranslations } from './modules/transfers/infrastructure/error-translations.js';
 import { FundAccount } from './modules/transfers/application/fund-account.js';
 import { TransferDestinationResolver } from './modules/transfers/application/destination-resolver.js';
+import { CreateTransfer } from './modules/transfers/application/create-transfer.js';
+import { IdempotencyGate } from './modules/transfers/application/idempotency-gate.js';
+import { TransferLocker } from './modules/transfers/application/transfer-locker.js';
+import { businessDayOf } from './shared/business-day.js';
+import { Money } from './shared/money.js';
 import { LedgerPoster } from './modules/transfers/application/ledger-poster.js';
 import { PgAccountLocks } from './modules/transfers/infrastructure/pg-account-locks.js';
 import { PgLedgerStore } from './modules/transfers/infrastructure/pg-ledger-store.js';
@@ -96,6 +101,7 @@ export interface Container {
   };
   readonly transfers: {
     readonly destinations: TransferDestinationResolver;
+    readonly createTransfer: CreateTransfer;
   };
   readonly ledger: {
     readonly fundAccount: FundAccount;
@@ -130,6 +136,7 @@ export async function createContainer(
   const codes = new OneTimeCodeService(new PgOneTimeCodeStore(), clock, config.otpHmacSecret);
   const accounts = new PgAccountRepository(dataSource);
   const openAccounts = new OpenDefaultAccounts({ accounts, clabe: config.clabe, clock });
+  const destinations = new TransferDestinationResolver(accounts, beneficiaryStore);
   const refreshTokens = new PgRefreshTokenStore();
   const sessions = new SessionService(refreshTokens, clock);
   const accessTokens = new JoseAccessTokens({
@@ -209,7 +216,24 @@ export async function createContainer(
       }),
     },
     transfers: {
-      destinations: new TransferDestinationResolver(accounts, beneficiaryStore),
+      destinations,
+      createTransfer: new CreateTransfer({
+        transactions,
+        destinations,
+        gate: new IdempotencyGate(transferStore),
+        locker: new TransferLocker(dailyUsage, accountLocks, clock, config.transfers.dailyLimit),
+        store: transferStore,
+        audit,
+        clock,
+        otpThreshold: config.transfers.otpThreshold,
+        view: () => Promise.reject(new Error('Vista de transferencia pendiente')),
+        remainingToday: async (userId) => {
+          const today = await dailyUsage.usage(userId, businessDayOf(clock.now()));
+          const limit = today?.limit ?? config.transfers.dailyLimit;
+          const remaining = limit.minus(today?.used ?? Money.ZERO);
+          return remaining.isLessThan(Money.ZERO) ? Money.ZERO : remaining;
+        },
+      }),
     },
     ledger: {
       fundAccount: new FundAccount({

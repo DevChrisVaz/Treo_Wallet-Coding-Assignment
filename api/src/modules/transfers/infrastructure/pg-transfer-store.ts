@@ -111,4 +111,13 @@ export class PgTransferStore implements TransferStore {
     );
     return row ? transferFromRow(row) : null;
   }
+
+  async reject(tx: Transaction, transferId: string, reason: RejectionReason): Promise<void> {
+    await queryIn(
+      tx,
+      `UPDATE transfers SET status = 'REJECTED', rejection_reason = $2, otp_expires_at = NULL
+        WHERE id = $1`,
+      [transferId, reason],
+    );
+  }
 }

@@ -32,6 +32,8 @@ export interface TransferStore {
   /** Inserta si la llave del usuario está libre; `false` si ya existe (espera a otra en curso). */
   claim(tx: Transaction, row: TransferRow): Promise<boolean>;
   findByKey(tx: Transaction, userId: string, idempotencyKey: string): Promise<TransferRow | null>;
+  /** Marca la transferencia como REJECTED con su motivo (sin asientos). */
+  reject(tx: Transaction, transferId: string, reason: RejectionReason): Promise<void>;
 }
 
 /** Bloqueo y resolución de cuentas para mover dinero. */
