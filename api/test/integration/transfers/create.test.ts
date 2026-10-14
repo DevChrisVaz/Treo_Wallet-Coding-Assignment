@@ -116,6 +116,20 @@ describe('TRF-07 a TRF-09 validación sin efectos', () => {
     },
   );
 
+  it('TRF-21 una transferencia hecha por la API deja dos asientos, -X en el origen y +X en el destino, con su transferId', async () => {
+    await fund(t, ana.principal.id, '2000.00');
+    const res = await postTransfer(t, ana, toLuis('1250.50'));
+    expect(res.status).toBe(201);
+    const entries = await harness.migrator.query(
+      'SELECT transfer_id, account_id, amount_cents FROM app.ledger_entries WHERE transfer_id = $1 ORDER BY amount_cents',
+      [res.body.id],
+    );
+    expect(entries).toEqual([
+      { transfer_id: res.body.id, account_id: ana.principal.id, amount_cents: '-125050' },
+      { transfer_id: res.body.id, account_id: luis.principal.id, amount_cents: '125050' },
+    ]);
+  });
+
   it('TRF-08 "1250.5" descuenta exactamente 125050 centavos y se muestra como "1250.50"', async () => {
     await fund(t, ana.principal.id, '2000.00');
     const res = await postTransfer(t, ana, toLuis('1250.5'));
@@ -127,9 +141,10 @@ describe('TRF-07 a TRF-09 validación sin efectos', () => {
     expect(entry.amount_cents).toBe('-125050');
   });
 
-  it('TRF-09 una referencia con letras es 422 en /reference', async () => {
+  it('TRF-09 una referencia con letras es 422 VALIDATION_FAILED en /reference', async () => {
     const res = await postTransfer(t, ana, toLuis('10.00', { reference: '12A' }));
     expect(res.status).toBe(422);
+    expect(res.body.code).toBe('VALIDATION_FAILED');
     expect(res.body.errors[0].pointer).toBe('/reference');
   });
 
