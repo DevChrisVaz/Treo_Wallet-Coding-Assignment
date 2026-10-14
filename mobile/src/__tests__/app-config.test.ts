@@ -11,6 +11,17 @@ describe('configuración del proyecto', () => {
     expect(packageJson.main).toBe('expo-router/entry');
   });
 
+  test('MOB-24 declara expo-local-authentication del SDK 57 con su plugin y el texto de Face ID', () => {
+    expect(packageJson.dependencies).toHaveProperty(
+      'expo-local-authentication',
+      expect.stringMatching(/^~57\./),
+    );
+    expect(appJson.expo.plugins).toContainEqual([
+      'expo-local-authentication',
+      { faceIDPermission: expect.stringContaining('Face ID') },
+    ]);
+  });
+
   test('MOB-17 TypeScript es estricto y el proyecto tiene lint, typecheck, formato y pruebas', () => {
     expect(tsconfig.compilerOptions.strict).toBe(true);
     expect(tsconfig.compilerOptions.noUncheckedIndexedAccess).toBe(true);

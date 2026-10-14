@@ -1,9 +1,25 @@
 import { Ajv2020 } from 'ajv/dist/2020';
 import { describe, expect, it } from 'vitest';
-import { amountInput, clabe, concept, curp, otpCode, phone, reference, rfc } from '../../src/index';
+import {
+  amountInput,
+  clabe,
+  concept,
+  curp,
+  otpCode,
+  phone,
+  reference,
+  rfc,
+  scheduledDate,
+} from '../../src/index';
 import { contract } from '../support/contract';
 import { amountVectors } from '../vectors/amount';
-import { conceptVectors, otpVectors, phoneVectors, referenceVectors } from '../vectors/fields';
+import {
+  conceptVectors,
+  otpVectors,
+  phoneVectors,
+  referenceVectors,
+  scheduledDateVectors,
+} from '../vectors/fields';
 import { clabeVectors, curpVectors, rfcVectors } from '../vectors/identity';
 import { contractExpectation, type Vector } from '../vectors/types';
 
@@ -20,6 +36,7 @@ const parity: [string, { safeParse: (input: unknown) => { success: boolean } }, 
   ['Concept', concept, conceptVectors],
   ['Reference', reference, referenceVectors],
   ['SixDigitCode', otpCode, otpVectors],
+  ['ScheduledDate', scheduledDate, scheduledDateVectors],
 ];
 
 describe.each(parity)('paridad con el esquema %s del contrato', (schemaName, schema, vectors) => {

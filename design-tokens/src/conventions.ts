@@ -15,6 +15,8 @@ export const transferStatus = {
   REJECTED: { tone: 'danger', label: 'Rechazada' },
   FAILED: { tone: 'danger', label: 'Fallida' },
   EXPIRED: { tone: 'neutral', label: 'Vencida' },
+  SCHEDULED: { tone: 'info', label: 'Programada' },
+  CANCELLED: { tone: 'neutral', label: 'Cancelada' },
 } as const satisfies Record<string, { tone: Tone; label: string }>;
 
 /** Etiqueta y dirección del dinero de cada tipo de movimiento. */

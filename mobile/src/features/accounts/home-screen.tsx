@@ -12,6 +12,8 @@ import {
   Skeleton,
   Wordmark,
 } from '@/components/ui';
+import { UnlockOffer } from '@/features/unlock/unlock-offer';
+import { UnlockSwitch } from '@/features/unlock/unlock-switch';
 import { errorMessage } from '@/lib/errors';
 import { useRefreshByUser } from '@/lib/use-refresh-by-user';
 import { logout } from '@/session/logout';
@@ -46,6 +48,8 @@ export function HomeScreen() {
           Tus cuentas
         </Text>
       </View>
+
+      <UnlockOffer />
 
       {overview.isPending ? (
         <View style={styles.list}>
@@ -83,6 +87,8 @@ export function HomeScreen() {
           <Text style={styles.hint}>Toca una cuenta para ver sus últimos movimientos.</Text>
         </View>
       )}
+
+      <UnlockSwitch />
     </Screen>
   );
 }

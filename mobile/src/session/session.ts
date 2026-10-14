@@ -7,6 +7,8 @@
 import type { TokenPair } from '@devchrisvaz/wallet-contract';
 import * as SecureStore from 'expo-secure-store';
 
+import { clearUnlockPreference } from './unlock-preference';
+
 export const REFRESH_TOKEN_KEY = 'treowallet.refreshToken';
 
 const SECURE_OPTIONS: SecureStore.SecureStoreOptions = {
@@ -74,7 +76,11 @@ export class Session {
     this.accessToken = tokens.accessToken;
   }
 
-  /** Borra los tokens locales (memoria y almacenamiento seguro). */
+  /**
+   * Borra los tokens locales (memoria y almacenamiento seguro) y la preferencia del desbloqueo
+   * biométrico, incluida la respuesta "Ahora no" (MOB-27): el siguiente inicio de sesión con
+   * contraseña vuelve a ofrecerlo.
+   */
   async clear(reason: SignOutReason): Promise<void> {
     this.accessToken = undefined;
     this.refreshToken = undefined;
@@ -83,6 +89,7 @@ export class Session {
     } catch {
       console.warn('No se pudo borrar la sesión del almacenamiento seguro.');
     }
+    await clearUnlockPreference();
     this.setSnapshot({ status: 'signedOut', reason });
   }
 

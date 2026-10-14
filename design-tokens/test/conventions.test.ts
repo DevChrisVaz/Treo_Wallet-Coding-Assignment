@@ -19,6 +19,27 @@ describe('estados de transferencia', () => {
   ] as const)('DSG-10 %s → tono %s, "%s"', (status, tone, label) => {
     expect(transferStatus[status]).toEqual({ tone, label });
   });
+
+  it.each([
+    ['SCHEDULED', 'info', 'Programada'],
+    ['CANCELLED', 'neutral', 'Cancelada'],
+  ] as const)('DSG-18 %s → tono %s, "%s"', (status, tone, label) => {
+    expect(transferStatus[status]).toEqual({ tone, label });
+  });
+
+  it('DSG-18 cubre los siete valores de TransferStatus del contrato 1.2.0', () => {
+    // Escritos a mano: el paquete no depende del contrato.
+    const contractStatuses = [
+      'PENDING_OTP',
+      'COMPLETED',
+      'REJECTED',
+      'FAILED',
+      'EXPIRED',
+      'SCHEDULED',
+      'CANCELLED',
+    ];
+    expect(Object.keys(transferStatus).sort()).toEqual(contractStatuses.sort());
+  });
 });
 
 describe('tipos de movimiento', () => {

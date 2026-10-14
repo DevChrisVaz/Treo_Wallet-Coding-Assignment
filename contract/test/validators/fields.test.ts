@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { concept, otpCode, phone, reference, toFieldErrors } from '../../src/index';
-import { conceptVectors, otpVectors, phoneVectors, referenceVectors } from '../vectors/fields';
+import { concept, otpCode, phone, reference, scheduledDate, toFieldErrors } from '../../src/index';
+import {
+  conceptVectors,
+  otpVectors,
+  phoneVectors,
+  referenceVectors,
+  scheduledDateVectors,
+} from '../vectors/fields';
 import type { Vector } from '../vectors/types';
 
 const cases: [string, { safeParse: (input: unknown) => unknown }, Vector[]][] = [
@@ -8,6 +14,7 @@ const cases: [string, { safeParse: (input: unknown) => unknown }, Vector[]][] = 
   ['concept', concept, conceptVectors],
   ['reference', reference, referenceVectors],
   ['otpCode', otpCode, otpVectors],
+  ['scheduledDate', scheduledDate, scheduledDateVectors],
 ];
 
 describe.each(cases)('%s', (_name, schema, vectors) => {

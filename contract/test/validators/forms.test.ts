@@ -5,6 +5,7 @@ import {
   registerForm,
   toFieldErrors,
   transferForm,
+  transferFormAt,
   verifyEmailForm,
 } from '../../src/index';
 
@@ -95,5 +96,53 @@ describe('esquemas de formularios', () => {
     expect(errors).toEqual([
       expect.objectContaining({ pointer: '/email', code: 'INVALID_FORMAT' }),
     ]);
+  });
+});
+
+describe('fecha programada del formulario de transferencia', () => {
+  // 2026-10-14 12:00 en la Ciudad de México: el rango programable es del 15 de octubre al 12 de enero.
+  const now = new Date('2026-10-14T18:00:00Z');
+
+  it('CTR-13 transferForm acepta una transferencia sin fecha y una con fecha', () => {
+    expect(errorsOf(transferForm, validTransfer)).toEqual([]);
+    expect(errorsOf(transferForm, { ...validTransfer, scheduledFor: '2026-10-20' })).toEqual([]);
+  });
+
+  it('CTR-13 transferForm rechaza una fecha que no existe con INVALID_DATE', () => {
+    const errors = errorsOf(transferForm, { ...validTransfer, scheduledFor: '2026-02-30' });
+
+    expect(errors).toEqual([
+      expect.objectContaining({ pointer: '/scheduledFor', code: 'INVALID_DATE' }),
+    ]);
+  });
+
+  it.each(['2026-10-14', '2027-01-13', '2026-10-01'])(
+    'CTR-13 transferFormAt rechaza %s con DATE_OUT_OF_RANGE',
+    (scheduledFor) => {
+      const errors = errorsOf(transferFormAt(now), { ...validTransfer, scheduledFor });
+
+      expect(errors).toEqual([
+        expect.objectContaining({ pointer: '/scheduledFor', code: 'DATE_OUT_OF_RANGE' }),
+      ]);
+    },
+  );
+
+  it.each(['2026-10-15', '2027-01-12'])('CTR-13 transferFormAt acepta %s', (scheduledFor) => {
+    expect(errorsOf(transferFormAt(now), { ...validTransfer, scheduledFor })).toEqual([]);
+  });
+
+  it('CTR-13 transferFormAt reporta la fecha junto con los demás campos inválidos', () => {
+    const errors = errorsOf(transferFormAt(now), {
+      ...validTransfer,
+      amount: '100.005',
+      scheduledFor: '2026-10-14',
+    });
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ pointer: '/amount', code: 'TOO_MANY_DECIMALS' }),
+        expect.objectContaining({ pointer: '/scheduledFor', code: 'DATE_OUT_OF_RANGE' }),
+      ]),
+    );
   });
 });

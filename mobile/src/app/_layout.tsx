@@ -4,6 +4,7 @@ import { AppProviders } from '@/app-services';
 import { PrivacyGuard } from '@/components/privacy-guard';
 import { readApiUrl } from '@/config/api-url';
 import { ConfigGate } from '@/config/config-gate';
+import { UnlockGate } from '@/features/unlock/unlock-gate';
 import { RootNavigator } from '@/navigation/root-navigator';
 import { FontsGate } from '@/theme/fonts';
 
@@ -20,7 +21,10 @@ export default function RootLayout() {
         <ConfigGate config={apiUrl}>
           {(baseUrl) => (
             <AppProviders baseUrl={baseUrl}>
-              <RootNavigator />
+              {/* Con el desbloqueo biométrico activo, la sesión se restaura solo al desbloquear. */}
+              <UnlockGate>
+                <RootNavigator />
+              </UnlockGate>
             </AppProviders>
           )}
         </ConfigGate>

@@ -1,6 +1,7 @@
 import { NetworkError, ProblemError, type TokenPair } from '@devchrisvaz/wallet-contract';
 
 import { REFRESH_TOKEN_KEY, Session } from '@/session/session';
+import { readUnlockPreference, saveUnlockPreference } from '@/session/unlock-preference';
 import { createFakeApi, json, problem } from '@/test-utils/fake-api';
 import { secureStoreMock } from '@/test-utils/native-mocks';
 
@@ -121,6 +122,29 @@ describe('renovación de la sesión', () => {
     expect(secureStoreMock.entries()).toEqual({});
     expect(session.getAccessToken()).toBeUndefined();
     expect(session.getSnapshot()).toEqual({ status: 'signedOut', reason: 'revoked' });
+  });
+
+  test('MOB-27 con la sesión revocada borra también la preferencia del desbloqueo', async () => {
+    const { fake, api } = await setup();
+    await saveUnlockPreference('enabled');
+    fake.on('GET', '/me', expired());
+    fake.on('POST', '/auth/refresh', problem(401, 'SESSION_REVOKED'));
+
+    await api.GET('/me').catch(() => undefined);
+
+    expect(secureStoreMock.entries()).toEqual({});
+    expect(await readUnlockPreference()).toBeNull();
+  });
+
+  test('MOB-27 si la renovación no obtiene respuesta, conserva la preferencia junto con la sesión', async () => {
+    const { fake, api } = await setup();
+    await saveUnlockPreference('enabled');
+    fake.on('GET', '/me', expired());
+    fake.on('POST', '/auth/refresh', 'network-error');
+
+    await api.GET('/me').catch(() => undefined);
+
+    expect(await readUnlockPreference()).toBe('enabled');
   });
 
   test('MOB-03 si la renovación no obtiene respuesta, conserva la sesión para reintentar con el mismo refresh', async () => {
