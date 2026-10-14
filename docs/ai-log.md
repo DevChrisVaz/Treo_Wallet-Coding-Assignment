@@ -266,3 +266,27 @@ Después de integrar, reinstaló el contrato 1.1.0 en `/api` y repitió las prue
 - `deliveryStatus` es obligatorio en cada lectura, pero no se guarda, así que después de la creación y del reenvío siempre dice `SENT`.
 - No hay un 422 declarado para un id mal formado en la ruta. La API responde 404.
 - Las extensiones del Problem son opcionales en el esquema, aunque las pruebas exigen que estén.
+
+### Prueba de extremo a extremo de la web contra la API real
+
+Pregunté si se había hecho una prueba de humo. La respuesta honesta fue que no: hasta entonces, las pruebas de la web y del móvil usaban APIs simuladas. Pedí despachar un subagente con Haiku para recorrer toda la web.
+
+**Preparación.** La AI principal dejó el entorno listo antes de despachar:
+- API construida en el 4000 y web en build de producción en `127.0.0.1:3100`. Primero la arrancó escuchando en todas las interfaces de red y la reinició solo en local.
+- Datos de registro comprobados en la base como no usados. Como el registro siempre responde igual, un dato repetido habría parecido un error de la app.
+
+**Resultados.** Dos rondas, de 14 y 7 grupos de pruebas. La AI principal verificó las cifras contra la base de datos antes de reportarlas. Todo pasó:
+- transferencias propias y a terceros, doble clic y el reintento tras perder la respuesta, con una sola transferencia y la misma llave;
+- umbral del OTP, reenvíos con su tope, vencimiento y agotamiento de intentos;
+- límite diario, registro y acceso a datos ajenos;
+- Lighthouse 100 en cinco pantallas y la transferencia solo con teclado.
+
+Con esto quedó cerrada la tarea 9.2 de `web-app`.
+
+**Error encontrado y corregido.** Con "Desde" posterior a "Hasta", el historial mostraba "Revisa los campos marcados." sin marcar nada: escribir en un campo de fecha se salta su `min` y `max`, y la API respondía 422. Se agregó el escenario a WEB-14 y la tarea 6.3. La prueba se escribió primero y se vio fallar; dos mutaciones confirmaron que detecta el error. Se comprobó en el navegador.
+
+**Hallazgos que no eran errores:**
+- **Errores del brief de la AI principal.** El brief decía que no debía llegar ningún correo al registrarse con un correo existente, pero IDN-01 exige avisar al dueño. También listaba la CURP en minúsculas como inválida, pero la web la convierte a mayúsculas a propósito. El tester lo señaló citando la spec.
+- **Una falsa alarma de foco.** El tester reportó que no se veía el foco en "Continuar". La AI principal leyó el color del contorno y le salió blanco, pero era el primer instante de una transición de 150 ms (`transition-colors` también anima `outline-color`). Una segunda lectura y una captura confirmaron el anillo verde de 2 px.
+
+**Error de proceso de la AI.** Un comando encadenado hizo commit aunque fallaron lint y formato, porque esos dos pasos no estaban unidos con `&&`. Las fallas venían de carpetas sin versionar de otra sesión (`.design-sync/`, `.ds-sync/`, `ds-bundle/`), no del cambio, así que el commit era correcto. La lección es la de siempre: no dar por buena una verificación cuyo código de salida no detiene el siguiente paso.
