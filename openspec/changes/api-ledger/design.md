@@ -408,6 +408,33 @@ Migraciones en este orden, cada una con `down` y con sus grants explícitos para
 
 Rollback: `db:migrate:revert` en orden inverso; los `down` eliminan triggers, funciones e índices antes que las tablas.
 
+## Notas de implementación
+
+Decisiones tomadas al implementar que precisan o ajustan este diseño, sin cambiar requisitos:
+
+- **Referencia como entero:** `transfers.reference` es `integer` (0 a 9999999) y la huella usa el valor interpretado, así que `"0001234"` y `"1234"` son el mismo contenido para la idempotencia; las respuestas devuelven `"1234"`.
+- **Ids mal formados responden 404:** `getAccount`, `getTransfer`, `confirmTransfer`, `resendTransferOtp` y `listAccountMovements` responden `404 NOT_FOUND` a un id que no es UUID, igual que a uno inexistente o ajeno. El contrato no declara `422` para el parámetro de ruta (ver huecos del contrato).
+- **Reintento de una transferencia no completada:** con la misma llave, una `REJECTED` repite el mismo `422` (con `Idempotent-Replayed` y `remaining` recalculado al momento); una `FAILED`, `PENDING_OTP` o vencida responde `200` con su estado actual. TRF-03 habla de la "rechazada", que es `REJECTED`; un `FAILED` ocurrió al confirmar, no al crear.
+- **`dailyLimit` de `GET /accounts`:** usa el `limit_cents` de la fila del día si existe (el límite vigente cuando se creó) y acota `remaining` a cero.
+- **`deliveryStatus` no se guarda:** la creación y el reenvío informan el resultado real del envío; las lecturas posteriores (`getTransfer`, reintentos) informan `SENT`, porque el contrato lo exige en cada `OtpChallenge` y la base no lo persiste (ver huecos del contrato). `TRANSFER_OTP_SENT` se audita dentro de la transacción (TRF-25), antes del envío; una falla de envío queda en el log, no en la auditoría.
+- **Orden de bloqueos de la confirmación:** fila contador → transferencia (`FOR UPDATE`, con el dueño en la misma sentencia) → código (`one_time_codes`, `FOR UPDATE`) → cuentas. El código se valida antes de bloquear las cuentas para que un código incorrecto no las retenga; el reenvío toma transferencia → código, así que no hay ciclos. `TransferLocker` expone sus pasos (`lockCounter`, `lockAccounts`) para intercalar la transferencia. Si la medianoche llega mientras espera, el reintento vuelve a validar el código (su consumo se revirtió). Una `PENDING_OTP` sin código usable es un estado inconsistente y responde 500.
+- **Eventos de la confirmación:** `OTP_ATTEMPT_FAILED` y `OTP_ATTEMPTS_EXHAUSTED` llevan `purpose: TRANSFER_CONFIRMATION` y `attemptsRemaining`; `TRANSFER_FAILED`, `reason` y `amount`. Los intentos fallidos y los `FAILED` se confirman antes de responder el error.
+- **Comprobante solo para quien envía:** `getTransfer` responde 404 a quien recibió la transferencia y a los fondeos (`FUNDING`), como dice el contrato en `Movement.transferId`.
+- **`displayName` y contraparte de un beneficiario:** su alias. Entre cuentas propias, el nombre de la cuenta; en las entradas, el nombre completo del remitente. Siempre solo los últimos 4 dígitos de la CLABE.
+- **Correo del OTP:** monto con `Money.toDisplayString()` (es-MX armado con aritmética de centavos, sin depender de los datos de ICU del entorno), nombre del destino y últimos 4 dígitos; nunca la CLABE completa.
+- **Historial:** el `LIMIT` se aplica en una subconsulta antes de unir nada y las uniones son `JOIN LATERAL`; con joins normales el planificador elegía un hash join y agregaba un `Sort` (ver EXPLAIN ANALYZE). El cursor guarda el momento con microsegundos (la precisión de `timestamptz`) y la respuesta lo muestra con milisegundos. La firma del cursor se compara como texto: comparar los bytes decodificados aceptaría un cursor con los bits sobrantes de su último carácter cambiados a mano. El hash de filtros incluye la cuenta.
+- **Filtros del historial:** un `type` repetido es 422 (el contrato declara `uniqueItems`), igual que un parámetro desconocido o un escalar repetido (`limit=10&limit=20`); `to` anterior a `from` se reporta en `/to` con `INVALID_DATE`.
+- **Restricciones adicionales al diseño:** `ck_transfers_fingerprint_hex`, checks de `kind`, `status` y motivos por estado, `ck_daily_transfer_usage_limit_positive` e índices de llaves foráneas (`ix_transfers_from_account`, `ix_transfers_to_account`, `ix_transfers_beneficiary`, `ix_beneficiaries_account`). Los constraint triggers aparecen en `pg_constraint` con `contype = 't'` y la prueba de nombres los acepta con prefijo `tg_`.
+- **Seed:** los 50 usuarios generados comparten una contraseña demo (un solo hash argon2); los beneficiarios del seed no generan `BENEFICIARY_CREATED` y las transferencias históricas no generan eventos `TRANSFER_*` (son datos de desarrollo), pero todo fondeo, inicial o periódico, se audita con `FUNDING_POSTED`. Todas las transferencias generadas tienen un lado en "Principal" de Ana (60,013 asientos de 120,128). La regla de "nada del día actual" solo revisa los asientos que agrega cada corrida, para que un `db:fund` de hoy no haga fallar otro `db:seed`; las demás invariantes revisan todo el ledger. Tarda 10.7 s en local.
+- **Prueba de planes con volumen real:** con unos miles de asientos el planificador elige para `DEPOSIT` un `Bitmap Heap Scan` seguido de `Sort` (barato con 13 filas), así que la prueba automatizada siembra el volumen completo (≈14 s, con timeout propio).
+- **Validación de contrato en todas las pruebas:** el helper `authed()` valida sola cada respuesta contra la operación que corresponde a su método y ruta, además del recorrido de contrato de la tarea 12.1.
+
+### Huecos del contrato (ninguno bloqueante)
+
+1. **Id de ruta mal formado:** las operaciones con `{accountId}` o `{transferId}` no declaran `422`; se eligió `404 NOT_FOUND`, que sí está declarado y no revela nada.
+2. **`OtpChallenge.deliveryStatus` en lecturas:** es obligatorio en cada transferencia pendiente, pero solo tiene sentido en la respuesta que hizo el envío. Las lecturas dicen `SENT`. Si la app necesita saber después que el correo falló, el contrato podría hacerlo opcional o la API persistirlo.
+3. **Extensiones del Problem:** `transferId`, `remaining`, `attemptsRemaining` y `transferStatus` son opcionales en el esquema; las pruebas exigen su presencia en los códigos donde el contrato las describe.
+
 ## EXPLAIN ANALYZE
 
 Capturado con la tarea 11.4 el 2026-10-13 en el PostgreSQL 16.14 del `docker compose` local, después de `npm run db:seed` (120,128 asientos en total, 60,013 en la cuenta "Principal" de Ana; el seed termina con `ANALYZE`). Se ejecutó `EXPLAIN (ANALYZE, BUFFERS)` con el rol de la aplicación sobre el SQL exacto que genera `buildMovementQuery` (el mismo que usa `PgMovementReader`), con `limit` 20, es decir `LIMIT 21`.
