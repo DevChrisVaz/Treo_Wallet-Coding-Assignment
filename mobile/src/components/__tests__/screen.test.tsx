@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { theme } from '@/theme';
@@ -11,7 +11,7 @@ const metrics = {
   insets: { top: 0, left: 0, right: 0, bottom: 0 },
 };
 
-test('MOB-18 con barra de pestañas, el contenido reserva su alto para no quedar tapado', async () => {
+test('MOB-18 con barra de pestañas, el contenido no reserva su alto: la barra va debajo, no encima', async () => {
   await render(
     <SafeAreaProvider initialMetrics={metrics}>
       <Screen tabBar>
@@ -19,10 +19,10 @@ test('MOB-18 con barra de pestañas, el contenido reserva su alto para no quedar
       </Screen>
     </SafeAreaProvider>,
   );
-  expect(screen.getByTestId('screen-scroll')).toHaveProp(
-    'contentContainerStyle',
-    expect.arrayContaining([
-      expect.objectContaining({ paddingBottom: theme.layout.tabBarHeight + theme.spacing[6] }),
-    ]),
+  const content = StyleSheet.flatten(
+    screen.getByTestId('screen-scroll').props.contentContainerStyle,
   );
+  expect(content.paddingBottom).not.toBe(theme.layout.tabBarHeight + theme.spacing[6]);
+  expect(content).toMatchObject({ padding: theme.spacing[5] });
+  expect(content.paddingBottom).toBeUndefined();
 });

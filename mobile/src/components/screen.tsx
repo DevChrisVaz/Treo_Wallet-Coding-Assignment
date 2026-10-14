@@ -18,12 +18,15 @@ interface ScreenProps {
   footer?: ReactNode;
   /** Encabezado fijo sobre el contenido desplazable. */
   header?: ReactNode;
-  /** Hay barra de pestañas: el contenido reserva su alto para no quedar tapado. */
+  /**
+   * Reservado; en móvil la barra no se superpone: el navegador de pestañas la pone debajo de la
+   * pantalla, así que el contenido no reserva su alto (se conserva por compatibilidad).
+   */
   tabBar?: boolean;
 }
 
 /** Contenedor de pantalla: área segura, desplazamiento, teclado y margen del sistema. */
-export function Screen({ children, refresh, footer, header, tabBar = false }: ScreenProps) {
+export function Screen({ children, refresh, footer, header }: ScreenProps) {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -33,10 +36,7 @@ export function Screen({ children, refresh, footer, header, tabBar = false }: Sc
         {header}
         <ScrollView
           testID="screen-scroll"
-          contentContainerStyle={[
-            styles.content,
-            tabBar ? { paddingBottom: theme.layout.tabBarHeight + theme.spacing[6] } : null,
-          ]}
+          contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           refreshControl={
             refresh ? (
