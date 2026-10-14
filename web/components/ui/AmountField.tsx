@@ -1,4 +1,6 @@
-import type { ComponentPropsWithRef } from 'react';
+'use client';
+
+import { useState, type ChangeEvent, type ComponentPropsWithRef } from 'react';
 import { CONTROL_CLASSES, FieldFrame, useFieldIds, type FieldProps } from './field';
 
 export type AmountFieldProps = FieldProps &
@@ -21,7 +23,12 @@ export function AmountField({
   ...props
 }: AmountFieldProps) {
   const ids = useFieldIds(id, { label, hint, error });
+  // Largo del texto escrito: en la variante hero el campo mide eso, para que "$" y el monto
+  // queden juntos al centro en lugar de "$" a la izquierda y los dígitos al centro (WEB-30).
+  const [typed, setTyped] = useState(() => String(props.value ?? props.defaultValue ?? '').length);
   if (variant === 'hero') {
+    const { onChange, style, ...rest } = props;
+    const length = props.value === undefined ? typed : String(props.value).length;
     return (
       <FieldFrame ids={ids} label={label} hint={hint} error={error}>
         <div className="flex items-baseline justify-center gap-1 border-b-2 border-border-input py-4 focus-within:border-action">
@@ -30,13 +37,18 @@ export function AmountField({
           </span>
           <input
             autoComplete="off"
-            {...props}
+            {...rest}
+            onChange={(event: ChangeEvent<HTMLInputElement>) => {
+              setTyped(event.target.value.length);
+              onChange?.(event);
+            }}
             type="text"
             inputMode="decimal"
             id={ids.id}
             aria-invalid={ids.invalid || undefined}
             aria-describedby={ids.describedBy}
-            className={`w-full min-w-0 bg-transparent text-center text-display text-fg tabular-nums outline-none ${className}`.trim()}
+            style={{ ...style, width: `calc(${Math.max(length, 1)}ch + 0.25em)` }}
+            className={`min-w-0 max-w-full bg-transparent text-center text-display text-fg tabular-nums outline-none ${className}`.trim()}
           />
         </div>
       </FieldFrame>
