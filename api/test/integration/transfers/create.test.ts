@@ -148,6 +148,29 @@ describe('TRF-07 a TRF-09 validación sin efectos', () => {
     expect(res.body.errors[0].pointer).toBe('/reference');
   });
 
+  it('TRF-09 una referencia de 8 dígitos es 422 VALIDATION_FAILED con TOO_LONG en /reference', async () => {
+    const res = await postTransfer(t, ana, toLuis('10.00', { reference: '12345678' }));
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe('VALIDATION_FAILED');
+    expect(res.body.errors[0]).toMatchObject({ pointer: '/reference', code: 'TOO_LONG' });
+    expect(await transferCount()).toBe(0);
+  });
+
+  it('TRF-09 un concepto de exactamente 40 caracteres con emoji y acentos se acepta; con 41 es TOO_LONG', async () => {
+    await fund(t, ana.principal.id, '100.00');
+    // 40 puntos de código: 20 emoji (2 unidades UTF-16 cada uno) y 20 letras acentuadas.
+    const exact = '😀'.repeat(20) + 'é'.repeat(20);
+    expect([...exact]).toHaveLength(40);
+    const ok = await postTransfer(t, ana, toLuis('10.00', { concept: exact }));
+    expect(ok.status).toBe(201);
+    expect(ok.body.concept).toBe(exact);
+
+    const res = await postTransfer(t, ana, toLuis('10.00', { concept: `${exact}é` }));
+    expect(res.status).toBe(422);
+    expect(res.body.errors[0]).toMatchObject({ pointer: '/concept', code: 'TOO_LONG' });
+    expect(await transferCount()).toBe(1);
+  });
+
   it('TRF-02 sin llave responde 400 IDEMPOTENCY_KEY_MISSING y no crea nada', async () => {
     await fund(t, ana.principal.id, '100.00');
     const res = await postTransfer(t, ana, toLuis('10.00'), null);
