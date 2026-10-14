@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 
 import { useServices } from '@/app-services';
 import { StartupLoading } from '@/navigation/root-navigator';
+import { logout } from '@/session/logout';
 import { readUnlockPreference } from '@/session/unlock-preference';
 
 import { LockScreen } from './lock-screen';
@@ -20,7 +21,7 @@ interface UnlockGateProps {
  * biométrico; si no, deja pasar y la sesión se restaura como siempre.
  */
 export function UnlockGate({ children }: UnlockGateProps) {
-  const { session } = useServices();
+  const { session, api } = useServices();
   const [state, setState] = useState<GateState>('checking');
 
   useEffect(() => {
@@ -36,6 +37,10 @@ export function UnlockGate({ children }: UnlockGateProps) {
   }, [session]);
 
   if (state === 'checking') return <StartupLoading />;
-  if (state === 'locked') return <LockScreen onUnlock={() => setState('open')} />;
+  if (state === 'locked') {
+    return (
+      <LockScreen onUnlock={() => setState('open')} onSignOut={() => void logout(session, api)} />
+    );
+  }
   return <>{children}</>;
 }
