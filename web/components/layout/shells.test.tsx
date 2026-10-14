@@ -18,14 +18,14 @@ describe('AppShell', () => {
     expect(navs[1]).toHaveClass('dashboard:hidden');
   });
 
-  it('WEB-27 el contenido reserva el alto de la barra de pestañas', () => {
+  it('WEB-27 el contenido reserva el alto real de la barra de pestañas (el del token hasta medirla)', () => {
     render(
       <AppShell current="home" title="Inicio" user={USER}>
         <p>Contenido</p>
       </AppShell>,
     );
     expect(screen.getByRole('main')).toHaveClass(
-      'pb-[calc(var(--dt-layout-tab-bar-height)+env(safe-area-inset-bottom)+1.5rem)]',
+      'pb-[calc(var(--tab-bar-height,var(--dt-layout-tab-bar-height))+env(safe-area-inset-bottom)+1.5rem)]',
     );
   });
 
@@ -54,6 +54,18 @@ describe('AppShell', () => {
       </AppShell>,
     );
     expect(screen.getAllByRole('navigation', { name: 'Principal' })).toHaveLength(1);
+  });
+
+  it('WEB-24 en el dashboard el contenido mide hasta 1200 px sin contar el margen lateral', () => {
+    render(
+      <AppShell current="home" title="Inicio" user={USER}>
+        <p>Contenido</p>
+      </AppShell>,
+    );
+    const content = screen.getByRole('main').parentElement;
+    expect(content).toHaveClass('max-w-app', 'dashboard:max-w-content');
+    expect(content).not.toHaveClass('dashboard:px-10');
+    expect(content?.parentElement).toHaveClass('dashboard:px-10');
   });
 });
 
@@ -96,5 +108,16 @@ describe('BrandShell', () => {
       </BrandShell>,
     );
     expect(screen.getByText('Treo').parentElement).toHaveClass('text-h1');
+  });
+
+  it('WEB-23 la marca es el encabezado de la página (banner): fuera de main nada queda sin landmark', () => {
+    render(
+      <BrandShell title="Inicia sesión">
+        <p>Formulario</p>
+      </BrandShell>,
+    );
+    const banner = screen.getByRole('banner');
+    expect(banner).toContainElement(screen.getByText('Treo'));
+    expect(banner).toContainElement(screen.getByText('Tu billetera digital en pesos mexicanos.'));
   });
 });

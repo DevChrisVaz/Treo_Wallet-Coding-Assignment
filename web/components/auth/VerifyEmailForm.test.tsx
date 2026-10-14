@@ -6,7 +6,7 @@ import { axe } from 'vitest-axe';
 import { resendVerification, verifyEmail } from '@/app/actions/auth';
 import { USER, problem } from '@/test/fixtures';
 import { router, setLocation } from '@/test/support/next-navigation';
-import { VerifyEmailForm } from './VerifyEmailForm';
+import { REGISTERED_MESSAGE, VerifyEmailForm } from './VerifyEmailForm';
 
 vi.mock('@/app/actions/auth', () => ({ verifyEmail: vi.fn(), resendVerification: vi.fn() }));
 vi.mock('next/navigation', () => import('@/test/support/next-navigation'));
@@ -81,5 +81,14 @@ describe('VerifyEmailForm', () => {
   it('WEB-23 no tiene problemas de accesibilidad', async () => {
     const { container } = render(<VerifyEmailForm email="ana@example.com" registered />);
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('WEB-31 WEB-25 tras el registro el aviso usa el tono de éxito y las acciones van apiladas', () => {
+    render(<VerifyEmailForm email="ana@example.com" registered />);
+    expect(screen.getByText(REGISTERED_MESSAGE).closest('.bg-success-soft')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Verificar correo' }).parentElement).toHaveClass(
+      'grid',
+      'gap-3',
+    );
   });
 });

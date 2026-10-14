@@ -47,15 +47,15 @@ describe('TransferFlow · confirmación', () => {
 
     await fillTransfer(user);
 
-    const summary = await screen.findByRole('region', { name: 'Confirma la transferencia' });
+    const summary = await screen.findByRole('region', { name: 'Revisa tu transferencia' });
     expect(summary).toHaveTextContent('$5,000.00');
-    expect(summary).toHaveTextContent('Principal •••• 9719');
-    expect(summary).toHaveTextContent('Luis •••• 9735');
+    expect(summary).toHaveTextContent('Principal · •••• 9719');
+    expect(summary).toHaveTextContent('Luis · •••• 9735');
     expect(summary).toHaveTextContent('Renta');
     expect(createMock).not.toHaveBeenCalled();
   });
 
-  it('WEB-17 con doble clic en "Enviar" envía una sola transferencia y el botón indica que se envía', async () => {
+  it('WEB-30 WEB-17 con doble clic en "Enviar" en la revisión crea una sola transferencia y el botón indica que se envía', async () => {
     createMock.mockReturnValue(new Promise(() => undefined));
     const user = userEvent.setup();
     renderWithClient(<TransferFlow />);
@@ -78,9 +78,10 @@ describe('TransferFlow · confirmación', () => {
     await fillTransfer(user);
 
     await user.click(await screen.findByRole('button', { name: 'Enviar' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'No sabemos si la transferencia se envió',
-    );
+    // R37: el estado sin confirmar es un aviso (`status`), con el texto de la historia aprobada.
+    expect(
+      await screen.findByText('No pudimos confirmar el estado de tu transferencia'),
+    ).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Reintentar' }));
 
@@ -108,7 +109,7 @@ describe('TransferFlow · confirmación', () => {
     expect(
       await screen.findByText('Ya habíamos recibido esta transferencia; este es su estado actual.'),
     ).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Ingresa el código' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Confirma con tu código' })).toBeVisible();
   });
 
   it('WEB-16 WEB-23 ante saldo insuficiente anuncia "Saldo insuficiente" con el saldo disponible y mueve el foco', async () => {
@@ -195,5 +196,22 @@ describe('TransferFlow · confirmación', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       problemMessage('SAME_ACCOUNT_TRANSFER'),
     );
+  });
+
+  it('WEB-23 el aviso de estado sin confirmar recibe el foco, no el título del paso', async () => {
+    createMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await fillTransfer(user);
+
+    await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+
+    const warning = (
+      await screen.findByText('No pudimos confirmar el estado de tu transferencia')
+    ).closest('[role="status"]');
+    expect(warning).toHaveFocus();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Estado sin confirmar' }),
+    ).not.toHaveFocus();
   });
 });

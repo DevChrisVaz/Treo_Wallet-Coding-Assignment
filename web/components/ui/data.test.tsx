@@ -17,6 +17,14 @@ describe('AccountCard', () => {
     expect(card).not.toHaveTextContent('032180000118359719');
   });
 
+  it('WEB-28 con el texto agrandado el saldo pasa de línea solo tras un separador de miles o antes de los centavos', () => {
+    render(<AccountCard account={{ ...PRINCIPAL, balance: '1250000.00' }} />);
+    const balance = screen.getByText('$1,250,000.00');
+    expect(balance).not.toHaveClass('[overflow-wrap:anywhere]');
+    expect(balance.innerHTML).toBe('$1,<wbr>250,<wbr>000<wbr>.00');
+    expect(balance.textContent).toBe('$1,250,000.00');
+  });
+
   it('WEB-13 permite ver la CLABE completa para compartirla', async () => {
     const user = userEvent.setup();
     render(<AccountCard account={PRINCIPAL} />);
@@ -72,6 +80,16 @@ describe('AccountCard', () => {
   it('WEB-23 no tiene problemas de accesibilidad', async () => {
     const { container } = render(<AccountCard account={PRINCIPAL} />);
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('WEB-23 el anillo de foco rodea toda la tarjeta seleccionable, no solo el nombre', () => {
+    render(<AccountCard account={PRINCIPAL} onSelect={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Principal' })).toHaveClass(
+      'focus-visible:outline-none',
+      'focus-visible:after:outline-2',
+      'focus-visible:after:outline-offset-2',
+      'focus-visible:after:outline-focus',
+    );
   });
 });
 
@@ -159,8 +177,8 @@ describe('Receipt', () => {
     const receipt = screen.getByRole('region', { name: 'Comprobante' });
     expect(within(receipt).getByText('Completada')).toHaveClass('bg-success-soft');
     expect(within(receipt).getByText('$5,000.00')).toBeVisible();
-    expect(receipt).toHaveTextContent('Principal •••• 9719');
-    expect(receipt).toHaveTextContent('Luis •••• 9735');
+    expect(receipt).toHaveTextContent('Principal · •••• 9719');
+    expect(receipt).toHaveTextContent('Luis · •••• 9735');
     expect(receipt).toHaveTextContent('Renta');
     expect(receipt).toHaveTextContent('Referencia1');
     expect(receipt).toHaveTextContent('13 oct 2026, 10:42');
@@ -172,10 +190,11 @@ describe('Receipt', () => {
     expect(screen.getByRole('heading', { name: 'Comprobante' })).toHaveClass('sr-only');
   });
 
-  it('WEB-25 separa el nombre de la terminación con un " · " decorativo, como en la revisión', () => {
+  it('WEB-25 separa el nombre de la terminación con " · ", como en la revisión', () => {
     render(<Receipt transfer={transfer()} fromAccount={PRINCIPAL} />);
-    expect(screen.getByText('Principal')).toHaveClass("after:content-['_·']");
-    expect(screen.getByText('Luis')).toHaveClass("after:content-['_·']");
+    const receipt = screen.getByRole('region', { name: 'Comprobante' });
+    expect(receipt).toHaveTextContent('Principal · •••• 9719');
+    expect(receipt).toHaveTextContent('Luis · •••• 9735');
   });
 
   it.each([

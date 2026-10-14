@@ -10,11 +10,19 @@ export interface AppHeaderProps {
   /** Título de la pestaña; sin él, saluda con el nombre (Inicio). */
   title?: string;
   onLogout?: () => void;
+  /** Cierre de sesión en curso: el botón muestra "Cerrando…", ocupado y deshabilitado (WEB-05). */
+  loggingOut?: boolean;
   className?: string;
 }
 
 /** Encabezado de la forma de app (WEB-27): saludo o título y el menú de la cuenta. */
-export function AppHeader({ user, title, onLogout, className = '' }: AppHeaderProps) {
+export function AppHeader({
+  user,
+  title,
+  onLogout,
+  loggingOut = false,
+  className = '',
+}: AppHeaderProps) {
   const [open, setOpen] = useState(false);
   const firstName = user.name.trim().split(/\s+/)[0] ?? user.name;
   return (
@@ -36,7 +44,7 @@ export function AppHeader({ user, title, onLogout, className = '' }: AppHeaderPr
         onClick={() => setOpen(true)}
         className="inline-flex size-11 items-center justify-center rounded-pill"
       >
-        <Avatar tone="hero" initials={initials(user.name)} />
+        <Avatar tone="hero" initials={initials(user.name)} insideLabelledControl />
       </button>
       <BottomSheet open={open} onClose={() => setOpen(false)} title="Tu cuenta">
         <div className="grid gap-5">
@@ -48,7 +56,13 @@ export function AppHeader({ user, title, onLogout, className = '' }: AppHeaderPr
             </div>
           </div>
           {onLogout ? (
-            <Button variant="secondary" icon="logout" onClick={onLogout}>
+            <Button
+              variant="secondary"
+              icon="logout"
+              onClick={onLogout}
+              loading={loggingOut}
+              loadingLabel="Cerrando…"
+            >
               Cerrar sesión
             </Button>
           ) : null}

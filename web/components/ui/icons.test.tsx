@@ -54,4 +54,15 @@ describe('Avatar', () => {
     const { container } = render(<Avatar initials="AG" />);
     expect(container.firstElementChild).toHaveAttribute('aria-hidden', 'true');
   });
+
+  it('WEB-23 dentro de un control con etiqueta propia, las iniciales se dibujan con CSS y no son texto del control', () => {
+    const { container } = render(<Avatar initials="AG" insideLabelledControl />);
+    expect(container.firstElementChild).toHaveAttribute('aria-hidden', 'true');
+    expect(container.firstElementChild).toHaveAttribute('data-initials', 'AG');
+    expect(container.textContent).toBe('');
+    // Fuera de un control así, las iniciales siguen siendo su texto (filas de beneficiarios, menú).
+    const { container: plain } = render(<Avatar initials="LP" />);
+    expect(plain.textContent).toBe('LP');
+    expect(plain.firstElementChild).not.toHaveAttribute('data-initials');
+  });
 });

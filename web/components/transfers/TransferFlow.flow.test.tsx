@@ -4,8 +4,17 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { confirmTransfer, createTransfer, resendTransferOtp } from '@/app/actions/transfers';
 import { bffGet } from '@/lib/client/bff';
-import { pendingOtpTransfer, problem, transfer } from '@/test/fixtures';
-import { setLocation } from '@/test/support/next-navigation';
+import { queryKeys } from '@/lib/client/query-keys';
+import {
+  AHORRO,
+  BENEFICIARY,
+  OVERVIEW,
+  PRINCIPAL,
+  pendingOtpTransfer,
+  problem,
+  transfer,
+} from '@/test/fixtures';
+import { router, setLocation } from '@/test/support/next-navigation';
 import { renderWithClient, testQueryClient } from '@/test/support/render';
 import { fillTransfer, mockTransferReads } from '@/test/support/transfer-flow';
 import { TransferFlow } from './TransferFlow';
@@ -56,15 +65,18 @@ describe('TransferFlow · flujo completo', () => {
     await fillTransfer(user, '15,000');
 
     // Confirmación
-    const summary = await screen.findByRole('region', { name: 'Confirma la transferencia' });
+    const summary = await screen.findByRole('region', { name: 'Revisa tu transferencia' });
     expect(summary).toHaveTextContent('$15,000.00');
     await user.click(screen.getByRole('button', { name: 'Enviar' }));
     expect(createMock).toHaveBeenCalledTimes(1);
     expect(createMock.mock.calls[0]?.[0]).toMatchObject({ amount: '15000' });
 
     // OTP: primero un código incorrecto, luego el correcto
-    expect(await screen.findByRole('heading', { name: 'Ingresa el código' })).toHaveFocus();
-    expect(screen.getByText(/an\*\*\*@example\.com/)).toHaveTextContent('Vence a las 10:52');
+    expect(await screen.findByRole('heading', { name: 'Confirma con tu código' })).toHaveFocus();
+    expect(
+      screen.getByText('Te enviamos un código de 6 dígitos a an***@example.com.'),
+    ).toBeVisible();
+    expect(screen.getByText('Vence a las 10:52.')).toBeVisible();
     const code = screen.getByLabelText('Código de 6 dígitos');
     await user.type(code, '000000');
     await user.click(screen.getByRole('button', { name: 'Confirmar' }));
@@ -133,7 +145,7 @@ describe('TransferFlow · flujo completo', () => {
     expect(second?.[1]).not.toBe(first?.[1]);
   });
 
-  it('WEB-18 al agotar los intentos ofrece iniciar una transferencia nueva desde cero', async () => {
+  it('WEB-30 WEB-18 al agotar los intentos muestra el comprobante fallido y ofrece intentar de nuevo', async () => {
     createMock.mockResolvedValue({
       ok: true,
       data: { transfer: pendingOtpTransfer(), replayed: false },
@@ -150,7 +162,174 @@ describe('TransferFlow · flujo completo', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       problemMessage('OTP_ATTEMPTS_EXHAUSTED'),
     );
-    await user.click(screen.getByRole('button', { name: 'Iniciar una nueva transferencia' }));
+    expect(
+      within(screen.getByRole('region', { name: 'Comprobante' })).getByText('Fallida'),
+    ).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Intentar de nuevo' }));
+    // Reiniciar vuelve al primer paso; el monto del intento nuevo empieza vacío.
+    expect(
+      await screen.findByRole('heading', { level: 1, name: '¿A quién le envías?' }),
+    ).toBeVisible();
+    await user.click(screen.getByRole('button', { name: /^Luis/ }));
     expect(screen.getByLabelText('Monto')).toHaveValue('');
+  });
+
+  it('WEB-30 el indicador muestra el paso 3 de 5 en la revisión de una transferencia con código y lo anuncia', async () => {
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    expect(await screen.findByText('Paso 1 de 5 · Destinatario')).toHaveAttribute(
+      'aria-live',
+      'polite',
+    );
+    await fillTransfer(user, '15,000');
+    expect(await screen.findByText('Paso 3 de 5 · Revisión')).toHaveAttribute(
+      'aria-live',
+      'polite',
+    );
+  });
+
+  it('WEB-30 sin código la revisión es el paso 3 de 4 y el comprobante el 4 de 4', async () => {
+    createMock.mockResolvedValue({ ok: true, data: { transfer: transfer(), replayed: false } });
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await fillTransfer(user);
+    expect(await screen.findByText('Paso 3 de 4 · Revisión')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+    expect(await screen.findByText('Paso 4 de 4 · Comprobante')).toBeVisible();
+  });
+
+  it('WEB-30 elegir la cuenta de Ahorro continúa como traspaso entre cuentas propias sin pedir beneficiario', async () => {
+    createMock.mockResolvedValue({ ok: true, data: { transfer: transfer(), replayed: false } });
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await user.click(await screen.findByRole('button', { name: /^Ahorro/ }));
+    expect(screen.queryByLabelText('Beneficiario')).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText('Monto'), '200');
+    await user.type(screen.getByLabelText('Concepto'), 'Apartado');
+    await user.type(screen.getByLabelText('Referencia'), '42');
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+    expect(createMock.mock.calls[0]?.[0]).toMatchObject({
+      fromAccountId: PRINCIPAL.id,
+      destination: { type: 'OWN_ACCOUNT', accountId: AHORRO.id },
+      amount: '200',
+    });
+  });
+
+  it('WEB-30 WEB-16 desde la pestaña Transferir, elegir Principal deja Ahorro como origen (R38)', async () => {
+    createMock.mockResolvedValue({ ok: true, data: { transfer: transfer(), replayed: false } });
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await user.click(await screen.findByRole('button', { name: /^Principal/ }));
+    const origin = screen.getByLabelText('Cuenta de origen');
+    expect(origin).toHaveValue(AHORRO.id);
+    expect(
+      within(origin)
+        .getAllByRole('option')
+        .some((option) => option.textContent?.startsWith('Principal')),
+    ).toBe(false);
+    await user.type(screen.getByLabelText('Monto'), '300');
+    await user.type(screen.getByLabelText('Concepto'), 'Regreso');
+    await user.type(screen.getByLabelText('Referencia'), '7');
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+    expect(createMock.mock.calls[0]?.[0]).toMatchObject({
+      fromAccountId: AHORRO.id,
+      destination: { type: 'OWN_ACCOUNT', accountId: PRINCIPAL.id },
+      amount: '300',
+    });
+  });
+
+  it('WEB-30 con el beneficiario del acceso directo empieza en el monto', async () => {
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow defaultBeneficiaryId={BENEFICIARY.id} />);
+    expect(await screen.findByRole('heading', { level: 1, name: '¿Cuánto envías?' })).toBeVisible();
+    // El título ya es el del monto mientras carga (fix round 1); el destinatario llega con los datos.
+    expect(await screen.findByText('Luis · CLABE •••• 9735')).toBeVisible();
+    await user.type(screen.getByLabelText('Monto'), '10');
+  });
+
+  it('WEB-22 si la sesión terminó al enviar, lleva al inicio de sesión con el regreso al flujo', async () => {
+    createMock.mockResolvedValue({
+      ok: false,
+      problem: problem('UNAUTHENTICATED', { status: 401 }),
+    });
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await fillTransfer(user);
+    await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith('/login?next=%2Ftransfers%2Fnew&reason=expired'),
+    );
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('WEB-30 en el dashboard el resumen acompaña cada paso con lo capturado', async () => {
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    const summary = await screen.findByRole('region', { name: 'Resumen' });
+    expect(summary).toHaveTextContent('Principal · •••• 9719');
+    expect(summary).toHaveTextContent('Por definir');
+    expect(summary).toHaveTextContent('Te quedan $38,000.00 de tu límite diario de hoy.');
+    await user.click(screen.getByRole('button', { name: /^Luis/ }));
+    await user.type(await screen.findByLabelText('Monto'), '15,000');
+    const updated = screen.getByRole('region', { name: 'Resumen' });
+    expect(updated).toHaveTextContent('Luis · •••• 9735');
+    expect(updated).toHaveTextContent('$15,000.00');
+    expect(updated).toHaveTextContent('Como el monto es mayor a $10,000.00');
+  });
+
+  it('WEB-20 si la relectura de las cuentas falla después del comprobante, el comprobante sigue a la vista', async () => {
+    createMock.mockResolvedValue({ ok: true, data: { transfer: transfer(), replayed: false } });
+    let accountsRead = 0;
+    bffGetMock.mockImplementation(async (path: string) => {
+      if (path === 'beneficiaries') return { items: [BENEFICIARY] };
+      if (path !== 'accounts') throw new Error(`Lectura inesperada: ${path}`);
+      accountsRead += 1;
+      if (accountsRead > 1) throw new TypeError('Failed to fetch');
+      return OVERVIEW;
+    });
+    const user = userEvent.setup();
+    const { client } = renderWithClient(<TransferFlow />);
+    await fillTransfer(user);
+    await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+    expect(await screen.findByRole('region', { name: 'Comprobante' })).toBeVisible();
+
+    // El comprobante pide releer las cuentas; esa relectura falla.
+    await waitFor(() => expect(client.getQueryState(queryKeys.accounts)?.status).toBe('error'));
+
+    expect(screen.getByRole('region', { name: 'Comprobante' })).toBeVisible();
+    expect(screen.getByRole('heading', { level: 1, name: 'Transferencia enviada' })).toBeVisible();
+    expect(
+      screen.queryByText('No pudimos cargar tus cuentas y beneficiarios'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('WEB-23 al agotar los intentos la alerta recibe el foco, no el título del paso', async () => {
+    createMock.mockResolvedValue({
+      ok: true,
+      data: { transfer: pendingOtpTransfer(), replayed: false },
+    });
+    confirmMock.mockResolvedValue({ ok: false, problem: problem('OTP_ATTEMPTS_EXHAUSTED') });
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await fillTransfer(user, '15,000');
+    await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+    await user.type(await screen.findByLabelText('Código de 6 dígitos'), '000000');
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveFocus();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'La transferencia no se realizó' }),
+    ).not.toHaveFocus();
+  });
+
+  it('WEB-30 con el beneficiario del acceso directo, mientras carga ya indica el paso 2 de 5', () => {
+    bffGetMock.mockImplementation(() => new Promise(() => undefined));
+    renderWithClient(<TransferFlow defaultBeneficiaryId={BENEFICIARY.id} />);
+    expect(screen.getByText('Cargando tus cuentas y beneficiarios')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: '¿Cuánto envías?' })).toBeVisible();
+    expect(screen.getByText('Paso 2 de 5 · Monto')).toBeVisible();
   });
 });

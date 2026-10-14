@@ -19,16 +19,35 @@ export interface AvatarProps {
   size?: keyof typeof SIZES;
   initials?: string;
   icon?: IconConcept;
+  /**
+   * Va dentro de un control que se nombra con su propia etiqueta (el botón "Menú de la cuenta",
+   * design.md): las iniciales se dibujan con CSS (`content: attr(data-initials)`) y no son texto del
+   * control, así su nombre accesible contiene todo su texto visible (WCAG 2.5.3, regla de axe
+   * `label-content-name-mismatch`). Se ven igual.
+   */
+  insideLabelledControl?: boolean;
 }
 
 /** Círculo con iniciales o icono (movimientos, cuenta, estados vacíos). Siempre decorativo. */
-export function Avatar({ tone = 'brand', size = 'md', initials: text, icon }: AvatarProps) {
+export function Avatar({
+  tone = 'brand',
+  size = 'md',
+  initials: text,
+  icon,
+  insideLabelledControl = false,
+}: AvatarProps) {
+  const drawn = insideLabelledControl && !icon;
   return (
     <span
       aria-hidden="true"
-      className={`inline-flex shrink-0 items-center justify-center rounded-pill font-medium ${TONES[tone]} ${SIZES[size]}`}
+      data-initials={drawn ? text : undefined}
+      className={`inline-flex shrink-0 items-center justify-center rounded-pill font-medium ${TONES[tone]} ${SIZES[size]}${drawn ? ' before:content-[attr(data-initials)]' : ''}`}
     >
-      {icon ? <Icon name={icon} size={size === 'lg' ? 'lg' : size === 'md' ? 'md' : 'sm'} /> : text}
+      {icon ? (
+        <Icon name={icon} size={size === 'lg' ? 'lg' : size === 'md' ? 'md' : 'sm'} />
+      ) : drawn ? null : (
+        text
+      )}
     </span>
   );
 }

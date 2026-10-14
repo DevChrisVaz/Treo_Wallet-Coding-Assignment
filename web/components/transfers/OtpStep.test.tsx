@@ -1,10 +1,10 @@
 import { problemMessage } from '@devchrisvaz/wallet-design-tokens';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { confirmTransfer, resendTransferOtp } from '@/app/actions/transfers';
-import { pendingOtpTransfer, problem, transfer } from '@/test/fixtures';
+import { OVERVIEW, pendingOtpTransfer, problem, transfer } from '@/test/fixtures';
 import { router, setLocation } from '@/test/support/next-navigation';
 import { EndedStep, OtpStep } from './OtpStep';
 
@@ -40,7 +40,10 @@ beforeEach(() => {
 describe('OtpStep', () => {
   it('WEB-16 indica el destino enmascarado del código y la hora de expiración', () => {
     renderStep();
-    expect(screen.getByText(/an\*\*\*@example\.com/)).toHaveTextContent('Vence a las 10:52');
+    expect(
+      screen.getByText('Te enviamos un código de 6 dígitos a an***@example.com.'),
+    ).toBeVisible();
+    expect(screen.getByText('Vence a las 10:52.')).toBeVisible();
   });
 
   it('WEB-18 con el código correcto confirma la transferencia', async () => {
@@ -148,24 +151,49 @@ describe('OtpStep', () => {
     const { container } = renderStep();
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it('WEB-30 el monto es el protagonista del paso de código, con los intentos que quedan', async () => {
+    confirmMock.mockResolvedValue({
+      ok: false,
+      problem: problem('OTP_INVALID', { attemptsRemaining: 2 }),
+    });
+    const { user } = renderStep();
+    expect(screen.getByText('$15,000.00')).toBeVisible();
+    expect(screen.getByText('Para Luis · CLABE •••• 9735')).toBeVisible();
+    expect(screen.getByText('Te quedan 3 intentos.')).toBeVisible();
+    await submitCode(user, '000000');
+    expect(await screen.findByText('Te quedan 2 intentos.')).toBeVisible();
+  });
 });
 
 describe('EndedStep', () => {
-  it('WEB-18 con los intentos agotados indica que no se realizó y ofrece iniciar una nueva', async () => {
+  it('WEB-30 WEB-18 con los intentos agotados indica que no se realizó y ofrece intentar de nuevo', async () => {
     const onRestart = vi.fn();
     const user = userEvent.setup();
-    render(<EndedStep problem={problem('OTP_ATTEMPTS_EXHAUSTED')} onRestart={onRestart} />);
+    render(
+      <EndedStep
+        problem={problem('OTP_ATTEMPTS_EXHAUSTED')}
+        transfer={null}
+        accounts={[]}
+        onRestart={onRestart}
+      />,
+    );
 
+    // "La transferencia no se realizó" es ahora el título de FlowHeader (R37).
     const alert = screen.getByRole('alert');
-    expect(alert).toHaveTextContent('La transferencia no se realizó');
     expect(alert).toHaveTextContent(problemMessage('OTP_ATTEMPTS_EXHAUSTED'));
-    await user.click(screen.getByRole('button', { name: 'Iniciar una nueva transferencia' }));
+    await user.click(screen.getByRole('button', { name: 'Intentar de nuevo' }));
     expect(onRestart).toHaveBeenCalled();
   });
 
   it('WEB-18 con el código vencido pide iniciar la transferencia de nuevo', () => {
     render(
-      <EndedStep problem={problem('TRANSFER_EXPIRED', { status: 409 })} onRestart={vi.fn()} />,
+      <EndedStep
+        problem={problem('TRANSFER_EXPIRED', { status: 409 })}
+        transfer={null}
+        accounts={[]}
+        onRestart={vi.fn()}
+      />,
     );
     expect(screen.getByRole('alert')).toHaveTextContent(problemMessage('TRANSFER_EXPIRED'));
   });
@@ -174,11 +202,42 @@ describe('EndedStep', () => {
     render(
       <EndedStep
         problem={problem('DAILY_LIMIT_EXCEEDED', { remaining: '1500.00' })}
+        transfer={null}
+        accounts={[]}
         onRestart={vi.fn()}
       />,
     );
     const alert = screen.getByRole('alert');
     expect(alert).toHaveTextContent('Superaste tu límite diario');
     expect(alert).toHaveTextContent('Hoy puedes enviar hasta $1,500.00');
+  });
+
+  it('WEB-18 WEB-25 al agotar los intentos muestra el comprobante con el estado "Fallida"', () => {
+    render(
+      <EndedStep
+        problem={problem('OTP_ATTEMPTS_EXHAUSTED')}
+        transfer={pendingOtpTransfer()}
+        accounts={OVERVIEW.accounts}
+        onRestart={vi.fn()}
+      />,
+    );
+    const receipt = screen.getByRole('region', { name: 'Comprobante' });
+    expect(within(receipt).getByText('Fallida')).toBeVisible();
+    expect(receipt).toHaveTextContent('Principal · •••• 9719');
+    expect(screen.getByRole('link', { name: 'Ver mis cuentas' })).toHaveAttribute('href', '/');
+  });
+
+  it('WEB-18 con TRANSFER_NOT_PENDING el comprobante muestra el estado que da la API', () => {
+    render(
+      <EndedStep
+        problem={problem('TRANSFER_NOT_PENDING', { status: 409, transferStatus: 'REJECTED' })}
+        transfer={pendingOtpTransfer()}
+        accounts={OVERVIEW.accounts}
+        onRestart={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(problemMessage('TRANSFER_NOT_PENDING'));
+    const receipt = screen.getByRole('region', { name: 'Comprobante' });
+    expect(within(receipt).getByText('Rechazada')).toBeVisible();
   });
 });

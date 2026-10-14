@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loginPath, safeNextPath } from './navigation';
+import { appSection, loginPath, safeNextPath } from './navigation';
 
 describe('safeNextPath', () => {
   it.each([
@@ -38,5 +38,45 @@ describe('loginPath', () => {
   it('WEB-03 agrega el motivo de sesión expirada y omite el regreso al resumen', () => {
     expect(loginPath('/', 'expired')).toBe('/login?reason=expired');
     expect(loginPath('https://evil.example.com')).toBe('/login');
+  });
+});
+
+const ID = '0b7d6f5e-4c3b-4a29-8187-6f5e4d3c2b1a';
+
+describe('appSection', () => {
+  it.each([
+    ['/', { current: 'home', title: 'Inicio', mode: 'tabs', primary: 'transfer' }],
+    [
+      '/movements',
+      { current: 'movements', title: 'Movimientos', mode: 'tabs', primary: 'transfer' },
+    ],
+    [
+      `/accounts/${ID}/movements`,
+      { current: 'movements', title: 'Movimientos', mode: 'tabs', primary: 'transfer' },
+    ],
+    [
+      '/transfers/new',
+      { current: 'transfer', title: 'Transferir', mode: 'flow', primary: 'transfer' },
+    ],
+    [
+      `/transfers/${ID}`,
+      { current: null, title: 'Transferencia', mode: 'tabs', primary: 'transfer' },
+    ],
+    [
+      '/beneficiaries',
+      { current: 'beneficiaries', title: 'Beneficiarios', mode: 'tabs', primary: 'beneficiary' },
+    ],
+    [
+      '/beneficiaries/new',
+      {
+        current: 'beneficiaries',
+        title: 'Agregar beneficiario',
+        mode: 'tabs',
+        primary: 'transfer',
+      },
+    ],
+    ['/beneficiariesx', { current: 'home', title: 'Inicio', mode: 'tabs', primary: 'transfer' }],
+  ] as const)('WEB-26 WEB-27 %s tiene su destino, su título y su forma', (path, expected) => {
+    expect(appSection(path)).toEqual(expected);
   });
 });

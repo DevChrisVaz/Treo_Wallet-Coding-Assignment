@@ -59,67 +59,77 @@ export function RegisterForm() {
   });
 
   return (
-    <form noValidate onSubmit={onSubmit} className="grid gap-5">
-      {error ? (
-        <InlineAlert tone="danger" focusOnMount>
-          {error}
-        </InlineAlert>
-      ) : null}
-      <TextField
-        label="Correo"
-        type="email"
-        autoComplete="email"
-        error={errors.email?.message}
-        {...register('email')}
-      />
-      <TextField
-        label="Contraseña"
-        type="password"
-        autoComplete="new-password"
-        hint="Usa al menos 12 caracteres."
-        error={errors.password?.message}
-        {...register('password')}
-      />
-      <TextField
-        label="Nombre completo"
-        autoComplete="name"
-        error={errors.fullName?.message}
-        {...register('fullName')}
-      />
-      <TextField
-        label="CURP"
-        autoCapitalize="characters"
-        spellCheck={false}
-        hint="18 caracteres, como aparece en tu identificación."
-        error={errors.curp?.message}
-        {...upperCase(register('curp'))}
-      />
-      <TextField
-        label="RFC"
-        autoCapitalize="characters"
-        spellCheck={false}
-        hint="13 caracteres, con homoclave."
-        error={errors.rfc?.message}
-        {...upperCase(register('rfc'))}
-      />
-      <TextField
-        label="Teléfono"
-        type="tel"
-        inputMode="numeric"
-        autoComplete="tel-national"
-        hint="10 dígitos, sin lada ni espacios."
-        error={errors.phone?.message}
-        {...register('phone')}
-      />
-      <Button type="submit" loading={isSubmitting} loadingLabel="Creando cuenta…">
-        Crear cuenta
-      </Button>
-      <p className="text-body-sm text-fg-secondary">
+    <>
+      <form noValidate onSubmit={onSubmit} className="grid gap-4">
+        {error ? (
+          <InlineAlert tone="danger" focusOnMount>
+            {error}
+          </InlineAlert>
+        ) : null}
+        <TextField
+          label="Correo"
+          type="email"
+          autoComplete="email"
+          error={errors.email?.message}
+          {...register('email')}
+        />
+        <TextField
+          label="Contraseña"
+          type="password"
+          autoComplete="new-password"
+          hint="Usa al menos 12 caracteres."
+          error={errors.password?.message}
+          {...register('password')}
+        />
+        <TextField
+          label="Nombre completo"
+          autoComplete="name"
+          error={errors.fullName?.message}
+          {...register('fullName')}
+        />
+        <TextField
+          label="CURP"
+          autoCapitalize="characters"
+          spellCheck={false}
+          hint="18 caracteres, como aparece en tu identificación."
+          error={errors.curp?.message}
+          {...upperCase(register('curp'))}
+        />
+        <TextField
+          label="RFC"
+          autoCapitalize="characters"
+          spellCheck={false}
+          hint="13 caracteres, con homoclave."
+          error={errors.rfc?.message}
+          {...upperCase(register('rfc'))}
+        />
+        <TextField
+          label="Teléfono"
+          type="tel"
+          inputMode="numeric"
+          autoComplete="tel-national"
+          hint="10 dígitos, sin lada ni espacios."
+          error={errors.phone?.message}
+          {...register('phone')}
+        />
+        <Button
+          type="submit"
+          loading={isSubmitting}
+          loadingLabel="Creando cuenta…"
+          className="w-full"
+        >
+          Crear cuenta
+        </Button>
+      </form>
+      <p className="text-center text-body-sm text-fg-secondary">
         ¿Ya tienes cuenta?{' '}
-        <Link href="/login" className="text-action underline underline-offset-2">
+        <Link
+          href="/login"
+          className="inline-flex min-h-11 items-center font-medium text-action underline underline-offset-2"
+        >
           Inicia sesión
         </Link>
       </p>
-    </form>
+    </>
   );
 }

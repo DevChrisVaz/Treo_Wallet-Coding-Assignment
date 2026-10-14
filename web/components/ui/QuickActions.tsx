@@ -1,5 +1,6 @@
 import type { IconConcept } from '@devchrisvaz/wallet-design-tokens';
 import { Icon } from './Icon';
+import { RouterLink } from './RouterLink';
 
 export interface QuickAction {
   key: string;
@@ -9,10 +10,13 @@ export interface QuickAction {
   onClick?: () => void;
 }
 
-/** Acciones rápidas sobre el hero: círculo con icono lima y texto visible (WEB-28). */
+/**
+ * Acciones rápidas sobre el hero: círculo con icono lima y texto visible (WEB-28). Con el texto
+ * agrandado (200 %) pasan a otra línea en lugar de desbordar el hero.
+ */
 export function QuickActions({ actions }: { actions: readonly QuickAction[] }) {
   return (
-    <ul className="flex gap-6">
+    <ul className="flex flex-wrap gap-6">
       {actions.map(({ key, label, icon, href, onClick }) => {
         const content = (
           <>
@@ -28,9 +32,9 @@ export function QuickActions({ actions }: { actions: readonly QuickAction[] }) {
         return (
           <li key={key}>
             {href ? (
-              <a href={href} className={classes}>
+              <RouterLink href={href} className={classes}>
                 {content}
-              </a>
+              </RouterLink>
             ) : (
               <button type="button" onClick={onClick} className={classes}>
                 {content}

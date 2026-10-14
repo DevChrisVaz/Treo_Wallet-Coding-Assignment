@@ -1,7 +1,6 @@
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { AppNav, LogoutButton } from '@/components/layout/AppHeader';
-import { PageShell } from '@/components/layout/PageShell';
+import { AppFrame } from '@/components/layout/AppFrame';
 import { loginPath, safeNextPath } from '@/lib/navigation';
 import { readSessionId } from '@/lib/server/session-cookie';
 import { currentSession } from '@/lib/server/session';
@@ -21,16 +20,6 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
     );
   }
 
-  return (
-    <PageShell
-      actions={
-        <>
-          <AppNav />
-          <LogoutButton />
-        </>
-      }
-    >
-      {children}
-    </PageShell>
-  );
+  const { user } = current.session;
+  return <AppFrame user={{ name: user.fullName, email: user.email }}>{children}</AppFrame>;
 }

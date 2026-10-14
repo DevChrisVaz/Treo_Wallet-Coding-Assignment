@@ -78,6 +78,29 @@ describe('BeneficiariesScreen', () => {
     renderWithClient(<BeneficiariesScreen />);
     expect(screen.getByRole('status')).toHaveTextContent('Cargando tus beneficiarios');
   });
+
+  it('WEB-25 cada fila lleva el avatar con las iniciales y "Transferir a <alias>" abre el flujo con ese beneficiario', async () => {
+    bffGetMock.mockResolvedValue({ items: [BENEFICIARY] });
+    renderWithClient(<BeneficiariesScreen />);
+    const row = within(await screen.findByRole('list', { name: 'Beneficiarios' })).getByRole(
+      'listitem',
+    );
+    expect(within(row).getByText('LP')).toHaveAttribute('aria-hidden', 'true');
+    expect(within(row).getByText('CLABE •••• 9735')).toBeVisible();
+    expect(within(row).getByRole('link', { name: 'Transferir a Luis' })).toHaveAttribute(
+      'href',
+      `/transfers/new?beneficiary=${BENEFICIARY.id}`,
+    );
+  });
+
+  it('WEB-27 en teléfono "Agregar beneficiario" va arriba de la lista', async () => {
+    bffGetMock.mockResolvedValue({ items: [BENEFICIARY] });
+    renderWithClient(<BeneficiariesScreen />);
+    await screen.findByRole('list', { name: 'Beneficiarios' });
+    const add = screen.getByRole('link', { name: 'Agregar beneficiario' });
+    expect(add).toHaveAttribute('href', '/beneficiaries/new');
+    expect(add).toHaveClass('dashboard:hidden');
+  });
 });
 
 async function fillForm(clabe = BENEFICIARY.clabe) {
@@ -89,6 +112,18 @@ async function fillForm(clabe = BENEFICIARY.clabe) {
 }
 
 describe('NewBeneficiaryForm', () => {
+  it('WEB-25 WEB-26 "Cancelar" vuelve a la lista y el envío ocupa todo el ancho en teléfono', () => {
+    renderWithClient(<NewBeneficiaryForm />);
+    expect(screen.getByRole('link', { name: 'Cancelar' })).toHaveAttribute(
+      'href',
+      '/beneficiaries',
+    );
+    expect(screen.getByRole('button', { name: 'Agregar beneficiario' }).parentElement).toHaveClass(
+      'grid',
+      'gap-3',
+    );
+  });
+
   it('WEB-15 un alta exitosa lo muestra en la lista sin recargar la página', async () => {
     createMock.mockResolvedValue({ ok: true, data: BENEFICIARY });
     const { client } = renderWithClient(<NewBeneficiaryForm />);

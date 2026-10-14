@@ -2,6 +2,7 @@
 
 import { formatMXN, type Account } from '@devchrisvaz/wallet-contract';
 import { useId, useState, type ReactNode } from 'react';
+import { AmountBreaks } from './AmountBreaks';
 
 export interface AccountCardProps {
   account: Pick<Account, 'name' | 'clabe' | 'balance'>;
@@ -19,9 +20,10 @@ export interface AccountCardProps {
  * Mide lo mismo que la tarjeta de la app móvil (WEB-25): borde de 2 px (transparente o, si está
  * seleccionada, el anillo en verde de acción) y 4 px entre filas. Con `onSelect`, toda la tarjeta
  * selecciona, como el Pressable de la app móvil: el botón del nombre (dentro del `h3`, R2) se estira
- * sobre la tarjeta con un `::after` (R31). Lo que debe seguir siendo propio va encima (`z-10`): el
- * botón de la CLABE, con su área de 44 px en otro `::after`, la CLABE completa (para copiarla) y las
- * acciones de la tarjeta.
+ * sobre la tarjeta con un `::after` (R31), que también lleva el anillo de foco: al llegar con el
+ * teclado se marca toda la tarjeta, no solo el nombre (WEB-23). Lo que debe seguir siendo propio va
+ * encima (`z-10`): el botón de la CLABE, con su área de 44 px en otro `::after`, la CLABE completa
+ * (para copiarla) y las acciones de la tarjeta.
  */
 export function AccountCard({ account, selected = false, onSelect, children }: AccountCardProps) {
   const titleId = useId();
@@ -41,7 +43,7 @@ export function AccountCard({ account, selected = false, onSelect, children }: A
             aria-pressed={selected}
             aria-describedby={balanceId}
             onClick={onSelect}
-            className="text-left after:absolute after:-inset-0.5 after:rounded-md"
+            className="text-left after:absolute after:-inset-0.5 after:rounded-md focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-focus"
           >
             {account.name}
           </button>
@@ -76,8 +78,10 @@ export function AccountCard({ account, selected = false, onSelect, children }: A
           {showClabe ? 'Ocultar CLABE' : 'Mostrar CLABE'}
         </button>
       </div>
+      {/* Como el monto del hero: con el texto agrandado pasa de línea en lugar de desbordar, solo tras
+          un separador de miles o antes de los centavos. */}
       <p id={balanceId} className="text-h2 text-fg tabular-nums">
-        {formatMXN(account.balance)}
+        <AmountBreaks value={formatMXN(account.balance)} />
       </p>
       {children ? <div className="relative z-10 flex flex-wrap gap-2 pt-1">{children}</div> : null}
     </article>

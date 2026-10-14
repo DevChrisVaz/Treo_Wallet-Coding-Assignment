@@ -19,7 +19,8 @@ export function ListSection({ title, action, children, className = '' }: ListSec
       {title || action ? (
         <div className="flex items-center justify-between gap-4 pb-2">
           {title ? (
-            <h2 id={titleId} className="text-h3 text-fg">
+            // Con el texto agrandado (200 %) una palabra larga se parte en lugar de desbordar.
+            <h2 id={titleId} className="text-h3 text-fg [overflow-wrap:anywhere]">
               {title}
             </h2>
           ) : (

@@ -1,5 +1,8 @@
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppFrame, type AppFrameProps } from '@/components/layout/AppFrame';
 import { sessionStore } from '@/lib/server/session-store';
+import { USER } from '@/test/fixtures';
 import { resetRequest } from '@/test/support/next-headers';
 import { SESSION_ID, sessionData } from '@/test/support/session';
 import AppLayout from './layout';
@@ -41,5 +44,15 @@ describe('layout protegido (app)', () => {
 
     const session = await sessionStore().get(SESSION_ID);
     expect(Date.parse(session?.lastSeenAt ?? '')).toBeGreaterThan(before.getTime());
+  });
+
+  it('WEB-26 WEB-27 con sesión monta la estructura de la app con el nombre y el correo del usuario', async () => {
+    await sessionStore().set(SESSION_ID, sessionData());
+    resetRequest({ headers: { 'x-wallet-path': PATH }, cookies: { sid: SESSION_ID } });
+
+    const element = (await renderLayout()) as ReactElement<AppFrameProps>;
+
+    expect(element.type).toBe(AppFrame);
+    expect(element.props.user).toEqual({ name: USER.fullName, email: USER.email });
   });
 });
