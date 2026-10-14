@@ -208,3 +208,42 @@ La URL de la API se lee de `EXPO_PUBLIC_API_URL` (Expo la incorpora al bundle) y
 - [HTTP sin TLS hacia la IP local] → aceptable solo en desarrollo con Expo Go; en producción la URL es HTTPS (ver `docs/aws-deploy.md`).
 - [Reloj del dispositivo desfasado] → la cuenta regresiva del OTP es orientativa; la API decide el vencimiento y la app reacciona a `TRANSFER_EXPIRED`.
 - [Duplicar la política de reintentos respecto a la web] → es intencional: los proyectos no comparten código; la política vive en el diseño y en las pruebas de cada cliente.
+
+## Notas de implementación
+
+Hallazgos y ajustes que surgieron al implementar.
+
+### N1. Resolución de los paquetes locales (tarea 1.2)
+
+- Sin dispositivo ni simulador, la resolución con Metro se comprobó con `npx expo export --platform android` y `--platform ios` (Expo SDK 57), que ejecuta Metro y compila el bundle a bytecode de Hermes. Los mapas de fuentes muestran que Metro toma `@devchrisvaz/wallet-contract/dist/index.mjs` y `openapi-fetch/dist/index.mjs` (condición `import` del campo `exports`, porque la app usa sentencias `import`) y `@devchrisvaz/wallet-design-tokens/dist/native.cjs` para el subpath `./native`. No hizo falta `watchFolders` ni el respaldo `native/`.
+- **Hueco en `/contract` (no bloquea):** la salida CommonJS del paquete (`dist/index.cjs`) falla al llamar a `createApiClient`: tsup la compila con `__toESM(require("openapi-fetch"), 1)`, que en modo Node toma como `default` todo el objeto de exports de openapi-fetch, y la llamada lanza `TypeError: (0 , import_openapi_fetch.default) is not a function` (se reproduce cargando `dist/index.cjs` con `require` en Node y llamando a `createApiClient`). La prueba de humo del paquete solo comprueba que `createApiClient` sea una función. Metro no se ve afectado porque resuelve la salida ESM; en Jest, que resuelve con la condición `require`, `jest.config.js` mapea el paquete a `dist/index.mjs` y lo transforma con el mismo Babel de jest-expo, igual que Metro. No se modifica `/contract`: queda reportado para corregirlo allí (por ejemplo, con la opción de interoperabilidad de tsup y una prueba de humo que llame al cliente).
+
+### N2. Textos de la interfaz: manda el paquete de diseño (tarea 2.6 y siguientes)
+
+El change `design-system` se escribió después de esta especificación y fija los textos en `problemMessage` (DSG-12) y las convenciones de dinero (DSG-09). Donde un escenario de `mobile-app` citaba otro texto, la app usa el del paquete, para decir lo mismo que la web, y el escenario se actualizó en este change:
+
+| Requisito | Texto anterior del escenario | Texto que muestra la app |
+|---|---|---|
+| MOB-14 | "Saldo insuficiente para esta transferencia" | "No tienes saldo suficiente para esta transferencia." |
+| MOB-01 | "Email o contraseña incorrectos" | "El correo o la contraseña no coinciden." |
+| MOB-01 | (correo sin verificar) | "Confirma tu correo con el código que te enviamos. La verificación se completa en la web de TreoWallet." (texto del paquete más la indicación de la web) |
+| MOB-03 | "Tu sesión expiró" | "Cerramos tu sesión por seguridad. Inicia sesión de nuevo." |
+| MOB-06 | Salida "-$150.00", entrada "$25,000.00" | Salida "−$150.00" (U+2212, tinta) y entrada "+$25,000.00" (verde), convención de DSG-09 |
+| MOB-12 | "Código incorrecto, te queda 1 intento" | "El código no es correcto. Te queda 1 intento." |
+| MOB-08 | "Máximo 2 decimales" | "El monto admite máximo 2 decimales" (mensaje de `amountInput` del contrato, igual que en la web) |
+| MOB-08 | "la referencia solo admite de 1 a 7 dígitos" | "La referencia solo admite dígitos" (mensaje de `reference` del contrato; la ayuda del campo dice "De 1 a 7 dígitos.") |
+
+Los mensajes se deciden con un `switch` exhaustivo sobre `ProblemCode` (comprobado con una mutación de tipos: quitar un `case` rompe `tsc`) y `problemMessages satisfies Record<ProblemCode, string>` comprueba que el paquete tenga un texto para cada code. La app agrega solo los datos variables: lo que queda del límite (`remaining` con `formatMXN`), los intentos restantes y el `requestId` como "Folio para soporte" en `INTERNAL_ERROR` (un code desconocido llega como `INTERNAL_ERROR`). Sin respuesta de la API (`NetworkError`), el texto es propio de la app porque no hay `code`: "No pudimos conectar con TreoWallet. Revisa tu conexión e intenta de nuevo."
+
+### N3. Idempotency-Key ausente en silencio (tarea 4.8)
+
+La prueba de pantalla "corregir tras un rechazo usa otra llave" detectó que, en Jest, las peticiones a `POST /transfers` salían **sin** `Idempotency-Key`: los módulos nativos de Expo están simulados y `randomUUID` de `expo-crypto` devolvía `undefined`; `createIdempotencyKey(randomUUID)` lo pasaba tal cual y openapi-fetch omite los headers con valor `undefined` sin avisar. Las pruebas unitarias de `transferAttempt` no lo veían porque inyectan su propio generador. Correcciones: `TransferAttempt.review` lanza un error si el generador no entrega una llave (nunca se envía una transferencia sin ella), `jest.setup.ts` simula `expo-crypto` con UUID v4 reales, y las pruebas de pantalla verifican que cada `Idempotency-Key` enviada sea un UUID v4. Hueco menor en `/contract`: `createIdempotencyKey(generator)` podría validar que el generador devuelva un UUID.
+
+### N4. Otras decisiones de implementación
+
+- **Versiones:** Expo SDK 57 (plantilla `default` de `create-expo-app`, rutas en `src/app`), React Native 0.86, TypeScript 6.0 (compatible con typescript-eslint, que admite `<6.1`), TanStack Query 5, Testing Library 14 (`render` y `fireEvent` asíncronos) y jest-expo 57.
+- **Colores de la configuración nativa:** `app.json` fija `#FFFFFF` como fondo de la pantalla de carga y del ícono adaptable de Android. Es configuración estática de compilación, no estilos de la app, y coincide con `surface.default`; los componentes y pantallas solo usan el tema (una prueba recorre `src` y rechaza colores, tamaños, familias, espaciados o radios escritos a mano).
+- **Selector de beneficiario:** la pantalla de elección usa `OptionRow`, la opción del `Select` del inventario, para no agregar un componente fuera de D7.
+- **Una pantalla para todo el intento:** la ruta `transfer/send` muestra captura, confirmación, envío, código, resultado o falla según el estado de `TransferAttempt`; así el intento (llave, payload congelado, temporizadores) vive en un solo lugar y se descarta al salir.
+- **Pruebas sin la API real:** una API simulada que registra cada petición (método, ruta, headers y cuerpo exacto) y responde por ruta; para el caso borde de la tarea 4.11, una API simulada con la semántica de idempotencia de la API. Los temporizadores falsos de TanStack Query se evitan con `gcTime` infinito en pruebas.
+

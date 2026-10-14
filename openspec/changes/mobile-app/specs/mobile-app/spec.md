@@ -13,7 +13,7 @@ La app SHALL permitir iniciar sesión con email y contraseña contra la API y, a
 
 #### Scenario: Credenciales inválidas
 - **WHEN** la API responde `401` con `code` `INVALID_CREDENTIALS`
-- **THEN** la app muestra "Email o contraseña incorrectos" sin indicar cuál de los dos falló
+- **THEN** la app muestra "El correo o la contraseña no coinciden." (mensaje de `INVALID_CREDENTIALS` del paquete de diseño) sin indicar cuál de los dos falló
 - **AND** la contraseña capturada se borra del formulario
 
 #### Scenario: Correo sin verificar
@@ -60,7 +60,7 @@ Cuando una petición autenticada recibe `401 UNAUTHENTICATED`, la app SHALL reno
 #### Scenario: Sesión revocada
 - **WHEN** la renovación responde `401` con `code` `SESSION_REVOKED`
 - **THEN** la app borra el refresh token del almacenamiento seguro y el access token de memoria
-- **AND** muestra la pantalla de inicio de sesión con el mensaje "Tu sesión expiró"
+- **AND** muestra la pantalla de inicio de sesión con el mensaje "Cerramos tu sesión por seguridad. Inicia sesión de nuevo." (mensaje de `SESSION_REVOKED` del paquete de diseño)
 
 ### Requirement: MOB-04 Cierre de sesión
 La app SHALL permitir cerrar sesión. Al hacerlo, SHALL pedir a la API la revocación del refresh token y MUST borrar los tokens locales aunque la API no responda.
@@ -99,7 +99,7 @@ La app SHALL mostrar los últimos 20 movimientos de la cuenta que el usuario eli
 
 #### Scenario: Salidas y entradas
 - **WHEN** la lista incluye un movimiento `TRANSFER_OUT` de `"-150.00"` y un `DEPOSIT` de `"25000.00"`
-- **THEN** la app muestra la salida como "-$150.00" con la etiqueta "Transferencia enviada" y la entrada como "$25,000.00" con la etiqueta "Depósito"
+- **THEN** la app muestra la salida como "−$150.00" (signo menos U+2212, con el color de la tinta y no el de error) con la etiqueta "Transferencia enviada" y la entrada como "+$25,000.00" (con el color de dinero entrante) con la etiqueta "Depósito"
 
 #### Scenario: Cuenta sin movimientos
 - **WHEN** la cuenta no tiene movimientos
@@ -122,7 +122,7 @@ La app SHALL pedir la cuenta de origen, el monto, el concepto y la referencia, y
 
 #### Scenario: Monto con más de dos decimales (redondeo)
 - **WHEN** el usuario captura el monto `100.005`
-- **THEN** la app muestra el error "Máximo 2 decimales" junto al campo
+- **THEN** la app muestra el error "El monto admite máximo 2 decimales" (mensaje del validador del contrato) junto al campo
 - **AND** no envía la transferencia ni redondea el monto a `100.01`
 
 #### Scenario: Monto válido sin centavos
@@ -135,7 +135,7 @@ La app SHALL pedir la cuenta de origen, el monto, el concepto y la referencia, y
 
 #### Scenario: Referencia no numérica
 - **WHEN** el usuario captura la referencia `12A45`
-- **THEN** la app muestra un error indicando que la referencia solo admite de 1 a 7 dígitos
+- **THEN** la app muestra el error "La referencia solo admite dígitos" (mensaje del validador del contrato; la ayuda del campo indica de 1 a 7 dígitos)
 
 ### Requirement: MOB-09 Confirmación previa y envío único
 Antes de enviar, la app SHALL mostrar un resumen con la cuenta de origen, el beneficiario, el monto, el concepto, la referencia y si se pedirá un código por correo. La app MUST generar una sola `Idempotency-Key` por intento de transferencia y MUST deshabilitar el botón de enviar mientras la petición está en curso. Si el usuario vuelve a editar los datos, el siguiente envío MUST usar una llave nueva.
@@ -195,7 +195,7 @@ Cuando la transferencia queda en `PENDING_OTP`, la app SHALL pedir el código de
 
 #### Scenario: Código incorrecto
 - **WHEN** la confirmación responde `422` con `code` `OTP_INVALID` y `attemptsRemaining` igual a 1
-- **THEN** la app muestra "Código incorrecto, te queda 1 intento" y conserva la pantalla del código
+- **THEN** la app muestra "El código no es correcto. Te queda 1 intento." (mensaje de `OTP_INVALID` del paquete de diseño más los intentos) y conserva la pantalla del código
 
 #### Scenario: Intentos agotados
 - **WHEN** la confirmación responde `422` con `code` `OTP_ATTEMPTS_EXHAUSTED`
@@ -233,7 +233,7 @@ La app SHALL decidir el mensaje que muestra a partir del `code` del problema RFC
 
 #### Scenario: Saldo insuficiente
 - **WHEN** la API responde `422` con `code` `INSUFFICIENT_FUNDS`
-- **THEN** la app muestra "Saldo insuficiente para esta transferencia"
+- **THEN** la app muestra "No tienes saldo suficiente para esta transferencia." (mensaje de `INSUFFICIENT_FUNDS` del paquete de diseño, DSG-12)
 
 #### Scenario: Límite diario excedido
 - **WHEN** la API responde `422` con `code` `DAILY_LIMIT_EXCEEDED` y `remaining` igual a `"5000.00"`
