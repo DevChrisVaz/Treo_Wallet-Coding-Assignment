@@ -60,7 +60,9 @@ export function AppShell({
             className="dashboard:hidden"
           />
         ) : null}
-        <TopBar title={title} action={primaryAction} className="hidden dashboard:flex" />
+        {tabs ? (
+          <TopBar title={title} action={primaryAction} className="hidden dashboard:flex" />
+        ) : null}
         <main
           id={MAIN_CONTENT_ID}
           tabIndex={-1}

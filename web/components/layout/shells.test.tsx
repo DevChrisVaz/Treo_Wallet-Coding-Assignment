@@ -39,6 +39,27 @@ describe('AppShell', () => {
   });
 });
 
+describe('AppShell encabezados', () => {
+  it('WEB-23 en la forma de app el saludo de Inicio es el único h1 visible', () => {
+    render(
+      <AppShell current="home" title="Inicio" user={USER}>
+        <p>Contenido</p>
+      </AppShell>,
+    );
+    expect(screen.getByRole('heading', { level: 1, name: 'Hola, Ana' })).toBeInTheDocument();
+  });
+
+  it('WEB-27 en el flujo no hay encabezado de la app ni TopBar con h1', () => {
+    render(
+      <AppShell current="transfer" title="Transferir" user={USER} mode="flow">
+        <p>Paso</p>
+      </AppShell>,
+    );
+    expect(screen.queryByRole('heading', { name: 'Transferir' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Menú de la cuenta' })).not.toBeInTheDocument();
+  });
+});
+
 describe('BrandShell', () => {
   it('WEB-31 muestra el Wordmark sobre la superficie de marca y el contenido en una hoja', () => {
     render(

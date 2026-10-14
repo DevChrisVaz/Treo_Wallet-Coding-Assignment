@@ -24,10 +24,10 @@ export function AppHeader({ user, title, onLogout, className = '' }: AppHeaderPr
       {title ? (
         <h1 className="text-h2 text-fg">{title}</h1>
       ) : (
-        <div>
-          <p className="text-body-sm text-fg-secondary">Hola,</p>
-          <p className="text-h2 text-fg">{firstName}</p>
-        </div>
+        <h1 className="grid">
+          <span className="text-body-sm text-fg-secondary">Hola,</span>{' '}
+          <span className="text-h2 text-fg">{firstName}</span>
+        </h1>
       )}
       <button
         type="button"
