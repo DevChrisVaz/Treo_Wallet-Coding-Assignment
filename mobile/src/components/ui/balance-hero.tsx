@@ -40,9 +40,12 @@ export function BalanceHero({ total, available, actions }: BalanceHeroProps) {
       </View>
       <View accessible accessibilityLabel={`Saldo total ${formatted}`}>
         <Text style={styles.title}>Saldo total</Text>
+        {/* Con el texto del sistema agrandado, el monto se reduce en vez de cortarse (M-5). */}
         <Text
           testID="hero-amount"
           numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.5}
           style={[amountStyle, theme.amount, styles.amount]}
         >
           {whole}

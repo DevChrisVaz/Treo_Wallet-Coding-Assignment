@@ -85,7 +85,9 @@ describe('bloqueo al volver de segundo plano', () => {
 
   test('MOB-25 después de desbloquear sigue en la pantalla en la que estaba', async () => {
     const app = await openApp();
+    // MOB-19: tocar la tarjeta la elige; "Ver todos" abre Movimientos con ella.
     await userEvent.press(screen.getByRole('button', { name: /^Ahorro/ }));
+    await userEvent.press(screen.getByRole('button', { name: 'Ver todos los movimientos' }));
     expect(await screen.findByText('Movimientos de la cuenta')).toBeOnTheScreen();
 
     await leaveAndReturn(app, 2 * 60 * SECONDS);

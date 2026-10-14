@@ -19,19 +19,24 @@ interface AppHeaderProps {
 /** Encabezado de la app (MOB-18): saludo o título y el menú de la cuenta. */
 export function AppHeader({ user, title, onLogout, menuExtra }: AppHeaderProps) {
   const [open, setOpen] = useState(false);
-  const firstName = user.name.trim().split(/\s+/)[0] ?? user.name;
+  const firstName = user.name.trim().split(/\s+/)[0] ?? '';
   return (
     <View style={styles.header}>
       {title ? (
         <Text accessibilityRole="header" style={styles.title}>
           {title}
         </Text>
-      ) : (
+      ) : firstName ? (
         // El saludo es el encabezado de Inicio: se anuncia como uno solo, "Hola, Ana".
         <View accessible accessibilityRole="header" accessibilityLabel={`Hola, ${firstName}`}>
           <Text style={styles.hello}>Hola,</Text>
           <Text style={styles.title}>{firstName}</Text>
         </View>
+      ) : (
+        // Sin el nombre (no llegó `GET /me`), un saludo sin nombre en vez de "Hola," vacío.
+        <Text accessibilityRole="header" style={styles.title}>
+          Hola
+        </Text>
       )}
       <Pressable
         accessibilityRole="button"
@@ -42,17 +47,19 @@ export function AppHeader({ user, title, onLogout, menuExtra }: AppHeaderProps) 
         <Avatar tone="hero" initials={initials(user.name)} />
       </Pressable>
       <BottomSheet open={open} onClose={() => setOpen(false)} title="Tu cuenta">
-        <View style={styles.account}>
-          <Avatar tone="brand" initials={initials(user.name)} />
-          <View style={styles.accountText}>
-            <Text style={styles.name} numberOfLines={1}>
-              {user.name}
-            </Text>
-            <Text style={styles.email} numberOfLines={1}>
-              {user.email}
-            </Text>
+        {user.name || user.email ? (
+          <View testID="account-identity" style={styles.account}>
+            <Avatar tone="brand" initials={initials(user.name)} />
+            <View style={styles.accountText}>
+              <Text style={styles.name} numberOfLines={1}>
+                {user.name}
+              </Text>
+              <Text style={styles.email} numberOfLines={1}>
+                {user.email}
+              </Text>
+            </View>
           </View>
-        </View>
+        ) : null}
         {menuExtra}
         {onLogout ? (
           <Button label="Cerrar sesión" icon="logout" variant="secondary" onPress={onLogout} />

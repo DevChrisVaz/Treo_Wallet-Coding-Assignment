@@ -1,9 +1,9 @@
 import type { Movement } from '@devchrisvaz/wallet-contract';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { theme } from '@/theme';
 
-import { BalanceHero, MovementList } from '..';
+import { BalanceHero, MovementList, QuickActions } from '..';
 
 const movement = (id: string, occurredAt: string): Movement => ({
   id,
@@ -70,4 +70,29 @@ describe('MovementList', () => {
       expect(row).not.toHaveStyle({ borderBottomWidth: 1 });
     }
   });
+});
+
+describe('QuickActions', () => {
+  test('MOB-19 cada acción es un botón con su texto visible', async () => {
+    const onTransfer = jest.fn();
+    await render(
+      <QuickActions
+        actions={[
+          { key: 't', label: 'Transferir', icon: 'transfer', onPress: onTransfer },
+          { key: 'm', label: 'Movimientos', icon: 'movements', onPress: () => {} },
+        ]}
+      />,
+    );
+    expect(screen.getByText('Movimientos')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Transferir' }));
+    expect(onTransfer).toHaveBeenCalledTimes(1);
+  });
+});
+
+test('MOB-19 DSG-13 con el texto agrandado el saldo del hero se reduce para caber en una línea', async () => {
+  await render(<BalanceHero total="35000.00" available="31500.00" />);
+  const amount = screen.getByTestId('hero-amount');
+  expect(amount).toHaveProp('numberOfLines', 1);
+  expect(amount).toHaveProp('adjustsFontSizeToFit', true);
+  expect(amount).toHaveProp('minimumFontScale', 0.5);
 });

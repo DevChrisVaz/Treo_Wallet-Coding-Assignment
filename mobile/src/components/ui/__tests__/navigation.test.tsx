@@ -62,6 +62,7 @@ describe('AppHeader', () => {
     expect(screen.getByText('Ana')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Menú de la cuenta' }));
     const sheet = screen.getByTestId('bottom-sheet');
+    expect(within(sheet).getByTestId('account-identity')).toHaveTextContent(/ana@example\.com/);
     await fireEvent.press(within(sheet).getByRole('button', { name: 'Cerrar sesión' }));
     expect(onLogout).toHaveBeenCalledTimes(1);
   });
@@ -85,6 +86,20 @@ describe('AppHeader', () => {
       </SafeAreaProvider>,
     );
     expect(screen.getByRole('header', { name: 'Hola, Ana' })).toBeOnTheScreen();
+  });
+
+  test('MOB-18 MOB-19 sin el nombre (GET /me falló) saluda con "Hola" y el menú no muestra datos vacíos', async () => {
+    await render(
+      <SafeAreaProvider initialMetrics={metrics}>
+        <AppHeader user={{ name: '', email: '' }} onLogout={() => {}} />
+      </SafeAreaProvider>,
+    );
+    expect(screen.getByRole('header', { name: 'Hola' })).toBeOnTheScreen();
+    expect(screen.queryByText('Hola,')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Menú de la cuenta' }));
+    const sheet = screen.getByTestId('bottom-sheet');
+    expect(within(sheet).queryByTestId('account-identity')).toBeNull();
+    expect(within(sheet).getByRole('button', { name: 'Cerrar sesión' })).toBeOnTheScreen();
   });
 
   test('MOB-18 el botón del menú de la cuenta mide al menos 44 px (touchTarget)', async () => {
