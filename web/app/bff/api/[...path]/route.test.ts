@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sessionStore } from '@/lib/server/session-store';
-import { OVERVIEW, PRINCIPAL } from '@/test/fixtures';
+import { OVERVIEW, PRINCIPAL, transfer } from '@/test/fixtures';
 import { fakeApi, jsonResponse, problemResponse } from '@/test/support/fake-api';
 import { cookieValue, resetRequest } from '@/test/support/next-headers';
 import { SESSION_ID, sessionData } from '@/test/support/session';
@@ -72,6 +72,31 @@ describe('GET /bff/api/[...path]', () => {
       expect(api.calls[0]?.url.pathname).toBe(`/${path.join('/')}`);
     },
   );
+
+  it('WEB-34 WEB-09 permite transfers/scheduled y lo reenvía a listScheduledTransfers con el Bearer', async () => {
+    const list = { items: [transfer({ status: 'SCHEDULED', scheduledFor: '2026-10-20' })] };
+    const api = fakeApi().on('GET', '/transfers/scheduled', () => jsonResponse(200, list));
+
+    const response = await get(['transfers', 'scheduled']);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(list);
+    expect(api.calls).toHaveLength(1);
+    expect(api.calls[0]?.url.pathname).toBe('/transfers/scheduled');
+    expect(api.calls[0]?.headers.get('authorization')).toBe('Bearer access-token-1');
+  });
+
+  it.each([
+    [['transfers', 'scheduled', 'extra']],
+    [['transfers', 'scheduled', '4f1b0d9c-8a7f-4e6d-9c5b-0d9c8b7a6f5e']],
+    [['transfers', 'scheduled', '..']],
+    [['transfers', 'Scheduled']],
+    [['transfers', '4f1b0d9c-8a7f-4e6d-9c5b-0d9c8b7a6f5e', 'cancel']],
+  ])('WEB-34 WEB-09 responde 404 sin llamar a la API para %j', async (path) => {
+    const api = fakeApi();
+    expect((await get(path)).status).toBe(404);
+    expect(api.calls).toHaveLength(0);
+  });
 
   it.each([
     [['me']],
@@ -220,6 +245,18 @@ describe('otros métodos en /bff/api/[...path]', () => {
     );
     expect(response.status).toBe(405);
     expect(response.headers.get('allow')).toBe('GET');
+    expect(api.calls).toHaveLength(0);
+  });
+
+  it('WEB-34 WEB-09 un POST a transfers/scheduled responde 405 sin llamar a la API', async () => {
+    const api = fakeApi();
+    const response = await POST(
+      new Request('http://localhost:3000/bff/api/transfers/scheduled', {
+        method: 'POST',
+        headers: BROWSER,
+      }),
+    );
+    expect(response.status).toBe(405);
     expect(api.calls).toHaveLength(0);
   });
 });
