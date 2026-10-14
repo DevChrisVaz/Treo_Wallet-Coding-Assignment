@@ -261,6 +261,37 @@ test('WEB-30 a 390 px el pie fijo de cada paso no tapa el contenido (el espaciad
   await atBottom('Hacer otra transferencia');
 });
 
+/**
+ * Con la página desplazada hasta el final: distancia entre el borde inferior de lo último del
+ * contenido y el borde superior de lo fijo de abajo que contiene a `fixed`. Lo último es el último
+ * hijo de `main` (pestañas) o lo que va antes del espaciador del pie (paso del flujo).
+ */
+function gapAtEnd(fixed: Locator, last: 'main' | 'before-spacer'): Promise<number> {
+  return fixed.evaluate((element, mode) => {
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    let box: Element | null = element;
+    while (box && getComputedStyle(box).position !== 'fixed') box = box.parentElement;
+    const content =
+      mode === 'main'
+        ? document.querySelector('main')?.lastElementChild
+        : box?.previousElementSibling?.previousElementSibling;
+    if (!box || !content) return Number.NaN;
+    return box.getBoundingClientRect().top - content.getBoundingClientRect().bottom;
+  }, last);
+}
+
+test('WEB-25 WEB-27 a 390 px, al final de una página con pestañas, lo último queda a 20 px de la barra, como Screen en la app móvil', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await login(page);
+  await page.addStyleTag({ content: HIDE_DEV_INDICATOR });
+  // Inicio es más alto que la ventana.
+  await expect(page.getByText('Pago de la comida')).toBeVisible();
+  const tabs = page.getByRole('navigation', { name: 'Principal' });
+  expect(await gapAtEnd(tabs, 'main')).toBeCloseTo(20, 0);
+});
+
 test('WEB-30 a 1280 px el resumen va en su columna a la derecha del paso y sigue lo que se escribe', async ({
   page,
 }) => {

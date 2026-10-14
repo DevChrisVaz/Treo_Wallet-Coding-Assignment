@@ -77,10 +77,11 @@ export function AppShell({
             tabIndex={-1}
             // Con pestañas, 20 px entre el encabezado y el contenido en teléfono, como el margen del
             // contenido de Screen en la app móvil (WEB-25); en el flujo lo da FlowHeader. Abajo reserva
-            // el alto real de la barra de pestañas, que TabBar publica (crece con el texto agrandado).
+            // el alto real de la barra de pestañas, que TabBar publica (crece con el texto agrandado),
+            // su borde de 1 px y otros 20 px, el mismo margen de Screen sobre la barra.
             className={`grid gap-5 px-5 focus-visible:outline-none dashboard:px-0 dashboard:pb-10 ${
               tabs
-                ? 'pt-5 pb-[calc(var(--tab-bar-height,var(--dt-layout-tab-bar-height))+env(safe-area-inset-bottom)+1.5rem)] dashboard:pt-0'
+                ? 'pt-5 pb-[calc(var(--tab-bar-height,var(--dt-layout-tab-bar-height))+env(safe-area-inset-bottom)+1px+1.25rem)] dashboard:pt-0'
                 : 'pb-6'
             }`}
           >

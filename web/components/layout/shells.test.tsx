@@ -18,14 +18,16 @@ describe('AppShell', () => {
     expect(navs[1]).toHaveClass('dashboard:hidden');
   });
 
-  it('WEB-27 el contenido reserva el alto real de la barra de pestañas (el del token hasta medirla)', () => {
+  // Superseded by WEB-25 (antes `+1.5rem`): debajo de lo último quedan 20 px hasta el borde de la
+  // barra, como el margen del contenido de Screen en la app móvil (1.25rem más el borde de 1 px).
+  it('WEB-27 WEB-25 el contenido reserva el alto real de la barra de pestañas (el del token hasta medirla) y 20 px', () => {
     render(
       <AppShell current="home" title="Inicio" user={USER}>
         <p>Contenido</p>
       </AppShell>,
     );
     expect(screen.getByRole('main')).toHaveClass(
-      'pb-[calc(var(--tab-bar-height,var(--dt-layout-tab-bar-height))+env(safe-area-inset-bottom)+1.5rem)]',
+      'pb-[calc(var(--tab-bar-height,var(--dt-layout-tab-bar-height))+env(safe-area-inset-bottom)+1px+1.25rem)]',
     );
   });
 
