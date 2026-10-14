@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { maskClabe, normalizeAmountInput, percentUsed, signedAmount } from './money';
+import { maskClabe, normalizeAmountInput, percentUsed, signedAmount, sumAmounts } from './money';
 
 describe('signedAmount', () => {
   it('DSG-09 una entrada se muestra con + y formatMXN', () => {
@@ -41,5 +41,13 @@ describe('percentUsed', () => {
   it('WEB-13 se queda entre 0 y 100 aunque lo usado supere el límite o el límite sea 0', () => {
     expect(percentUsed('60000.00', '50000.00')).toBe(100);
     expect(percentUsed('0.00', '0.00')).toBe(100);
+  });
+});
+
+describe('sumAmounts', () => {
+  it('WEB-28 suma los saldos en centavos sin punto flotante', () => {
+    expect(sumAmounts(['25000.00', '10000.00'])).toBe('35000.00');
+    expect(sumAmounts(['0.10', '0.20'])).toBe('0.30');
+    expect(sumAmounts([])).toBe('0.00');
   });
 });
