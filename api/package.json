@@ -22,7 +22,8 @@
     "db:bootstrap": "tsx --env-file-if-exists=.env scripts/db-bootstrap.ts",
     "db:migrate": "tsx --env-file-if-exists=.env scripts/db-migrate.ts",
     "db:revert": "tsx --env-file-if-exists=.env scripts/db-revert.ts",
-    "db:seed": "tsx --env-file-if-exists=.env scripts/db-seed.ts"
+    "db:seed": "tsx --env-file-if-exists=.env scripts/db-seed.ts",
+    "db:fund": "tsx --env-file-if-exists=.env scripts/db-fund.ts"
   },
   "dependencies": {
     "@devchrisvaz/wallet-contract": "file:../contract",
