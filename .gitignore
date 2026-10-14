@@ -48,6 +48,6 @@ Prueba T*cnica*.md
 # Lo durable de cada app vive en <app>/.design-sync/ y sí se versiona.
 .ds-sync/
 ds-bundle/
-.design-sync/.cache/
-.design-sync/learnings/
-.design-sync/node_modules
+**/.design-sync/.cache/
+**/.design-sync/learnings/
+**/.design-sync/node_modules
