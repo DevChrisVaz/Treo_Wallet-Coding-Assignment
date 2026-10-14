@@ -155,29 +155,32 @@ function KeepScroll({ children }: { children: ReactNode }) {
 
 /* ------------------------------------------------------------------ públicas (BrandShell) */
 
-/** /login — LoginForm. */
+/**
+ * /login — LoginForm. Campos a 16 px y la nota de registro fuera del formulario, a 24 px, como en
+ * login-screen.tsx de la app móvil (WEB-25).
+ */
 export const Login = () => (
   <BrandShell title="Inicia sesión">
-    <form noValidate className="grid gap-5">
+    <form noValidate className="grid gap-4">
       <TextField label="Correo" type="email" autoComplete="email" />
       <TextField label="Contraseña" type="password" autoComplete="current-password" />
       <Button type="submit" className="w-full">
         Iniciar sesión
       </Button>
-      <p className="text-center text-body-sm text-fg-secondary">
-        ¿No tienes cuenta?{' '}
-        <a href="#" className="inline-flex min-h-11 items-center font-medium text-action underline underline-offset-2">
-          Regístrate
-        </a>
-      </p>
     </form>
+    <p className="text-center text-body-sm text-fg-secondary">
+      ¿No tienes cuenta?{' '}
+      <a href="#" className="inline-flex min-h-11 items-center font-medium text-action underline underline-offset-2">
+        Regístrate
+      </a>
+    </p>
   </BrandShell>
 );
 
-/** /register — RegisterForm. */
+/** /register — RegisterForm, con el mismo ritmo que Login. */
 export const Register = () => (
   <BrandShell title="Crea tu cuenta">
-    <form noValidate className="grid gap-5">
+    <form noValidate className="grid gap-4">
       <TextField label="Correo" type="email" autoComplete="email" />
       <TextField
         label="Contraseña"
@@ -208,20 +211,20 @@ export const Register = () => (
       <Button type="submit" className="w-full">
         Crear cuenta
       </Button>
-      <p className="text-center text-body-sm text-fg-secondary">
-        ¿Ya tienes cuenta?{' '}
-        <a href="#" className="inline-flex min-h-11 items-center font-medium text-action underline underline-offset-2">
-          Inicia sesión
-        </a>
-      </p>
     </form>
+    <p className="text-center text-body-sm text-fg-secondary">
+      ¿Ya tienes cuenta?{' '}
+      <a href="#" className="inline-flex min-h-11 items-center font-medium text-action underline underline-offset-2">
+        Inicia sesión
+      </a>
+    </p>
   </BrandShell>
 );
 
 /** /verify-email?email=…&registered=1 — VerifyEmailForm al llegar del registro. */
 export const VerifyEmail = () => (
   <BrandShell title="Verifica tu correo">
-    <form noValidate className="grid gap-5">
+    <form noValidate className="grid gap-4">
       <InlineAlert tone="success">
         Si los datos son correctos, recibirás un correo con las instrucciones.
       </InlineAlert>
@@ -567,7 +570,7 @@ function RecipientOption({
     <li>
       <button type="button" className="flex min-h-16 w-full items-center gap-3 py-3 text-left">
         {avatar}
-        <span className="grid min-w-0 flex-1 gap-0.5">
+        <span className="grid min-w-0 flex-1 gap-1">
           <span className="truncate text-label text-fg">{label}</span>
           <span className="truncate text-caption text-fg-secondary">{description}</span>
         </span>
@@ -615,9 +618,9 @@ export const TransferAmount = () => (
     actions={<Button type="submit">Continuar</Button>}
   >
     <ListSection>
-      <div className="flex min-h-11 items-center gap-3 py-1">
+      <div className="flex min-h-11 items-center gap-3 py-3">
         <Avatar initials={initials(luis.name)} />
-        <div className="grid min-w-0 flex-1 gap-0.5">
+        <div className="grid min-w-0 flex-1 gap-1">
           <p className="text-caption text-fg-secondary">Para</p>
           <p className="truncate text-label text-fg">
             {luis.alias} · CLABE {mask(luis.clabe)}
@@ -625,10 +628,11 @@ export const TransferAmount = () => (
         </div>
       </div>
     </ListSection>
+    {/* El mismo monto tecleado que en la historia móvil (la web también acepta "1,250.00"). */}
     <AmountField
       variant="hero"
       label="Monto"
-      defaultValue="1,250.00"
+      defaultValue="1250.00"
       hint="Hasta 2 decimales, por ejemplo 1,250.50."
     />
     <Select label="Cuenta de origen" defaultValue={principal.id} hint="Saldo disponible: $25,000.00">
@@ -826,9 +830,10 @@ export const Beneficiaries = () => (
         {[luis, mama].map((beneficiary) => (
           <li key={beneficiary.id} className="flex items-center gap-3 py-3">
             <Avatar initials={initials(beneficiary.name)} />
-            <div className="grid min-w-0 flex-1 gap-0.5">
-              <p className="truncate text-label text-fg">{beneficiary.alias}</p>
-              <p className="truncate text-body-sm text-fg-secondary">{beneficiary.name}</p>
+            {/* El nombre completo pasa a otra línea en lugar de cortarse (WEB-25). */}
+            <div className="grid min-w-0 flex-1 gap-1">
+              <p className="text-label text-fg">{beneficiary.alias}</p>
+              <p className="text-body-sm text-fg-secondary">{beneficiary.name}</p>
               <p className="text-caption text-fg-muted tabular-nums">
                 CLABE {mask(beneficiary.clabe)}
               </p>
