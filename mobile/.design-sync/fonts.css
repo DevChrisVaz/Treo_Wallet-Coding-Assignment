@@ -1,0 +1,25 @@
+/*
+ * Work Sans para Claude Design. En la app, expo-font registra cada peso como su propia familia con
+ * el nombre que usa el tema (nativeFontFamily del paquete de tokens); aquí se declaran las mismas
+ * familias con los .ttf de @expo-google-fonts/work-sans (OFL).
+ */
+@font-face {
+  font-family: 'WorkSans_400Regular';
+  src: url('../node_modules/@expo-google-fonts/work-sans/400Regular/WorkSans_400Regular.ttf')
+    format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'WorkSans_500Medium';
+  src: url('../node_modules/@expo-google-fonts/work-sans/500Medium/WorkSans_500Medium.ttf')
+    format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'WorkSans_600SemiBold';
+  src: url('../node_modules/@expo-google-fonts/work-sans/600SemiBold/WorkSans_600SemiBold.ttf')
+    format('truetype');
+  font-display: swap;
+}

@@ -1,0 +1,103 @@
+{
+  "shape": "package",
+  "pkg": "wallet-mobile-ui",
+  "globalName": "TreoWalletMobile",
+  "buildCmd": "node .design-sync/build-ui.mjs",
+  "entry": ".design-sync/.cache/pkg/dist/index.mjs",
+  "srcDir": "../../../src/components",
+  "componentSrcMap": {
+    "OptionRow": "../../../src/components/ui/select.tsx",
+    "ActivityIndicator": null,
+    "Image": null,
+    "Pressable": null,
+    "SafeAreaProvider": null,
+    "ScrollView": null,
+    "StyleSheet": null,
+    "Text": null,
+    "TextInput": null,
+    "View": null
+  },
+  "provider": {
+    "component": "SafeAreaProvider",
+    "props": {
+      "initialMetrics": {
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 844
+        },
+        "insets": {
+          "top": 0,
+          "left": 0,
+          "right": 0,
+          "bottom": 0
+        }
+      }
+    }
+  },
+  "extraFonts": [
+    "../../fonts.css"
+  ],
+  "docsDir": "../../docs",
+  "overrides": {
+    "Button": {
+      "cardMode": "column"
+    },
+    "PrivacyOverlay": {
+      "cardMode": "column"
+    },
+    "Wordmark": {
+      "cardMode": "column"
+    },
+    "EmptyState": {
+      "cardMode": "column"
+    },
+    "InlineAlert": {
+      "cardMode": "column"
+    },
+    "Skeleton": {
+      "cardMode": "column"
+    },
+    "StatusBadge": {
+      "cardMode": "column"
+    },
+    "AmountField": {
+      "cardMode": "column"
+    },
+    "OptionRow": {
+      "cardMode": "column"
+    },
+    "OtpField": {
+      "cardMode": "column"
+    },
+    "Select": {
+      "cardMode": "column"
+    },
+    "TextField": {
+      "cardMode": "column"
+    },
+    "Screen": {
+      "cardMode": "column"
+    },
+    "AccountCard": {
+      "cardMode": "column"
+    },
+    "DailyLimitMeter": {
+      "cardMode": "column"
+    },
+    "MovementRow": {
+      "cardMode": "column"
+    },
+    "Receipt": {
+      "cardMode": "column"
+    }
+  },
+  "dtsPropsFor": {
+    "MovementRow": "  movement: {\n    id: string;\n    type: \"DEPOSIT\" | \"TRANSFER_IN\" | \"TRANSFER_OUT\" | \"OWN_TRANSFER_IN\" | \"OWN_TRANSFER_OUT\";\n    /** Monto con signo y 2 decimales, como string: \"-1500.00\" (salida), \"25000.00\" (entrada). */\n    amount: string;\n    /** Saldo de la cuenta después del movimiento, \"23500.00\". */\n    balanceAfter: string;\n    concept: string;\n    reference: string;\n    /** null en los DEPOSIT de la Tesorería. */\n    counterparty: { name: string; clabeLast4: string } | null;\n    transferId: string;\n    /** ISO 8601; se muestra en hora de Ciudad de México. */\n    occurredAt: string;\n  };",
+    "Receipt": "  /** Transferencia tal como la devolvió la API. */\n  transfer: {\n    id: string;\n    status: \"PENDING_OTP\" | \"COMPLETED\" | \"REJECTED\" | \"FAILED\" | \"EXPIRED\";\n    kind: \"OWN\" | \"THIRD_PARTY\";\n    fromAccountId: string;\n    destination: {\n      type: \"OWN_ACCOUNT\" | \"BENEFICIARY\";\n      accountId: string | null;\n      beneficiaryId: string | null;\n      displayName: string;\n      clabeLast4: string;\n    };\n    /** Monto en pesos como string con 2 decimales, \"5000.00\". */\n    amount: string;\n    concept: string;\n    reference: string;\n    requiresOtp: boolean;\n    otp: {\n      channel: \"EMAIL\";\n      deliveryStatus: \"SENT\" | \"FAILED\";\n      maskedDestination: string;\n      expiresAt: string;\n      attemptsRemaining: number;\n      resendsRemaining: number;\n    } | null;\n    rejectionReason: \"INSUFFICIENT_FUNDS\" | \"DAILY_LIMIT_EXCEEDED\" | null;\n    failureReason: \"INSUFFICIENT_FUNDS\" | \"DAILY_LIMIT_EXCEEDED\" | \"OTP_ATTEMPTS_EXHAUSTED\" | null;\n    createdAt: string;\n    completedAt: string | null;\n  };\n  /** Nombre de la cuenta de origen; sin él muestra \"Tu cuenta\". */\n  fromAccountName?: string;",
+    "DailyLimitMeter": "  /** Montos en pesos como string con 2 decimales, \"50000.00\". */\n  dailyLimit: { limit: string; used: string; remaining: string };",
+    "PrivacyOverlay": "  // Sin props: cubre a su contenedor (position absolute) con la superficie y el Wordmark."
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}
