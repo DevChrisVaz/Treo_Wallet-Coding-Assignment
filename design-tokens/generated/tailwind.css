@@ -4,6 +4,8 @@
   --dt-surface-subtle: #F6F5F2;
   --dt-surface-brand: #EDF7ED;
   --dt-surface-inverse: #1C4B42;
+  --dt-surface-canvas: #F6F5F2;
+  --dt-surface-hero: #1C4B42;
   --dt-fg: #001A05;
   --dt-fg-secondary: #4B5A50;
   --dt-fg-muted: #5F6B63;
@@ -11,6 +13,7 @@
   --dt-fg-on-action: #FFFFFF;
   --dt-fg-on-action-active: #1C4B42;
   --dt-fg-on-inverse: #FFFFFF;
+  --dt-fg-on-hero-muted: #BFCDCA;
   --dt-action: #1C4B42;
   --dt-action-active: #B4E717;
   --dt-action-disabled: #DCE2DE;
@@ -18,6 +21,7 @@
   --dt-border-input: #7F8A82;
   --dt-focus: #1C4B42;
   --dt-accent: #31C454;
+  --dt-accent-on-dark: #B4E717;
   --dt-success: #1E7B3A;
   --dt-success-soft: #EDF7ED;
   --dt-warning: #8A5A00;
@@ -31,6 +35,10 @@
   --dt-money-in: #1E7B3A;
   --dt-money-out: #001A05;
   --dt-font-sans: "Work Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --dt-text-display-xl: 3rem;
+  --dt-text-display-xl-line-height: 3.5rem;
+  --dt-text-display-xl-letter-spacing: -0.5px;
+  --dt-text-display-xl-font-weight: 600;
   --dt-text-display: 2.5rem;
   --dt-text-display-line-height: 3rem;
   --dt-text-display-letter-spacing: -0.5px;
@@ -68,6 +76,18 @@
   --dt-radius-lg: 16px;
   --dt-radius-pill: 9999px;
   --dt-shadow-card: 0 1px 2px rgb(0 26 5 / 0.06), 0 1px 3px rgb(0 26 5 / 0.1);
+  --dt-shadow-raised: 0 4px 12px rgb(0 26 5 / 0.08), 0 1px 3px rgb(0 26 5 / 0.1);
+  --dt-shadow-sheet: 0 -8px 24px rgb(0 26 5 / 0.12);
+  --dt-layout-tab-bar-height: 64px;
+  --dt-layout-app-column-max: 480px;
+  --dt-layout-sidebar-width: 248px;
+  --dt-layout-content-max: 1200px;
+  --dt-icon-sm: 16px;
+  --dt-icon-md: 20px;
+  --dt-icon-lg: 24px;
+  --dt-avatar-sm: 32px;
+  --dt-avatar-md: 40px;
+  --dt-avatar-lg: 56px;
   --dt-focus-width: 2px;
   --dt-focus-offset: 2px;
   --dt-motion-fast: 150ms;
@@ -80,6 +100,8 @@
   --text-*: initial;
   --radius-*: initial;
   --shadow-*: initial;
+  --breakpoint-app: 30rem;
+  --breakpoint-dashboard: 64rem;
 }
 
 @theme inline {
@@ -87,6 +109,8 @@
   --color-surface-subtle: var(--dt-surface-subtle);
   --color-surface-brand: var(--dt-surface-brand);
   --color-surface-inverse: var(--dt-surface-inverse);
+  --color-surface-canvas: var(--dt-surface-canvas);
+  --color-surface-hero: var(--dt-surface-hero);
   --color-fg: var(--dt-fg);
   --color-fg-secondary: var(--dt-fg-secondary);
   --color-fg-muted: var(--dt-fg-muted);
@@ -94,6 +118,7 @@
   --color-fg-on-action: var(--dt-fg-on-action);
   --color-fg-on-action-active: var(--dt-fg-on-action-active);
   --color-fg-on-inverse: var(--dt-fg-on-inverse);
+  --color-fg-on-hero-muted: var(--dt-fg-on-hero-muted);
   --color-action: var(--dt-action);
   --color-action-active: var(--dt-action-active);
   --color-action-disabled: var(--dt-action-disabled);
@@ -101,6 +126,7 @@
   --color-border-input: var(--dt-border-input);
   --color-focus: var(--dt-focus);
   --color-accent: var(--dt-accent);
+  --color-accent-on-dark: var(--dt-accent-on-dark);
   --color-success: var(--dt-success);
   --color-success-soft: var(--dt-success-soft);
   --color-warning: var(--dt-warning);
@@ -114,6 +140,10 @@
   --color-money-in: var(--dt-money-in);
   --color-money-out: var(--dt-money-out);
   --font-sans: var(--dt-font-sans);
+  --text-display-xl: var(--dt-text-display-xl);
+  --text-display-xl--line-height: var(--dt-text-display-xl-line-height);
+  --text-display-xl--letter-spacing: var(--dt-text-display-xl-letter-spacing);
+  --text-display-xl--font-weight: var(--dt-text-display-xl-font-weight);
   --text-display: var(--dt-text-display);
   --text-display--line-height: var(--dt-text-display-line-height);
   --text-display--letter-spacing: var(--dt-text-display-letter-spacing);
@@ -151,5 +181,10 @@
   --radius-lg: var(--dt-radius-lg);
   --radius-pill: var(--dt-radius-pill);
   --shadow-card: var(--dt-shadow-card);
+  --shadow-raised: var(--dt-shadow-raised);
+  --shadow-sheet: var(--dt-shadow-sheet);
+  --container-app: var(--dt-layout-app-column-max);
+  --container-content: var(--dt-layout-content-max);
+  --container-sidebar: var(--dt-layout-sidebar-width);
   --ease-standard: var(--dt-ease-standard);
 }

@@ -1,5 +1,16 @@
 import { resolveToken } from './contrast';
-import { elevation, focusRing, fontFamily, motion, radius, typography } from './scale';
+import {
+  avatarSize,
+  breakpoints,
+  elevation,
+  focusRing,
+  fontFamily,
+  iconSize,
+  layout,
+  motion,
+  radius,
+  typography,
+} from './scale';
 import type { Theme } from './themes';
 
 /**
@@ -11,6 +22,8 @@ export const cssColorTokens = [
   { path: 'surface.subtle', name: 'surface-subtle' },
   { path: 'surface.brand', name: 'surface-brand' },
   { path: 'surface.inverse', name: 'surface-inverse' },
+  { path: 'surface.canvas', name: 'surface-canvas' },
+  { path: 'surface.hero', name: 'surface-hero' },
   { path: 'text.primary', name: 'fg' },
   { path: 'text.secondary', name: 'fg-secondary' },
   { path: 'text.muted', name: 'fg-muted' },
@@ -18,6 +31,7 @@ export const cssColorTokens = [
   { path: 'text.onAction', name: 'fg-on-action' },
   { path: 'text.onActionActive', name: 'fg-on-action-active' },
   { path: 'text.onInverse', name: 'fg-on-inverse' },
+  { path: 'text.onHeroMuted', name: 'fg-on-hero-muted' },
   { path: 'action.primary', name: 'action' },
   { path: 'action.primaryActive', name: 'action-active' },
   { path: 'action.disabled', name: 'action-disabled' },
@@ -25,6 +39,7 @@ export const cssColorTokens = [
   { path: 'border.input', name: 'border-input' },
   { path: 'border.focus', name: 'focus' },
   { path: 'accent.brand', name: 'accent' },
+  { path: 'accent.onDark', name: 'accent-on-dark' },
   ...(['success', 'warning', 'danger', 'info', 'neutral'] as const).flatMap((tone) => [
     { path: `status.${tone}.fg`, name: tone },
     { path: `status.${tone}.bg`, name: `${tone}-soft` },
@@ -54,7 +69,10 @@ function rootDeclarations(theme: Theme): string[] {
       `--dt-text-${kebab(style)}-font-weight: ${value.fontWeight};`,
     ]),
     ...Object.entries(radius).map(([size, value]) => `--dt-radius-${size}: ${value}px;`),
-    `--dt-shadow-card: ${elevation.card.css};`,
+    ...Object.entries(elevation).map(([level, value]) => `--dt-shadow-${level}: ${value.css};`),
+    ...Object.entries(layout).map(([name, value]) => `--dt-layout-${kebab(name)}: ${value}px;`),
+    ...Object.entries(iconSize).map(([size, value]) => `--dt-icon-${size}: ${value}px;`),
+    ...Object.entries(avatarSize).map(([size, value]) => `--dt-avatar-${size}: ${value}px;`),
     `--dt-focus-width: ${focusRing.width}px;`,
     `--dt-focus-offset: ${focusRing.offset}px;`,
     `--dt-motion-fast: ${motion.fast}ms;`,
@@ -78,11 +96,12 @@ export function renderTokensCss(theme: Theme): string {
  * redefine `--dt-*` (por ejemplo bajo `[data-theme="dark"]`).
  */
 export function renderTailwindCss(theme: Theme): string {
-  const reset = [
+  const staticTheme = [
     '--color-*: initial;',
     '--text-*: initial;',
     '--radius-*: initial;',
     '--shadow-*: initial;',
+    ...Object.entries(breakpoints).map(([name, px]) => `--breakpoint-${name}: ${rem(px)};`),
   ];
   const inline = [
     ...cssColorTokens.map(({ name }) => `--color-${name}: var(--dt-${name});`),
@@ -97,13 +116,16 @@ export function renderTailwindCss(theme: Theme): string {
       ];
     }),
     ...Object.keys(radius).map((size) => `--radius-${size}: var(--dt-radius-${size});`),
-    '--shadow-card: var(--dt-shadow-card);',
+    ...Object.keys(elevation).map((level) => `--shadow-${level}: var(--dt-shadow-${level});`),
+    '--container-app: var(--dt-layout-app-column-max);',
+    '--container-content: var(--dt-layout-content-max);',
+    '--container-sidebar: var(--dt-layout-sidebar-width);',
     '--ease-standard: var(--dt-ease-standard);',
   ];
   return [
     HEADER,
     block(':root', rootDeclarations(theme)),
-    block('@theme', reset),
+    block('@theme', staticTheme),
     block('@theme inline', inline),
   ].join('\n');
 }
