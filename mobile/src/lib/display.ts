@@ -5,6 +5,7 @@
  * contrato rompe la compilación hasta que el paquete de diseño lo agregue.
  */
 import {
+  centsToDecimalString,
   formatMXN,
   toCents,
   type DailyLimit,
@@ -119,6 +120,11 @@ export function formatDateTime(iso: string, options: { withYear?: boolean } = {}
 export function formatTime(iso: string): string {
   const { hour, minute } = partsInBusinessTimeZone(new Date(iso));
   return `${hour}:${minute}`;
+}
+
+/** Suma de montos en centavos con BigInt (MOB-19, MOB-15). */
+export function sumAmounts(amounts: readonly string[]): string {
+  return centsToDecimalString(amounts.reduce((total, amount) => total + toCents(amount), 0n));
 }
 
 /** Porcentaje entero usado del límite diario, con aritmética de centavos (sin floats). */
