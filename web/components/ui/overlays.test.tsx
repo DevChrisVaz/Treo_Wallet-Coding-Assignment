@@ -98,6 +98,41 @@ describe('BottomSheet fondo y fechas', () => {
     expect(document.body.style.overflow).toBe('clip');
   });
 
+  describe('con una barra de desplazamiento clásica (escritorio)', () => {
+    /** La ventana mide 1024 px y la página, sin la barra, `clientWidth`. */
+    function viewport(clientWidth: number) {
+      vi.stubGlobal('innerWidth', 1024);
+      Object.defineProperty(document.documentElement, 'clientWidth', {
+        configurable: true,
+        value: clientWidth,
+      });
+    }
+
+    afterEach(() => {
+      // Vuelve al getter de Element.prototype.
+      Reflect.deleteProperty(document.documentElement, 'clientWidth');
+      document.body.style.paddingRight = '';
+    });
+
+    it('DSG-17 al bloquear el fondo compensa con relleno a la derecha el ancho de la barra, para que la página no se mueva, y al cerrar lo quita', async () => {
+      viewport(1009);
+      render(<Harness />);
+      await userEvent.click(screen.getByRole('button', { name: 'Filtros' }));
+      expect(document.body.style.overflow).toBe('hidden');
+      expect(document.body.style.paddingRight).toBe('15px');
+      await userEvent.keyboard('{Escape}');
+      expect(document.body.style.paddingRight).toBe('');
+    });
+
+    it('DSG-17 con barras superpuestas (teléfono) no agrega relleno', async () => {
+      viewport(1024);
+      render(<Harness />);
+      await userEvent.click(screen.getByRole('button', { name: 'Filtros' }));
+      expect(document.body.style.overflow).toBe('hidden');
+      expect(document.body.style.paddingRight).toBe('');
+    });
+  });
+
   it('DSG-17 Escape dentro de un campo de fecha u hora no la cierra (cierra el selector del campo)', async () => {
     const onClose = vi.fn();
     render(
