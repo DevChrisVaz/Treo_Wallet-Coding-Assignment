@@ -2,7 +2,7 @@ name: design-tokens
 
 on:
   push:
-    branches: [main]
+    branches: [release]
     paths:
       - 'design-tokens/**'
       - '.github/workflows/design-tokens.yml'
