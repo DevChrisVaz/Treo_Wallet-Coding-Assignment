@@ -41,6 +41,11 @@ import {
  * CLABE enmascaradas, horas y montos fijos que no pasan por un componente van ya formateados como
  * los dejan maskClabe, formatTime (hora de Ciudad de México) y formatMXN. Los montos calculados se
  * restan en centavos con toCents/centsToDecimalString (BigInt) y se muestran con formatMXN.
+ *
+ * Funciones propias de la web (bonus, sin pareja móvil): el estado de cuenta en Movimientos (WEB-32,
+ * R53), "Programar" en el flujo, su revisión y su resultado (WEB-33, R56) y la página "Programadas"
+ * con su cancelación (WEB-34). Las fechas dependen de NOW, como en las pantallas reales con el reloj
+ * fijo: el selector de meses y el rango programable no cambian con el día en que se abre el lienzo.
  */
 
 /* ------------------------------------------------- datos canónicos (iguales en web y móvil) */
@@ -106,6 +111,21 @@ const failedTransfer = {
   },
   failureReason: 'OTP_ATTEMPTS_EXHAUSTED' as const,
   createdAt: '2026-10-13T17:41:00Z',
+  completedAt: null,
+};
+
+/**
+ * La programada canónica (la que lista la API simulada): $1,000.00 a Luis para el 20 de octubre de
+ * 2026, "Renta", ref. 1. Aún no mueve dinero.
+ */
+const scheduledTransfer = {
+  ...sentTransfer,
+  id: '9a3b5c7d-2e4f-4a6b-8c0d-1e3f5a7b9c2d',
+  status: 'SCHEDULED' as const,
+  amount: '1000.00',
+  scheduledFor: '2026-10-20',
+  cancelledAt: null,
+  createdAt: '2026-10-13T16:50:00Z',
   completedAt: null,
 };
 
@@ -364,6 +384,49 @@ function MovementsToolbar() {
   );
 }
 
+/** Mes en curso (de NOW) y los 12 anteriores, como statementMonths: octubre 2026 a octubre 2025. */
+const STATEMENT_MONTHS = [
+  ['2026-10', 'octubre 2026 (en curso)'],
+  ['2026-09', 'septiembre 2026'],
+  ['2026-08', 'agosto 2026'],
+  ['2026-07', 'julio 2026'],
+  ['2026-06', 'junio 2026'],
+  ['2026-05', 'mayo 2026'],
+  ['2026-04', 'abril 2026'],
+  ['2026-03', 'marzo 2026'],
+  ['2026-02', 'febrero 2026'],
+  ['2026-01', 'enero 2026'],
+  ['2025-12', 'diciembre 2025'],
+  ['2025-11', 'noviembre 2025'],
+  ['2025-10', 'octubre 2025'],
+] as const;
+
+/**
+ * StatementDownload (WEB-32, función propia de la web, R53): tarjeta aparte después del historial,
+ * con el mes anterior elegido; en teléfono el mes y "Descargar PDF" van a todo lo ancho, en el
+ * dashboard en una fila.
+ */
+function StatementCard() {
+  return (
+    <ListSection title="Estado de cuenta">
+      <div className="grid gap-3">
+        <div className="grid gap-3 dashboard:flex dashboard:items-end">
+          <div className="dashboard:min-w-56">
+            <Select label="Mes" defaultValue="2026-09">
+              {STATEMENT_MONTHS.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <Button variant="secondary">Descargar PDF</Button>
+        </div>
+      </div>
+    </ListSection>
+  );
+}
+
 function MovementsHistory() {
   return (
     <>
@@ -374,11 +437,12 @@ function MovementsHistory() {
       <Button variant="secondary" className="dashboard:justify-self-center">
         Cargar más
       </Button>
+      <StatementCard />
     </>
   );
 }
 
-/** /movements — historial de Principal agrupado por día, con "Cargar más". */
+/** /movements — historial de Principal agrupado por día, con "Cargar más" y el estado de cuenta. */
 export const Movements = () => (
   <MovementsShell>
     <MovementsHistory />
@@ -395,6 +459,7 @@ export const MovementsEmpty = () => (
       description="Prueba con otras fechas u otros tipos de movimiento."
       action={<Button variant="secondary">Limpiar filtros</Button>}
     />
+    <StatementCard />
   </MovementsShell>
 );
 
@@ -441,6 +506,8 @@ interface Draft {
   final?: boolean;
   /** Lo que queda del límite diario (decimal); por omisión, el de los datos canónicos. */
   remaining?: string;
+  /** "Programar" (WEB-33): la fila "Cuándo" del resumen y de la revisión. */
+  when?: string;
 }
 
 const DRAFT: Draft = {
@@ -469,12 +536,19 @@ const FAILED_DRAFT: Draft = { ...OTP_DRAFT, final: true };
 /** Más que el saldo de Principal ($25,000.00): la API la rechaza con INSUFFICIENT_FUNDS. */
 const OVER_BALANCE_DRAFT: Draft = { ...DRAFT, amount: '$30,000.00', otp: true };
 
-/** Fila etiqueta / valor del resumen (revisión y panel lateral). */
+/** La programada canónica (WEB-33): no mueve dinero, así que el límite de hoy no cambia. */
+const SCHEDULED_DRAFT: Draft = {
+  ...DRAFT,
+  amount: '$1,000.00',
+  when: 'Se enviará el 20 de octubre de 2026',
+};
+
+/** Fila etiqueta / valor del resumen (revisión y panel lateral); un valor largo se reparte parejo. */
 function SummaryRow({ term, value }: { term: string; value: string | undefined }) {
   return (
     <div className="flex min-h-11 items-center justify-between gap-4 py-3">
       <dt className="text-body-sm text-fg-secondary">{term}</dt>
-      <dd className={`text-right text-label tabular-nums ${value ? 'text-fg' : 'text-fg-muted'}`}>
+      <dd className={`text-right text-label text-balance tabular-nums ${value ? 'text-fg' : 'text-fg-muted'}`}>
         {value ?? 'Por definir'}
       </dd>
     </div>
@@ -491,6 +565,7 @@ function Summary({ draft }: { draft: Draft }) {
         <SummaryRow term="Monto" value={draft.amount} />
         <SummaryRow term="Concepto" value={draft.concept} />
         <SummaryRow term="Referencia" value={draft.reference} />
+        {draft.when ? <SummaryRow term="Cuándo" value={draft.when} /> : null}
       </dl>
       <p className="border-t border-border pt-3 text-caption text-fg-muted">
         {draft.otp && !draft.final
@@ -604,8 +679,53 @@ export const TransferRecipient = () => (
         ))}
       </ul>
     </ListSection>
+    {/* En teléfono "Programadas" no es pestaña: se llega desde aquí (R56); en el dashboard está en
+        la navegación lateral. */}
+    <a href="#" className={buttonClasses('ghost', 'dashboard:hidden')}>
+      Transferencias programadas
+    </a>
   </FlowPage>
 );
+
+/** Campos del paso 2: a quién, el monto grande, la cuenta de origen, el concepto y la referencia. */
+function AmountFields({ amount }: { amount: string }) {
+  return (
+    <>
+      <ListSection>
+        <div className="flex min-h-11 items-center gap-3 py-3">
+          <Avatar initials={initials(luis.name)} />
+          <div className="grid min-w-0 flex-1 gap-1">
+            <p className="text-caption text-fg-secondary">Para</p>
+            <p className="truncate text-label text-fg">
+              {luis.alias} · CLABE {mask(luis.clabe)}
+            </p>
+          </div>
+        </div>
+      </ListSection>
+      {/* El mismo monto tecleado que en la historia móvil (la web también acepta "1,250.00"). */}
+      <AmountField
+        variant="hero"
+        label="Monto"
+        defaultValue={amount}
+        hint="Hasta 2 decimales, por ejemplo 1,250.50."
+      />
+      <Select label="Cuenta de origen" defaultValue={principal.id} hint="Saldo disponible: $25,000.00">
+        <option value="">Elige una cuenta</option>
+        <option value={principal.id}>Principal · $25,000.00</option>
+        <option value={ahorro.id}>Ahorro · $10,000.00</option>
+      </Select>
+      {/* Ayudas con la redacción de la app móvil (R30); la del monto sigue siendo la de cada app. */}
+      <TextField label="Concepto" hint="De 1 a 40 caracteres." autoComplete="off" defaultValue="Renta" />
+      <TextField
+        label="Referencia"
+        inputMode="numeric"
+        hint="De 1 a 7 dígitos."
+        autoComplete="off"
+        defaultValue="1"
+      />
+    </>
+  );
+}
 
 /** Paso 2: a quién, el monto grande, la cuenta de origen, el concepto y la referencia. */
 export const TransferAmount = () => (
@@ -617,38 +737,7 @@ export const TransferAmount = () => (
     draft={DRAFT}
     actions={<Button type="submit">Continuar</Button>}
   >
-    <ListSection>
-      <div className="flex min-h-11 items-center gap-3 py-3">
-        <Avatar initials={initials(luis.name)} />
-        <div className="grid min-w-0 flex-1 gap-1">
-          <p className="text-caption text-fg-secondary">Para</p>
-          <p className="truncate text-label text-fg">
-            {luis.alias} · CLABE {mask(luis.clabe)}
-          </p>
-        </div>
-      </div>
-    </ListSection>
-    {/* El mismo monto tecleado que en la historia móvil (la web también acepta "1,250.00"). */}
-    <AmountField
-      variant="hero"
-      label="Monto"
-      defaultValue="1250.00"
-      hint="Hasta 2 decimales, por ejemplo 1,250.50."
-    />
-    <Select label="Cuenta de origen" defaultValue={principal.id} hint="Saldo disponible: $25,000.00">
-      <option value="">Elige una cuenta</option>
-      <option value={principal.id}>Principal · $25,000.00</option>
-      <option value={ahorro.id}>Ahorro · $10,000.00</option>
-    </Select>
-    {/* Ayudas con la redacción de la app móvil (R30); la del monto sigue siendo la de cada app. */}
-    <TextField label="Concepto" hint="De 1 a 40 caracteres." autoComplete="off" defaultValue="Renta" />
-    <TextField
-      label="Referencia"
-      inputMode="numeric"
-      hint="De 1 a 7 dígitos."
-      autoComplete="off"
-      defaultValue="1"
-    />
+    <AmountFields amount="1250.00" />
   </FlowPage>
 );
 
@@ -677,6 +766,7 @@ function ReviewSummary({ draft }: { draft: Draft }) {
           <SummaryRow term="Para" value={draft.to} />
           <SummaryRow term="Concepto" value={draft.concept} />
           <SummaryRow term="Referencia" value={draft.reference} />
+          {draft.when ? <SummaryRow term="Cuándo" value={draft.when} /> : null}
         </dl>
       </ListSection>
       {draft.otp ? <InlineAlert tone="info">{OTP_NOTICE}</InlineAlert> : null}
@@ -804,6 +894,112 @@ export const TransferFailed = () => (
   </FlowPage>
 );
 
+/* ------------------------------------------------- transferencia programada (bonus, WEB-33) */
+
+/**
+ * ScheduleField con "Programar" elegido: los radios como los de los filtros (44 px, acento del
+ * sistema) y la fecha limitada al rango programable de la Ciudad de México desde NOW (de mañana a 90
+ * días).
+ */
+function ScheduleChoice() {
+  return (
+    <div className="grid gap-5">
+      <fieldset className="grid">
+        <legend className="pb-1 text-label text-fg">Cuándo</legend>
+        <div className="flex flex-wrap gap-x-6">
+          <label className="flex min-h-11 items-center gap-3 text-body text-fg">
+            <input type="radio" name="when" value="NOW" className="size-5 accent-action" />
+            Ahora
+          </label>
+          <label className="flex min-h-11 items-center gap-3 text-body text-fg">
+            <input
+              type="radio"
+              name="when"
+              value="SCHEDULED"
+              defaultChecked
+              className="size-5 accent-action"
+            />
+            Programar
+          </label>
+        </div>
+      </fieldset>
+      <TextField
+        type="date"
+        label="Fecha de envío"
+        min="2026-10-14"
+        max="2027-01-11"
+        defaultValue="2026-10-20"
+        hint="Entre el 14 de octubre de 2026 y el 11 de enero de 2027."
+      />
+    </div>
+  );
+}
+
+/** Paso 2 con "Programar" y el 20 de octubre: el resumen del dashboard ya dice "Cuándo". */
+export const TransferAmountScheduled = () => (
+  <FlowPage
+    title="¿Cuánto envías?"
+    step={2}
+    total={5}
+    stepLabel="Monto"
+    draft={SCHEDULED_DRAFT}
+    actions={<Button type="submit">Continuar</Button>}
+  >
+    <AmountFields amount="1000.00" />
+    <ScheduleChoice />
+  </FlowPage>
+);
+
+/** Paso 3 de 4 de una programada: "Cuándo" es la última fila de la revisión. */
+export const TransferReviewScheduled = () => (
+  <FlowPage
+    {...REVIEW}
+    draft={SCHEDULED_DRAFT}
+    title="Revisa tu transferencia"
+    stackedActions
+    actions={
+      <>
+        <Button>Enviar</Button>
+        <Button variant="ghost">Editar</Button>
+      </>
+    }
+  >
+    <ReviewSummary draft={SCHEDULED_DRAFT} />
+  </FlowPage>
+);
+
+/**
+ * Paso 4 de 4: la API la programó. El aviso informativo (el tono de "Programada") da la fecha y el
+ * enlace a las programadas; el comprobante agrega "Programada para".
+ */
+export const TransferScheduled = () => (
+  <FlowPage
+    title="Transferencia programada"
+    step={4}
+    total={4}
+    stepLabel="Comprobante"
+    draft={{ ...SCHEDULED_DRAFT, final: true }}
+    stackedActions
+    actions={
+      <>
+        <a href="#" className={buttonClasses('secondary')}>
+          Ver mis cuentas
+        </a>
+        <Button variant="ghost">Hacer otra transferencia</Button>
+      </>
+    }
+  >
+    <InlineAlert tone="info">
+      Se enviará el 20 de octubre de 2026. Puedes cancelarla antes de esa fecha en{' '}
+      <a href="#" className="text-action underline underline-offset-2">
+        tus transferencias programadas
+      </a>
+      .
+    </InlineAlert>
+    <Receipt transfer={scheduledTransfer} fromAccount={principal} />
+  </FlowPage>
+);
+
 /* ------------------------------------------------------------------ beneficiarios */
 
 function BeneficiariesShell({ children }: { children: ReactNode }) {
@@ -926,4 +1122,132 @@ export const TransferDetail = () => (
       </a>
     </div>
   </AppShell>
+);
+
+/* ------------------------------------------------------- programadas (bonus, WEB-34) */
+
+/**
+ * /transfers/scheduled — "Programadas": en el dashboard es un destino de la navegación lateral con
+ * su icono (CalendarClock) y "Nueva transferencia" va en la barra superior; en teléfono no es
+ * pestaña (R56) y la acción va arriba de la lista, como en Beneficiarios.
+ */
+function ScheduledShell({ children }: { children: ReactNode }) {
+  return (
+    <AppShell
+      current="scheduled"
+      title="Transferencias programadas"
+      user={user}
+      primaryAction={newTransfer}
+      onLogout={noop}
+    >
+      {children}
+    </AppShell>
+  );
+}
+
+/** La lista de la API: fecha, monto, destino con su CLABE enmascarada y concepto, con "Cancelar". */
+function ScheduledList() {
+  return (
+    <>
+      <a href="#" className={buttonClasses('primary', 'dashboard:hidden')}>
+        Nueva transferencia
+      </a>
+      <ListSection>
+        <ul aria-label="Transferencias programadas" className="divide-y divide-border">
+          <li className="flex flex-wrap items-center justify-between gap-3 py-3">
+            <div className="grid min-w-0 gap-1">
+              <p className="text-label text-fg">
+                <time dateTime={scheduledTransfer.scheduledFor}>20 de octubre de 2026</time>
+              </p>
+              <p className="text-h3 text-fg tabular-nums">{formatMXN(scheduledTransfer.amount)}</p>
+              <p className="text-body-sm text-fg-secondary">
+                {luis.alias} {mask(luis.clabe)}
+              </p>
+              <p className="text-caption text-fg-muted">{scheduledTransfer.concept}</p>
+            </div>
+            <Button
+              variant="secondary"
+              aria-label="Cancelar la transferencia de $1,000.00 a Luis del 20 de octubre de 2026"
+            >
+              Cancelar
+            </Button>
+          </li>
+        </ul>
+      </ListSection>
+    </>
+  );
+}
+
+const scheduledEmpty = (
+  <EmptyState
+    icon="scheduled"
+    title="No tienes transferencias programadas"
+    description='Al hacer una transferencia, elige "Programar" en "Cuándo" para enviarla en otra fecha.'
+    action={
+      <a href="#" className={buttonClasses('secondary')}>
+        Programar una transferencia
+      </a>
+    }
+  />
+);
+
+/** La programada canónica, lista para cancelarse. */
+export const ScheduledTransfers = () => (
+  <ScheduledShell>
+    <ScheduledList />
+  </ScheduledShell>
+);
+
+/** Sin programadas: el estado vacío con el icono de "Programadas". */
+export const ScheduledTransfersEmpty = () => <ScheduledShell>{scheduledEmpty}</ScheduledShell>;
+
+/**
+ * "Cancelar" abierto: el diálogo con la forma de la hoja del kit (asa en teléfono, centrado en el
+ * dashboard) con el monto, el destino y la fecha.
+ */
+export const ScheduledTransfersCancel = () => (
+  <ScheduledShell>
+    <ScheduledList />
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-surface-hero/60 dashboard:items-center">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cancel-scheduled-title"
+        aria-describedby="cancel-scheduled-description"
+        className="flex max-h-[85dvh] w-full max-w-app flex-col gap-4 rounded-t-lg bg-surface px-5 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-sheet dashboard:max-w-md dashboard:rounded-lg dashboard:pb-6"
+      >
+        <div
+          aria-hidden="true"
+          className="mx-auto h-1 w-10 shrink-0 rounded-pill bg-border dashboard:hidden"
+        />
+        <h2
+          id="cancel-scheduled-title"
+          className="flex min-h-11 shrink-0 items-center text-h3 text-fg"
+        >
+          ¿Cancelar la transferencia programada?
+        </h2>
+        <div className="grid min-h-0 gap-5 overflow-y-auto">
+          <p id="cancel-scheduled-description" className="text-body text-fg-secondary">
+            Transferencia de $1,000.00 a Luis •••• 5678, programada para el 20 de octubre de 2026.
+            Si la cancelas, no se enviará.
+          </p>
+          <div className="grid gap-3 dashboard:flex dashboard:flex-wrap">
+            <Button variant="destructive">Cancelar transferencia</Button>
+            <Button variant="secondary">Volver</Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ScheduledShell>
+);
+
+/**
+ * La programada ya se ejecutó (409 TRANSFER_NOT_CANCELLABLE): el mensaje del paquete de diseño y la
+ * lista, vuelta a cargar, ya no la incluye.
+ */
+export const ScheduledTransfersCancelError = () => (
+  <ScheduledShell>
+    <InlineAlert tone="danger">Esta transferencia ya no se puede cancelar.</InlineAlert>
+    {scheduledEmpty}
+  </ScheduledShell>
 );
