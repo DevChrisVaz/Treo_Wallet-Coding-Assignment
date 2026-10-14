@@ -1,7 +1,8 @@
 import { formatMXN, type Transfer } from '@devchrisvaz/wallet-contract';
+import { toneIcon } from '@devchrisvaz/wallet-design-tokens';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { formatDateTime, maskClabe } from '@/lib/display';
+import { formatDateTime, maskClabe, statusPresentation } from '@/lib/display';
 import { theme } from '@/theme';
 
 import { Avatar } from './avatar';
@@ -28,7 +29,9 @@ function Row({ label, value, selectable }: { label: string; value: string; selec
 
 /**
  * Comprobante: estado, monto, origen, destino, concepto, referencia, fecha y folio. Tarjeta blanca
- * con la elevación `card`, sin borde, como las demás superficies grandes (D4).
+ * con la elevación `card`, sin borde, como las demás superficies grandes (D4). El icono sigue el tono
+ * del estado, como la insignia y como en la web: éxito, error (fallida o rechazada), aviso
+ * (pendiente) o información (vencida).
  */
 export function Receipt({ transfer, fromAccountName, fromAccountClabe }: ReceiptProps) {
   const { destination } = transfer;
@@ -41,7 +44,7 @@ export function Receipt({ transfer, fromAccountName, fromAccountClabe }: Receipt
         <Avatar
           size="lg"
           tone={completed ? 'success' : 'neutral'}
-          icon={completed ? 'success' : 'info'}
+          icon={toneIcon[statusPresentation(transfer.status).tone]}
         />
       </View>
       <StatusBadge status={transfer.status} />
