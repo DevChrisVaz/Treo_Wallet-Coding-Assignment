@@ -74,11 +74,11 @@ describe('MovementList', () => {
         ]}
       />,
     );
+    const day = (name: string) =>
+      screen.getByRole('heading', { name }).nextElementSibling as HTMLElement;
     const headings = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
     expect(headings).toEqual(['Hoy', 'Ayer', '9 oct']);
-    expect(
-      within(screen.getByRole('region', { name: 'Ayer' })).getAllByRole('listitem'),
-    ).toHaveLength(1);
+    expect(within(day('Ayer')).getAllByRole('listitem')).toHaveLength(1);
   });
 
   it('WEB-29 las filas del día muestran solo la hora y no llevan borde: la lista pone los divisores', () => {
@@ -88,11 +88,25 @@ describe('MovementList', () => {
         movements={[movement({ id: 'a', occurredAt: '2026-10-13T16:42:00Z' })]}
       />,
     );
-    const row = within(screen.getByRole('region', { name: 'Hoy' })).getByRole('listitem');
+    const day = (name: string) =>
+      screen.getByRole('heading', { name }).nextElementSibling as HTMLElement;
+    const row = within(day('Hoy')).getByRole('listitem');
     expect(within(row).getByText('10:42').tagName).toBe('TIME');
     expect(within(row).getByText('13 oct 2026,', { exact: false })).toHaveClass('sr-only');
     expect(row).not.toHaveClass('border-b');
     expect(row.parentElement).toHaveClass('divide-y', 'divide-border');
+  });
+
+  it('WEB-23 WEB-29 los días no son regiones y su nivel de encabezado se elige', () => {
+    render(
+      <MovementList
+        movements={[movement()]}
+        now={new Date('2026-10-13T18:00:00Z')}
+        headingLevel={2}
+      />,
+    );
+    expect(screen.queryAllByRole('region')).toHaveLength(0);
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(1);
   });
 });
 

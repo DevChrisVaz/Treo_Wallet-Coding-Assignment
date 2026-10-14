@@ -6,6 +6,13 @@ import { IconButton } from './Icon';
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+/** Campos con selector propio del navegador (calendario, reloj). */
+const PICKER_TYPES = new Set(['date', 'time', 'datetime-local', 'month', 'week']);
+
+function isPickerInput(target: EventTarget | null): boolean {
+  return target instanceof HTMLInputElement && PICKER_TYPES.has(target.type);
+}
+
 export interface BottomSheetProps {
   open: boolean;
   onClose: () => void;
@@ -15,7 +22,8 @@ export interface BottomSheetProps {
 
 /**
  * Hoja inferior modal (DSG-17): en teléfono sube desde abajo; en el dashboard es un panel centrado.
- * Atrapa el foco, Escape la cierra y el foco vuelve al control que la abrió.
+ * Atrapa el foco, Escape la cierra (salvo en un campo de fecha u hora) y el foco vuelve al control
+ * que la abrió. Mientras está abierta, la página de fondo no se desplaza.
  */
 export function BottomSheet({ open, onClose, title, children }: BottomSheetProps) {
   const titleId = useId();
@@ -33,9 +41,14 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
     if (!open) return undefined;
     opener.current = document.activeElement;
     panel.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+    // La página no se desplaza detrás de la hoja (en teléfono, el dedo arrastraría el fondo).
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
 
     function onDocumentKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
+        // En un campo de fecha u hora, Escape cierra el selector del campo, no la hoja.
+        if (isPickerInput(event.target)) return;
         onCloseRef.current();
         return;
       }
@@ -68,6 +81,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
     document.addEventListener('keydown', onDocumentKeyDown);
     return () => {
       document.removeEventListener('keydown', onDocumentKeyDown);
+      document.body.style.overflow = previousOverflow;
       (opener.current as HTMLElement | null)?.focus?.();
     };
   }, [open]);

@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BottomSheet } from './BottomSheet';
 import { FlowHeader } from './FlowHeader';
 import { Stepper } from './Stepper';
@@ -75,8 +75,54 @@ describe('BottomSheet R16', () => {
       </BottomSheet>,
     );
     const dialog = screen.getByRole('dialog', { name: 'Filtrar movimientos' });
-    expect(dialog).toHaveClass('max-h-[85dvh]');
-    expect(screen.getByText('Contenido largo').parentElement).toHaveClass('overflow-y-auto');
+    expect(dialog).toHaveClass('flex', 'flex-col', 'max-h-[85dvh]');
+    expect(screen.getByText('Contenido largo').parentElement).toHaveClass(
+      'min-h-0',
+      'overflow-y-auto',
+    );
+  });
+});
+
+describe('BottomSheet fondo y fechas', () => {
+  afterEach(() => {
+    document.body.style.overflow = '';
+  });
+
+  it('DSG-17 mientras está abierta bloquea el desplazamiento de la página y al cerrar deja el valor que había', async () => {
+    document.body.style.overflow = 'clip';
+    render(<Harness />);
+    await userEvent.click(screen.getByRole('button', { name: 'Filtros' }));
+    expect(document.body.style.overflow).toBe('hidden');
+    await userEvent.keyboard('{Escape}');
+    expect(document.body.style.overflow).toBe('clip');
+  });
+
+  it('DSG-17 Escape dentro de un campo de fecha u hora no la cierra (cierra el selector del campo)', async () => {
+    const onClose = vi.fn();
+    render(
+      <BottomSheet open onClose={onClose} title="Filtrar movimientos">
+        <label>
+          Desde
+          <input type="date" />
+        </label>
+        <label>
+          Hora
+          <input type="time" />
+        </label>
+        <label>
+          Concepto
+          <input type="text" />
+        </label>
+      </BottomSheet>,
+    );
+    await userEvent.click(screen.getByLabelText('Desde'));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByLabelText('Hora'));
+    await userEvent.keyboard('{Escape}');
+    expect(onClose).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByLabelText('Concepto'));
+    await userEvent.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
 

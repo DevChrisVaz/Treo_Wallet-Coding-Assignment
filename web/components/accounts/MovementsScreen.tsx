@@ -1,35 +1,27 @@
 'use client';
 
-import { ProblemError, type MovementPage, type MovementType } from '@devchrisvaz/wallet-contract';
+import { ProblemError, type MovementPage } from '@devchrisvaz/wallet-contract';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { MovementFiltersForm, isInvertedRange } from '@/components/accounts/MovementFilters';
 import { StatementDownload } from '@/components/accounts/StatementDownload';
 import { ErrorState, LoadingState } from '@/components/states/states';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button, buttonClasses } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { MovementRow } from '@/components/ui/MovementRow';
-import { Select } from '@/components/ui/Select';
-import { TextField } from '@/components/ui/TextField';
+import { ListSection } from '@/components/ui/ListSection';
+import { MovementList } from '@/components/ui/MovementList';
+import { useAccountSelection } from '@/lib/client/account-selection';
 import { bffGet } from '@/lib/client/bff';
 import { useAccountsOverview } from '@/lib/client/queries';
 import { queryKeys, type MovementFilters } from '@/lib/client/query-keys';
-import { MOVEMENT_TYPE } from '@/lib/conventions';
 
 const NO_FILTERS: MovementFilters = { from: '', to: '', types: [] };
-const TYPE_ORDER = Object.keys(MOVEMENT_TYPE) as MovementType[];
 
 function hasFilters(filters: MovementFilters): boolean {
   return filters.from !== '' || filters.to !== '' || filters.types.length > 0;
-}
-
-/** Error de "Hasta" cuando el rango está invertido; la API respondería 422 (WEB-14). */
-const INVERTED_RANGE = 'Elige una fecha igual o posterior a la de Desde.';
-
-/** Las fechas son `AAAA-MM-DD`, así que se comparan bien como texto. */
-function isInvertedRange(filters: MovementFilters): boolean {
-  return filters.from !== '' && filters.to !== '' && filters.from > filters.to;
 }
 
 function isInvalidCursor(error: unknown): boolean {
@@ -37,17 +29,24 @@ function isInvalidCursor(error: unknown): boolean {
 }
 
 /**
- * Historial de movimientos (WEB-14): cuenta, rango de fechas y tipos, con paginación por cursor.
- * Los filtros forman parte de la clave de la consulta: al cambiar uno se descarta el cursor y se
- * empieza desde la primera página. Encima de los filtros, la descarga del estado de cuenta (WEB-32).
+ * Historial de movimientos (WEB-14, WEB-29): selector de cuenta en dos mitades y "Filtros", que
+ * abre la hoja con el rango de fechas y los tipos; la lista va agrupada por día, con paginación por
+ * cursor. Los filtros aplicados forman parte de la clave de la consulta: al cambiar uno se descarta
+ * el cursor y se empieza desde la primera página. La cuenta abierta queda elegida para Inicio y la
+ * pestaña Movimientos (WEB-28). Después del historial, la tarjeta del estado de cuenta (WEB-32,
+ * R53).
  */
 export function MovementsScreen({ accountId }: { accountId: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const overview = useAccountsOverview();
+  const { select } = useAccountSelection();
   const [filters, setFilters] = useState<MovementFilters>(NO_FILTERS);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const queryKey = useMemo(() => queryKeys.movements(accountId, filters), [accountId, filters]);
   const invertedRange = isInvertedRange(filters);
+
+  useEffect(() => select(accountId), [accountId, select]);
 
   const movements = useInfiniteQuery({
     queryKey,
@@ -69,72 +68,44 @@ export function MovementsScreen({ accountId }: { accountId: string }) {
     if (invalidCursor) void queryClient.resetQueries({ queryKey, exact: true });
   }, [invalidCursor, queryClient, queryKey]);
 
-  function toggleType(type: MovementType) {
-    setFilters((current) => {
-      const selected = current.types.includes(type)
-        ? current.types.filter((item) => item !== type)
-        : [...current.types, type];
-      return { ...current, types: TYPE_ORDER.filter((item) => selected.includes(item)) };
-    });
-  }
-
   const items = movements.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
-    <div className="grid gap-6">
-      {/* Componente aparte (D11 de account-statements): el rediseño lo reubica sin cambiarlo. */}
-      <StatementDownload key={accountId} accountId={accountId} />
-
-      <div className="grid gap-4 sm:grid-cols-3">
+    <>
+      {/* Cuenta y "Filtros" (historia `MovementsToolbar`): en teléfono, los filtros en su propia
+          fila; en el dashboard, a la derecha del selector. */}
+      <div className="grid gap-2 dashboard:flex dashboard:items-center dashboard:justify-between">
         {overview.data ? (
-          <Select
-            label="Cuenta"
-            value={accountId}
-            onChange={(event) => router.push(`/accounts/${event.target.value}/movements`)}
-          >
+          <div role="group" aria-label="Cuenta" className="grid grid-cols-2 gap-2 dashboard:w-80">
             {overview.data.accounts.map((account) => (
-              <option key={account.id} value={account.id}>
+              <button
+                key={account.id}
+                type="button"
+                aria-pressed={account.id === accountId}
+                className={buttonClasses(account.id === accountId ? 'primary' : 'secondary')}
+                onClick={() => router.push(`/accounts/${account.id}/movements`)}
+              >
                 {account.name}
-              </option>
+              </button>
             ))}
-          </Select>
+          </div>
         ) : null}
-        <TextField
-          label="Desde"
-          type="date"
-          value={filters.from}
-          max={filters.to || undefined}
-          onChange={(event) => setFilters((current) => ({ ...current, from: event.target.value }))}
-        />
-        <TextField
-          label="Hasta"
-          type="date"
-          value={filters.to}
-          min={filters.from || undefined}
-          error={invertedRange ? INVERTED_RANGE : undefined}
-          onChange={(event) => setFilters((current) => ({ ...current, to: event.target.value }))}
-        />
+        <Button
+          variant="ghost"
+          icon="filter"
+          aria-haspopup="dialog"
+          // En el dashboard queda a la derecha también mientras cargan las cuentas.
+          className="justify-self-end dashboard:ml-auto"
+          onClick={() => setFiltersOpen(true)}
+        >
+          Filtros
+        </Button>
       </div>
 
-      <fieldset className="grid gap-2">
-        <legend className="text-label text-fg">Tipo</legend>
-        <div className="flex flex-wrap gap-x-4">
-          {TYPE_ORDER.map((type) => (
-            <label key={type} className="inline-flex min-h-11 items-center gap-2 text-body-sm">
-              <input
-                type="checkbox"
-                className="size-4 accent-action"
-                checked={filters.types.includes(type)}
-                onChange={() => toggleType(type)}
-              />
-              {MOVEMENT_TYPE[type].label}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
       {invertedRange ? null : movements.isPending || invalidCursor ? (
-        <LoadingState label="Cargando movimientos" />
+        <ListSection>
+          <LoadingState label="Cargando movimientos" count={4} />
+        </ListSection>
       ) : movements.isError && !movements.isFetchNextPageError ? (
         <ErrorState
           title="No pudimos cargar los movimientos"
@@ -143,6 +114,7 @@ export function MovementsScreen({ accountId }: { accountId: string }) {
         />
       ) : items.length === 0 ? (
         <EmptyState
+          icon="movements"
           title="No hay movimientos en este periodo"
           description="Prueba con otras fechas u otros tipos de movimiento."
           action={
@@ -161,12 +133,11 @@ export function MovementsScreen({ accountId }: { accountId: string }) {
           }
         />
       ) : (
-        <section className="grid gap-4">
-          <ul aria-label="Movimientos">
-            {items.map((item) => (
-              <MovementRow key={item.id} movement={item} />
-            ))}
-          </ul>
+        <section aria-label="Movimientos" className="grid gap-5">
+          <ListSection>
+            {/* Directo bajo el h1 de AppShell: los días van a nivel 2 (M-4). */}
+            <MovementList movements={items} headingLevel={2} />
+          </ListSection>
           {movements.isFetchNextPageError ? (
             <ErrorState
               title="No pudimos cargar más movimientos"
@@ -175,19 +146,41 @@ export function MovementsScreen({ accountId }: { accountId: string }) {
             />
           ) : null}
           {movements.hasNextPage && !movements.isFetchNextPageError ? (
-            <div>
-              <Button
-                variant="secondary"
-                loading={movements.isFetchingNextPage}
-                loadingLabel="Cargando…"
-                onClick={() => void movements.fetchNextPage()}
-              >
-                Cargar más
-              </Button>
-            </div>
+            <Button
+              variant="secondary"
+              className="dashboard:justify-self-center"
+              loading={movements.isFetchingNextPage}
+              loadingLabel="Cargando…"
+              onClick={() => void movements.fetchNextPage()}
+            >
+              Cargar más
+            </Button>
           ) : null}
         </section>
       )}
-    </div>
+
+      {/* Función propia de la web, fuera de las historias aprobadas (R53): tarjeta aparte después
+          del historial, para no mover el selector, "Filtros" ni la lista de la historia
+          `Movements`. La clave reinicia el mes elegido al cambiar de cuenta. */}
+      <StatementDownload key={accountId} accountId={accountId} />
+
+      <BottomSheet
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        title="Filtrar movimientos"
+      >
+        <MovementFiltersForm
+          initial={filters}
+          onApply={(next) => {
+            setFilters(next);
+            setFiltersOpen(false);
+          }}
+          onClear={() => {
+            setFilters(NO_FILTERS);
+            setFiltersOpen(false);
+          }}
+        />
+      </BottomSheet>
+    </>
   );
 }
