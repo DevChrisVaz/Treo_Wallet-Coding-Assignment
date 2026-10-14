@@ -60,6 +60,7 @@ export const scheduledDateVectors: Vector[] = [
   { input: '2028-02-29', valid: true, note: 'año bisiesto' },
   { input: '2026-02-30', valid: false, code: 'INVALID_DATE', contractValid: true },
   { input: '2027-02-29', valid: false, code: 'INVALID_DATE', contractValid: true },
+  { input: '2026-10-00', valid: false, code: 'INVALID_DATE', contractValid: true, note: 'día 00' },
   { input: '2026-13-01', valid: false, code: 'INVALID_DATE', contractValid: true },
   { input: '2026-10-20T00:00:00Z', valid: false, code: 'INVALID_FORMAT', note: 'con hora' },
   { input: '20-10-2026', valid: false, code: 'INVALID_FORMAT' },
