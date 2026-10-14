@@ -12,10 +12,14 @@ import type {
   OneTimeCodeService,
 } from '../../identity/application/one-time-codes.js';
 import { transferFingerprint } from '../domain/fingerprint.js';
-import { scheduledAmountIssue, scheduledDateIssue } from '../domain/schedule.js';
+import {
+  MAX_ACTIVE_SCHEDULED,
+  scheduledAmountIssue,
+  scheduledDateIssue,
+} from '../domain/schedule.js';
 import type { TransferDestinationResolver, TransferRequest } from './destination-resolver.js';
 import type { IdempotencyGate } from './idempotency-gate.js';
-import type { RejectionReason, TransferRow, TransferStore } from './ports.js';
+import type { RejectionReason, ScheduledCap, TransferRow, TransferStore } from './ports.js';
 import type { LedgerPoster } from './ledger-poster.js';
 import type { TransferOtpMailer } from './transfer-emails.js';
 import { balanceOrLimitError } from './transfer-errors.js';
@@ -36,6 +40,8 @@ export interface CreateTransferDeps {
   readonly gate: IdempotencyGate;
   readonly locker: TransferLocker;
   readonly store: TransferStore;
+  /** Tope de programadas activas por usuario (TRF-29). */
+  readonly cap: ScheduledCap;
   readonly audit: AuditWriter;
   readonly clock: Clock;
   readonly otpThreshold: Money;
@@ -248,6 +254,10 @@ export class CreateTransfer {
    * reclamo, y no antes: un reintento que llega pasada la medianoche se reconoce como reintento (la
    * original ya pasó la validación) en lugar de responder que su fecha ya no es programable. Una
    * petición nueva inválida lanza y revierte el reclamo, así que la llave no se consume.
+   *
+   * El tope de programadas (D8) se revisa con la fila del usuario bloqueada: dos programaciones
+   * simultáneas del mismo usuario hacen fila y la segunda cuenta a la primera ya confirmada. Al
+   * llegar al tope también se lanza: no se guarda la transferencia y la llave queda libre.
    */
   private async schedule(
     tx: Transaction,
@@ -255,13 +265,20 @@ export class CreateTransfer {
     draft: Draft,
     scheduledFor: string,
   ): Promise<AttemptResult> {
-    const { store, audit, clock, otpThreshold, dailyLimit } = this.deps;
+    const { store, cap, audit, clock, otpThreshold, dailyLimit } = this.deps;
     const issues = [
       scheduledDateIssue(scheduledFor, clock),
       scheduledAmountIssue(draft.kind, draft.amount, dailyLimit),
     ].filter((issue): issue is FieldError => issue !== null);
     if (issues.length > 0) {
       throw new DomainError('VALIDATION_FAILED', 'Revisa los campos marcados', { errors: issues });
+    }
+    await cap.lockOwner(tx, draft.userId);
+    if ((await cap.countActive(tx, draft.userId, clock.now(), id)) >= MAX_ACTIVE_SCHEDULED) {
+      throw new DomainError(
+        'SCHEDULED_LIMIT_REACHED',
+        `Ya tienes ${MAX_ACTIVE_SCHEDULED} transferencias programadas; cancela una para programar otra`,
+      );
     }
     if (draft.amount.isGreaterThan(otpThreshold)) {
       // Programar arriba del umbral (PENDING_OTP con fecha) llega con la tarea 2.6.

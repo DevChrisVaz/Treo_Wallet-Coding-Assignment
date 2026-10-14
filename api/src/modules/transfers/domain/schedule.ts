@@ -7,6 +7,9 @@ import type { TransferKind } from './ledger.js';
 /** Días que se puede programar una transferencia a partir de hoy (TRF-27). */
 export const MAX_SCHEDULE_DAYS = 90;
 
+/** Programadas activas por usuario: SCHEDULED y programadas en PENDING_OTP vigentes (TRF-29). */
+export const MAX_ACTIVE_SCHEDULED = 20;
+
 /**
  * Rango programable (TRF-27, D4): de mañana a 90 días después de hoy, ambos inclusive, en días de
  * la Ciudad de México. "Hoy" sale del `Clock` con la misma función que el día del límite diario.

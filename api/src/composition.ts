@@ -69,6 +69,7 @@ import { LedgerPoster } from './modules/transfers/application/ledger-poster.js';
 import { PgAccountLocks } from './modules/transfers/infrastructure/pg-account-locks.js';
 import { PgLedgerStore } from './modules/transfers/infrastructure/pg-ledger-store.js';
 import { PgTransferStore } from './modules/transfers/infrastructure/pg-transfer-store.js';
+import { PgScheduledTransfers } from './modules/transfers/infrastructure/pg-scheduled-transfers.js';
 import { PgDailyUsage } from './modules/transfers/infrastructure/pg-daily-usage.js';
 import { TypeormTransactionRunner } from './platform/persistence/transaction.js';
 import type { Clock } from './shared/clock.js';
@@ -152,6 +153,7 @@ export async function createContainer(
 
   const users = overrides.users ?? new PgUserRepository(dataSource);
   const transferStore = new PgTransferStore();
+  const scheduledTransfers = new PgScheduledTransfers();
   const accountLocks = new PgAccountLocks(dataSource);
   const poster = new LedgerPoster(new PgLedgerStore());
   const dailyUsage = new PgDailyUsage(dataSource);
@@ -270,6 +272,7 @@ export async function createContainer(
         gate: new IdempotencyGate(transferStore),
         locker,
         store: transferStore,
+        cap: scheduledTransfers,
         audit,
         clock,
         otpThreshold: config.transfers.otpThreshold,

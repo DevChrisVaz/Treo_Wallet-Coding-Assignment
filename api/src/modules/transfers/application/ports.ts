@@ -48,6 +48,28 @@ export interface TransferStore {
   fail(tx: Transaction, transferId: string, reason: FailureReason): Promise<void>;
 }
 
+/**
+ * Tope de programadas activas por usuario (TRF-29, D8). Las programaciones de un mismo usuario se
+ * serializan con la fila de `users`: la segunda cuenta a la primera ya confirmada.
+ */
+export interface ScheduledCap {
+  /**
+   * Bloquea la fila del usuario con `FOR NO KEY UPDATE`, que no choca con el `FOR KEY SHARE` que
+   * toman las llaves foráneas de `transfers.user_id`. Solo lo toma la programación.
+   */
+  lockOwner(tx: Transaction, userId: string): Promise<void>;
+  /**
+   * Programadas activas del usuario a `now`: las SCHEDULED y las programadas en PENDING_OTP con su
+   * código vigente, sin contar `exceptTransferId` (la recién reclamada).
+   */
+  countActive(
+    tx: Transaction,
+    userId: string,
+    now: Date,
+    exceptTransferId: string,
+  ): Promise<number>;
+}
+
 /** Bloqueo y resolución de cuentas para mover dinero. */
 export interface AccountLocks {
   /** Id de la cuenta SYSTEM (Tesorería). */
