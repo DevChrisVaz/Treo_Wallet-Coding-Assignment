@@ -96,7 +96,7 @@ flowchart LR
   - La API compilada corre en Node ≥ 20.
   - El servidor de la web, desde Node 20.9.
   - Los paquetes compartidos, desde Node 20; su CI lo comprueba en 20, 22 y 24.
-- **Docker** con Compose, para PostgreSQL 16 y Mailpit.
+- **Docker** con Compose, para PostgreSQL 16 y Mailpit (`/api`) y para Redis 7, el de las sesiones de la web (`/web`).
 - `psql` es opcional: si no está instalado, `db:bootstrap` usa el de la imagen de PostgreSQL.
 - **Para la app móvil**, una de estas opciones:
   - **Expo Go** compatible con el SDK 57, en un teléfono en la **misma red Wi-Fi** que la computadora;
@@ -165,6 +165,7 @@ Todas las variables son del servidor (ninguna lleva `NEXT_PUBLIC_`) y se validan
 | `ALLOWED_ORIGINS`       | Vacío (solo el propio origen)                                          | Orígenes adicionales, separados por comas, desde los que se aceptan Server Actions (la web detrás de un proxy con otro dominio). Se aplica al arrancar                        |
 | `SESSION_COOKIE_SECURE` | `true` en producción, `false` en desarrollo                            | Con `true` (detrás de HTTPS), la cookie se llama `__Host-sid` y lleva `Secure`. Safari rechaza cookies `Secure` en `http://localhost`, por eso en local es `sid` sin `Secure` |
 | `SESSION_IDLE_MINUTES`  | `15`                                                                   | Minutos de inactividad tras los que expira la sesión                                                                                                                          |
+| `REDIS_URL`             | Vacía (sesiones en memoria)                                            | `redis://` o `rediss://` (TLS) del Redis de sesiones; en local, `redis://localhost:6379`. Con ella las sesiones sobreviven al reinicio del servidor                           |
 
 ### App móvil (`mobile/.env`)
 
@@ -214,6 +215,10 @@ Una base creada antes de los bonus necesita `npm run db:migrate` para recibir su
 
 ```bash
 cd web
+
+# Redis para las sesiones (127.0.0.1:6379); con REDIS_URL en .env.local sobreviven al reinicio
+docker compose up -d --wait
+
 npm run dev        # http://localhost:3000; si el puerto está ocupado: npm run dev -- -p 3100
 ```
 
@@ -222,7 +227,9 @@ npm run dev        # http://localhost:3000; si el puerto está ocupado: npm run 
 3. Para programar una transferencia, elige "Programar" en "Cuándo" y una fecha. Aparece en "Programadas" hasta que se ejecuta o la cancelas. Para verla ejecutarse sin esperar a la medianoche, sigue [Verlas ejecutarse en local](#verlas-ejecutarse-en-local). Al ejecutarse, sale de "Programadas" y aparece en el historial; si falla, el aviso llega a Mailpit.
 4. El estado de cuenta se descarga desde la pantalla de movimientos de cada cuenta.
 
-**Build de producción por `http` en local:** `npm run build` y luego `API_BASE_URL=http://localhost:4000 SESSION_COOKIE_SECURE=false npm start`. La sesión vive en la memoria del proceso: reiniciar el servidor cierra todas las sesiones.
+**Build de producción por `http` en local:** `npm run build` y luego `API_BASE_URL=http://localhost:4000 SESSION_COOKIE_SECURE=false REDIS_URL=redis://localhost:6379 npm start`.
+
+**Dónde vive la sesión:** con `REDIS_URL`, en Redis, y sobrevive al reinicio del servidor (un `next build` + `next start`, un cambio de `.env.local`). Sin `REDIS_URL`, en la memoria del proceso, y reiniciar el servidor cierra todas las sesiones. Si Redis no está levantado, las páginas con sesión responden con error sin cerrar la sesión: levántalo o quita `REDIS_URL`.
 
 ### 3. App móvil
 
@@ -295,6 +302,10 @@ En todos los proyectos, el título de cada prueba empieza con el ID del requisit
 - **Dos proyectos de Vitest:**
   - `*.test.ts` corre en Node (BFF, configuración y lógica);
   - `*.test.tsx` corre en jsdom, con Testing Library y `vitest-axe`.
+- **Sesiones en Redis:** `lib/server/redis-session-store.test.ts` y `app/(app)/layout.redis.test.ts` corren contra un Redis real con `TEST_REDIS_URL=redis://localhost:6379/15 npm test` (después de `docker compose up -d --wait` en `/web`).
+  - Sin la variable se saltan, salvo en CI, donde es obligatoria y la da un servicio Redis del job. No puede ser la base 0, la de las sesiones de desarrollo.
+  - La implementación en memoria y la de Redis pasan la misma suite de WEB-03 (`test/support/session-store-contract.ts`); en Redis, con tiempo real y un plazo de 1 s.
+  - Las demás pruebas usan el almacén en memoria aunque el entorno traiga `REDIS_URL`.
 - **Contraste:** no se puede medir en jsdom; se verificó con Lighthouse ([Verificaciones manuales](#verificaciones-manuales)).
 - **Programadas:** sus pruebas usan un reloj fijo, el 14 de octubre de 2026 a mediodía de la Ciudad de México, con `vi.useFakeTimers({ toFake: ['Date'] })`. Solo se falsea `Date`, así que user-event sigue funcionando. La fecha en palabras se prueba también con `TZ` al oeste y al este de UTC.
 - **Doble clic:** `user.dblClick` no basta para probar el candado del envío, porque user-event envuelve cada evento en `act` y React deshabilita el botón entre los dos clics. Por eso las pruebas del candado hacen los dos clics dentro de un mismo `act`.
@@ -676,7 +687,9 @@ Panel web con Next.js (App Router) como BFF (_Backend for Frontend_) de la API. 
 
 - **Mutaciones con Server Actions** (`app/actions/`): validan con los esquemas del contrato, exigen la sesión y devuelven `{ ok, data }` o `{ ok: false, problem }`. Next.js rechaza las que llegan de otro `Origin`.
 - **Lecturas por el proxy `GET /bff/api/[...path]`:** con lista blanca de rutas y destino fijo en `API_BASE_URL`. `GET /bff/api/session` responde con el usuario de la sesión sin llamar a la API.
-- **Sesión:** vive en un `Map` en memoria (en AWS, Redis). Expira tras `SESSION_IDLE_MINUTES` sin actividad o al vencer el refresh token. El access token se renueva una sola vez por sesión aunque lleguen peticiones simultáneas.
+- **Sesión:** vive en Redis cuando hay `REDIS_URL` (en local, el `docker-compose.yml` de `/web`; en AWS, ElastiCache), así que sobrevive al reinicio del servidor; sin `REDIS_URL`, en un `Map` en memoria (WEB-37). Expira tras `SESSION_IDLE_MINUTES` sin actividad o al vencer el refresh token. El access token se renueva una sola vez por sesión aunque lleguen peticiones simultáneas.
+  - **Renovar el plazo es atómico:** un script Lua cambia solo la hora de la última petición y el TTL, así que nunca devuelve a la sesión un refresh token ya rotado (la siguiente renovación sería reuso y la API revocaría la sesión) ni revive una sesión cerrada.
+  - **Falla rápido:** con Redis caído, las páginas con sesión responden con error en vez de quedarse esperando, y no se cambia en silencio al almacén en memoria.
 - **Transferencias:** la llave de idempotencia se genera en el navegador al pasar a la confirmación, y se reutiliza solo al reintentar tras un fallo de red o un `5xx`. El botón se bloquea desde el primer clic.
 - **Estado de cuenta (WEB-32):** en la pantalla de movimientos hay un selector con el mes en curso ("(en curso)") y los 12 anteriores (el anterior por defecto), y el botón "Descargar PDF".
   - **Proxy:** la descarga pasa por la ruta `accounts/<id>/statements/<AAAA-MM>`, solo GET. Para esa ruta, el proxy pide `application/pdf`, entrega los bytes de la API sin tocarlos y copia `Content-Type`, `Content-Disposition`, `Content-Length` y `Retry-After`.
@@ -1005,6 +1018,7 @@ Así se rastrea cada requisito en el código:
 | `scheduled-transfers`                                     | design-tokens, api, web, mobile | TRF-27 a TRF-36, AUD-08, DSG-18, WEB-33, WEB-34, MOB-23 | Completo                                                    |
 | `biometric-unlock`                                        | mobile                          | MOB-24 a MOB-27                                         | Falta la verificación en un Android                         |
 | `redesign`                                                | design-tokens, web, mobile      | DSG-13 a DSG-17, WEB-24 a WEB-31, MOB-18 a MOB-22       | En curso, en su propia rama                                 |
+| `web-redis-sessions`                                      | web                             | WEB-37                                                  | Completo                                                    |
 | `delivery`                                                | docs                            | Sin requisitos nuevos                                   | Pendiente: video y CIs en verde en `main` |
 
 ### Mapa de la especificación
@@ -1016,7 +1030,7 @@ Cada historia de usuario del enunciado (HU1 a HU6) se traza a sus requisitos, al
 
 | Historia de usuario | Requisitos | Change y secciones de tareas |
 | ------------------- | ---------- | ---------------------------- |
-| **HU1.** Registro e inicio de sesión | IDN-01 a IDN-15, PLT-07 y PLT-09 (IP y límites de tasa), PLT-16 (correo); WEB-01 a WEB-05, WEB-11, WEB-12, WEB-22; MOB-01 a MOB-04 | `api-foundation` §6 y §7; `web-app` §2 y §4; `mobile-app` §2; validadores en `contract-v1` §3 |
+| **HU1.** Registro e inicio de sesión | IDN-01 a IDN-15, PLT-07 y PLT-09 (IP y límites de tasa), PLT-16 (correo); WEB-01 a WEB-05, WEB-11, WEB-12, WEB-22, WEB-37; MOB-01 a MOB-04 | `api-foundation` §6 y §7; `web-app` §2 y §4; `web-redis-sessions` §1 y §2; `mobile-app` §2; validadores en `contract-v1` §3 |
 | **HU2.** Cuentas con saldo disponible | ACC-01 a ACC-06, ACC-10 a ACC-16; WEB-13; MOB-05 | `api-foundation` §2 y §7; `api-ledger` §3 y §4; `web-app` §6; `mobile-app` §3 |
 | **HU3.** Beneficiarios con CLABE validada | BEN-01 a BEN-11, ACC-05 (dígito verificador en la base), CTR-09; WEB-15; MOB-07 | `api-ledger` §5; `web-app` §7; `contract-v1` §3; `mobile-app` §4 |
 | **HU4.** Transferencias con concepto y referencia | TRF-01 a TRF-10, TRF-21 a TRF-26 (partida doble, concurrencia, auditoría, comprobante), CTR-06 y CTR-08 (llave de idempotencia y montos); WEB-16, WEB-17, WEB-19, WEB-21; MOB-08 a MOB-11, MOB-13 a MOB-15 | `api-ledger` §1 a §3, §6, §8 y §10; `web-app` §8; `mobile-app` §4; `contract-v1` §2 y §4 |
