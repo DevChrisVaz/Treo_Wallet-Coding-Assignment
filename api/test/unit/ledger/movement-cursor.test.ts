@@ -16,6 +16,8 @@ const filters: MovementFilters = {
 };
 const position = { occurredAt: '2026-09-15T18:30:00.123456Z', id: '987654321' };
 
+const TIMESTAMP_SHAPE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}Z$/;
+
 function codeOf(fn: () => unknown): string {
   try {
     fn();
@@ -97,6 +99,32 @@ describe('HIS-05 cursor opaco y firmado', () => {
       codeOf(() => cursors.decode(sign({ t: position.occurredAt, id: '1; DROP', f }), filters)),
     ).toBe('INVALID_CURSOR');
     expect(codeOf(() => cursors.decode(sign([1, 2, 3]), filters))).toBe('INVALID_CURSOR');
+  });
+
+  it('HIS-05 una carga bien firmada que no es JSON, o con una fecha inexistente, responde INVALID_CURSOR', () => {
+    const signBody = (raw: string) => {
+      const body = Buffer.from(raw).toString('base64url');
+      const mac = createHmac('sha256', secret).update(body).digest('base64url');
+      return `${body}.${mac}`;
+    };
+    const [validBody] = cursors.encode(position, filters).split('.');
+    const f = JSON.parse(Buffer.from(validBody ?? '', 'base64url').toString()).f;
+    // La firma es correcta, así que solo el cuerpo puede delatarlo.
+    expect(codeOf(() => cursors.decode(signBody('esto no es JSON {'), filters))).toBe(
+      'INVALID_CURSOR',
+    );
+    // Pasa la expresión regular del formato pero el mes 13 no existe.
+    const impossible = { t: '2026-13-15T18:30:00.123456Z', id: '1', f };
+    expect(TIMESTAMP_SHAPE.test(impossible.t)).toBe(true);
+    expect(codeOf(() => cursors.decode(signBody(JSON.stringify(impossible)), filters))).toBe(
+      'INVALID_CURSOR',
+    );
+    // Control: la misma carga con una fecha real sí se acepta.
+    const real = { ...impossible, t: position.occurredAt };
+    expect(cursors.decode(signBody(JSON.stringify(real)), filters)).toEqual({
+      occurredAt: position.occurredAt,
+      id: '1',
+    });
   });
 
   it.each(['', 'abc', 'a.b', '.', '...', 'eyJ0IjoxfQ'])(

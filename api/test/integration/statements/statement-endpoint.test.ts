@@ -218,6 +218,31 @@ describe('HIS-11 ruta getAccountStatement', () => {
     expect((await getStatement(t, token, ana.principal.id, '2026-09')).status).toBe(200);
   });
 
+  it('HIS-11 las peticiones rechazadas con 404 y 422 también cuentan: tras 10 rechazos, la petición válida responde 429', async () => {
+    const { ana, luis, token } = await septemberScenario(t);
+    const unknown = '00000000-0000-4000-8000-000000000000';
+    const rejected: [string, string, number][] = [
+      [ana.principal.id, '2026-13', 422],
+      [ana.principal.id, 'septiembre', 422],
+      [ana.principal.id, '2099-01', 422],
+      [ana.principal.id, '1999-12', 422],
+      [unknown, '2026-09', 404],
+      [unknown, '2026-09', 404],
+      [unknown, '2026-09', 404],
+      [luis.principal.id, '2026-09', 404],
+      [luis.principal.id, '2026-09', 404],
+      [luis.principal.id, '2026-09', 404],
+    ];
+    for (const [accountId, period, status] of rejected) {
+      t.clock.advance(1_000);
+      expect((await getStatement(t, token, accountId, period)).status).toBe(status);
+    }
+    const valid = await getStatement(t, token, ana.principal.id, '2026-09');
+    expect(valid.status).toBe(429);
+    expect(valid.body.code).toBe('RATE_LIMITED');
+    expect(await statementEvents()).toEqual([]);
+  });
+
   it('AUD-07 la descarga registra STATEMENT_EXPORTED con actor USER, cuenta y periodo, sin CLABE, nombre ni montos', async () => {
     const { ana, token } = await septemberScenario(t);
     const res = await getStatement(t, token, ana.principal.id, '2026-09').set(
