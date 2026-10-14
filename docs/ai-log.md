@@ -290,3 +290,42 @@ Con esto quedó cerrada la tarea 9.2 de `web-app`.
 - **Una falsa alarma de foco.** El tester reportó que no se veía el foco en "Continuar". La AI principal leyó el color del contorno y le salió blanco, pero era el primer instante de una transición de 150 ms (`transition-colors` también anima `outline-color`). Una segunda lectura y una captura confirmaron el anillo verde de 2 px.
 
 **Error de proceso de la AI.** Un comando encadenado hizo commit aunque fallaron lint y formato, porque esos dos pasos no estaban unidos con `&&`. Las fallas venían de carpetas sin versionar de otra sesión (`.design-sync/`, `.ds-sync/`, `ds-bundle/`), no del cambio, así que el commit era correcto. La lección es la de siempre: no dar por buena una verificación cuyo código de salida no detiene el siguiente paso.
+
+## Sesión 4 — 2026-10-14 · Bonus: estado de cuenta, programadas y biometría
+
+### Elección de los bonus
+
+La AI revisó los bonus del enunciado y propuso cuatro con su costo: estado de cuenta del mes, transferencias programadas, desbloqueo biométrico y un esqueleto de Terraform. Elegí los tres primeros y descarté Terraform. Cognito no lo recomendó.
+
+**Decisiones que tomé sobre la propuesta:**
+- **PDF en lugar de CSV.** La AI recomendaba CSV por costo. Con PDF desapareció un riesgo que había señalado (inyección de fórmulas en Excel) y apareció otro conjunto de decisiones: librería, tipografía, paginación y pruebas que leen el PDF.
+- **Montos con formato completo** ("$1,250.50"), porque es un documento para personas.
+- **Android con huella.** Con eso el desbloqueo se prueba en Expo Go sin un development build; Face ID en iOS lo necesitaría.
+
+**Lo que la AI propuso y quedó en las specs:**
+- PDFKit en la API y no Chromium sin interfaz. Un solo generador sirve a la web y, más adelante, a la app.
+- Saldo inicial y movimientos leídos de una sola instantánea (`REPEATABLE READ READ ONLY`), para que una transferencia a mitad de la generación no descuadre el documento.
+- La descarga del estado de cuenta es la única lectura auditada (`STATEMENT_EXPORTED`), como excepción explícita a AUD-01.
+- Las programadas no apartan dinero; saldo y límite se validan al ejecutar, con el límite del día de ejecución.
+- Un ejecutor dentro de la API con `FOR UPDATE SKIP LOCKED` que respeta el orden global de bloqueos (contador → transferencia → cuentas), en lugar de EventBridge por transferencia, `pg_cron` o una cola.
+- La huella de idempotencia agrega la fecha solo cuando existe, para no cambiar la huella de las transferencias inmediatas ya guardadas.
+- Un tope de 20 programadas activas por usuario, para acotar la lista sin paginación.
+- El desbloqueo biométrico es una puerta de la interfaz antes de restaurar la sesión. Atar el refresh token a la biometría del Keystore queda como seguimiento documentado.
+
+### Especificaciones
+
+Cuatro changes, todos escritos y validados con `--strict` antes de escribir código: `contract-v1-2`, `account-statements`, `scheduled-transfers` y `biometric-unlock`.
+
+Los changes de la API, la web y el móvil no están archivados, así que sus requisitos no están en `openspec/specs/`. Los nuevos requisitos se agregaron con IDs nuevos que nombran el requisito que amplían, igual que hizo el change `redesign` de otra sesión. La AI revisó los IDs más altos de cada prefijo para no chocar con `redesign` (WEB-31, MOB-22, DSG-17 ya estaban usados).
+
+**Corrección a la AI.** Escribió el `design.md` de `contract-v1-2` en inglés, aunque la regla del proyecto pide artefactos en español. Lo notó al terminar y lo reescribió antes del commit.
+
+### Contrato 1.2.0 y sistema de diseño 1.1.0
+
+La AI principal implementó `contract-v1-2` (5 tareas) y la tarea 1.1 de `scheduled-transfers` (estados y textos en `/design-tokens`). La tarea de `/design-tokens` va antes que cualquier consumidor: si un cliente instala el contrato 1.2.0 sin las etiquetas nuevas, sus mapas exhaustivos de `TransferStatus` dejan de compilar.
+
+**Hallazgos durante la implementación:**
+- **La prueba roja de la descarga binaria solo falló en el compilador.** openapi-fetch no valida rutas en tiempo de ejecución, así que las pruebas de CTR-19 pasaban antes de agregar la ruta al contrato; lo que fallaba era `tsc`, porque la ruta no existía en los tipos. Para un contrato, ese es el fallo que importa. También confirmó que el middleware de errores no necesitaba cambios para un PDF.
+- **Un formateador creado al importar.** La primera versión de `mexicoCityDate` creaba el `Intl.DateTimeFormat` con la zona horaria al cargar el módulo. Si un motor no tuviera la zona, todo el paquete fallaría al importarse en la app, aunque la app no usa esas funciones. La AI lo cambió para crearlo al primer uso.
+- **Una tarea pedía un script que no existe.** La tarea 1.5 decía "`npm run verify` completo", pero el paquete no tiene ese script. Se corrieron los pasos del workflow de CI uno por uno y se corrigió el texto de la tarea en el mismo commit, explicándolo en el mensaje.
+- **El lockfile no se actualizó solo con la versión.** La AI subió la versión en `package.json` pero no en `package-lock.json`. Lo detectó al revisar cómo se había hecho la versión 1.1.0 y corrigió su propio commit, que aún no se había publicado.
