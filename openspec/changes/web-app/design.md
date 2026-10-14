@@ -215,6 +215,20 @@ Las pruebas comprueban el texto del paquete más el dato variable, no el literal
 ### D18. `Retry-After` fuera del `ProblemError` del contrato
 `ProblemError` conserva `code`, `requestId` y las extensiones del cuerpo, pero no los headers, y el cliente del contrato lanza el error dentro de su middleware, así que `Retry-After` (WEB-12) se perdía. El cliente del servidor de la web agrega un middleware que convierte la respuesta de error con `toProblemError` y adjunta `Retry-After` antes que el del contrato (openapi-fetch ejecuta `onResponse` en orden inverso); la Server Action lo devuelve como `retryAfter` en el problema. Es un hueco menor del contrato: conviene que `ProblemError` exponga `retryAfter` en una versión menor.
 
+### D19. Ajustes de implementación
+Precisiones que surgieron al implementar, sin cambiar el comportamiento especificado:
+- **Ruta de regreso (WEB-22).** Un layout no conoce la ruta pedida: `proxy.ts` (el antiguo middleware) solo la copia en el header `x-wallet-path`, reemplazando el que envíe el navegador; la protección sigue en el layout `(app)` y el destino se sanea con `safeNextPath` (solo rutas internas; rechaza `//host`, `/\host`, esquemas, caracteres de control y las pantallas públicas). *Descartado:* redirigir desde el cliente con `usePathname`, que muestra la pantalla protegida un instante.
+- **Cookie de una sesión expirada (WEB-03).** Un layout no puede escribir cookies: si la cookie apunta a una sesión que ya no existe, el layout redirige a `/bff/session/expired`, que la borra solo si su sesión no existe y lleva a `/login?reason=expired`. En las lecturas y las acciones la cookie se borra en la misma respuesta.
+- **IP del cliente (WEB-10).** Se toma la última entrada de `X-Forwarded-For`, la que agrega el proxy inmediatamente delante de la web (Next.js la llena con el socket si no viene); sin proxy, en local, se usa la de loopback. Con dos saltos (CloudFront y ALB) haría falta configurar cuántos saltos son de confianza.
+- **Entorno por fase.** `next.config.ts` es una función de la fase: valida el entorno al arrancar `next dev` y `next start`; en el build `API_BASE_URL` no es obligatoria porque el servidor la lee en cada petición. `ALLOWED_ORIGINS` se aplica al arrancar, sin recompilar (verificado a mano).
+- **Proxy de lecturas.** Los métodos distintos de GET responden `405` con `Allow: GET` y `code` `MALFORMED_REQUEST` (el contrato no tiene un código para 405). Las respuestas llevan `Cache-Control: no-store`.
+- **Llave ausente o inválida.** `createTransfer` responde `IDEMPOTENCY_KEY_MISSING` o `IDEMPOTENCY_KEY_INVALID` sin llamar a la API, con el mismo mecanismo (`ActionFailure`) que cualquier rechazo local.
+- **Estado incierto.** Tras un fallo de red o `5xx` la confirmación solo ofrece "Reintentar" (misma llave), no "Editar": editar descartaría la llave y podría duplicar una transferencia que sí se hizo.
+- **Foco.** Cada paso del flujo de transferencia enfoca su título y las alertas de error de operación reciben el foco (WEB-23).
+- **CLABE propia.** `AccountCard` la enmascara salvo los últimos 4 dígitos (D7 de `design-system`) y ofrece "Mostrar CLABE": la persona la necesita para recibir transferencias.
+- **Logs.** `logging.serverFunctions: false`: en desarrollo, Next.js 16 registraba los argumentos de cada Server Action, contraseñas incluidas.
+- **Herramientas.** ESLint 9 (los plugins de `eslint-config-next` 16.4 declaran ESLint ≤ 9), Tailwind con `@tailwindcss/postcss`, `vitest-axe` 1.0.0-pre.5 (tipos para Vitest ≥ 1) y `agentRules: false` para que `next dev` no escriba un `AGENTS.md`.
+
 ## Risks / Trade-offs
 
 - [La sesión en memoria se pierde al reiniciar el servidor de desarrollo] → Aceptado en local; en AWS se usa Redis.
