@@ -34,7 +34,7 @@ export function AmountField({
         label={label}
         hint={hint}
         error={error}
-        className="justify-items-center text-center"
+        className="grid-cols-1 justify-items-center text-center"
       >
         <div className="flex items-baseline justify-center gap-1 justify-self-stretch border-b-2 border-border-input py-2 focus-within:border-action">
           <span aria-hidden="true" className="text-display text-fg-muted">
@@ -46,11 +46,15 @@ export function AmountField({
            * espejo de la app móvil (WEB-25, WEB-30). Medir en `ch` contaba la coma y el punto como
            * dígitos y dejaba aire alrededor del monto.
            */}
-          <span className="relative min-w-0">
+          {/*
+           * Un monto largo no desborda la fila ni la página: la columna del marco es `minmax(0,1fr)`
+           * (`grid-cols-1`), el espejo no pasa del ancho (`max-w-full`) y recorta lo que sobra.
+           */}
+          <span className="relative min-w-0 max-w-full">
             <span
               aria-hidden="true"
               data-testid="hero-amount-mirror"
-              className="invisible block pr-1 text-display whitespace-pre tabular-nums"
+              className="invisible block max-w-full overflow-x-clip pr-1 text-display whitespace-pre tabular-nums"
             >
               {text || props.placeholder || '0'}
             </span>

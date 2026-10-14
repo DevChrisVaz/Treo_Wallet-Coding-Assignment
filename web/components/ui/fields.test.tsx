@@ -81,6 +81,13 @@ describe('AmountField', () => {
     expect(screen.getByTestId('hero-amount-mirror').textContent).toBe('15000');
   });
 
+  it('WEB-30 en la variante hero un monto largo no desborda la fila: columna minmax(0,1fr) y espejo recortado', () => {
+    render(<AmountField label="Monto" variant="hero" defaultValue="123456789012345678.00" />);
+    const mirror = screen.getByTestId('hero-amount-mirror');
+    expect(mirror).toHaveClass('max-w-full', 'overflow-x-clip');
+    expect(mirror.closest('.grid')).toHaveClass('grid-cols-1');
+  });
+
   it('WEB-23 no tiene problemas de accesibilidad con error', async () => {
     const { container } = render(
       <AmountField label="Monto" error="El monto admite máximo 2 decimales" />,
