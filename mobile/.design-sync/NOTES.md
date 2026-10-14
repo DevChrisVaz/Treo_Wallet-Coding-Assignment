@@ -113,6 +113,25 @@ expo-router, TanStack Query y la sesión, no se pueden importar):
 | `app/(app)/transfer/index.tsx` | `BeneficiaryPickerScreen`, `BeneficiaryPickerEmpty` |
 | `app/(app)/transfer/send.tsx` | `TransferFormScreen`, `TransferReviewScreen`, `TransferRetryingScreen`, `TransferUncertainScreen`, `TransferRejectedScreen`, `TransferOtpScreen`, `TransferCompletedScreen`, `TransferFailedScreen` |
 
+| Diseño UX (MOB-08, MOB-28, MOB-29), vistas reales | `HomeReceive`, `HomeReceiveSheet`, `HomeReceiveSheetSavings`, `HomeReceiveSheetCopied`, `TransferAmountFormatted`, `TransferAmountFormattedWithReference`, `TransferRecipientSearch`, `TransferRecipientSearchResults`, `TransferRecipientSearchNoResults` |
+
+- **Diseño objetivo implementado (MOB-08, MOB-28, MOB-29).** Las historias de la fila anterior usan las vistas
+  reales: `HomeView` (acción "Recibir", prop `onReceive`), `TransferFlowView` (monto con comas y
+  "Referencia (opcional)") y `RecipientView` (búsqueda; `initialQuery` solo existe para los lienzos). La
+  hoja "Recibir dinero" es `features/accounts/receive-sheet-view.tsx`: su contenido real
+  (`ReceiveSheetContent`, exportado en `entry.ts` y sin tarjeta en `config.json`) va dentro de una réplica
+  de la anatomía de `BottomSheet` (un `Modal` que en el lienzo cubriría todo), como `OptionRow/AccountSheet`,
+  y encima de la `TabBar`. Si cambia `BottomSheet`, la réplica queda desfasada sin que nada falle. El
+  portapapeles (`expo-clipboard`) y `Share` los conecta el contenedor `receive-sheet.tsx`.
+- Diferencia contra las capturas del lienzo objetivo: las filas del buscador de destinatarios llevan la
+  flecha `forward` de la vista real (las capturas objetivo no la traían); el resto es idéntico.
+- Piezas nuevas del kit: variante `search` de `TextField` (lupa, × y etiqueta solo accesible) y glifos
+  propios `search`, `receive` (`ArrowDownToLine`), `copy` y `share` (`EXTRA_ICONS`, tipo `IconName`; aún
+  no están en `design-tokens`). `Receipt` y `MovementRow` ocultan la referencia vacía (MOB-06, MOB-13).
+- MOB-23: la app móvil no muestra `scheduledFor` (el comprobante usa `createdAt`/`completedAt`), así que no
+  hay cambio visual; los datos de las historias ya usan el instante (`2026-10-20T20:30:00Z`).
+- MOB-12: el campo de código no cambia visualmente (solo dígitos al escribir y pegar).
+
 - `ActivityIndicator` se exporta en `entry.ts` (excluido de las tarjetas) para `StartupLoading`.
 - Montos y textos de error van escritos a mano (la preview no importa el contrato ni los tokens);
   "El código vence en 4:32." es fijo (en la app es una cuenta regresiva).

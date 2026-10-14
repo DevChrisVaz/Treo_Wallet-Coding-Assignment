@@ -1,3 +1,4 @@
+import { digitsOnly } from '@devchrisvaz/wallet-contract';
 import { StyleSheet } from 'react-native';
 
 import { theme } from '@/theme';
@@ -13,7 +14,10 @@ interface OtpFieldProps {
   disabled?: boolean;
 }
 
-/** Código de 6 dígitos en un solo campo; acepta pegarlo y lo ofrece el autocompletado del SO. */
+/**
+ * Código de 6 dígitos en un solo campo (MOB-12): solo dígitos al escribir y al pegar, máximo 6, teclado
+ * numérico; lo ofrece el autocompletado del SO.
+ */
 export function OtpField({ label = 'Código de 6 dígitos', onChangeText, ...props }: OtpFieldProps) {
   return (
     <TextField
@@ -25,7 +29,7 @@ export function OtpField({ label = 'Código de 6 dígitos', onChangeText, ...pro
       autoComplete="one-time-code"
       maxLength={6}
       inputStyle={styles.code}
-      onChangeText={(text) => onChangeText(text.replace(/\D/g, '').slice(0, 6))}
+      onChangeText={(text) => onChangeText(digitsOnly(text, 6))}
     />
   );
 }

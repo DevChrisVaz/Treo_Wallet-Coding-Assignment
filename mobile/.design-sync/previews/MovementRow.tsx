@@ -115,3 +115,11 @@ export const RecentMovementsList = () => (
     </View>
   </View>
 );
+
+// MOB-06: un movimiento sin referencia lleva solo la fecha u hora, sin "Ref.".
+export const WithoutReference = () => (
+  <View style={frame}>
+    <MovementRow timeOnly movement={{ ...ownTransferOut, reference: null }} />
+    <MovementRow movement={{ ...ownTransferOut, reference: null }} />
+  </View>
+);

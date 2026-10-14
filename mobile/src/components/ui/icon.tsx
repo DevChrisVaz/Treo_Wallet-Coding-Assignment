@@ -1,6 +1,7 @@
 import { iconSize, type IconConcept } from '@devchrisvaz/wallet-design-tokens';
 import {
   ArrowDownLeft,
+  ArrowDownToLine,
   ArrowUpRight,
   CalendarClock,
   ChevronDown,
@@ -8,13 +9,16 @@ import {
   ChevronRight,
   CircleAlert,
   CircleCheck,
+  Copy,
   House,
   Info,
   Landmark,
   LogOut,
   ReceiptText,
   Repeat2,
+  Search,
   Send,
+  Share2,
   SlidersHorizontal,
   TriangleAlert,
   UserRound,
@@ -50,8 +54,26 @@ export const ICONS = {
   account: UserRound,
 } as const satisfies Record<IconConcept, LucideIcon>;
 
+/**
+ * Glifos propios de la app que aún no están en el mapa compartido de `design-tokens`: buscar
+ * (`search`), recibir dinero (flecha entrante, `receive`), copiar (`copy`) y compartir (`share`).
+ * Nombres iguales a los que usa la web para la misma función (MOB-28, MOB-29).
+ */
+export const EXTRA_ICONS = {
+  search: Search,
+  receive: ArrowDownToLine,
+  copy: Copy,
+  share: Share2,
+} as const satisfies Record<string, LucideIcon>;
+
+export type ExtraIconConcept = keyof typeof EXTRA_ICONS;
+/** Todo lo que `Icon` sabe dibujar: los conceptos compartidos más los glifos propios. */
+export type IconName = IconConcept | ExtraIconConcept;
+
+const GLYPHS: Record<IconName, LucideIcon> = { ...ICONS, ...EXTRA_ICONS };
+
 interface IconProps {
-  name: IconConcept;
+  name: IconName;
   size?: keyof typeof iconSize;
   color: string;
   /** Solo cuando el icono comunica algo sin texto al lado; si no, es decorativo. */
@@ -60,7 +82,7 @@ interface IconProps {
 
 /** Icono de línea del sistema (DSG-15): decorativo salvo que tenga etiqueta. */
 export function Icon({ name, size = 'md', color, label }: IconProps) {
-  const Glyph = ICONS[name];
+  const Glyph = GLYPHS[name];
   // `aria-label` (no `accessibilityLabel`): Lucide solo deja de ocultar el SVG si ve una prop `aria-*`.
   return label ? (
     <Glyph
@@ -82,7 +104,7 @@ export function Icon({ name, size = 'md', color, label }: IconProps) {
 }
 
 interface IconButtonProps {
-  icon: IconConcept;
+  icon: IconName;
   /** Obligatoria: es el único nombre accesible del botón. */
   label: string;
   onPress: () => void;

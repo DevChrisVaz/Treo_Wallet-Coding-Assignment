@@ -1,3 +1,4 @@
+import { sanitizeAmountTyping } from '@devchrisvaz/wallet-contract';
 import { focusRing } from '@devchrisvaz/wallet-design-tokens';
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
@@ -11,12 +12,17 @@ type AmountFieldProps = Omit<TextFieldProps, 'variant' | 'prefix' | 'keyboardTyp
   variant?: 'default' | 'hero';
 };
 
-const clean = (text: string) => text.replace(/[\s,]/g, '');
+/**
+ * MOB-08: mientras se escribe o se pega solo caben dígitos y un punto (máx. 2 decimales) y el texto se
+ * muestra con comas de millar (`12,345.67`). El campo guarda ese texto (`display`); quien lo usa
+ * manda a la API `sanitizeAmountTyping(texto).value` (`12345.67`).
+ */
+const clean = (text: string) => sanitizeAmountTyping(text).display;
 
 /**
- * Campo de monto: prefijo `$`, teclado decimal y valor como string. Quita espacios y comas al
- * escribir o pegar; nunca convierte a número (MOB-08, MOB-15). La validación la hace el formulario
- * con `amountInput` del contrato.
+ * Campo de monto: prefijo `$`, teclado decimal y valor como string. Da formato al escribir o pegar
+ * (letras y símbolos no entran, comas de millar, 2 decimales); nunca convierte a número (MOB-08,
+ * MOB-15, MOB-08). La validación la hace el formulario con `amountInput` del contrato.
  */
 export function AmountField({ onChangeText, variant = 'default', ...props }: AmountFieldProps) {
   if (variant === 'hero') return <HeroAmountField onChangeText={onChangeText} {...props} />;

@@ -1,9 +1,8 @@
-import type { IconConcept } from '@devchrisvaz/wallet-design-tokens';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { theme } from '@/theme';
 
-import { Icon } from './icon';
+import { Icon, type IconName } from './icon';
 
 const { colors } = theme;
 
@@ -26,7 +25,7 @@ interface AvatarProps {
   tone?: keyof typeof TONES;
   size?: 'sm' | 'md' | 'lg';
   initials?: string;
-  icon?: IconConcept;
+  icon?: IconName;
 }
 
 /** Círculo con iniciales o icono (movimientos, cuenta, estados vacíos). Siempre decorativo. */

@@ -1,9 +1,8 @@
-import type { IconConcept } from '@devchrisvaz/wallet-design-tokens';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { theme } from '@/theme';
 
-import { Icon } from './icon';
+import { Icon, type IconName } from './icon';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 
@@ -68,7 +67,7 @@ interface ButtonProps {
   loading?: boolean;
   accessibilityHint?: string;
   /** Icono decorativo antes de la etiqueta. */
-  icon?: IconConcept;
+  icon?: IconName;
   /** Botón de un selector: anuncia si es la opción elegida. */
   selected?: boolean;
 }

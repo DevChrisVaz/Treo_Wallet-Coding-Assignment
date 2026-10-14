@@ -16,6 +16,10 @@
 import type { ReactNode } from 'react';
 import {
   HomeView,
+  IconButton,
+  ReceiveSheetContent,
+  Text,
+  theme,
   LockScreenView,
   LoginView,
   MovementsView,
@@ -108,7 +112,7 @@ const scheduledTransfer = {
   id: '9a3b5c7d-2e4f-4a6b-8c0d-1e3f5a7b9c2d',
   status: 'SCHEDULED' as const,
   amount: '1000.00',
-  scheduledFor: '2026-10-20',
+  scheduledFor: '2026-10-20T20:30:00Z', // 14:30 en Ciudad de México (MOB-23)
   cancelledAt: null,
   createdAt: '2026-10-13T16:50:00Z',
   completedAt: null,
@@ -163,7 +167,7 @@ const ACTIONS = {
   onHome: noop,
   onAnother: noop,
 };
-const VALUES = { fromAccountId: principal.id, amount: '1250.00', concept: 'Renta', reference: '1' };
+const VALUES = { fromAccountId: principal.id, amount: '1,250.00', concept: 'Renta', reference: '1' };
 // Datos congelados del intento al pasar a revisión.
 const FROZEN = {
   key: 'k',
@@ -171,10 +175,18 @@ const FROZEN = {
   draft: { fromAccountId: principal.id, beneficiaryId: luis.id, amount: '1250.00', concept: 'Renta', reference: '1' },
 };
 
-function Flow({ state, code = '' }: { state: Parameters<typeof TransferFlowView>[0]['state']; code?: string }) {
+function Flow({
+  state,
+  code = '',
+  values = VALUES,
+}: {
+  state: Parameters<typeof TransferFlowView>[0]['state'];
+  code?: string;
+  values?: typeof VALUES;
+}) {
   return (
     <View style={styles.phone}>
-      <TransferFlowView state={state} data={READY} values={VALUES} errors={{}} code={code} actions={ACTIONS} />
+      <TransferFlowView state={state} data={READY} values={values} errors={{}} code={code} actions={ACTIONS} />
     </View>
   );
 }
@@ -240,6 +252,7 @@ const homeProps = {
   onRetryOverview: noop,
   onRetryLatest: noop,
   onTransfer: noop,
+  onReceive: noop,
   onSeeAll: noop,
 };
 
@@ -451,3 +464,118 @@ export const HomeUnlockOffer = () => (
     />
   </TabFrame>
 );
+
+// =====================================================================================================
+// Requisitos MOB-08, MOB-28 y MOB-29: las historias usan las vistas reales (`home-view`, `form-view`,
+// `recipient-view` y `receive-sheet-view`) con los datos canónicos.
+// =====================================================================================================
+
+// --- Inicio con "Recibir" (MOB-28) -------------------------------------------------------------------------
+
+// features/accounts/home-view.tsx con tres acciones rápidas (Transferir, Recibir, Movimientos).
+// "Recibir" usa la flecha entrante (`receive`) y abre la hoja "Recibir dinero". Las tarjetas de cuenta
+// muestran solo la CLABE enmascarada (•••• 1234): no hay interruptor "Mostrar CLABE".
+export const HomeReceive = () => (
+  <TabFrame current="home">
+    <HomeView {...homeProps} overview={OVERVIEW} />
+  </TabFrame>
+);
+
+// features/accounts/receive-sheet-view.tsx. La hoja real es el `BottomSheet` del kit (un Modal que en el
+// lienzo cubriría todo), así que aquí se replica su anatomía como en `OptionRow/AccountSheet`: fondo
+// `surface.hero` al 60 % y hoja anclada abajo; el contenido es el real (`ReceiveSheetContent`).
+function ReceiveSheet({ account, copied = false }: { account: typeof principal; copied?: boolean }) {
+  return (
+    <View style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'flex-end' }}>
+      <View style={{ ...StyleSheet.absoluteFill, backgroundColor: theme.colors.surface.hero, opacity: 0.6 }} />
+      <View
+        style={{
+          gap: theme.spacing[4],
+          borderTopLeftRadius: theme.radius.lg,
+          borderTopRightRadius: theme.radius.lg,
+          backgroundColor: theme.colors.surface.default,
+          paddingHorizontal: theme.spacing[5],
+          paddingTop: theme.spacing[3],
+          paddingBottom: theme.spacing[6],
+          ...theme.elevation.sheet,
+        }}
+      >
+        <View
+          style={{
+            alignSelf: 'center',
+            width: theme.spacing[10],
+            height: theme.spacing[1],
+            borderRadius: theme.radius.pill,
+            backgroundColor: theme.colors.border.default,
+          }}
+        />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text accessibilityRole="header" style={{ ...theme.typography.h3, color: theme.colors.text.primary }}>
+            Recibir dinero
+          </Text>
+          <IconButton icon="close" label="Cerrar" onPress={noop} />
+        </View>
+        <ReceiveSheetContent
+          holder={user.name}
+          accounts={[principal, ahorro]}
+          account={account}
+          copied={copied}
+          onSwitch={noop}
+          onCopy={noop}
+          onShare={noop}
+        />
+      </View>
+    </View>
+  );
+}
+
+// Como `TabFrame`, pero con la hoja encima de la barra de pestañas (el `Modal` real tapa todo).
+const withSheet = (sheet: ReactNode) => (
+  <View style={styles.phone}>
+    <View style={styles.fill}>
+      <HomeView {...homeProps} overview={OVERVIEW} />
+      <TabBar items={TABS} current="home" onSelect={noop} />
+      {sheet}
+    </View>
+  </View>
+);
+
+export const HomeReceiveSheet = () => withSheet(<ReceiveSheet account={principal} />);
+
+// Cambiar a "Ahorro" actualiza Cuenta y CLABE.
+export const HomeReceiveSheetSavings = () => withSheet(<ReceiveSheet account={ahorro} />);
+
+// Tras tocar "Copiar CLABE".
+export const HomeReceiveSheetCopied = () => withSheet(<ReceiveSheet account={principal} copied />);
+
+// --- Transferir: monto con comas y "Referencia (opcional)" (MOB-08) -------------------------------------
+
+// features/transfer/form-view.tsx con el monto escrito con separadores de miles (`1,250.00`; a la API
+// va `1250.00`) y la referencia opcional ("Referencia (opcional)", solo dígitos, hasta 7).
+export const TransferAmountFormatted = () => (
+  <Flow state={{ status: 'editing' }} values={{ ...VALUES, amount: '12,345.67', reference: '' }} />
+);
+export const TransferAmountFormattedWithReference = () => (
+  <Flow state={{ status: 'editing' }} values={{ ...VALUES, amount: '1,250.00', reference: '1' }} />
+);
+
+// --- Destinatario con búsqueda (MOB-29) ------------------------------------------------------------------
+
+// features/transfer/recipient-view.tsx: campo de búsqueda arriba de la lista (filtro en el cliente sin
+// distinguir mayúsculas ni acentos, por nombre y alias; los dígitos buscan en la CLABE). Sin resultados:
+// EmptyState "Sin resultados" con "Limpiar búsqueda". El campo se oculta si no hay beneficiarios.
+const recipientSearch = (initialQuery: string) => (
+  <View style={styles.phone}>
+    <RecipientView
+      beneficiaries={{ status: 'success', data: { items: [luis, mama] } }}
+      initialQuery={initialQuery}
+      onPick={noop}
+      onRetry={noop}
+      onClose={noop}
+    />
+  </View>
+);
+
+export const TransferRecipientSearch = () => recipientSearch('');
+export const TransferRecipientSearchResults = () => recipientSearch('lu');
+export const TransferRecipientSearchNoResults = () => recipientSearch('zzz');

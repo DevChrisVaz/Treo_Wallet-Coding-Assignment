@@ -1,4 +1,9 @@
-import { formatMXN, type Account, type Beneficiary } from '@devchrisvaz/wallet-contract';
+import {
+  digitsOnly,
+  formatMXN,
+  type Account,
+  type Beneficiary,
+} from '@devchrisvaz/wallet-contract';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AmountField, Avatar, ListSection, Select, TextField, initials } from '@/components/ui';
@@ -22,7 +27,7 @@ interface FormViewProps {
 
 /**
  * Captura de la transferencia (MOB-08, MOB-21): a quién se envía, el monto como protagonista,
- * cuenta de origen, concepto y referencia. La validación es la del contrato y la hace
+ * cuenta de origen, concepto y referencia opcional (MOB-08: solo dígitos, hasta 7). La validación es la del contrato y la hace
  * `TransferAttempt.review`; el monto queda como string. "Continuar" va en el pie del paso.
  */
 export function FormView({ accounts, beneficiary, values, errors, onChange }: FormViewProps) {
@@ -49,7 +54,7 @@ export function FormView({ accounts, beneficiary, values, errors, onChange }: Fo
         value={values.amount}
         onChangeText={(amount) => set({ amount })}
         error={errors.amount}
-        help="Hasta 2 decimales, sin comas."
+        help="Hasta 2 decimales."
       />
       <Select
         label="Cuenta de origen"
@@ -71,13 +76,14 @@ export function FormView({ accounts, beneficiary, values, errors, onChange }: Fo
         help="De 1 a 40 caracteres."
       />
       <TextField
-        label="Referencia"
+        label="Referencia (opcional)"
         value={values.reference}
-        onChangeText={(reference) => set({ reference })}
+        onChangeText={(reference) => set({ reference: digitsOnly(reference, 7) })}
         error={errors.reference}
-        help="De 1 a 7 dígitos."
+        help="Hasta 7 dígitos."
         keyboardType="number-pad"
         inputMode="numeric"
+        maxLength={7}
       />
     </>
   );

@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 
 import { UnlockOffer } from '@/features/unlock/unlock-offer';
 import { loadable } from '@/lib/loadable';
@@ -6,6 +7,7 @@ import { useRefreshByUser } from '@/lib/use-refresh-by-user';
 
 import { useAccountHeader } from './account-header';
 import { HomeView } from './home-view';
+import { ReceiveSheet } from './receive-sheet';
 import { useAccountsOverview, useLatestMovements } from './queries';
 import { selectedAccount, useAccountSelection } from './selection';
 
@@ -14,10 +16,11 @@ import { selectedAccount, useAccountSelection } from './selection';
  * límite diario, y estados de carga, vacío y error. Si una consulta falla, no se muestran los
  * saldos anteriores como si fueran actuales. Inicio (MOB-19): saludo, hero con el total, la cuenta
  * elegida (la primera, si no se ha elegido otra) y sus últimos 5 movimientos; "Ver todos" abre
- * Movimientos con esa cuenta.
+ * Movimientos con esa cuenta. "Recibir" (MOB-28) abre la hoja con los datos de la cuenta elegida.
  */
 export function HomeScreen() {
   const router = useRouter();
+  const [receiveOpen, setReceiveOpen] = useState(false);
   const header = useAccountHeader();
   const overview = useAccountsOverview();
   const { accountId, select } = useAccountSelection();
@@ -28,26 +31,36 @@ export function HomeScreen() {
     Promise.all([overview.refetch(), selected ? latest.refetch() : undefined, header.retryUser()]),
   );
   return (
-    <HomeView
-      user={header.user}
-      onLogout={header.onLogout}
-      menuExtra={header.menuExtra}
-      offer={<UnlockOffer />}
-      refresh={refresh}
-      overview={loadable(overview)}
-      selectedId={selected?.id}
-      latest={loadable(latest)}
-      onSelect={select}
-      onRetryOverview={() => {
-        void overview.refetch();
-        void header.retryUser();
-      }}
-      onRetryLatest={() => void latest.refetch()}
-      onTransfer={() => router.push('/transfer')}
-      onSeeAll={() => {
-        if (selected) select(selected.id);
-        router.navigate('/movements');
-      }}
-    />
+    <>
+      <HomeView
+        user={header.user}
+        onLogout={header.onLogout}
+        menuExtra={header.menuExtra}
+        offer={<UnlockOffer />}
+        refresh={refresh}
+        overview={loadable(overview)}
+        selectedId={selected?.id}
+        latest={loadable(latest)}
+        onSelect={select}
+        onRetryOverview={() => {
+          void overview.refetch();
+          void header.retryUser();
+        }}
+        onRetryLatest={() => void latest.refetch()}
+        onTransfer={() => router.push('/transfer')}
+        onReceive={() => setReceiveOpen(true)}
+        onSeeAll={() => {
+          if (selected) select(selected.id);
+          router.navigate('/movements');
+        }}
+      />
+      <ReceiveSheet
+        open={receiveOpen}
+        onClose={() => setReceiveOpen(false)}
+        holder={header.user.name}
+        accounts={overview.data?.accounts ?? []}
+        selectedId={selected?.id}
+      />
+    </>
   );
 }

@@ -52,7 +52,7 @@ function stackGap(first: Instance, second: Instance): unknown {
 async function review(user: ReturnType<typeof userEvent.setup>, amount: string) {
   await user.type(await screen.findByLabelText('Monto'), amount);
   await user.type(screen.getByLabelText('Concepto'), 'Renta');
-  await user.type(screen.getByLabelText('Referencia'), '1');
+  await user.type(screen.getByLabelText('Referencia (opcional)'), '1');
   await user.press(screen.getByRole('button', { name: 'Continuar' }));
 }
 
@@ -72,7 +72,7 @@ describe('flujo por pasos', () => {
     await open(apiWith(json(201, transfer())));
     const amount = await screen.findByLabelText('Monto');
     const concept = screen.getByLabelText('Concepto');
-    const reference = screen.getByLabelText('Referencia');
+    const reference = screen.getByLabelText('Referencia (opcional)');
     // La pantalla separa sus secciones con spacing[5]; el formulario no agrega otra pila más apretada.
     expect(stackGap(concept, reference)).toBe(theme.spacing[5]);
     expect(stackGap(amount, concept)).toBe(theme.spacing[5]);

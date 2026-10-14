@@ -34,25 +34,30 @@ async function fill(
 ) {
   await user.type(screen.getByLabelText('Monto'), amount);
   await user.type(screen.getByLabelText('Concepto'), concept);
-  await user.type(screen.getByLabelText('Referencia'), reference);
+  await user.type(screen.getByLabelText('Referencia (opcional)'), reference);
   await user.press(screen.getByRole('button', { name: 'Continuar' }));
 }
 
 describe('captura de la transferencia', () => {
-  test('MOB-08 un monto con más de 2 decimales se rechaza junto al campo, sin redondear ni enviar', async () => {
+  test('MOB-08 el monto no admite letras, símbolos ni un tercer decimal: se descartan al escribir', async () => {
     const fake = apiWithData();
     const user = await openForm(fake);
 
-    await fill(user, { amount: '100.005' });
+    await user.type(screen.getByLabelText('Monto'), '1a2$3,4.5678');
 
-    expect(screen.getByText('El monto admite máximo 2 decimales')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Monto')).toHaveProp(
-      'accessibilityHint',
-      'El monto admite máximo 2 decimales',
-    );
-    expect(screen.getByLabelText('Monto')).toHaveDisplayValue('100.005');
-    expect(screen.queryByText('$100.01')).toBeNull();
-    expect(fake.requestsTo('POST', '/transfers')).toHaveLength(0);
+    expect(screen.getByLabelText('Monto')).toHaveDisplayValue('1,234.56');
+  });
+
+  test('MOB-08 el monto se escribe con comas de millar y a la API viaja normalizado', async () => {
+    const fake = apiWithData();
+    const user = await openForm(fake);
+
+    await fill(user, { amount: '12345.6' });
+    expect(screen.getByText('$12,345.60')).toBeOnTheScreen();
+    await user.press(await screen.findByRole('button', { name: 'Enviar' }));
+
+    const [request] = fake.requestsTo('POST', '/transfers');
+    expect(JSON.parse(request?.body ?? '')).toMatchObject({ amount: '12345.6' });
   });
 
   test('MOB-08 un monto sin centavos se acepta y viaja como el string "1250"', async () => {
@@ -83,12 +88,30 @@ describe('captura de la transferencia', () => {
     expect(fake.requestsTo('POST', '/transfers')).toHaveLength(0);
   });
 
-  test('MOB-08 una referencia no numérica indica que solo admite dígitos', async () => {
+  test('MOB-08 la referencia es opcional, solo admite dígitos y hasta 7', async () => {
     const fake = apiWithData();
     const user = await openForm(fake);
-    await fill(user, { amount: '100', reference: '12A45' });
-    expect(screen.getByText('La referencia solo admite dígitos')).toBeOnTheScreen();
-    expect(fake.requestsTo('POST', '/transfers')).toHaveLength(0);
+    const field = screen.getByLabelText('Referencia (opcional)');
+
+    expect(field).toHaveProp('keyboardType', 'number-pad');
+    expect(field).toHaveProp('maxLength', 7);
+    await user.type(field, '12A4-5 678');
+    expect(field).toHaveDisplayValue('1245678');
+  });
+
+  test('MOB-08 sin referencia la petición no la lleva y la revisión no muestra la fila', async () => {
+    const fake = apiWithData();
+    const user = await openForm(fake);
+
+    await user.type(screen.getByLabelText('Monto'), '100');
+    await user.type(screen.getByLabelText('Concepto'), 'Renta');
+    await user.press(screen.getByRole('button', { name: 'Continuar' }));
+
+    expect(await screen.findByRole('button', { name: 'Enviar' })).toBeOnTheScreen();
+    expect(screen.queryByText('Referencia')).toBeNull();
+    await user.press(screen.getByRole('button', { name: 'Enviar' }));
+    const [request] = fake.requestsTo('POST', '/transfers');
+    expect(JSON.parse(request?.body ?? '')).not.toHaveProperty('reference');
   });
 
   test('MOB-08 el concepto no puede empezar ni terminar con espacios', async () => {

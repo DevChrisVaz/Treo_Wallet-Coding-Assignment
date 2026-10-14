@@ -126,7 +126,8 @@ export function freezePayload(draft: TransferDraft): string {
     destination: { type: 'BENEFICIARY', beneficiaryId: draft.beneficiaryId },
     amount: draft.amount,
     concept: draft.concept,
-    reference: draft.reference,
+    // MOB-08: la referencia es opcional; vacía, no viaja en la petición.
+    reference: draft.reference === '' ? undefined : draft.reference,
   });
 }
 

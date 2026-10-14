@@ -1,6 +1,7 @@
 import { focusRing } from '@devchrisvaz/wallet-design-tokens';
 import { useState } from 'react';
 import {
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -12,13 +13,19 @@ import {
 
 import { theme } from '@/theme';
 
+import { Icon } from './icon';
+
 type NativeInputProps = Omit<TextInputProps, 'style' | 'value' | 'onChangeText' | 'editable'>;
 
 export interface TextFieldProps extends NativeInputProps {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
-  variant?: 'text' | 'email' | 'password';
+  /**
+   * `search`: búsqueda (MOB-29). Icono de lupa al inicio, botón × cuando hay texto y la etiqueta solo
+   * como nombre accesible (el placeholder es la guía visual).
+   */
+  variant?: 'text' | 'email' | 'password' | 'search';
   error?: string | undefined;
   help?: string | undefined;
   disabled?: boolean;
@@ -42,6 +49,13 @@ const variantProps: Record<NonNullable<TextFieldProps['variant']>, TextInputProp
     autoCorrect: false,
     autoComplete: 'current-password',
     textContentType: 'password',
+  },
+  search: {
+    role: 'searchbox',
+    inputMode: 'search',
+    returnKeyType: 'search',
+    autoCapitalize: 'none',
+    autoCorrect: false,
   },
 };
 
@@ -75,6 +89,7 @@ export function TextField({
     disabled && styles.disabled,
   ];
   const note = error ?? help;
+  const search = variant === 'search';
 
   const input = (
     <TextInput
@@ -95,14 +110,30 @@ export function TextField({
         onBlur?.(event);
       }}
       placeholderTextColor={theme.colors.text.muted}
-      style={[styles.input, prefix ? styles.inputWithPrefix : frame, inputStyle]}
+      style={[styles.input, prefix || search ? styles.inputWithPrefix : frame, inputStyle]}
     />
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
-      {prefix ? (
+      {search ? null : <Text style={styles.label}>{label}</Text>}
+      {search ? (
+        <View style={[frame, styles.row]}>
+          <Icon name="search" color={theme.colors.text.muted} />
+          {input}
+          {value ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Borrar búsqueda"
+              hitSlop={theme.spacing[2]}
+              onPress={() => onChangeText('')}
+              style={styles.clear}
+            >
+              <Icon name="close" color={theme.colors.text.secondary} />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : prefix ? (
         <View style={[frame, styles.row]}>
           <Text style={styles.prefix}>{prefix}</Text>
           {input}
@@ -134,6 +165,13 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[1] },
   input: { ...theme.typography.body, color: theme.colors.text.primary },
   inputWithPrefix: { flex: 1, minHeight: theme.spacing[12] + theme.spacing[1] },
+  clear: {
+    width: theme.spacing[8],
+    height: theme.spacing[8],
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.radius.pill,
+  },
   prefix: { ...theme.typography.body, ...theme.amount, color: theme.colors.text.secondary },
   disabled: { backgroundColor: theme.colors.surface.subtle },
   note: { ...theme.typography.caption, color: theme.colors.text.muted },

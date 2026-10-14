@@ -33,6 +33,8 @@ export interface HomeViewProps {
   onRetryOverview: () => void;
   onRetryLatest: () => void;
   onTransfer: () => void;
+  /** "Recibir" (MOB-28): abre la hoja con los datos de la cuenta; la hoja la monta el contenedor. */
+  onReceive: () => void;
   onSeeAll: () => void;
   /** Oferta del desbloqueo biométrico (bonus, MOB-24): la pone el contenedor. */
   offer?: ReactNode;
@@ -101,6 +103,7 @@ function HomeContent({
   onSelect,
   onRetryLatest,
   onTransfer,
+  onReceive,
   onSeeAll,
   offer,
 }: HomeViewProps & { data: AccountsOverview }) {
@@ -113,6 +116,7 @@ function HomeContent({
           <QuickActions
             actions={[
               { key: 'transfer', label: 'Transferir', icon: 'transfer', onPress: onTransfer },
+              { key: 'receive', label: 'Recibir', icon: 'receive', onPress: onReceive },
               { key: 'movements', label: 'Movimientos', icon: 'movements', onPress: onSeeAll },
             ]}
           />

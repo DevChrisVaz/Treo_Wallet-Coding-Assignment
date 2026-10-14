@@ -20,6 +20,7 @@
     "MovementsView": null,
     "LoginView": null,
     "RecipientView": null,
+    "ReceiveSheetContent": null,
     "TransferFlowView": null,
     "StartupLoading": null,
     "StartupOffline": null,

@@ -31,7 +31,7 @@ export const WithHelp = () => (
 export const WithError = () => (
   <View style={frame}>
     <TextField
-      label="Referencia"
+      label="Referencia (opcional)"
       value="12A"
       keyboardType="number-pad"
       error="Escribe de 1 a 7 dígitos."
@@ -59,6 +59,46 @@ export const SignInForm = () => (
       variant="password"
       value="contraseña-segura"
       help="Al menos 12 caracteres."
+      onChangeText={noop}
+    />
+  </View>
+);
+
+// MOB-08: la referencia es opcional y solo admite dígitos (máximo 7).
+export const OptionalReference = () => (
+  <View style={frame}>
+    <TextField
+      label="Referencia (opcional)"
+      value=""
+      help="Hasta 7 dígitos."
+      keyboardType="number-pad"
+      inputMode="numeric"
+      maxLength={7}
+      onChangeText={noop}
+    />
+  </View>
+);
+
+// MOB-29: búsqueda con lupa al inicio y × cuando hay texto. La etiqueta es solo el nombre accesible.
+export const Search = () => (
+  <View style={frame}>
+    <TextField
+      label="Buscar beneficiario"
+      variant="search"
+      placeholder="Buscar por nombre, alias o CLABE"
+      value=""
+      onChangeText={noop}
+    />
+  </View>
+);
+
+export const SearchFilled = () => (
+  <View style={frame}>
+    <TextField
+      label="Buscar beneficiario"
+      variant="search"
+      placeholder="Buscar por nombre, alias o CLABE"
+      value="Luis"
       onChangeText={noop}
     />
   </View>

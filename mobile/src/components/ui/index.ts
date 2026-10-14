@@ -9,7 +9,7 @@ export { BrandScreen } from './brand-screen';
 export { Button, buttonColors, type ButtonVariant } from './button';
 export { DailyLimitMeter } from './daily-limit-meter';
 export { EmptyState } from './empty-state';
-export { ICONS, Icon, IconButton } from './icon';
+export { EXTRA_ICONS, ICONS, Icon, IconButton, type ExtraIconConcept, type IconName } from './icon';
 export { FlowHeader } from './flow-header';
 export { InlineAlert, type AlertTone } from './inline-alert';
 export { ListSection } from './list-section';

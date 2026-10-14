@@ -1,3 +1,4 @@
+import { sanitizeAmountTyping } from '@devchrisvaz/wallet-contract';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 
@@ -60,7 +61,8 @@ export function TransferFlowScreen() {
           const result = attempt.review({
             fromAccountId: fromAccountId ?? '',
             beneficiaryId,
-            amount: values.amount,
+            // El campo guarda el texto con comas (MOB-08); a la API va el monto normalizado.
+            amount: sanitizeAmountTyping(values.amount).value,
             concept: values.concept,
             reference: values.reference,
           });

@@ -79,7 +79,7 @@ const scheduled = {
   id: '9a3b5c7d-2e4f-4a6b-8c0d-1e3f5a7b9c2d',
   status: 'SCHEDULED' as const,
   amount: '1000.00',
-  scheduledFor: '2026-10-20',
+  scheduledFor: '2026-10-20T20:30:00Z',
   cancelledAt: null,
   createdAt: '2026-10-13T16:50:00Z',
   completedAt: null,
@@ -96,6 +96,17 @@ export const Cancelled = () => (
   <View style={frame}>
     <Receipt
       transfer={{ ...scheduled, status: 'CANCELLED', cancelledAt: '2026-10-14T15:00:00Z' }}
+      fromAccountName="Principal"
+    />
+  </View>
+);
+
+// MOB-13: sin referencia (null) la fila "Referencia" no se muestra. Diseño objetivo: el campo del contrato
+// pasa a `string | null` con la nueva versión; el comprobante ya oculta la fila.
+export const WithoutReference = () => (
+  <View style={frame}>
+    <Receipt
+      transfer={{ ...completed, concept: 'Despensa', reference: null }}
       fromAccountName="Principal"
     />
   </View>

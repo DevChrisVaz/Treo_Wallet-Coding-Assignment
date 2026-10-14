@@ -66,3 +66,15 @@ export const InMovementsScreen = () => (
     />
   </View>
 );
+
+// MOB-29: la búsqueda de beneficiarios no encontró nada.
+export const NoSearchResults = () => (
+  <View style={frame}>
+    <EmptyState
+      icon="search"
+      title="Sin resultados"
+      description="No hay beneficiarios que coincidan con «zzz»."
+      action={{ label: 'Limpiar búsqueda', onPress: noop }}
+    />
+  </View>
+);

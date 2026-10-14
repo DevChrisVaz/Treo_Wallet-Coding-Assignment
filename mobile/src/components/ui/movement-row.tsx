@@ -30,7 +30,10 @@ export function MovementRow({ movement, timeOnly = false }: MovementRowProps) {
     ? `${movement.counterparty.name} · ${movement.concept}`
     : movement.concept;
   const dateTime = formatDateTime(movement.occurredAt);
-  const reference = `Ref. ${movement.reference}`;
+  // La referencia es opcional (MOB-06): sin ella la línea lleva solo la fecha u hora (nunca "null").
+  const when = timeOnly ? formatTime(movement.occurredAt) : dateTime;
+  const caption = movement.reference ? `${when} · Ref. ${movement.reference}` : when;
+  const spoken = movement.reference ? `${dateTime} · Ref. ${movement.reference}` : dateTime;
   return (
     <View testID="movement-row" style={[styles.row, timeOnly ? null : styles.separated]}>
       <View testID="movement-avatar">
@@ -45,8 +48,8 @@ export function MovementRow({ movement, timeOnly = false }: MovementRowProps) {
           {detail}
         </Text>
         {/* La etiqueta reemplaza al texto para los lectores de pantalla: lleva la fecha y la referencia. */}
-        <Text style={styles.caption} accessibilityLabel={`${dateTime} · ${reference}`}>
-          {`${timeOnly ? formatTime(movement.occurredAt) : dateTime} · ${reference}`}
+        <Text style={styles.caption} accessibilityLabel={spoken}>
+          {caption}
         </Text>
       </View>
       <View style={styles.amounts}>

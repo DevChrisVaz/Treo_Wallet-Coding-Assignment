@@ -33,3 +33,16 @@ export const InBalanceHero = () => (
     <BalanceHero total="35000.00" available="31500.00" actions={<QuickActions actions={actions} />} />
   </View>
 );
+
+// MOB-28: Inicio gana "Recibir" (flecha entrante) después de "Transferir".
+const withReceive = [
+  actions[0],
+  { key: 'receive', label: 'Recibir', icon: 'receive' as const, onPress: noop },
+  actions[1],
+];
+
+export const WithReceive = () => (
+  <View style={frame}>
+    <BalanceHero total="35000.00" available="31500.00" actions={<QuickActions actions={withReceive} />} />
+  </View>
+);

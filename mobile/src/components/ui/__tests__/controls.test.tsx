@@ -109,6 +109,32 @@ describe('TextField', () => {
     );
     expect(screen.getByLabelText('Contraseña')).toHaveProp('secureTextEntry', true);
   });
+
+  test('MOB-29 la variante de búsqueda lleva lupa, teclado de búsqueda y sin etiqueta visible', async () => {
+    await render(
+      <TextField
+        label="Buscar beneficiario"
+        variant="search"
+        placeholder="Buscar por nombre, alias o CLABE"
+        value=""
+        onChangeText={() => {}}
+      />,
+    );
+    const input = screen.getByLabelText('Buscar beneficiario');
+    expect(input).toHaveProp('inputMode', 'search');
+    expect(input).toHaveProp('placeholder', 'Buscar por nombre, alias o CLABE');
+    expect(screen.queryByText('Buscar beneficiario')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Borrar búsqueda' })).toBeNull();
+  });
+
+  test('MOB-29 con texto aparece el botón ×, que vacía la búsqueda', async () => {
+    const onChangeText = jest.fn();
+    await render(
+      <TextField label="Buscar" variant="search" value="lu" onChangeText={onChangeText} />,
+    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Borrar búsqueda' }));
+    expect(onChangeText).toHaveBeenCalledWith('');
+  });
 });
 
 function ControlledAmount() {
@@ -117,23 +143,27 @@ function ControlledAmount() {
 }
 
 describe('AmountField', () => {
-  test('DSG-11 tiene prefijo $, teclado decimal y entrega el valor como string sin separadores', async () => {
+  test('DSG-11 MOB-08 tiene prefijo $, teclado decimal y da formato de miles al escribir y pegar', async () => {
     await render(<ControlledAmount />);
     expect(screen.getByText('$')).toBeOnTheScreen();
     const input = screen.getByLabelText('Monto');
     expect(input).toHaveProp('keyboardType', 'decimal-pad');
-    await fireEvent.changeText(input, '1,250.50');
-    expect(input).toHaveDisplayValue('1250.50');
+    await fireEvent.changeText(input, '1250.50');
+    expect(input).toHaveDisplayValue('1,250.50');
+    await fireEvent.changeText(input, 'abc$12,345.678xyz');
+    expect(input).toHaveDisplayValue('12,345.67');
+    await fireEvent.changeText(input, '007');
+    expect(input).toHaveDisplayValue('7');
   });
 });
 
 describe('AmountField hero', () => {
-  test('MOB-08 la variante héroe muestra el prefijo $ y limpia el valor pegado igual que la normal', async () => {
+  test('MOB-08 la variante héroe muestra el prefijo $ y da formato al valor pegado igual que la normal', async () => {
     const onChangeText = jest.fn();
     await render(<AmountField variant="hero" label="Monto" value="" onChangeText={onChangeText} />);
     expect(screen.getByText('$')).toBeOnTheScreen();
-    await fireEvent.changeText(screen.getByLabelText('Monto'), '1,250.50');
-    expect(onChangeText).toHaveBeenCalledWith('1250.50');
+    await fireEvent.changeText(screen.getByLabelText('Monto'), 'x1250.50');
+    expect(onChangeText).toHaveBeenCalledWith('1,250.50');
   });
 
   test('MOB-08 el campo del monto héroe mide su texto para que el $ quede junto al monto', async () => {
@@ -189,6 +219,19 @@ describe('OtpField', () => {
     expect(input).toHaveProp('maxLength', 6);
     await fireEvent.changeText(input, '482 913');
     expect(onChangeText).toHaveBeenCalledWith('482913');
+  });
+
+  test('MOB-12 solo dígitos al escribir y al pegar, con teclado numérico y máximo 6', async () => {
+    const onChangeText = jest.fn();
+    await render(<OtpField value="" onChangeText={onChangeText} />);
+    const input = screen.getByLabelText('Código de 6 dígitos');
+    expect(input).toHaveProp('keyboardType', 'number-pad');
+    await fireEvent.changeText(input, 'a1b2-c3');
+    expect(onChangeText).toHaveBeenLastCalledWith('123');
+    await fireEvent.changeText(input, 'abcdef');
+    expect(onChangeText).toHaveBeenLastCalledWith('');
+    await fireEvent.changeText(input, '12345678');
+    expect(onChangeText).toHaveBeenLastCalledWith('123456');
   });
 
   test('DSG-09 los dígitos del código son tabulares y van a 8 px, como en la web', async () => {

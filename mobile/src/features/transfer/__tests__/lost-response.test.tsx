@@ -63,7 +63,7 @@ describe('pérdida de red a mitad de una transferencia', () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     await user.type(await screen.findByLabelText('Monto'), '1500');
     await user.type(screen.getByLabelText('Concepto'), 'Renta');
-    await user.type(screen.getByLabelText('Referencia'), '1');
+    await user.type(screen.getByLabelText('Referencia (opcional)'), '1');
     await user.press(screen.getByRole('button', { name: 'Continuar' }));
 
     await user.press(await screen.findByRole('button', { name: 'Enviar' }));
