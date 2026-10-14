@@ -3,7 +3,20 @@ import { iconConcepts, iconNames, movementIcon, movementType, toneIcon } from '.
 
 describe('mapa de iconos', () => {
   it('DSG-15 cubre los doce conceptos de la especificación', () => {
-    for (const concept of ['home', 'movements', 'transfer', 'beneficiaries', 'logout', 'moneyIn', 'moneyOut', 'deposit', 'ownTransfer', 'success', 'error', 'warning'] as const) {
+    for (const concept of [
+      'home',
+      'movements',
+      'transfer',
+      'beneficiaries',
+      'logout',
+      'moneyIn',
+      'moneyOut',
+      'deposit',
+      'ownTransfer',
+      'success',
+      'error',
+      'warning',
+    ] as const) {
       expect(iconConcepts).toContain(concept);
     }
   });

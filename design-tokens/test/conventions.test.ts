@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { heroAmountSize, money, movementType, resolveToken, splitCents, theme, transferStatus } from '../src/index';
+import {
+  heroAmountSize,
+  money,
+  movementType,
+  resolveToken,
+  splitCents,
+  theme,
+  transferStatus,
+} from '../src/index';
 
 describe('estados de transferencia', () => {
   it.each([

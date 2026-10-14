@@ -5,10 +5,25 @@ import type { Tone, movementType } from './conventions';
  * cliente importa los componentes de su librería y una prueba compara contra `iconNames`.
  */
 export const iconConcepts = [
-  'home', 'movements', 'transfer', 'beneficiaries', 'logout',
-  'moneyIn', 'moneyOut', 'deposit', 'ownTransfer',
-  'success', 'error', 'warning', 'info',
-  'close', 'back', 'forward', 'expand', 'filter', 'account',
+  'home',
+  'movements',
+  'transfer',
+  'beneficiaries',
+  'logout',
+  'moneyIn',
+  'moneyOut',
+  'deposit',
+  'ownTransfer',
+  'success',
+  'error',
+  'warning',
+  'info',
+  'close',
+  'back',
+  'forward',
+  'expand',
+  'filter',
+  'account',
 ] as const;
 
 export type IconConcept = (typeof iconConcepts)[number];

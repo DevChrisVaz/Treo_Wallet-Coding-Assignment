@@ -1,18 +1,38 @@
 /** Agrupación por día de Ciudad de México, igual en web y móvil (listas de movimientos). */
 const TIME_ZONE = 'America/Mexico_City';
 
-const keyParts = new Intl.DateTimeFormat('es-MX', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' });
-const shortDay = new Intl.DateTimeFormat('es-MX', { timeZone: TIME_ZONE, day: 'numeric', month: 'short' });
-const shortDayYear = new Intl.DateTimeFormat('es-MX', { timeZone: TIME_ZONE, day: 'numeric', month: 'short', year: 'numeric' });
+const keyParts = new Intl.DateTimeFormat('es-MX', {
+  timeZone: TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+const shortDay = new Intl.DateTimeFormat('es-MX', {
+  timeZone: TIME_ZONE,
+  day: 'numeric',
+  month: 'short',
+});
+const shortDayYear = new Intl.DateTimeFormat('es-MX', {
+  timeZone: TIME_ZONE,
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
 
 /** Día de Ciudad de México en formato `YYYY-MM-DD`. */
 export function dayKey(date: Date | string): string {
-  const parts = Object.fromEntries(keyParts.formatToParts(new Date(date)).map((part) => [part.type, part.value]));
+  const parts = Object.fromEntries(
+    keyParts.formatToParts(new Date(date)).map((part) => [part.type, part.value]),
+  );
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 function previousDay(key: string): string {
-  const [year, month, day] = key.split('-').map((value) => Number.parseInt(value, 10)) as [number, number, number];
+  const [year, month, day] = key.split('-').map((value) => Number.parseInt(value, 10)) as [
+    number,
+    number,
+    number,
+  ];
   return new Date(Date.UTC(year, month - 1, day - 1)).toISOString().slice(0, 10);
 }
 
@@ -33,7 +53,11 @@ export interface DayGroup<T> {
 }
 
 /** Agrupa elementos ya ordenados en grupos de días consecutivos, sin reordenar. */
-export function groupByDay<T>(items: readonly T[], dateOf: (item: T) => string, now: Date = new Date()): DayGroup<T>[] {
+export function groupByDay<T>(
+  items: readonly T[],
+  dateOf: (item: T) => string,
+  now: Date = new Date(),
+): DayGroup<T>[] {
   const groups: DayGroup<T>[] = [];
   for (const item of items) {
     const key = dayKey(dateOf(item));

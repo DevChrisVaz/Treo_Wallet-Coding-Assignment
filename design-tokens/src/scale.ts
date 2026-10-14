@@ -69,11 +69,23 @@ export const elevation = {
   },
   raised: {
     css: '0 4px 12px rgb(0 26 5 / 0.08), 0 1px 3px rgb(0 26 5 / 0.1)',
-    native: { shadowColor: '#001A05', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+    native: {
+      shadowColor: '#001A05',
+      shadowOpacity: 0.12,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
+    },
   },
   sheet: {
     css: '0 -8px 24px rgb(0 26 5 / 0.12)',
-    native: { shadowColor: '#001A05', shadowOpacity: 0.12, shadowRadius: 24, shadowOffset: { width: 0, height: -8 }, elevation: 16 },
+    native: {
+      shadowColor: '#001A05',
+      shadowOpacity: 0.12,
+      shadowRadius: 24,
+      shadowOffset: { width: 0, height: -8 },
+      elevation: 16,
+    },
   },
 } as const;
 
@@ -93,7 +105,12 @@ export const iconSize = { sm: 16, md: 20, lg: 24 } as const;
 export const avatarSize = { sm: 32, md: 40, lg: 56 } as const;
 
 /** Medidas de layout compartidas por la web y la app móvil (paridad, D3 y D5 del rediseño). */
-export const layout = { tabBarHeight: 64, appColumnMax: 480, sidebarWidth: 248, contentMax: 1200 } as const;
+export const layout = {
+  tabBarHeight: 64,
+  appColumnMax: 480,
+  sidebarWidth: 248,
+  contentMax: 1200,
+} as const;
 
 /** Puntos de cambio de la web en px: columna de app centrada y forma de dashboard. */
 export const breakpoints = { app: 480, dashboard: 1024 } as const;

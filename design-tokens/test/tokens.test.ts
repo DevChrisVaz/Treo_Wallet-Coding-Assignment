@@ -38,7 +38,6 @@ describe('tokens semánticos', () => {
     expect(theme.colors.accent.brand).toBe('#31C454');
   });
 
-
   it('DSG-07 cada color del tema es un color de la paleta', () => {
     const paletteValues = new Set(Object.values(palette));
 

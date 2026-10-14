@@ -37,13 +37,22 @@ describe('tema de React Native', () => {
 
 describe('tokens v2 en React Native', () => {
   it('DSG-16 el display mayor usa Work Sans SemiBold 48/56', () => {
-    expect(nativeTheme.typography.displayXl).toMatchObject({ fontFamily: 'WorkSans_600SemiBold', fontSize: 48, lineHeight: 56 });
+    expect(nativeTheme.typography.displayXl).toMatchObject({
+      fontFamily: 'WorkSans_600SemiBold',
+      fontSize: 48,
+      lineHeight: 56,
+    });
   });
 
   it('DSG-16 iconos, avatares, layout y elevaciones coinciden con la fuente', () => {
     expect(nativeTheme.iconSize).toEqual({ sm: 16, md: 20, lg: 24 });
     expect(nativeTheme.avatarSize).toEqual({ sm: 32, md: 40, lg: 56 });
-    expect(nativeTheme.layout).toEqual({ tabBarHeight: 64, appColumnMax: 480, sidebarWidth: 248, contentMax: 1200 });
+    expect(nativeTheme.layout).toEqual({
+      tabBarHeight: 64,
+      appColumnMax: 480,
+      sidebarWidth: 248,
+      contentMax: 1200,
+    });
     expect(nativeTheme.elevation.raised.elevation).toBe(4);
     expect(nativeTheme.elevation.sheet.elevation).toBe(16);
   });

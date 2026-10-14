@@ -20,8 +20,17 @@ describe('días en Ciudad de México', () => {
   });
 
   it('DSG-17 groupByDay respeta el orden y agrupa días consecutivos', () => {
-    const items = ['2026-10-13T16:42:00Z', '2026-10-12T23:10:00Z', '2026-10-12T15:05:00Z', '2026-10-09T18:20:00Z'];
+    const items = [
+      '2026-10-13T16:42:00Z',
+      '2026-10-12T23:10:00Z',
+      '2026-10-12T15:05:00Z',
+      '2026-10-09T18:20:00Z',
+    ];
     const groups = groupByDay(items, (iso) => iso, NOW);
-    expect(groups.map((group) => [group.label, group.items.length])).toEqual([['Hoy', 1], ['Ayer', 2], ['9 oct', 1]]);
+    expect(groups.map((group) => [group.label, group.items.length])).toEqual([
+      ['Hoy', 1],
+      ['Ayer', 2],
+      ['9 oct', 1],
+    ]);
   });
 });
