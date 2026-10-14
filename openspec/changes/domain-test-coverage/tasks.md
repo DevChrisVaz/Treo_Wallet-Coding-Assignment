@@ -13,13 +13,13 @@ Cada tarea agrega o corrige pruebas sin tocar código de producción. Cada prueb
 
 ## 2. Transferencias programadas
 
-- [ ] 2.1 [api] El tope de 20 programadas se revisa antes de emitir el OTP: una programada mayor al umbral en el tope responde `SCHEDULED_LIMIT_REACHED` sin código ni correo (TRF-29, TRF-28)
-- [ ] 2.2 [api] Una programada de exactamente 10,000.00 queda SCHEDULED sin OTP (TRF-28)
-- [ ] 2.3 [api] Confirmar una programada cancelada responde 409 `TRANSFER_NOT_PENDING`; confirmar una ya ejecutada responde 200 (TRF-28, TRF-32)
-- [ ] 2.4 [api] Cuando todo un lote falla, el ejecutor sigue después del último candidato y no repite el lote (TRF-30, TRF-31)
-- [ ] 2.5 [api] Reversión cuando falla la auditoría al programar, al confirmar con OTP y al cancelar (TRF-36, AUD-08)
-- [ ] 2.6 [api] Si el aviso de falla lanza un error, el ejecutor lo registra y sigue con las demás (TRF-35)
-- [ ] 2.7 [api] La barrera de la carrera del tope de programadas falla si las peticiones no llegan juntas (TRF-29)
+- [x] 2.1 [api] El tope de 20 programadas se revisa antes de emitir el OTP: una programada mayor al umbral en el tope responde `SCHEDULED_LIMIT_REACHED` sin código ni correo (TRF-29, TRF-28)
+- [x] 2.2 [api] Una programada de exactamente 10,000.00 queda SCHEDULED sin OTP (TRF-28)
+- [x] 2.3 [api] Confirmar una programada cancelada responde 409 `TRANSFER_NOT_PENDING`; confirmar una ya ejecutada responde 200 (TRF-28, TRF-32)
+- [x] 2.4 [api] Cuando todo un lote falla, el ejecutor sigue después del último candidato y no repite el lote (TRF-30, TRF-31)
+- [x] 2.5 [api] Reversión cuando falla la auditoría al programar, al confirmar con OTP y al cancelar (TRF-36, AUD-08)
+- [x] 2.6 [api] Si el aviso de falla lanza un error, el ejecutor lo registra y sigue con las demás (TRF-35)
+- [x] 2.7 [api] La barrera de la carrera del tope de programadas falla si las peticiones no llegan juntas (TRF-29)
 
 ## 3. Identidad y sesiones
 

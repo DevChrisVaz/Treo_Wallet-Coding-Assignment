@@ -32,6 +32,21 @@ async function transfersOf(userId: string): Promise<number> {
 }
 
 describe('TRF-29 tope de 20 programadas activas', () => {
+  it('TRF-29 en el tope, una programada mayor al umbral es SCHEDULED_LIMIT_REACHED sin código ni correo', async () => {
+    await insertScheduledTransfers(harness.migrator, ana, 20);
+    const mailsBefore = t.mailer.to(ana.person.email).length;
+    const res = await postTransfer(t, ana, { ...toAhorro('21'), amount: '15000.00' });
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe('SCHEDULED_LIMIT_REACHED');
+    // El tope se revisa antes de emitir el OTP (TRF-28): ni fila de código ni correo.
+    const [{ n }] = await harness.migrator.query(
+      `SELECT count(*)::int AS n FROM app.one_time_codes WHERE purpose = 'TRANSFER_CONFIRMATION'`,
+    );
+    expect(n).toBe(0);
+    expect(t.mailer.to(ana.person.email)).toHaveLength(mailsBefore);
+    expect(await transfersOf(ana.userId)).toBe(20);
+  });
+
   it('TRF-29 con 20 en SCHEDULED, la programada número 21 es 422 SCHEDULED_LIMIT_REACHED y no se guarda', async () => {
     await insertScheduledTransfers(harness.migrator, ana, 20);
     const res = await postTransfer(t, ana, toAhorro('21'));

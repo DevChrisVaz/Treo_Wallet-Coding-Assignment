@@ -53,6 +53,24 @@ async function userTransfers(): Promise<number> {
 }
 
 describe('TRF-27 programación de una transferencia', () => {
+  it('TRF-28 exactamente 10000.00 programada queda SCHEDULED sin OTP: ni código ni correo', async () => {
+    const mailsBefore = t.mailer.to(ana.person.email).length;
+    const res = await postTransfer(t, ana, toLuis('10000.00', '2026-10-15'));
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({
+      status: 'SCHEDULED',
+      amount: '10000.00',
+      requiresOtp: false,
+      otp: null,
+    });
+    // El umbral es estricto: solo lo que lo supera pide OTP.
+    const [{ n }] = await harness.migrator.query(
+      `SELECT count(*)::int AS n FROM app.one_time_codes WHERE purpose = 'TRANSFER_CONFIRMATION'`,
+    );
+    expect(n).toBe(0);
+    expect(t.mailer.to(ana.person.email)).toHaveLength(mailsBefore);
+  });
+
   it('TRF-27 programar para mañana: 201 SCHEDULED con scheduledFor, sin asientos y sin tocar saldo ni límite', async () => {
     await fund(t, ana.principal.id, '5000.00');
     const entriesBefore = await countOf('ledger_entries');
