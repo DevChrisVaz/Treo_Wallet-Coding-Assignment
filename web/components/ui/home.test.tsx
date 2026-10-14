@@ -22,11 +22,16 @@ describe('BalanceHero', () => {
     expect(amount).not.toHaveClass('text-display-xl');
   });
 
-  it('WEB-28 DSG-13 con el texto agrandado el monto pasa de línea en lugar de cortarse', () => {
+  it('WEB-28 DSG-13 con el texto agrandado el monto pasa de línea en lugar de cortarse, solo tras un separador de miles o antes de los centavos', () => {
     render(<BalanceHero total="35000.00" available="31500.00" />);
     const amount = screen.getByTestId('hero-amount');
     expect(amount).not.toHaveClass('whitespace-nowrap');
-    expect(amount).toHaveClass('[overflow-wrap:anywhere]');
+    // Sin cortes entre dígitos: los únicos puntos de corte son los <wbr>.
+    expect(amount).not.toHaveClass('[overflow-wrap:anywhere]');
+    expect(amount.querySelector('[aria-hidden="true"]')?.innerHTML).toBe(
+      '$35,<wbr>000<wbr><span class="text-h3">.00</span>',
+    );
+    expect(amount.querySelector('.sr-only')?.textContent).toBe('$35,000.00');
   });
 });
 

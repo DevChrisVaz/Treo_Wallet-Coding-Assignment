@@ -17,6 +17,14 @@ describe('AccountCard', () => {
     expect(card).not.toHaveTextContent('032180000118359719');
   });
 
+  it('WEB-28 con el texto agrandado el saldo pasa de línea solo tras un separador de miles o antes de los centavos', () => {
+    render(<AccountCard account={{ ...PRINCIPAL, balance: '1250000.00' }} />);
+    const balance = screen.getByText('$1,250,000.00');
+    expect(balance).not.toHaveClass('[overflow-wrap:anywhere]');
+    expect(balance.innerHTML).toBe('$1,<wbr>250,<wbr>000<wbr>.00');
+    expect(balance.textContent).toBe('$1,250,000.00');
+  });
+
   it('WEB-13 permite ver la CLABE completa para compartirla', async () => {
     const user = userEvent.setup();
     render(<AccountCard account={PRINCIPAL} />);

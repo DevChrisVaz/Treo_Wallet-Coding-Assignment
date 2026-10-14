@@ -2,6 +2,7 @@
 
 import { formatMXN, type Account } from '@devchrisvaz/wallet-contract';
 import { useId, useState, type ReactNode } from 'react';
+import { AmountBreaks } from './AmountBreaks';
 
 export interface AccountCardProps {
   account: Pick<Account, 'name' | 'clabe' | 'balance'>;
@@ -77,9 +78,10 @@ export function AccountCard({ account, selected = false, onSelect, children }: A
           {showClabe ? 'Ocultar CLABE' : 'Mostrar CLABE'}
         </button>
       </div>
-      {/* Como el monto del hero: con el texto agrandado pasa de línea en lugar de desbordar. */}
-      <p id={balanceId} className="text-h2 text-fg tabular-nums [overflow-wrap:anywhere]">
-        {formatMXN(account.balance)}
+      {/* Como el monto del hero: con el texto agrandado pasa de línea en lugar de desbordar, solo tras
+          un separador de miles o antes de los centavos. */}
+      <p id={balanceId} className="text-h2 text-fg tabular-nums">
+        <AmountBreaks value={formatMXN(account.balance)} />
       </p>
       {children ? <div className="relative z-10 flex flex-wrap gap-2 pt-1">{children}</div> : null}
     </article>
