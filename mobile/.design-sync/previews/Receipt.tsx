@@ -1,6 +1,13 @@
 import { Receipt, View, theme } from 'wallet-mobile-ui';
 
-const frame = { width: 360, padding: theme.spacing[4] };
+// Lienzo de la app a ancho de teléfono. El comprobante muestra el origen como "Principal · •••• 9719"
+// con `fromAccountClabe`, como en el último paso del flujo.
+const frame = {
+  width: 390,
+  padding: theme.spacing[5],
+  backgroundColor: theme.colors.surface.canvas,
+};
+const principalClabe = '646180157000009719';
 
 const completed = {
   id: '7f1c2a8e-5a0b-4c4e-9a59-8f0e1c2d3b4a',
@@ -27,7 +34,11 @@ const completed = {
 
 export const Completed = () => (
   <View style={frame}>
-    <Receipt transfer={completed} fromAccountName="Principal" />
+    <Receipt
+      transfer={completed}
+      fromAccountName="Principal"
+      fromAccountClabe={principalClabe}
+    />
   </View>
 );
 
@@ -50,6 +61,7 @@ export const OwnAccountTransfer = () => (
         reference: '15',
       }}
       fromAccountName="Principal"
+      fromAccountClabe={principalClabe}
     />
   </View>
 );
@@ -68,6 +80,7 @@ export const Rejected = () => (
         rejectionReason: 'DAILY_LIMIT_EXCEEDED',
       }}
       fromAccountName="Principal"
+      fromAccountClabe={principalClabe}
     />
   </View>
 );
@@ -87,7 +100,11 @@ const scheduled = {
 
 export const Scheduled = () => (
   <View style={frame}>
-    <Receipt transfer={scheduled} fromAccountName="Principal" />
+    <Receipt
+      transfer={scheduled}
+      fromAccountName="Principal"
+      fromAccountClabe={principalClabe}
+    />
   </View>
 );
 
@@ -97,6 +114,7 @@ export const Cancelled = () => (
     <Receipt
       transfer={{ ...scheduled, status: 'CANCELLED', cancelledAt: '2026-10-14T15:00:00Z' }}
       fromAccountName="Principal"
+      fromAccountClabe={principalClabe}
     />
   </View>
 );

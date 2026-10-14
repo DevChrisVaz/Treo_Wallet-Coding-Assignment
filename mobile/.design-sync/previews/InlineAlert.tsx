@@ -2,7 +2,13 @@ import { Button, InlineAlert, Text, View, theme } from 'wallet-mobile-ui';
 
 const noop = () => {};
 
-const frame = { width: 360, gap: theme.spacing[3], padding: theme.spacing[4] };
+// Lienzo de la app (surface.canvas) a ancho de teléfono, con el margen de pantalla.
+const frame = {
+  width: 390,
+  gap: theme.spacing[3],
+  padding: theme.spacing[5],
+  backgroundColor: theme.colors.surface.canvas,
+};
 
 export const Tones = () => (
   <View style={frame}>
