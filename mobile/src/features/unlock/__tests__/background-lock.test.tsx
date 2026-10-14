@@ -6,7 +6,7 @@ import { REFRESH_TOKEN_KEY } from '@/session/session';
 import { UNLOCK_PREFERENCE_KEY } from '@/session/unlock-preference';
 import { mockAppState } from '@/test-utils/app-state';
 import { createFakeApi, json } from '@/test-utils/fake-api';
-import { ahorro, overview } from '@/test-utils/fixtures';
+import { overview } from '@/test-utils/fixtures';
 import { localAuthMock, secureStoreMock } from '@/test-utils/native-mocks';
 import { TEST_TOKENS } from '@/test-utils/render-app';
 import { createClock, renderRoot } from '@/test-utils/render-root';
@@ -85,7 +85,9 @@ describe('bloqueo al volver de segundo plano', () => {
 
   test('MOB-25 después de desbloquear sigue en la pantalla en la que estaba', async () => {
     const app = await openApp();
+    // MOB-19: tocar la tarjeta la elige; "Ver todos" abre Movimientos con ella.
     await userEvent.press(screen.getByRole('button', { name: /^Ahorro/ }));
+    await userEvent.press(screen.getByRole('button', { name: 'Ver todos los movimientos' }));
     expect(await screen.findByText('Movimientos de la cuenta')).toBeOnTheScreen();
 
     await leaveAndReturn(app, 2 * 60 * SECONDS);
@@ -93,7 +95,7 @@ describe('bloqueo al volver de segundo plano', () => {
     expect(screen.queryByText('TreoWallet está bloqueada')).toBeNull();
     expect(screen.getByText('Movimientos de la cuenta')).toBeOnTheScreen();
     expect(LocalAuthentication.authenticateAsync).toHaveBeenCalledTimes(1);
-    expect(app.router.getPathname()).toBe(`/accounts/${ahorro.id}`);
+    expect(app.router.getPathname()).toBe('/movements');
   });
 
   test('MOB-25 "inactive" (centro de control de iOS) no cuenta como segundo plano', async () => {

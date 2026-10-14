@@ -1,15 +1,14 @@
 import { loginForm, ProblemError } from '@devchrisvaz/wallet-contract';
 import { problemMessage } from '@devchrisvaz/wallet-design-tokens';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 
 import { useServices, useSessionSnapshot } from '@/app-services';
-import { Screen } from '@/components/screen';
-import { Button, InlineAlert, TextField, Wordmark, type AlertTone } from '@/components/ui';
+import type { AlertTone } from '@/components/ui';
 import { errorMessage } from '@/lib/errors';
 import { fieldErrorsByName, zodFieldErrors } from '@/lib/field-errors';
 import { useCountdown } from '@/lib/use-countdown';
-import { theme } from '@/theme';
+
+import { LoginView } from './login-view';
 
 interface Alert {
   tone: AlertTone;
@@ -67,53 +66,17 @@ export function LoginScreen() {
   }
 
   return (
-    <Screen>
-      <View style={styles.header}>
-        <Wordmark />
-        <Text style={styles.title} accessibilityRole="header">
-          Inicia sesión
-        </Text>
-        <Text style={styles.subtitle}>Usa el correo y la contraseña de tu cuenta TreoWallet.</Text>
-      </View>
-
-      {shownAlert ? <InlineAlert tone={shownAlert.tone} message={shownAlert.message} /> : null}
-
-      <TextField
-        label="Correo"
-        variant="email"
-        value={email}
-        onChangeText={setEmail}
-        error={fieldErrors.email}
-        returnKeyType="next"
-      />
-      <TextField
-        label="Contraseña"
-        variant="password"
-        value={password}
-        onChangeText={setPassword}
-        error={fieldErrors.password}
-        returnKeyType="go"
-        onSubmitEditing={() => void submit()}
-      />
-
-      {lock.remaining > 0 ? (
-        <Text style={styles.countdown} accessibilityLiveRegion="polite">
-          {`Podrás intentar de nuevo en ${lock.remaining} s.`}
-        </Text>
-      ) : null}
-
-      <Button
-        label="Iniciar sesión"
-        onPress={() => void submit()}
-        loading={submitting}
-        disabled={lock.remaining > 0}
-      />
-
-      <Text style={styles.note}>
-        ¿Aún no tienes cuenta? El registro y la verificación del correo se hacen en la web de
-        TreoWallet.
-      </Text>
-    </Screen>
+    <LoginView
+      email={email}
+      password={password}
+      fieldErrors={fieldErrors}
+      alert={shownAlert}
+      lockRemaining={lock.remaining}
+      submitting={submitting}
+      onChangeEmail={setEmail}
+      onChangePassword={setPassword}
+      onSubmit={() => void submit()}
+    />
   );
 }
 
@@ -133,11 +96,3 @@ function alertFor(error: unknown): Alert {
   }
   return { tone: 'danger', message: errorMessage(error) };
 }
-
-const styles = StyleSheet.create({
-  header: { gap: theme.spacing[2], paddingTop: theme.spacing[8] },
-  title: { ...theme.typography.h1, color: theme.colors.text.primary },
-  subtitle: { ...theme.typography.body, color: theme.colors.text.secondary },
-  countdown: { ...theme.typography.bodySm, ...theme.amount, color: theme.colors.text.secondary },
-  note: { ...theme.typography.caption, color: theme.colors.text.muted, textAlign: 'center' },
-});

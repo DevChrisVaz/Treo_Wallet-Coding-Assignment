@@ -23,6 +23,11 @@ import { randomUUID } from 'expo-crypto';
 
 import { zodFieldErrors } from '@/lib/field-errors';
 
+import { MAX_RETRIES } from './retry-limits';
+
+// Las pruebas de la política de reintentos lo importan de aquí; las vistas, de `retry-limits`.
+export { MAX_RETRIES };
+
 export interface TransferDraft {
   fromAccountId: string;
   beneficiaryId: string;
@@ -91,7 +96,6 @@ export interface TransferAttemptOptions {
   random?: () => number;
 }
 
-export const MAX_RETRIES = 5;
 const BASE_DELAY_MS = 1000;
 const JITTER = 0.2;
 

@@ -2,7 +2,10 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { theme } from '@/theme';
 
-/** Indicador de pasos (MOB-21), como el de la web. */
+/**
+ * Indicador de pasos (MOB-21), como el de la web. El contenedor es el único elemento accesible: su
+ * etiqueta se lee al enfocarlo y, como región viva, una sola vez cuando cambia el paso.
+ */
 export function Stepper({
   current,
   total,
@@ -16,6 +19,7 @@ export function Stepper({
     <View
       accessible
       accessibilityLabel={`Paso ${current} de ${total}: ${label}`}
+      accessibilityLiveRegion="polite"
       style={styles.container}
     >
       <View style={styles.bars}>
@@ -23,10 +27,7 @@ export function Stepper({
           <View key={index} style={[styles.bar, index < current ? styles.done : null]} />
         ))}
       </View>
-      <Text
-        accessibilityLiveRegion="polite"
-        style={styles.text}
-      >{`Paso ${current} de ${total} · ${label}`}</Text>
+      <Text style={styles.text}>{`Paso ${current} de ${total} · ${label}`}</Text>
     </View>
   );
 }

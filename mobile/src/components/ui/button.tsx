@@ -69,6 +69,8 @@ interface ButtonProps {
   accessibilityHint?: string;
   /** Icono decorativo antes de la etiqueta. */
   icon?: IconConcept;
+  /** Botón de un selector: anuncia si es la opción elegida. */
+  selected?: boolean;
 }
 
 export function Button({
@@ -79,6 +81,7 @@ export function Button({
   loading = false,
   accessibilityHint,
   icon,
+  selected,
 }: ButtonProps) {
   const inactive = disabled || loading;
   return (
@@ -86,7 +89,7 @@ export function Button({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: inactive, busy: loading }}
+      accessibilityState={{ disabled: inactive, busy: loading, selected }}
       disabled={inactive}
       onPress={onPress}
       style={({ pressed }) => {

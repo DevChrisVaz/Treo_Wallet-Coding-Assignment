@@ -1,13 +1,14 @@
 /**
  * Renderiza la raíz de la app como `app/_layout.tsx` (pantalla de privacidad, servicios, puerta de
- * desbloqueo y navegación raíz) con la API simulada, un reloj controlable y las pantallas reales de
- * inicio de sesión y de saldo. La sesión arranca como en el dispositivo: desde lo guardado en el
- * almacenamiento seguro simulado.
+ * desbloqueo y navegación raíz) con la API simulada, un reloj controlable, las pestañas y las
+ * pantallas reales de inicio de sesión y de saldo. La sesión arranca como en el dispositivo: desde
+ * lo guardado en el almacenamiento seguro simulado.
  */
 import { Stack } from 'expo-router';
 import { renderRouter } from 'expo-router/testing-library';
 import { Text } from 'react-native';
 
+import TabsLayout from '@/app/(app)/(tabs)/_layout';
 import { AppProviders, createServices } from '@/app-services';
 import { PrivacyGuard } from '@/components/privacy-guard';
 import { HomeScreen } from '@/features/accounts/home-screen';
@@ -49,8 +50,9 @@ export async function renderRoot({ fake, clock = createClock() }: RenderRootOpti
       ),
       login: LoginScreen,
       '(app)/_layout': () => <Stack screenOptions={{ headerShown: false }} />,
-      '(app)/index': HomeScreen,
-      '(app)/accounts/[accountId]': () => <Text>Movimientos de la cuenta</Text>,
+      '(app)/(tabs)/_layout': TabsLayout,
+      '(app)/(tabs)/index': HomeScreen,
+      '(app)/(tabs)/movements': () => <Text>Movimientos de la cuenta</Text>,
     },
     { initialUrl: '/' },
   );

@@ -23,6 +23,17 @@ describe('Wordmark', () => {
 });
 
 describe('Button', () => {
+  test('MOB-20 un botón de selector anuncia si está elegido', async () => {
+    await render(
+      <>
+        <Button label="Principal" variant="primary" selected onPress={() => {}} />
+        <Button label="Ahorro" variant="secondary" selected={false} onPress={() => {}} />
+      </>,
+    );
+    expect(screen.getByRole('button', { name: 'Principal' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Ahorro' })).not.toBeSelected();
+  });
+
   test('DSG-02 el botón principal en reposo es verde profundo, con texto blanco y en píldora', async () => {
     await render(<Button label="Enviar" onPress={() => {}} />);
     const button = screen.getByRole('button', { name: 'Enviar' });

@@ -1,4 +1,4 @@
-import type { Account, AccountsOverview, Beneficiary } from '@devchrisvaz/wallet-contract';
+import type { Account, AccountsOverview, Beneficiary, User } from '@devchrisvaz/wallet-contract';
 
 export const principal: Account = {
   id: '0b9a4f8e-1c2d-4e5f-8a9b-0c1d2e3f4a51',
@@ -49,4 +49,16 @@ export const mama: Beneficiary = {
   alias: 'Mamá',
   clabe: '646180157000004321',
   createdAt: '2026-10-01T15:00:00Z',
+};
+
+/** Respuesta de `GET /me` (el saludo y el menú de la cuenta). */
+export const me: User = {
+  id: '6f1c2a8e-1d2b-4c3d-9e4f-5a6b7c8d9e0f',
+  email: 'ana@example.com',
+  fullName: 'Ana Gómez Castillo',
+  phoneMasked: '+52******5678',
+  curpMasked: 'GOCA**************',
+  rfcMasked: 'GOCA*********',
+  emailVerifiedAt: '2026-10-01T15:00:00Z',
+  createdAt: '2026-10-01T14:55:00Z',
 };

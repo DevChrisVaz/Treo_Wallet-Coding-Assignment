@@ -26,3 +26,27 @@ test('MOB-18 con barra de pestañas, el contenido no reserva su alto: la barra v
   expect(content).toMatchObject({ padding: theme.spacing[5] });
   expect(content.paddingBottom).toBeUndefined();
 });
+
+test('MOB-18 con barra de pestañas la pantalla no agrega el área segura de abajo: la pone la barra', async () => {
+  await render(
+    <SafeAreaProvider initialMetrics={metrics}>
+      <Screen tabBar>
+        <Text>Contenido</Text>
+      </Screen>
+    </SafeAreaProvider>,
+  );
+  const edges = screen.getByTestId('screen-safe-area').props.edges as Record<string, string>;
+  expect(Object.keys(edges).filter((edge) => edges[edge] !== 'off')).toEqual(['top']);
+});
+
+test('MOB-18 sin barra de pestañas conserva las áreas seguras de arriba y de abajo', async () => {
+  await render(
+    <SafeAreaProvider initialMetrics={metrics}>
+      <Screen>
+        <Text>Contenido</Text>
+      </Screen>
+    </SafeAreaProvider>,
+  );
+  const edges = screen.getByTestId('screen-safe-area').props.edges as Record<string, string>;
+  expect(Object.keys(edges).filter((edge) => edges[edge] !== 'off')).toEqual(['top', 'bottom']);
+});
