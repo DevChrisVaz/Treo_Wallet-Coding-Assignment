@@ -23,7 +23,7 @@ const scheduled: Transfer = {
   otp: null,
   rejectionReason: null,
   failureReason: null,
-  scheduledFor: '2026-10-20',
+  scheduledFor: '2026-10-20T20:30:00.000Z',
   cancelledAt: null,
   createdAt: '2026-10-14T18:00:00.000Z',
   completedAt: null,
@@ -42,11 +42,11 @@ describe('transferencias programadas', () => {
         amount: '1000',
         concept: 'Renta',
         reference: '1234567',
-        scheduledFor: '2026-10-20',
+        scheduledFor: '2026-10-20T20:30:00.000Z',
       },
     });
 
-    expect(await requests[0]?.json()).toMatchObject({ scheduledFor: '2026-10-20' });
+    expect(await requests[0]?.json()).toMatchObject({ scheduledFor: '2026-10-20T20:30:00.000Z' });
     expect(data?.status).toBe('SCHEDULED');
   });
 
@@ -57,7 +57,10 @@ describe('transferencias programadas', () => {
     const { data } = await client.GET('/transfers/scheduled');
 
     expect(requests[0]?.url).toBe('http://api.test/transfers/scheduled');
-    expect(data?.items[0]).toMatchObject({ status: 'SCHEDULED', scheduledFor: '2026-10-20' });
+    expect(data?.items[0]).toMatchObject({
+      status: 'SCHEDULED',
+      scheduledFor: '2026-10-20T20:30:00.000Z',
+    });
   });
 
   it('CTR-04 cancelTransfer envía un POST a la acción de cancelar', async () => {
@@ -126,5 +129,26 @@ describe('transferencias programadas', () => {
     );
 
     expect(error).toMatchObject({ code: 'SCHEDULED_LIMIT_REACHED' });
+  });
+});
+
+describe('referencia opcional', () => {
+  it('TRF-03 createTransfer acepta el cuerpo sin reference y la respuesta trae reference nula', async () => {
+    const noReference: Transfer = { ...scheduled, status: 'COMPLETED', reference: null };
+    const { fetch, requests } = fakeFetch(() => Response.json(noReference, { status: 201 }));
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    const { data } = await client.POST('/transfers', {
+      params: { header: { 'Idempotency-Key': '0f0e0d0c-0b0a-4908-8706-050403020100' } },
+      body: {
+        fromAccountId: scheduled.fromAccountId,
+        destination: { type: 'BENEFICIARY', beneficiaryId: '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d' },
+        amount: '1000',
+        concept: 'Renta',
+      },
+    });
+
+    expect(await requests[0]?.json()).not.toHaveProperty('reference');
+    expect(data?.reference).toBeNull();
   });
 });

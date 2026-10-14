@@ -11,8 +11,14 @@ export function isValidCalendarDate(year: number, month: number, day: number): b
 /** Zona horaria de negocio: los días calendario del contrato son de la Ciudad de México. */
 export const MEXICO_CITY_TIME_ZONE = 'America/Mexico_City';
 
-/** Días que se puede programar una transferencia a partir de hoy (CTR-18). */
+/** Días máximos hacia adelante para programar una transferencia (CTR-18, TRF-27). */
 export const MAX_SCHEDULE_DAYS = 90;
+
+/** Minutos mínimos de anticipación para programar una transferencia (TRF-27). */
+export const MIN_SCHEDULE_MINUTES = 10;
+
+const MINUTE_MS = 60_000;
+const DAY_MS = 86_400_000;
 
 // Se crea al primer uso y no al importar: así el paquete carga aunque un motor no tenga la zona
 // horaria (CTR-15); solo fallaría quien llame a estas funciones.
@@ -39,49 +45,88 @@ export function mexicoCityDate(instant: Date): string {
   return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
-/** Suma días a una fecha calendario con aritmética UTC, sin pasar por horas locales. */
-function addDays(date: string, days: number): string {
-  const [year, month, day] = date.split('-').map(Number) as [number, number, number];
-  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+/**
+ * Ventana programable a partir del instante: de 10 minutos a 90 días después, ambos inclusive
+ * (TRF-27). Son instantes exactos; México no tiene horario de verano desde 2022, pero se suman
+ * milisegundos y no días locales, así que la regla no depende de eso.
+ */
+export function schedulableWindow(instant: Date): { min: Date; max: Date } {
+  return {
+    min: new Date(instant.getTime() + MIN_SCHEDULE_MINUTES * MINUTE_MS),
+    max: new Date(instant.getTime() + MAX_SCHEDULE_DAYS * DAY_MS),
+  };
 }
 
-/** Rango programable a partir del instante: de mañana a 90 días después de hoy, ambos inclusive. */
-export function schedulableRange(instant: Date): { min: string; max: string } {
-  const today = mexicoCityDate(instant);
-  return { min: addDays(today, 1), max: addDays(today, MAX_SCHEDULE_DAYS) };
+/**
+ * Fechas calendario (`YYYY-MM-DD`, Ciudad de México) que contienen la ventana programable: sirven
+ * como `min` y `max` de un `<input type="date">`. La hora se valida aparte con `transferFormAt`.
+ */
+export function schedulableDates(instant: Date): { min: string; max: string } {
+  const window = schedulableWindow(instant);
+  return { min: mexicoCityDate(window.min), max: mexicoCityDate(window.max) };
 }
 
-const SCHEDULED_DATE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
+const INSTANT =
+  /^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]{1,9}))?(Z|[+-]([0-9]{2}):([0-9]{2}))$/;
 
-/** Revisa el patrón y el calendario de una fecha `YYYY-MM-DD`; reporta el error y dice si pasó. */
-function checkCalendarDate(value: string, ctx: FieldContext): boolean {
-  if (!SCHEDULED_DATE.test(value)) {
-    addFieldIssue(ctx, 'INVALID_FORMAT', 'La fecha debe tener la forma AAAA-MM-DD');
-    return false;
+/**
+ * Interpreta un instante RFC 3339 con desfase (`2026-10-20T14:30:00-06:00` o `...Z`). Devuelve `null`
+ * si no tiene esa forma o si el día o la hora no existen.
+ */
+export function parseInstant(value: string): Date | null {
+  const match = INSTANT.exec(value);
+  if (!match) return null;
+  const [, y, mo, d, h, mi, sec, , , offH, offM] = match;
+  if (!isValidCalendarDate(Number(y), Number(mo), Number(d))) return null;
+  if (Number(h) > 23 || Number(mi) > 59 || Number(sec) > 59) return null;
+  if (offH !== undefined && (Number(offH) > 23 || Number(offM) > 59)) return null;
+  const time = Date.parse(value);
+  return Number.isNaN(time) ? null : new Date(time);
+}
+
+/** Indica si el texto RFC 3339 tiene segundos y fracción en cero (precisión de minuto). */
+function hasMinutePrecision(value: string): boolean {
+  const match = INSTANT.exec(value);
+  return match !== null && match[6] === '00' && /^0*$/.test(match[7] ?? '');
+}
+
+/** Revisa forma, existencia y precisión de minuto de un instante; reporta el error y dice si pasó. */
+function checkInstant(value: string, ctx: FieldContext): Date | null {
+  const instant = parseInstant(value);
+  if (!instant) {
+    addFieldIssue(
+      ctx,
+      'INVALID_FORMAT',
+      'Escribe fecha y hora válidas, con el desfase horario (por ejemplo 2026-10-20T14:30:00-06:00)',
+    );
+    return null;
   }
-  const [year, month, day] = value.split('-').map(Number) as [number, number, number];
-  if (!isValidCalendarDate(year, month, day)) {
-    addFieldIssue(ctx, 'INVALID_DATE', 'La fecha no existe');
-    return false;
+  if (!hasMinutePrecision(value)) {
+    addFieldIssue(ctx, 'INVALID_FORMAT', 'La hora debe ser en minutos exactos, sin segundos');
+    return null;
   }
-  return true;
+  return instant;
 }
 
-/** Fecha programada (`ScheduledDate`): patrón del contrato y fecha real del calendario. */
-export const scheduledDate = textField('La fecha es obligatoria', (value, ctx) => {
-  checkCalendarDate(value, ctx);
+/** Instante de ejecución (`ScheduledInstant`): RFC 3339 con desfase y precisión de minuto. */
+export const scheduledInstant = textField('La fecha y hora son obligatorias', (value, ctx) => {
+  checkInstant(value, ctx);
 });
 
-/** Fecha programada dentro de un rango (`DATE_OUT_OF_RANGE` si queda fuera). */
-export function scheduledDateWithin(range: { min: string; max: string }) {
-  return textField('La fecha es obligatoria', (value, ctx) => {
-    if (!checkCalendarDate(value, ctx)) return;
-    // Las fechas `YYYY-MM-DD` válidas se comparan bien como texto.
-    if (value < range.min || value > range.max) {
+/**
+ * Instante programado dentro de la ventana del momento dado: de 10 minutos a 90 días después
+ * (`DATE_OUT_OF_RANGE` si queda fuera).
+ */
+export function scheduledInstantWithin(now: Date) {
+  const { min, max } = schedulableWindow(now);
+  return textField('La fecha y hora son obligatorias', (value, ctx) => {
+    const instant = checkInstant(value, ctx);
+    if (!instant) return;
+    if (instant < min || instant > max) {
       addFieldIssue(
         ctx,
         'DATE_OUT_OF_RANGE',
-        'Elige una fecha entre mañana y 90 días después de hoy',
+        'Elige un momento entre 10 minutos y 90 días después de ahora',
       );
     }
   });

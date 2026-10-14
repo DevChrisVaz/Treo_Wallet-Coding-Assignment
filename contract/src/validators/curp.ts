@@ -20,6 +20,34 @@ export function curpCheckDigit(first17: string): number {
 }
 
 /**
+ * Fecha de nacimiento (`YYYY-MM-DD`) que codifica una CURP, o `null` si la CURP no tiene la forma o
+ * la fecha no existe. El carácter 17 indica el siglo: dígito antes de 2000, letra desde 2000.
+ */
+export function curpBirthDate(value: string): string | null {
+  if (!CURP.test(value)) return null;
+  const century = /[0-9]/.test(value.charAt(16)) ? 1900 : 2000;
+  const year = century + Number(value.slice(4, 6));
+  const month = Number(value.slice(6, 8));
+  const day = Number(value.slice(8, 10));
+  if (!isValidCalendarDate(year, month, day)) return null;
+  return `${year}-${value.slice(6, 8)}-${value.slice(8, 10)}`;
+}
+
+/**
+ * Indica si quien nació en `birthDate` (`YYYY-MM-DD`) tiene al menos `years` años cumplidos el día
+ * `today` (`YYYY-MM-DD`). Quien nació un 29 de febrero cumple en 1 de marzo los años no bisiestos.
+ */
+export function hasReachedAge(birthDate: string, today: string, years: number): boolean {
+  const [year = 0, month = 1, day = 1] = birthDate.split('-').map(Number);
+  const targetYear = year + years;
+  const birthday =
+    month === 2 && day === 29 && !isValidCalendarDate(targetYear, 2, 29)
+      ? `${targetYear}-03-01`
+      : `${targetYear}-${birthDate.slice(5)}`;
+  return today >= birthday;
+}
+
+/**
  * CURP con estructura, fecha de nacimiento existente y dígito verificador. Solo valida el formato,
  * no consulta fuentes de identidad. El carácter 17 indica el siglo: dígito antes de 2000, letra
  * desde 2000.

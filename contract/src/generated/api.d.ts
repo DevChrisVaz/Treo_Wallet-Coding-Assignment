@@ -236,7 +236,9 @@ export interface paths {
          * @description Documento PDF del mes calendario `period` (America/Mexico_City) de una cuenta del usuario, con
          *     saldo inicial, abonos, cargos, saldo final y los movimientos del periodo en orden cronológico,
          *     leídos de una sola instantánea de la base. El mes en curso se entrega como periodo parcial hasta
-         *     el momento de la generación; un mes posterior al actual responde `422 VALIDATION_FAILED`.
+         *     el momento de la generación. Un mes posterior al actual, o anterior al mes de creación de la
+         *     cuenta (`Account.createdAt`, en America/Mexico_City), responde `422 VALIDATION_FAILED` con un
+         *     error de campo en `/period` y código `DATE_OUT_OF_RANGE`.
          *     Máximo 10 por minuto por usuario. Cada descarga se audita (`STATEMENT_EXPORTED`).
          */
         get: operations["getAccountStatement"];
@@ -296,11 +298,17 @@ export interface paths {
          *     Si el payload es distinto, responde `422 IDEMPOTENCY_KEY_REUSED`. Las peticiones simultáneas con
          *     la misma llave producen una sola transferencia. Los errores de validación no consumen la llave.
          *
-         *     **Programación:** con `scheduledFor` (de mañana a 90 días, fecha de America/Mexico_City) la
-         *     transferencia no mueve dinero al crearse: responde `201` con estado `SCHEDULED`, o `PENDING_OTP`
-         *     si el monto es mayor a 10,000.00, y se ejecuta desde las 00:00 de esa fecha. Saldo y límite diario
-         *     se validan al ejecutar. La fecha forma parte del contenido que se compara entre reintentos. Máximo
-         *     20 programadas activas por usuario (`422 SCHEDULED_LIMIT_REACHED`).
+         *     **Programación (TRF-27):** con `scheduledFor` (instante RFC 3339 con desfase, con precisión de
+         *     minuto: segundos y milisegundos en cero; al menos 10 minutos y como máximo 90 días después del
+         *     momento de la petición) la transferencia no mueve dinero al crearse: responde `201` con estado
+         *     `SCHEDULED`, o `PENDING_OTP` si el monto es mayor a 10,000.00, y se ejecuta a partir de ese
+         *     instante. Un instante fuera del rango responde `422 VALIDATION_FAILED` con `/scheduledFor` y
+         *     `DATE_OUT_OF_RANGE`; uno con segundos distintos de cero, `INVALID_FORMAT`. Saldo y límite diario
+         *     se validan al ejecutar. El instante forma parte del contenido que se compara entre reintentos.
+         *     Máximo 20 programadas activas por usuario (`422 SCHEDULED_LIMIT_REACHED`).
+         *
+         *     **Referencia:** `reference` es opcional; sin ella la transferencia y sus asientos la devuelven
+         *     como `null`.
          */
         post: operations["createTransfer"];
         delete?: never;
@@ -451,11 +459,24 @@ export interface components {
         Curp: string;
         /** @description RFC de persona física (13 caracteres) en mayúsculas. La fecha se valida fuera del schema. */
         Rfc: string;
-        /** @description Teléfono nacional de 10 dígitos. Se almacena en formato E.164 (+52). */
+        /**
+         * @description Teléfono nacional de exactamente 10 dígitos, sin lada ni espacios, y el primero de 2 a 9 (los
+         *     números nacionales no empiezan con 0 ni con 1). Se almacena en formato E.164 (+52).
+         */
         PhoneInput: string;
         /** Format: email */
         Email: string;
+        /**
+         * @description Contraseña de 12 a 128 caracteres (puntos de código) con al menos una letra y un dígito. La
+         *     confirmación de la contraseña es un campo de la interfaz y no se envía.
+         */
         Password: string;
+        /**
+         * @description Nombre del titular al registrarse: de 2 a 100 caracteres (puntos de código), al menos dos
+         *     palabras separadas por un solo espacio, sin espacios al inicio ni al final. Solo admite letras
+         *     (con acentos y ñ), apóstrofo, guion y punto; sin dígitos ni otros símbolos.
+         */
+        PersonName: string;
         FullName: string;
         /** @description Concepto de la transferencia, sin espacios al inicio ni al final. */
         Concept: string;
@@ -465,15 +486,30 @@ export interface components {
         /** Format: uuid */
         Uuid: string;
         /**
-         * Format: date
-         * @description Fecha calendario en America/Mexico_City (`YYYY-MM-DD`).
-         * @example 2026-10-20
+         * Format: date-time
+         * @description Instante de ejecución de una transferencia programada, en RFC 3339 con desfase
+         *     (`2026-10-20T14:30:00-06:00` o `...Z`) y precisión de minuto: segundos y fracción en cero. Debe
+         *     quedar entre 10 minutos y 90 días después del momento de la petición; el rango y la existencia
+         *     del día no se expresan en el schema.
+         * @example 2026-10-20T14:30:00-06:00
          */
-        ScheduledDate: string;
+        ScheduledInstant: string;
+        /**
+         * @description Datos de registro. Además de los patrones de cada campo, que el schema sí expresa, la API y los
+         *     validadores del paquete exigen reglas que JSON Schema no puede expresar (todas con
+         *     `422 VALIDATION_FAILED` y error por campo):
+         *
+         *     - **Correo:** se recorta y se pasa a minúsculas antes de validarlo y guardarlo.
+         *     - **CURP:** el dígito verificador debe ser válido y su fecha de nacimiento (el carácter 17 indica
+         *       el siglo: dígito antes de 2000, letra desde 2000) debe existir, no estar en el futuro y
+         *       corresponder a una persona de **18 años o más** al día de hoy en America/Mexico_City.
+         *     - **RFC:** sus primeros 10 caracteres deben ser iguales a los primeros 10 de la CURP. Si no
+         *       coinciden, el error va en `/rfc` con `INVALID_FORMAT` y el mensaje «El RFC no coincide con tu CURP».
+         */
         RegisterRequest: {
             email: components["schemas"]["Email"];
             password: components["schemas"]["Password"];
-            fullName: components["schemas"]["FullName"];
+            fullName: components["schemas"]["PersonName"];
             curp: components["schemas"]["Curp"];
             rfc: components["schemas"]["Rfc"];
             phone: components["schemas"]["PhoneInput"];
@@ -570,7 +606,8 @@ export interface components {
             amount: components["schemas"]["SignedAmount"];
             balanceAfter: components["schemas"]["Amount"];
             concept: components["schemas"]["Concept"];
-            reference: components["schemas"]["Reference"];
+            /** @description Nula cuando la transferencia se hizo sin referencia y en los depósitos de la Tesorería. */
+            reference: components["schemas"]["Reference"] | null;
             /** @description Nulo en los depósitos de la Tesorería. */
             counterparty: components["schemas"]["Counterparty"] | null;
             /**
@@ -624,9 +661,13 @@ export interface components {
             destination: components["schemas"]["TransferDestination"];
             amount: components["schemas"]["AmountInput"];
             concept: components["schemas"]["Concept"];
-            reference: components["schemas"]["Reference"];
-            /** @description Fecha de ejecución, de mañana a 90 días. Sin el campo, la transferencia es inmediata. */
-            scheduledFor?: components["schemas"]["ScheduledDate"];
+            /** @description Referencia numérica opcional de 1 a 7 dígitos. Sin el campo, la transferencia no tiene referencia (`null` en las respuestas). */
+            reference?: components["schemas"]["Reference"];
+            /**
+             * @description Instante de ejecución (RFC 3339 con desfase, precisión de minuto), de 10 minutos a 90 días
+             *     después de la petición. Sin el campo, la transferencia es inmediata.
+             */
+            scheduledFor?: components["schemas"]["ScheduledInstant"];
         };
         ConfirmTransferRequest: {
             otp: components["schemas"]["SixDigitCode"];
@@ -668,7 +709,8 @@ export interface components {
             destination: components["schemas"]["TransferDestinationView"];
             amount: components["schemas"]["Amount"];
             concept: components["schemas"]["Concept"];
-            reference: components["schemas"]["Reference"];
+            /** @description Nula cuando la transferencia se creó sin referencia. */
+            reference: components["schemas"]["Reference"] | null;
             requiresOtp: boolean;
             /** @description Presente solo mientras la transferencia está en `PENDING_OTP`. */
             otp: components["schemas"]["OtpChallenge"] | null;
@@ -683,8 +725,8 @@ export interface components {
              */
             failureReason: "INSUFFICIENT_FUNDS" | "DAILY_LIMIT_EXCEEDED" | "OTP_ATTEMPTS_EXHAUSTED" | null;
             /**
-             * Format: date
-             * @description Fecha de ejecución de una transferencia programada; nula en las inmediatas.
+             * Format: date-time
+             * @description Instante de ejecución de una transferencia programada (RFC 3339, en UTC); nulo en las inmediatas.
              */
             scheduledFor: string | null;
             /**
