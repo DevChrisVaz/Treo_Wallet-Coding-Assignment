@@ -23,6 +23,11 @@ export interface TransferDetailsReader {
   find(transferId: string): Promise<TransferDetails | null>;
 }
 
+/** Programadas pendientes de un usuario, en orden de ejecución (TRF-33). */
+export interface ScheduledTransfersReader {
+  listScheduled(userId: string): Promise<TransferDetails[]>;
+}
+
 export function otpChallenge(
   details: TransferDetails,
   policy: OtpPolicy,

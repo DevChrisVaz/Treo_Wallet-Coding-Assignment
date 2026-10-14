@@ -5,6 +5,7 @@ import type { CancelTransfer } from '../../application/cancel-transfer.js';
 import type { ConfirmTransfer } from '../../application/confirm-transfer.js';
 import type { CreateTransfer } from '../../application/create-transfer.js';
 import type { GetTransfer } from '../../application/get-transfer.js';
+import type { ListScheduledTransfers } from '../../application/list-scheduled-transfers.js';
 import type { ResendTransferOtp } from '../../application/resend-transfer-otp.js';
 import {
   confirmTransferRequestSchema,
@@ -18,6 +19,7 @@ export interface TransferHandlers {
   readonly resendTransferOtp: ResendTransferOtp;
   readonly getTransfer: GetTransfer;
   readonly cancelTransfer: CancelTransfer;
+  readonly listScheduledTransfers: ListScheduledTransfers;
 }
 
 /** Rutas de transferencias: solo traducen HTTP y delegan en los casos de uso (PLT-18). */
@@ -41,6 +43,12 @@ export function transferRoutes(handlers: TransferHandlers, authenticateRequest: 
         if (outcome.replayed) res.setHeader('Idempotent-Replayed', 'true');
         throw outcome.error;
     }
+  });
+
+  // Antes de `/transfers/:transferId`: si no, Express toma "scheduled" como un id (404).
+  routes.get('/transfers/scheduled', async (_req, res) => {
+    const list = await handlers.listScheduledTransfers.execute(res.locals.userId as string);
+    res.status(200).json(list);
   });
 
   routes.get('/transfers/:transferId', async (req, res) => {

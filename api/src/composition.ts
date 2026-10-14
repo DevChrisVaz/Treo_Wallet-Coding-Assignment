@@ -58,6 +58,7 @@ import { CancelTransfer } from './modules/transfers/application/cancel-transfer.
 import { ConfirmTransfer } from './modules/transfers/application/confirm-transfer.js';
 import { CreateTransfer } from './modules/transfers/application/create-transfer.js';
 import { GetTransfer } from './modules/transfers/application/get-transfer.js';
+import { ListScheduledTransfers } from './modules/transfers/application/list-scheduled-transfers.js';
 import { ResendTransferOtp } from './modules/transfers/application/resend-transfer-otp.js';
 import { IdempotencyGate } from './modules/transfers/application/idempotency-gate.js';
 import { TransferLocker } from './modules/transfers/application/transfer-locker.js';
@@ -133,6 +134,7 @@ export interface Container {
     readonly resendTransferOtp: ResendTransferOtp;
     readonly getTransfer: GetTransfer;
     readonly cancelTransfer: CancelTransfer;
+    readonly listScheduledTransfers: ListScheduledTransfers;
   };
   readonly ledger: {
     readonly fundAccount: FundAccount;
@@ -329,6 +331,11 @@ export async function createContainer(
         audit,
         clock,
         details: transferDetails,
+        otpPolicy,
+      }),
+      listScheduledTransfers: new ListScheduledTransfers({
+        reader: transferDetails,
+        clock,
         otpPolicy,
       }),
     },
