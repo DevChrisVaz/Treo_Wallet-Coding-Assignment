@@ -45,6 +45,7 @@ function problemText(error: ProblemError): string {
     case 'BENEFICIARY_CONFLICT':
     case 'TRANSFER_NOT_PENDING':
     case 'TRANSFER_EXPIRED':
+    case 'TRANSFER_NOT_CANCELLABLE':
     case 'VALIDATION_FAILED':
     case 'INSUFFICIENT_FUNDS':
     case 'SAME_ACCOUNT_TRANSFER':
@@ -54,6 +55,7 @@ function problemText(error: ProblemError): string {
     case 'BENEFICIARY_IS_OWN_ACCOUNT':
     case 'OTP_ATTEMPTS_EXHAUSTED':
     case 'RESEND_LIMIT_REACHED':
+    case 'SCHEDULED_LIMIT_REACHED':
     case 'RATE_LIMITED':
       return base;
     default: {
