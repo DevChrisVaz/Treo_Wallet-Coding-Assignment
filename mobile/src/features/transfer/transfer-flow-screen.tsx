@@ -28,19 +28,22 @@ export function TransferFlowScreen() {
   const [code, setCode] = useState('');
   const accountList = accounts.data?.accounts ?? [];
   const fromAccountId = values.fromAccountId ?? accountList[0]?.id;
-  const loadError = accounts.error ?? beneficiaries.error;
+  // Lecturas que aún no tienen datos. Con datos en caché, un refresco fallido (p. ej. al invalidar
+  // los saldos tras completar, MOB-13) no reemplaza el paso en curso: TanStack conserva `data`.
+  const missing = [accounts, beneficiaries].filter((query) => query.data === undefined);
+  const loadError = missing.find((query) => query.error)?.error;
   const data: TransferFlowViewProps['data'] =
-    accounts.isPending || beneficiaries.isPending
-      ? { status: 'pending' }
+    missing.length === 0
+      ? {
+          status: 'success',
+          data: {
+            accounts: accountList,
+            beneficiary: beneficiaries.data?.items.find((item) => item.id === beneficiaryId),
+          },
+        }
       : loadError
         ? { status: 'error', message: errorMessage(loadError) }
-        : {
-            status: 'success',
-            data: {
-              accounts: accountList,
-              beneficiary: beneficiaries.data?.items.find((item) => item.id === beneficiaryId),
-            },
-          };
+        : { status: 'pending' };
 
   return (
     <TransferFlowView
@@ -51,6 +54,7 @@ export function TransferFlowScreen() {
       code={code}
       actions={{
         onClose: () => router.dismissTo('/'),
+        onReload: () => missing.forEach((query) => void query.refetch()),
         onChange: setValues,
         onContinue: () => {
           const result = attempt.review({

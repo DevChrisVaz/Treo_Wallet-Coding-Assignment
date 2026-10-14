@@ -1,7 +1,7 @@
 import { screen, userEvent, waitFor } from '@testing-library/react-native';
 
 import { HomeScreen } from '@/features/accounts/home-screen';
-import { createFakeApi, json, type FakeApi } from '@/test-utils/fake-api';
+import { createFakeApi, json, problem, type FakeApi } from '@/test-utils/fake-api';
 import { ahorro, luis, overview, principal } from '@/test-utils/fixtures';
 import { renderApp } from '@/test-utils/render-app';
 import { transfer } from '@/test-utils/transfer-fixtures';
@@ -98,6 +98,23 @@ describe('comprobante', () => {
       rendered.services.queryClient.getQueryState(['accounts', principal.id, 'movements'])
         ?.isInvalidated,
     ).toBe(true);
+  });
+
+  test('MOB-13 si falla la nueva consulta de saldos, el comprobante sigue a la vista', async () => {
+    const fake = createFakeApi()
+      .on('GET', '/accounts', json(200, overview()), problem(500, 'INTERNAL_ERROR'))
+      .on('GET', '/beneficiaries', json(200, { items: [luis] }))
+      .on('POST', '/transfers', json(201, fromApi));
+    const { services } = await completeTransfer(fake);
+
+    await waitFor(() =>
+      expect(services.queryClient.getQueryState(['accounts'])?.status).toBe('error'),
+    );
+    expect(fake.requestsTo('GET', '/accounts')).toHaveLength(2);
+    expect(screen.getByText('Completada')).toBeOnTheScreen();
+    expect(screen.getByText('Principal · •••• 9719')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Ver mis cuentas' })).toBeOnTheScreen();
+    expect(screen.queryByText(/No pudimos cargar/)).toBeNull();
   });
 });
 

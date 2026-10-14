@@ -163,4 +163,33 @@ describe('confirmación con OTP', () => {
     const bodies = fake.requestsTo('POST', CONFIRM_PATH).map((request) => request.body);
     expect(bodies).toEqual(['{"otp":"482913"}', '{"otp":"482913"}']);
   });
+
+  test('MOB-12 MOB-13 si la API dice que ya no está pendiente, el comprobante muestra el estado que devolvió', async () => {
+    const fake = apiWith(
+      pendingOtp(),
+      problem(409, 'TRANSFER_NOT_PENDING', { transferStatus: 'REJECTED' }),
+    );
+    const user = await reachOtp(fake);
+    await confirm(user, '482913');
+    expect(await screen.findByText('Esta transferencia ya no está pendiente.')).toBeOnTheScreen();
+    expect(screen.getByText('Rechazada')).toBeOnTheScreen();
+    expect(screen.queryByText('Fallida')).toBeNull();
+  });
+
+  test('MOB-12 tras "Intentar de nuevo" el código empieza vacío y el nuevo intento usa otra llave', async () => {
+    const fake = apiWith(pendingOtp(), problem(409, 'TRANSFER_EXPIRED'));
+    const user = await reachOtp(fake);
+    await confirm(user, '482913');
+    await user.press(await screen.findByRole('button', { name: 'Intentar de nuevo' }));
+    await user.press(screen.getByRole('button', { name: 'Continuar' }));
+    await user.press(await screen.findByRole('button', { name: 'Enviar' }));
+
+    expect(await screen.findByLabelText('Código de 6 dígitos')).toHaveDisplayValue('');
+    expect(screen.getByRole('button', { name: 'Confirmar' })).toBeDisabled();
+    const keys = fake
+      .requestsTo('POST', '/transfers')
+      .map((request) => request.headers['idempotency-key']);
+    expect(keys).toHaveLength(2);
+    expect(keys[1]).not.toBe(keys[0]);
+  });
 });

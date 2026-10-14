@@ -120,4 +120,18 @@ describe('flujo por pasos', () => {
     expect(screen.getByText('Fallida')).toBeOnTheScreen();
     expect(screen.getByText('Principal · •••• 9719')).toBeOnTheScreen();
   });
+
+  test('MOB-21 si no cargan las cuentas, el error lo dice y permite reintentar', async () => {
+    const fake = createFakeApi()
+      .on('GET', '/accounts', problem(500, 'INTERNAL_ERROR'), json(200, overview()))
+      .on('GET', '/beneficiaries', json(200, { items: [luis] }));
+    const { user } = await open(fake);
+
+    expect(
+      await screen.findByText('No pudimos cargar tus cuentas y beneficiarios'),
+    ).toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByLabelText('Monto')).toBeOnTheScreen();
+    expect(fake.requestsTo('GET', '/accounts')).toHaveLength(2);
+  });
 });

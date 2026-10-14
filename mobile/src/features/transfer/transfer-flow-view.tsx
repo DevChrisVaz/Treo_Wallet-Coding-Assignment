@@ -20,6 +20,8 @@ import type { AttemptState } from './transfer-attempt';
 
 export interface TransferFlowActions {
   onClose: () => void;
+  /** Vuelve a pedir las lecturas que faltan (cuentas o beneficiarios). */
+  onReload: () => void;
   onChange: (values: FormValues) => void;
   onContinue: () => void;
   onSubmit: () => void;
@@ -225,11 +227,14 @@ export function TransferFlowView({
             <Skeleton variant="line" />
           </View>
         ) : (
-          <InlineAlert
-            tone="danger"
-            title="No pudimos cargar tus cuentas y beneficiarios"
-            message={data.message}
-          />
+          <View style={styles.loading}>
+            <InlineAlert
+              tone="danger"
+              title="No pudimos cargar tus cuentas y beneficiarios"
+              message={data.message}
+            />
+            <Button label="Reintentar" variant="secondary" onPress={actions.onReload} />
+          </View>
         )}
       </FlowScreen>
     );
