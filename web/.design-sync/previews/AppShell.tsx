@@ -24,8 +24,11 @@ import {
   Skeleton,
   TextField,
   buttonClasses,
+  centsToDecimalString,
+  formatMXN,
   initials,
   sumAmounts,
+  toCents,
 } from 'wallet-web-ui';
 
 /*
@@ -35,9 +38,9 @@ import {
  * transfers}) y del flujo móvil; los nombres de las historias son los mismos que en `Screen` de la
  * app móvil, para compararlas en pareja (WEB-25).
  *
- * Montos, CLABE enmascaradas y horas que no pasan por un componente van ya formateados como los
- * dejan formatMXN, maskClabe y formatTime (hora de Ciudad de México): esas funciones no se exportan
- * en wallet-web-ui.
+ * CLABE enmascaradas, horas y montos fijos que no pasan por un componente van ya formateados como
+ * los dejan maskClabe, formatTime (hora de Ciudad de México) y formatMXN. Los montos calculados se
+ * restan en centavos con toCents/centsToDecimalString (BigInt) y se muestran con formatMXN.
  */
 
 /* ------------------------------------------------- datos canónicos (iguales en web y móvil) */
@@ -431,6 +434,10 @@ interface Draft {
   reference?: string;
   /** Más de $10,000.00: pide código por correo. */
   otp?: boolean;
+  /** Comprobante: el intento terminó, ya no se avisa del código. */
+  final?: boolean;
+  /** Lo que queda del límite diario (decimal); por omisión, el de los datos canónicos. */
+  remaining?: string;
 }
 
 const DRAFT: Draft = {
@@ -445,6 +452,16 @@ const OTP_DRAFT: Draft = { ...DRAFT, amount: '$15,000.00', otp: true };
 /** Aviso de la revisión cuando el monto pide código (review-view.tsx de la app móvil). */
 const OTP_NOTICE =
   'Como el monto es mayor a $10,000.00, te enviaremos un código de confirmación a tu correo.';
+
+/** Tras enviar los $1,250.00 el límite baja a $30,250.00 (centavos con BigInt, nunca Number). */
+const SENT_DRAFT: Draft = {
+  ...DRAFT,
+  final: true,
+  remaining: centsToDecimalString(toCents(dailyLimit.remaining) - toCents(sentTransfer.amount)),
+};
+
+/** La transferencia con código falló: no se debitó nada y el límite sigue igual. */
+const FAILED_DRAFT: Draft = { ...OTP_DRAFT, final: true };
 
 /** Más que el saldo de Principal ($25,000.00): la API la rechaza con INSUFFICIENT_FUNDS. */
 const OVER_BALANCE_DRAFT: Draft = { ...DRAFT, amount: '$30,000.00', otp: true };
@@ -473,9 +490,9 @@ function Summary({ draft }: { draft: Draft }) {
         <SummaryRow term="Referencia" value={draft.reference} />
       </dl>
       <p className="border-t border-border pt-3 text-caption text-fg-muted">
-        {draft.otp
+        {draft.otp && !draft.final
           ? OTP_NOTICE
-          : 'Te quedan $31,500.00 de tu límite diario de hoy.'}
+          : `Te quedan ${formatMXN(draft.remaining ?? dailyLimit.remaining)} de tu límite diario de hoy.`}
       </p>
     </ListSection>
   );
@@ -524,11 +541,7 @@ function FlowPage({
 }: FlowPageProps) {
   return (
     <AppShell current="transfer" title="Transferir" user={user} mode="flow" onLogout={noop}>
-      {/* FlowHeader trae su propio margen lateral de teléfono (como el encabezado móvil): se
-          compensa el del contenido de AppShell para que no quede doble. */}
-      <div className="-mx-5 dashboard:mx-0 dashboard:pt-4">
-        <FlowHeader title={title} step={step} total={total} stepLabel={stepLabel} closeHref="#" />
-      </div>
+      <FlowHeader title={title} step={step} total={total} stepLabel={stepLabel} closeHref="#" />
       <div className="grid gap-8 dashboard:grid-cols-[minmax(0,1fr)_320px]">
         <div className="grid content-start gap-5">
           {children}
@@ -748,7 +761,7 @@ export const TransferCompleted = () => (
     step={4}
     total={4}
     stepLabel="Comprobante"
-    draft={DRAFT}
+    draft={SENT_DRAFT}
     stackedActions
     actions={
       <>
@@ -770,7 +783,7 @@ export const TransferFailed = () => (
     step={5}
     total={5}
     stepLabel="Comprobante"
-    draft={OTP_DRAFT}
+    draft={FAILED_DRAFT}
     stackedActions
     actions={
       <>

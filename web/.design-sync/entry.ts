@@ -34,5 +34,9 @@ export { ErrorState, LoadingState } from '@/components/states/states';
 export { AppShell, DEFAULT_NAV_ITEMS, type AppShellProps } from '@/components/layout/AppShell';
 export { BrandShell } from '@/components/layout/BrandShell';
 export { StepHeading } from '@/components/transfers/StepHeading';
-/* Suma de montos en centavos (BigInt) para el saldo total del hero; no es un componente. */
+/*
+ * Aritmética y formato de montos (no son componentes): suma en centavos para el saldo total del
+ * hero y las primitivas del contrato (BigInt, nunca Number) para restar y mostrar montos.
+ */
 export { sumAmounts } from '@/lib/money';
+export { centsToDecimalString, formatMXN, toCents } from '@devchrisvaz/wallet-contract';
