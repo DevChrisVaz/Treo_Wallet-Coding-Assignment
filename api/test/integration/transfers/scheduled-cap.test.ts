@@ -20,7 +20,7 @@ const toAhorro = (reference: string) => ({
   amount: '100.00',
   concept: 'Ahorro programado',
   reference,
-  scheduledFor: '2026-10-20',
+  scheduledFor: '2026-10-20T15:00:00.000Z',
 });
 
 async function transfersOf(userId: string): Promise<number> {

@@ -29,7 +29,7 @@ beforeEach(async () => {
   });
 });
 
-async function schedule(amount = '1000.00', scheduledFor = '2026-10-15') {
+async function schedule(amount = '1000.00', scheduledFor = '2026-10-15T06:00:00.000Z') {
   const res = await postTransfer(t, ana, {
     fromAccountId: ana.principal.id,
     destination: { type: 'BENEFICIARY', beneficiaryId },
@@ -68,7 +68,7 @@ describe('TRF-32 cancelación de una programada', () => {
     expect(res.body).toMatchObject({
       id,
       status: 'CANCELLED',
-      scheduledFor: '2026-10-15',
+      scheduledFor: '2026-10-15T06:00:00.000Z',
       cancelledAt: '2026-10-14T18:01:00.000Z',
       completedAt: null,
       otp: null,
@@ -88,7 +88,7 @@ describe('TRF-32 cancelación de una programada', () => {
         actor_user_id: ana.userId,
         entity_type: 'transfer',
         entity_id: id,
-        metadata: { amount: '1000.00', scheduledFor: '2026-10-15' },
+        metadata: { amount: '1000.00', scheduledFor: '2026-10-15T06:00:00.000Z' },
       }),
     ]);
   });

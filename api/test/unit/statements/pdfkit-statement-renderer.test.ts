@@ -28,6 +28,7 @@ function header(period = '2026-09'): StatementHeader {
       name: 'Principal',
       clabe: '999180000000000015',
       holderName: 'Ana Gómez Cruz',
+      createdAt: new Date('2026-01-01T06:00:00.000Z'),
     },
     period: StatementPeriod.parse(period, new FakeClock(NOW)),
   };

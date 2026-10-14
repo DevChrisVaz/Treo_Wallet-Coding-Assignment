@@ -19,7 +19,7 @@ const SELECT_DETAILS = `
   SELECT t.id, t.user_id, t.idempotency_key, t.request_fingerprint, t.kind, t.status,
          t.from_account_id, t.to_account_id, t.beneficiary_id, t.amount_cents, t.concept,
          t.reference, t.requires_otp, t.rejection_reason, t.failure_reason, t.otp_expires_at,
-         t.created_at, t.completed_at, t.scheduled_for::text AS scheduled_for, t.cancelled_at,
+         t.created_at, t.completed_at, t.scheduled_for, t.cancelled_at,
          COALESCE(b.alias, dest.name) AS destination_name,
          COALESCE(b.clabe, dest.clabe) AS destination_clabe,
          u.email AS owner_email,

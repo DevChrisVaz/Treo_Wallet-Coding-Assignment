@@ -79,7 +79,7 @@ export async function insertScheduledTransfers(
                                   requires_otp, failure_reason, otp_expires_at, created_at,
                                   scheduled_for, cancelled_at)
        VALUES ($1, $2, $3, repeat('e', 64), 'OWN', $4, $5, $6, $7, 'Programada de prueba', $8,
-               $9, $10, $11, $12, $13::date, $14)`,
+               $9, $10, $11, $12, $13::timestamptz, $14)`,
       [
         id,
         owner.userId,
@@ -93,7 +93,7 @@ export async function insertScheduledTransfers(
         options.failureReason ?? null,
         options.otpExpiresAt ?? null,
         new Date(start + i),
-        options.scheduledFor === undefined ? '2026-10-20' : options.scheduledFor,
+        options.scheduledFor === undefined ? '2026-10-20T06:00:00.000Z' : options.scheduledFor,
         options.cancelledAt ?? null,
       ],
     );

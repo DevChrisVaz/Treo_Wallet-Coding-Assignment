@@ -22,6 +22,21 @@ describe('TRF-04 fingerprint del contenido interpretado', () => {
     );
   });
 
+  it('TRF-09 sin referencia (null o vacía) da la misma huella y distinta de cualquier referencia', () => {
+    const amount = Money.parse('100.00');
+    const none = transferFingerprint({ ...base, amount, reference: null });
+    expect(transferFingerprint({ ...base, amount, reference: '' })).toBe(none);
+    expect(transferFingerprint({ ...base, amount, reference: '0' })).not.toBe(none);
+  });
+
+  it('TRF-29 la huella de una programada cambia con el minuto y no con la zona de escritura', () => {
+    const amount = Money.parse('100.00');
+    const at = (iso: string) =>
+      transferFingerprint({ ...base, amount, scheduledFor: new Date(iso).toISOString() });
+    expect(at('2026-10-20T14:30:00-06:00')).toBe(at('2026-10-20T20:30:00Z'));
+    expect(at('2026-10-20T20:31:00Z')).not.toBe(at('2026-10-20T20:30:00Z'));
+  });
+
   it('TRF-04 un monto distinto produce otro fingerprint', () => {
     expect(transferFingerprint({ ...base, amount: Money.parse('100.00') })).not.toBe(
       transferFingerprint({ ...base, amount: Money.parse('200.00') }),

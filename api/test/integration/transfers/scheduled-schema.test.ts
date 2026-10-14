@@ -17,7 +17,7 @@ async function insertTransfer(
                             from_account_id, to_account_id, amount_cents, concept, reference,
                             requires_otp, created_at, scheduled_for, cancelled_at)
      VALUES ($1, $2, $3, repeat('d', 64), 'OWN', $4, $5, $6, 1000, 'Programada', 1, false, now(),
-             $7::date, $8)`,
+             $7::timestamptz, $8)`,
     [
       id,
       user.userId,
@@ -45,21 +45,34 @@ describe('TRF-34 estados de las programadas en la base', () => {
     const ana = await insertUserWithAccounts(harness.migrator);
     await insertTransfer(ana, {
       status: 'SCHEDULED',
-      scheduledFor: '2026-10-15',
+      scheduledFor: '2026-10-15T15:00:00.000Z',
       cancelledAt: null,
     });
     await insertTransfer(ana, {
       status: 'CANCELLED',
-      scheduledFor: '2026-10-15',
+      scheduledFor: '2026-10-15T15:00:00.000Z',
       cancelledAt: new Date('2026-10-14T18:00:00Z'),
     });
     const rows = await harness.migrator.query(
-      `SELECT status, scheduled_for::text AS scheduled_for FROM app.transfers ORDER BY status`,
+      `SELECT status, scheduled_for FROM app.transfers ORDER BY status`,
     );
     expect(rows).toEqual([
-      { status: 'CANCELLED', scheduled_for: '2026-10-15' },
-      { status: 'SCHEDULED', scheduled_for: '2026-10-15' },
+      { status: 'CANCELLED', scheduled_for: new Date('2026-10-15T15:00:00.000Z') },
+      { status: 'SCHEDULED', scheduled_for: new Date('2026-10-15T15:00:00.000Z') },
     ]);
+  });
+
+  it('TRF-27 scheduled_for admite solo minutos exactos: con segundos se rechaza por ck_transfers_scheduled_for_minute', async () => {
+    const ana = await insertUserWithAccounts(harness.migrator);
+    expect(
+      await violation(
+        insertTransfer(ana, {
+          status: 'SCHEDULED',
+          scheduledFor: '2026-10-15T15:00:30.000Z',
+          cancelledAt: null,
+        }),
+      ),
+    ).toMatchObject({ constraint: 'ck_transfers_scheduled_for_minute' });
   });
 
   it('TRF-34 una SCHEDULED sin scheduled_for se rechaza por ck_transfers_scheduled_has_date', async () => {
@@ -86,7 +99,7 @@ describe('TRF-34 estados de las programadas en la base', () => {
       await violation(
         insertTransfer(ana, {
           status: 'SCHEDULED',
-          scheduledFor: '2026-10-15',
+          scheduledFor: '2026-10-15T15:00:00.000Z',
           cancelledAt: new Date(),
         }),
       ),
@@ -97,7 +110,11 @@ describe('TRF-34 estados de las programadas en la base', () => {
     const ana = await insertUserWithAccounts(harness.migrator);
     expect(
       await violation(
-        insertTransfer(ana, { status: 'CANCELLED', scheduledFor: '2026-10-15', cancelledAt: null }),
+        insertTransfer(ana, {
+          status: 'CANCELLED',
+          scheduledFor: '2026-10-15T15:00:00.000Z',
+          cancelledAt: null,
+        }),
       ),
     ).toMatchObject({ code: '23514', constraint: 'ck_transfers_cancelled_at_by_status' });
   });
@@ -106,7 +123,11 @@ describe('TRF-34 estados de las programadas en la base', () => {
     const ana = await insertUserWithAccounts(harness.migrator);
     expect(
       await violation(
-        insertTransfer(ana, { status: 'PAUSED', scheduledFor: '2026-10-15', cancelledAt: null }),
+        insertTransfer(ana, {
+          status: 'PAUSED',
+          scheduledFor: '2026-10-15T15:00:00.000Z',
+          cancelledAt: null,
+        }),
       ),
     ).toMatchObject({ code: '23514', constraint: 'ck_transfers_status' });
   });
@@ -166,18 +187,21 @@ describe('PLT-15 down protegido de la migración de programadas', () => {
   });
 
   it.each([
-    ['una SCHEDULED', { status: 'SCHEDULED', scheduledFor: '2026-10-15', cancelledAt: null }],
+    [
+      'una SCHEDULED',
+      { status: 'SCHEDULED', scheduledFor: '2026-10-15T15:00:00.000Z', cancelledAt: null },
+    ],
     [
       'una CANCELLED',
       {
         status: 'CANCELLED',
-        scheduledFor: '2026-10-15',
+        scheduledFor: '2026-10-15T15:00:00.000Z',
         cancelledAt: new Date('2026-10-14T18:00:00Z'),
       },
     ],
     [
       'una programada pendiente de OTP',
-      { status: 'PENDING_OTP', scheduledFor: '2026-10-15', cancelledAt: null },
+      { status: 'PENDING_OTP', scheduledFor: '2026-10-15T15:00:00.000Z', cancelledAt: null },
     ],
   ])(
     'PLT-15 con %s, el down se niega con un mensaje claro y no cambia nada',

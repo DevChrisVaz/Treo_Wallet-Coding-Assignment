@@ -105,10 +105,14 @@ function periodText({ period }: StatementHeader): string {
 
 /** Segunda línea del renglón: contraparte con los últimos 4 dígitos y referencia. */
 function detailParts(record: MovementRecord): { name: string | null; suffix: string } {
-  const reference = `Referencia ${record.reference}`;
-  if (!record.counterparty) return { name: null, suffix: reference };
+  // Sin referencia (HIS-12) no se imprime esa parte: ni "null" ni "Referencia 0".
+  const reference = record.reference === null ? null : `Referencia ${record.reference}`;
+  if (!record.counterparty) return { name: null, suffix: reference ?? '' };
   const clabe = record.counterparty.clabeLast4 ? ` •••• ${record.counterparty.clabeLast4}` : '';
-  return { name: record.counterparty.name, suffix: `${clabe} · ${reference}` };
+  return {
+    name: record.counterparty.name,
+    suffix: `${clabe}${reference ? ` · ${reference}` : ''}`,
+  };
 }
 
 /** Las dos fuentes ya convertidas a TrueType. */

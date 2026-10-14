@@ -45,7 +45,7 @@ const toLuis = (amount: string, scheduledFor: string) => ({
 });
 
 /** Programada de 15,000.00 a Luis en PENDING_OTP y el código que llegó por correo. */
-async function pendingScheduled(scheduledFor = '2026-10-20') {
+async function pendingScheduled(scheduledFor = '2026-10-20T15:00:00.000Z') {
   const res = await postTransfer(t, ana, toLuis('15000.00', scheduledFor));
   expect(res.status).toBe(201);
   return { id: res.body.id as string, code: t.mailer.lastCode(ana.person.email), res };
@@ -61,7 +61,7 @@ async function codeRow(id: string) {
 
 async function transferRow(id: string) {
   const [row] = await harness.migrator.query(
-    `SELECT status, failure_reason, scheduled_for::text AS scheduled_for, completed_at
+    `SELECT status, failure_reason, scheduled_for, completed_at
        FROM app.transfers WHERE id = $1`,
     [id],
   );
@@ -90,7 +90,7 @@ describe('TRF-28 programación con OTP', () => {
     expect(res.body).toMatchObject({
       id,
       status: 'PENDING_OTP',
-      scheduledFor: '2026-10-20',
+      scheduledFor: '2026-10-20T15:00:00.000Z',
       requiresOtp: true,
       completedAt: null,
       cancelledAt: null,
@@ -112,7 +112,7 @@ describe('TRF-28 programación con OTP', () => {
           status: 'PENDING_OTP',
           kind: 'THIRD_PARTY',
           amount: '15000.00',
-          scheduledFor: '2026-10-20',
+          scheduledFor: '2026-10-20T15:00:00.000Z',
         },
       },
       {
@@ -123,12 +123,12 @@ describe('TRF-28 programación con OTP', () => {
     ]);
   });
 
-  it('TRF-28 el correo con el código menciona el 20 de octubre de 2026', async () => {
+  it('TRF-28 el correo con el código menciona el 20 de octubre de 2026, 09:00 (CDMX)', async () => {
     await pendingScheduled();
     const message = t.mailer.to(ana.person.email).at(-1);
     expect(message?.subject).toBe('Tu código para confirmar una transferencia');
     for (const body of [message?.text, message?.html]) {
-      expect(body).toContain('Programada para el 20 de octubre de 2026.');
+      expect(body).toContain('Programada para el 20 de octubre de 2026, 09:00');
       expect(body).toContain('$15,000.00');
       expect(body).toContain(luis.principal.clabe.slice(-4));
     }
@@ -139,7 +139,7 @@ describe('TRF-28 programación con OTP', () => {
     const res = await resendTransferOtp(t, ana, id);
     expect(res.status).toBe(202);
     expect(t.mailer.to(ana.person.email).at(-1)?.text).toContain(
-      'Programada para el 20 de octubre de 2026.',
+      'Programada para el 20 de octubre de 2026, 09:00',
     );
   });
 
@@ -152,7 +152,7 @@ describe('TRF-28 programación con OTP', () => {
     expect(res.body).toMatchObject({
       id,
       status: 'SCHEDULED',
-      scheduledFor: '2026-10-20',
+      scheduledFor: '2026-10-20T15:00:00.000Z',
       otp: null,
       completedAt: null,
     });
@@ -163,7 +163,11 @@ describe('TRF-28 programación con OTP', () => {
     expect((await actionsFor(id)).at(-1)).toEqual({
       action: 'TRANSFER_SCHEDULED',
       actor: 'USER',
-      metadata: { kind: 'THIRD_PARTY', amount: '15000.00', scheduledFor: '2026-10-20' },
+      metadata: {
+        kind: 'THIRD_PARTY',
+        amount: '15000.00',
+        scheduledFor: '2026-10-20T15:00:00.000Z',
+      },
     });
   });
 
@@ -214,14 +218,18 @@ describe('TRF-28 programación con OTP', () => {
   });
 
   it('TRF-32 confirmar una programada que ya se ejecutó responde 200 COMPLETED sin consumir intentos', async () => {
-    const { id, code } = await pendingScheduled('2026-10-15');
+    const { id, code } = await pendingScheduled('2026-10-15T06:00:00.000Z');
     await confirmTransfer(t, ana, id, { otp: code });
     t.clock.set('2026-10-15T06:00:30.000Z');
     await t.container.scheduler.runner.runOnce();
     ana = await signInAgain(t, ana);
     const res = await confirmTransfer(t, ana, id, { otp: wrongCode(code) });
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ id, status: 'COMPLETED', scheduledFor: '2026-10-15' });
+    expect(res.body).toMatchObject({
+      id,
+      status: 'COMPLETED',
+      scheduledFor: '2026-10-15T06:00:00.000Z',
+    });
     expect((await codeRow(id)).attempts).toBe(0);
     expect(await balanceOf(harness, ana.principal.id)).toBe('5000.00');
   });
@@ -238,7 +246,7 @@ describe('TRF-28 programación con OTP', () => {
     expect(await transferRow(id)).toMatchObject({
       status: 'FAILED',
       failure_reason: 'OTP_ATTEMPTS_EXHAUSTED',
-      scheduled_for: '2026-10-20',
+      scheduled_for: new Date('2026-10-20T15:00:00.000Z'),
     });
     const late = await confirmTransfer(t, ana, id, { otp: code });
     expect(late.status).toBe(409);
@@ -250,7 +258,11 @@ describe('TRF-28 programación con OTP', () => {
     t.clock.advance(5 * 60_000);
     const shown = await authed(t, ana.accessToken).get(`/transfers/${id}`);
     expect(shown.status).toBe(200);
-    expect(shown.body).toMatchObject({ status: 'EXPIRED', scheduledFor: '2026-10-20', otp: null });
+    expect(shown.body).toMatchObject({
+      status: 'EXPIRED',
+      scheduledFor: '2026-10-20T15:00:00.000Z',
+      otp: null,
+    });
     const res = await confirmTransfer(t, ana, id, { otp: code });
     expect(res.status).toBe(409);
     expect(res.body.code).toBe('TRANSFER_EXPIRED');
@@ -287,16 +299,24 @@ describe('TRF-28 programación con OTP', () => {
 describe('TRF-28 confirmación después de medianoche', () => {
   it('TRF-28 creada a las 23:58 del 14 para el 15 y confirmada a las 00:02 del 15 queda SCHEDULED', async () => {
     await setup('2026-10-15T05:58:00.000Z'); // 23:58 del 14 en CDMX
-    const { id, code } = await pendingScheduled('2026-10-15');
-    t.clock.set('2026-10-15T06:02:00.000Z'); // 00:02 del 15: el 15 ya no sería programable
+    const { id, code } = await pendingScheduled('2026-10-15T06:10:00.000Z');
+    t.clock.set('2026-10-15T06:02:00.000Z'); // 00:02 del 15: ya pasó la medianoche de la creación
     const res = await confirmTransfer(t, ana, id, { otp: code });
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ status: 'SCHEDULED', scheduledFor: '2026-10-15' });
+    expect(res.body).toMatchObject({
+      status: 'SCHEDULED',
+      scheduledFor: '2026-10-15T06:10:00.000Z',
+    });
   });
 
   it('TRF-28 una programada por encima del umbral no valida saldo ni límite al crearse', async () => {
     await setup();
-    const res = await postTransfer(t, ana, toLuis('15000.00', '2026-10-15'), randomUUID());
+    const res = await postTransfer(
+      t,
+      ana,
+      toLuis('15000.00', '2026-10-15T06:00:00.000Z'),
+      randomUUID(),
+    );
     expect(res.status).toBe(201);
     expect(res.body.status).toBe('PENDING_OTP');
     expect(await balanceOf(harness, ana.principal.id)).toBe('0.00');

@@ -9,6 +9,8 @@ export interface StatementAccount {
   /** CLABE completa: el documento es para el titular. */
   readonly clabe: string;
   readonly holderName: string;
+  /** Apertura de la cuenta: el primer mes de CDMX que se puede pedir (HIS-11). */
+  readonly createdAt: Date;
 }
 
 /**

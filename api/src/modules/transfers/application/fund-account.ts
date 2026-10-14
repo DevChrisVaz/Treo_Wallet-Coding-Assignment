@@ -56,7 +56,7 @@ export class FundAccount {
         beneficiaryId: null,
         amountCents: input.amount.cents,
         concept: input.concept ?? 'Fondeo de la Tesorería',
-        reference: 0,
+        reference: null,
         requiresOtp: false,
         rejectionReason: null,
         failureReason: null,

@@ -51,7 +51,7 @@ export class CancelTransfer {
         entity: { type: 'transfer', id },
         metadata: {
           amount: Money.fromCents(transfer.amountCents).toDecimalString(),
-          scheduledFor: transfer.scheduledFor,
+          scheduledFor: transfer.scheduledFor?.toISOString() ?? null,
         },
       });
     });

@@ -12,6 +12,8 @@ import { DailyTransferUsage1760500005000 } from './1760500005000-daily-transfer-
 import { AuditStatementExported1760600000000 } from './1760600000000-audit-statement-exported.js';
 import { ScheduledTransfers1760700000000 } from './1760700000000-scheduled-transfers.js';
 import { AuditScheduledTransfers1760700001000 } from './1760700001000-audit-scheduled-transfers.js';
+import { OptionalTransferReference1760800000000 } from './1760800000000-optional-transfer-reference.js';
+import { ScheduledForInstant1760800001000 } from './1760800001000-scheduled-for-instant.js';
 
 /**
  * Migraciones en orden de aplicación. Se listan explícitamente (sin globs) para que funcionen igual
@@ -31,4 +33,6 @@ export const migrations: (new () => MigrationInterface)[] = [
   AuditStatementExported1760600000000,
   ScheduledTransfers1760700000000,
   AuditScheduledTransfers1760700001000,
+  OptionalTransferReference1760800000000,
+  ScheduledForInstant1760800001000,
 ];

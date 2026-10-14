@@ -1,4 +1,4 @@
-import { formatMXN } from '@devchrisvaz/wallet-contract';
+import { formatMexicoCityDateTime, formatMXN } from '@devchrisvaz/wallet-contract';
 import { deliverAfterCommit } from '../../../platform/mail/deliver.js';
 import { escapeHtml, layout } from '../../../platform/mail/html.js';
 import type { DeliveryStatus, Mailer } from '../../../platform/mail/mailer.js';
@@ -17,34 +17,10 @@ function minutesText(minutes: number): string {
   return minutes === 1 ? '1 minuto' : `${minutes} minutos`;
 }
 
-const MONTHS = [
-  'enero',
-  'febrero',
-  'marzo',
-  'abril',
-  'mayo',
-  'junio',
-  'julio',
-  'agosto',
-  'septiembre',
-  'octubre',
-  'noviembre',
-  'diciembre',
-];
-
-/**
- * Fecha calendario (`YYYY-MM-DD`) en palabras: `"20 de octubre de 2026"`. Se arma con el texto de
- * la fecha, sin `Date` ni zonas horarias, para que no se recorra un día ni dependa de ICU.
- */
-export function longSpanishDate(day: string): string {
-  const [year, month, date] = day.split('-').map(Number) as [number, number, number];
-  return `${date} de ${MONTHS[month - 1] ?? ''} de ${year}`;
-}
-
 /**
  * Código para confirmar una transferencia (TRF-15): el código, el monto en es-MX, el nombre del
  * destino y solo los últimos 4 dígitos de su CLABE, para que la persona reconozca la operación. Si
- * es programada, también su fecha (TRF-28).
+ * es programada, también su fecha y hora (TRF-28).
  */
 export function transferOtpEmail(input: {
   readonly code: string;
@@ -52,13 +28,13 @@ export function transferOtpEmail(input: {
   readonly destinationName: string;
   readonly clabeLast4: string;
   readonly minutes: number;
-  readonly scheduledFor?: string | null;
+  readonly scheduledFor?: Date | null;
 }): EmailContent {
   const subject = 'Tu código para confirmar una transferencia';
   const amount = input.amount.toDisplayString();
   const destination = `${input.destinationName} (CLABE con terminación ${input.clabeLast4})`;
   const schedule = input.scheduledFor
-    ? `Programada para el ${longSpanishDate(input.scheduledFor)}.`
+    ? `Programada para el ${formatMexicoCityDateTime(input.scheduledFor)} (hora de la Ciudad de México).`
     : null;
   const expiry = `Vence en ${minutesText(input.minutes)}.`;
   const warning = 'Si no fuiste tú, no compartas este código con nadie y cambia tu contraseña.';
@@ -116,20 +92,20 @@ const FAILURE_REASONS: Record<RejectionReason, string> = {
 
 /**
  * Aviso de una programada que no se realizó (TRF-35, D10): el monto en es-MX, el nombre del
- * destino, solo los últimos 4 dígitos de su CLABE, la fecha programada en palabras y el motivo en
+ * destino, solo los últimos 4 dígitos de su CLABE, la fecha y hora programadas en palabras (CDMX) y el motivo en
  * lenguaje claro.
  */
 export function scheduledFailureEmail(input: {
   readonly amount: Money;
   readonly destinationName: string;
   readonly clabeLast4: string;
-  readonly scheduledFor: string;
+  readonly scheduledFor: Date;
   readonly reason: RejectionReason;
 }): EmailContent {
   const subject = 'Tu transferencia programada no se realizó';
   const amount = formatMXN(input.amount.toDecimalString());
   const destination = `${input.destinationName} (CLABE con terminación ${input.clabeLast4})`;
-  const what = `Tu transferencia de ${amount} a ${destination}, programada para el ${longSpanishDate(input.scheduledFor)}, no se realizó.`;
+  const what = `Tu transferencia de ${amount} a ${destination}, programada para el ${formatMexicoCityDateTime(input.scheduledFor)} (hora de la Ciudad de México), no se realizó.`;
   const why = `Motivo: ${FAILURE_REASONS[input.reason]}.`;
   const next = 'No se movió dinero de tu cuenta. Si todavía quieres enviarla, hazlo desde la app.';
   return {

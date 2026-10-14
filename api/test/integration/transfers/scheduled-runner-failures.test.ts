@@ -53,7 +53,7 @@ async function schedule(amount: string, reference: string) {
     amount,
     concept: 'Renta',
     reference,
-    scheduledFor: '2026-10-15',
+    scheduledFor: '2026-10-15T06:00:00.000Z',
   });
   expect(res.status).toBe(201);
   t.clock.advance(1_000);

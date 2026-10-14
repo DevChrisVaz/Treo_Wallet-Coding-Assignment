@@ -78,7 +78,7 @@ SELECT $16::bigint + d.m AS i,
        NULL::uuid,
        $18::bigint,
        'Depósito de nómina',
-       0,
+       NULL::int,
        d.at
   FROM unnest($19::timestamptz[]) WITH ORDINALITY AS d(at, m)`;
 

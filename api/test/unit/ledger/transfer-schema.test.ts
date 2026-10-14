@@ -62,6 +62,63 @@ describe('TRF-08 y TRF-09 esquema de CreateTransferRequest', () => {
     ]);
   });
 
+  it.each([
+    ['ausente', undefined],
+    ['cadena vacía', ''],
+  ])(
+    'TRF-09 una referencia %s es opcional y se interpreta como null (sin referencia)',
+    (_case, reference) => {
+      const { reference: _omit, ...rest } = valid;
+      const parsed = parseInput(createTransferRequestSchema, {
+        ...rest,
+        ...(reference === undefined ? {} : { reference }),
+      });
+      expect(parsed.reference).toBeNull();
+    },
+  );
+
+  it.each([
+    ['8 dígitos', '12345678', 'TOO_LONG'],
+    ['símbolos', '12-3', 'INVALID_FORMAT'],
+    ['número JSON', 123, 'INVALID_TYPE'],
+  ])('TRF-09 una referencia con %s se señala en /reference', (_case, reference, code) => {
+    expect(errors({ ...valid, reference })).toEqual([
+      { pointer: '/reference', code, message: expect.any(String) },
+    ]);
+  });
+
+  it.each([
+    ['con letras', '12A'],
+    ['con símbolos', '$1.50'],
+    ['con 3 decimales', '100.005'],
+    ['con separador de miles', '1,250'],
+    ['en notación científica', '1e3'],
+  ])('TRF-08 un monto %s se rechaza en /amount', (_case, amount) => {
+    expect(errors({ ...valid, amount })).toEqual([
+      { pointer: '/amount', code: expect.any(String), message: expect.any(String) },
+    ]);
+  });
+
+  it('TRF-27 interpreta scheduledFor como instante (Date) con cualquier desfase', () => {
+    const parsed = parseInput(createTransferRequestSchema, {
+      ...valid,
+      scheduledFor: '2026-10-20T14:30:00-06:00',
+    });
+    expect(parsed.scheduledFor?.toISOString()).toBe('2026-10-20T20:30:00.000Z');
+  });
+
+  it.each([
+    ['solo fecha', '2026-10-20'],
+    ['sin desfase', '2026-10-20T14:30:00'],
+    ['con segundos', '2026-10-20T14:30:15-06:00'],
+    ['con milisegundos', '2026-10-20T14:30:00.500Z'],
+    ['inexistente', '2026-02-30T14:30:00Z'],
+  ])('TRF-27 scheduledFor %s se rechaza en /scheduledFor', (_case, scheduledFor) => {
+    expect(errors({ ...valid, scheduledFor })).toEqual([
+      { pointer: '/scheduledFor', code: 'INVALID_FORMAT', message: expect.any(String) },
+    ]);
+  });
+
   it('TRF-09 una referencia con letras se señala en /reference', () => {
     expect(errors({ ...valid, reference: '12A' })).toEqual([
       { pointer: '/reference', code: 'INVALID_FORMAT', message: expect.any(String) },

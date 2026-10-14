@@ -1,3 +1,4 @@
+import { isPeriodBeforeCreation } from '@devchrisvaz/wallet-contract';
 import type { Clock } from '../../../shared/clock.js';
 import { DomainError } from '../../../shared/errors.js';
 import type { AppLogger } from '../../../shared/logger.js';
@@ -38,7 +39,8 @@ function parsePeriod(value: string, clock: Clock): StatementPeriod {
  * `GET /accounts/{accountId}/statements/{period}` (HIS-11, HIS-12, AUD-07; D2 de
  * account-statements):
  * 1. valida el periodo contra el `Clock` (422);
- * 2. abre la instantánea del lector y verifica ahí la propiedad de la cuenta (404, ACC-06);
+ * 2. abre la instantánea del lector y verifica ahí la propiedad de la cuenta (404, ACC-06) y que
+ *    el periodo no sea anterior al mes de apertura de la cuenta en CDMX (422 en `/period`, HIS-11);
  * 3. acumula el resumen mientras el renderizador recibe los renglones por tandas;
  * 4. verifica la conciliación: si no cuadra, log ERROR con alerta y 500, y el documento no sale;
  * 5. registra `STATEMENT_EXPORTED` en su propia transacción (no acompaña un cambio de negocio,
@@ -68,6 +70,18 @@ export class GenerateStatement {
     const read = await this.deps.reader.withSnapshot(async (snapshot) => {
       const account = await snapshot.account(userId, accountId);
       if (!account) throw notFound();
+      // Después de la propiedad: una cuenta ajena sigue siendo 404 y no revela su fecha de apertura.
+      if (isPeriodBeforeCreation(period.value, account.createdAt)) {
+        throw new DomainError('VALIDATION_FAILED', 'Revisa el periodo', {
+          errors: [
+            {
+              pointer: '/period',
+              code: 'DATE_OUT_OF_RANGE',
+              message: 'El periodo es anterior a la apertura de tu cuenta',
+            },
+          ],
+        });
+      }
       const summary = StatementSummary.open(
         await snapshot.openingBalance(account.id, period.start),
       );

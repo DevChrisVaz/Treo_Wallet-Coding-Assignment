@@ -41,7 +41,7 @@ export interface PassSummary {
 
 /**
  * Ejecutor de transferencias programadas (TRF-30, TRF-31, TRF-36, D6). `runOnce()` es una pasada:
- * lee sin bloqueo las SCHEDULED vencidas al día de CDMX de hoy, en lotes y en orden de ejecución,
+ * lee sin bloqueo las SCHEDULED cuyo instante (`scheduled_for`) ya llegó, en lotes y en orden de ejecución,
  * y ejecuta cada una en su propia transacción con el orden global de bloqueos:
  * 1. fila contador del usuario y del día de ahora (solo THIRD_PARTY);
  * 2. la transferencia con `FOR NO KEY UPDATE SKIP LOCKED`, solo si sigue SCHEDULED: si otra
@@ -68,7 +68,7 @@ export class ScheduledTransferRunner {
     const summary = { completed: 0, failed: 0, skipped: 0, errors: 0 };
     let after: string | null = null;
     for (;;) {
-      const batch = await queue.due(today, batchSize, after);
+      const batch = await queue.due(clock.now(), batchSize, after);
       for (const candidate of batch) {
         try {
           const outcome = await this.execute(candidate);
@@ -144,7 +144,7 @@ export class ScheduledTransferRunner {
       const facts = {
         userId: transfer.userId,
         amount: amount.toDecimalString(),
-        scheduledFor: transfer.scheduledFor,
+        scheduledFor: transfer.scheduledFor.toISOString(),
       };
       if (execution.kind === 'DECLINED') {
         await store.fail(tx, transfer.id, execution.reason);

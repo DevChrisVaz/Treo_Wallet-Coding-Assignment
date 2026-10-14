@@ -29,6 +29,11 @@ services:
     environment:
       MP_SMTP_AUTH_ACCEPT_ANY: 'true'
       MP_SMTP_AUTH_ALLOW_INSECURE: 'true'
+      # Bandeja persistente: sin esto los correos se pierden al recrear el contenedor.
+      MP_DATABASE: /data/mailpit.db
+    volumes:
+      - mailpit-data:/data
 
 volumes:
   postgres-data:
+  mailpit-data:

@@ -76,6 +76,7 @@ describe('HIS-12 lector del estado de cuenta', () => {
       name: 'Principal',
       clabe: ana.principal.clabe,
       holderName: ana.person.fullName,
+      createdAt: expect.any(Date),
     });
     expect(result.foreign).toBeNull();
   });

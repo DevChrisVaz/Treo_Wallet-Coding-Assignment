@@ -7,11 +7,10 @@ import {
 } from '../../../../platform/http/validation.js';
 import { DomainError } from '../../../../shared/errors.js';
 import { Money, MoneyParseError } from '../../../../shared/money.js';
-import { isValidCalendarDate } from '../../../identity/domain/calendar.js';
+import { optionalReference, parseInstant, scheduledInstant } from '@devchrisvaz/wallet-contract';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NO_EDGE_SPACES = /^\S(.*\S)?$/u;
-const SCHEDULED_DATE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 
 export type TransferDestinationInput =
   | { readonly type: 'OWN_ACCOUNT'; readonly id: string }
@@ -95,25 +94,19 @@ const destinationField = z
   });
 
 /**
- * `ScheduledDate` del contrato (TRF-27): `YYYY-MM-DD` y una fecha que existe en el calendario. El
- * rango (de mañana a 90 días) depende de la hora, así que lo valida el caso de uso con el `Clock`.
+ * `ScheduledInstant` del contrato (TRF-27): RFC 3339 con desfase, fecha y hora que existen y
+ * minutos exactos (sin segundos ni fracción); se entrega como `Date`. La forma la revisa el
+ * validador del contrato; la ventana (10 minutos a 90 días) depende de la hora, así que la valida
+ * el caso de uso con el `Clock`.
  */
-const scheduledDateField = textField({
-  check: (value, ctx) => {
-    if (!SCHEDULED_DATE.test(value)) {
-      return addFieldIssue(ctx, 'INVALID_FORMAT', 'La fecha debe tener la forma AAAA-MM-DD');
-    }
-    const [year, month, day] = value.split('-').map(Number) as [number, number, number];
-    if (!isValidCalendarDate(year, month, day)) {
-      addFieldIssue(ctx, 'INVALID_DATE', 'La fecha no existe');
-    }
-  },
-});
+const scheduledInstantField = scheduledInstant.transform(
+  (value) => parseInstant(value) ?? new Date(Number.NaN),
+);
 
 /**
  * `CreateTransferRequest` (TRF-08, TRF-09, TRF-27): monto como string decimal positivo con 0 a 2
- * decimales, concepto de 1 a 40 caracteres sin espacios en los extremos, referencia de 1 a 7
- * dígitos, que se interpreta como número (0 a 9999999), y fecha programada opcional.
+ * decimales, concepto de 1 a 40 caracteres sin espacios en los extremos, referencia opcional de 1 a 7
+ * dígitos, que se interpreta como número (0 a 9999999), e instante programado opcional.
  */
 export const createTransferRequestSchema = z.strictObject({
   fromAccountId: uuidField,
@@ -134,15 +127,11 @@ export const createTransferRequestSchema = z.strictObject({
       }
     },
   }),
-  reference: textField({
-    check: (value, ctx) => {
-      if (!/^[0-9]+$/.test(value)) {
-        return addFieldIssue(ctx, 'INVALID_FORMAT', 'La referencia solo admite dígitos');
-      }
-      if (value.length > 7) addFieldIssue(ctx, 'TOO_LONG', 'La referencia admite máximo 7 dígitos');
-    },
-  }).transform((value) => Number.parseInt(value, 10)),
-  scheduledFor: scheduledDateField.optional(),
+  // Opcional (TRF-09): ausente o vacía es "sin referencia" (`null`); si hay texto, 1 a 7 dígitos.
+  reference: optionalReference.transform((value) =>
+    value === undefined ? null : Number.parseInt(value, 10),
+  ),
+  scheduledFor: scheduledInstantField.optional(),
 });
 
 export type CreateTransferInput = z.output<typeof createTransferRequestSchema>;
