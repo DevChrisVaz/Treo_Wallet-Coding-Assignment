@@ -164,6 +164,20 @@ describe('OtpStep', () => {
     await submitCode(user, '000000');
     expect(await screen.findByText('Te quedan 2 intentos.')).toBeVisible();
   });
+
+  it('WEB-25 WEB-30 las acciones van a la distancia de los bloques del paso y el texto con el campo en su propia pila, como la historia', () => {
+    renderStep();
+    const field = screen.getByLabelText('Código de 6 dígitos');
+    // Historia `TransferOtp`: el paso separa sus bloques con gap-5 (en el dashboard las acciones van
+    // en línea, a 20 px del campo); el aviso, los datos del código y el campo van con gap-4.
+    expect(field.closest('form')).toHaveClass('grid', 'gap-5');
+    const stack = screen.getByText(
+      'Te enviamos un código de 6 dígitos a an***@example.com.',
+    ).parentElement;
+    expect(stack).toHaveClass('grid', 'gap-4');
+    expect(stack).toContainElement(field);
+    expect(stack).not.toContainElement(screen.getByRole('button', { name: 'Confirmar' }));
+  });
 });
 
 describe('EndedStep', () => {

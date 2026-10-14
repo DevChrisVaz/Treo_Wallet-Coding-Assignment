@@ -157,20 +157,23 @@ export function OtpStep({ transfer, onConfirmed, onEnded, actions = 'fixed' }: O
       <form
         noValidate
         onSubmit={(event) => void handleSubmit(confirm)(event)}
-        className="grid gap-4"
+        className="grid gap-5"
       >
-        {challenge ? (
-          <>
-            <p className="text-body text-fg">
-              Te enviamos un código de 6 dígitos a {challenge.maskedDestination}.
-            </p>
-            <div className="grid gap-1 text-body-sm text-fg-secondary tabular-nums">
-              <p>Vence a las {formatTime(challenge.expiresAt)}.</p>
-              <p>{attempts(challenge.attemptsRemaining)}</p>
-            </div>
-          </>
-        ) : null}
-        <OtpField label="Código de 6 dígitos" error={errors.otp?.message} {...register('otp')} />
+        {/* Como la historia: el aviso, los datos y el campo en su pila; las acciones, a la distancia del paso. */}
+        <div className="grid gap-4">
+          {challenge ? (
+            <>
+              <p className="text-body text-fg">
+                Te enviamos un código de 6 dígitos a {challenge.maskedDestination}.
+              </p>
+              <div className="grid gap-1 text-body-sm text-fg-secondary tabular-nums">
+                <p>Vence a las {formatTime(challenge.expiresAt)}.</p>
+                <p>{attempts(challenge.attemptsRemaining)}</p>
+              </div>
+            </>
+          ) : null}
+          <OtpField label="Código de 6 dígitos" error={errors.otp?.message} {...register('otp')} />
+        </div>
         <StepActions stacked={canResend} fixed={actions === 'fixed'}>
           <Button type="submit" loading={confirming} loadingLabel="Confirmando…">
             Confirmar
