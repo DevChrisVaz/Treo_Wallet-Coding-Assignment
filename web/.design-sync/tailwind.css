@@ -1,0 +1,36 @@
+/*
+ * Hoja de estilos que recibe Claude Design. Es la de la app (app/globals.css: Tailwind v4, tokens
+ * --dt-* sin la paleta por defecto y la capa base) compilada de forma estática, así que solo
+ * existen las clases que aparecen en el código escaneado. Por eso, además de la app y de las
+ * previews, se generan las familias de utilidades que el agente de diseño puede usar para la
+ * composición de sus pantallas (colores semánticos, tipografía, radios, espaciado y layout).
+ */
+
+/* La app sirve Work Sans con next/font/google; aquí se carga desde Google Fonts. */
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600&display=swap');
+@import '../app/globals.css';
+
+/* next/font define --font-work-sans en <html>; globals.css arma --dt-font-sans con ella. */
+:root {
+  --font-work-sans: 'Work Sans';
+}
+
+@source './previews';
+
+/* Colores semánticos de los tokens (DSG-01) en fondo, texto, borde y divisores. */
+@source inline("{hover:,}{bg,text,border,divide}-{surface,surface-subtle,surface-brand,surface-inverse,fg,fg-secondary,fg-muted,fg-disabled,fg-on-action,fg-on-action-active,fg-on-inverse,action,action-active,action-disabled,border,border-input,focus,accent,success,success-soft,warning,warning-soft,danger,danger-soft,info,info-soft,neutral,neutral-soft,money-in,money-out}");
+
+/* Tipografía, radios y sombra del sistema. */
+@source inline("text-{display,h1,h2,h3,body,body-sm,label,caption}");
+@source inline("font-{normal,medium,semibold} tabular-nums truncate break-words uppercase text-{left,center,right}");
+@source inline("rounded{,-t,-b}-{sm,md,lg,pill} shadow-card");
+
+/* Espaciado (escala de 4 px de Tailwind) y layout. */
+@source inline("{p,px,py,pt,pb,pl,pr,m,mx,my,mt,mb,ml,mr,gap,gap-x,gap-y,space-y,space-x}-{0,0.5,1,1.5,2,3,4,5,6,8,10,12,16}");
+@source inline("{sm:,md:,lg:,}{flex,inline-flex,grid,block,inline-block,hidden,flex-col,flex-row,flex-wrap,grid-cols-1,grid-cols-2,grid-cols-3,grid-cols-4,col-span-2,col-span-3,items-start,items-center,items-end,items-baseline,justify-start,justify-center,justify-end,justify-between,text-left,text-right}");
+@source inline("flex-1 shrink-0 grow mx-auto w-full h-full min-h-dvh min-w-0 max-w-{sm,md,lg,xl,2xl,3xl,5xl} size-{4,5,6,8,10,12} border border-{t,b,l,r} divide-y overflow-hidden relative absolute inset-0 sr-only list-none");
+@source inline("w-{1/2,1/3,2/3,1/4,3/4,auto,fit,8,10,12,16,24,32,48,64} h-{2,4,8,10,11,12,16,24,32,48,64,auto} min-h-{11,screen} max-h-{64,96}");
+@source inline("{sm:,md:,lg:,}{grid-cols-5,grid-cols-6,grid-cols-12,col-span-1,col-span-4,col-span-6,col-span-12,order-first,order-last,w-auto,w-1/2,w-1/3}");
+@source inline("self-{start,center,end,stretch} place-items-center place-content-center whitespace-nowrap overflow-y-auto overflow-x-auto");
+@source inline("sticky fixed top-0 bottom-0 left-0 right-0 inset-x-0 z-{10,20,50} {bg-surface-inverse,bg-fg}/{40,60,80} opacity-{50,60,80}");
+@source inline("ring-2 ring-action underline underline-offset-2 no-underline cursor-pointer transition-colors");

@@ -43,3 +43,11 @@ Prueba T*cnica*.md
 
 # Salida temporal de Playwright MCP (capturas y registros de la consola)
 .playwright-mcp/
+
+# design-sync (Claude Design): scripts del convertidor, salida del build y estado de la máquina.
+# Lo durable de cada app vive en <app>/.design-sync/ y sí se versiona.
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
