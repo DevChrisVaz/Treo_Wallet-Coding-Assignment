@@ -1,3 +1,4 @@
+import { focusRing } from '@devchrisvaz/wallet-design-tokens';
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -57,7 +58,10 @@ function HeroAmountField({
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
-      <View style={[styles.row, { borderBottomColor: underline }, disabled && styles.disabled]}>
+      <View
+        testID="hero-amount-row"
+        style={[styles.row, { borderBottomColor: underline }, disabled && styles.disabled]}
+      >
         <Text style={styles.prefix}>$</Text>
         <TextInput
           {...inputProps}
@@ -81,6 +85,7 @@ function HeroAmountField({
           placeholderTextColor={theme.colors.text.muted}
           style={[
             styles.input,
+            styles.field,
             textWidth === undefined ? null : { width: textWidth + theme.spacing[1] },
           ]}
         />
@@ -114,7 +119,7 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     justifyContent: 'center',
     gap: theme.spacing[1],
-    borderBottomWidth: 2,
+    borderBottomWidth: focusRing.width,
     paddingVertical: theme.spacing[2],
     alignSelf: 'stretch',
   },
@@ -127,7 +132,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 0,
   },
-  mirror: { position: 'absolute', opacity: 0 },
+  // Un monto largo no desborda la fila (como `max-w-full` en la web): el espejo no pasa del ancho de
+  // la fila y el campo se encoge hasta caber junto al $; lo que no cabe se desplaza dentro del campo.
+  field: { flexShrink: 1, minWidth: 0 },
+  mirror: { position: 'absolute', opacity: 0, maxWidth: '100%' },
   disabled: { opacity: 0.5 },
   note: { ...theme.typography.caption, color: theme.colors.text.muted, textAlign: 'center' },
   error: { color: theme.colors.status.danger.fg },

@@ -1,3 +1,4 @@
+import { focusRing } from '@devchrisvaz/wallet-design-tokens';
 import { fireEvent, render, screen, userEvent } from '@testing-library/react-native';
 import { useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -134,6 +135,35 @@ describe('AmountField hero', () => {
       nativeEvent: { layout: { x: 0, y: 0, width: 180, height: 48 } },
     });
     expect(screen.getByLabelText('Monto')).toHaveStyle({ width: 180 + theme.spacing[1] });
+  });
+
+  test('MOB-08 en la variante héroe un monto largo no desborda la fila junto al $', async () => {
+    await render(
+      <AmountField
+        variant="hero"
+        label="Monto"
+        value="123456789012345678.00"
+        onChangeText={() => {}}
+      />,
+    );
+    const mirror = screen.getByTestId('hero-amount-mirror', { includeHiddenElements: true });
+    expect(mirror).toHaveStyle({ maxWidth: '100%' });
+    await fireEvent(mirror, 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 900, height: 48 } },
+    });
+    // El campo puede pedir más ancho que la fila, pero se encoge hasta caber al lado del $.
+    expect(screen.getByLabelText('Monto')).toHaveStyle({
+      width: 900 + theme.spacing[1],
+      flexShrink: 1,
+      minWidth: 0,
+    });
+  });
+
+  test('DSG-06 el subrayado del monto héroe usa el ancho del anillo de foco', async () => {
+    await render(<AmountField variant="hero" label="Monto" value="" onChangeText={() => {}} />);
+    expect(screen.getByTestId('hero-amount-row')).toHaveStyle({
+      borderBottomWidth: focusRing.width,
+    });
   });
 });
 
