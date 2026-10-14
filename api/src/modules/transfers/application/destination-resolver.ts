@@ -10,6 +10,8 @@ export interface TransferRequest {
   readonly amount: Money;
   readonly concept: string;
   readonly reference: number;
+  /** Fecha de ejecución (`YYYY-MM-DD`, ya válida en el calendario); sin ella es inmediata. */
+  readonly scheduledFor?: string | null | undefined;
 }
 
 export interface ResolvedRoute {

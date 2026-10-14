@@ -63,6 +63,8 @@ export class FundAccount {
         otpExpiresAt: null,
         createdAt: clock.now(),
         completedAt: null,
+        scheduledFor: null,
+        cancelledAt: null,
       });
       const locked = await locks.lock(tx, [treasuryId, accountId]);
       const byId = new Map(locked.map((account) => [account.id, account]));

@@ -51,3 +51,30 @@ describe('TRF-04 fingerprint del contenido interpretado', () => {
     );
   });
 });
+
+describe('TRF-29 la fecha programada en la huella', () => {
+  /** Vector tomado del código anterior a scheduled-transfers (commit f912d00): no puede cambiar. */
+  const immediate = {
+    fromAccountId: '11111111-1111-4111-8111-111111111111',
+    destination: { type: 'BENEFICIARY' as const, id: '22222222-2222-4222-8222-222222222222' },
+    amount: Money.parse('1250.50'),
+    concept: 'Renta de octubre',
+    reference: '1234567',
+  };
+  const PINNED = '99cb4c87a8533b7979dd67cb16d3584138b24efdbda00ce8f4398d99ffd6510c';
+
+  it('TRF-29 la huella de una transferencia inmediata no cambia', () => {
+    expect(transferFingerprint(immediate)).toBe(PINNED);
+    expect(transferFingerprint({ ...immediate, scheduledFor: null })).toBe(PINNED);
+  });
+
+  it('TRF-29 una programada nunca coincide con la inmediata del mismo contenido', () => {
+    expect(transferFingerprint({ ...immediate, scheduledFor: '2026-10-15' })).not.toBe(PINNED);
+  });
+
+  it('TRF-29 otra fecha produce otra huella y la misma fecha la misma', () => {
+    const first = transferFingerprint({ ...immediate, scheduledFor: '2026-10-15' });
+    expect(transferFingerprint({ ...immediate, scheduledFor: '2026-10-15' })).toBe(first);
+    expect(transferFingerprint({ ...immediate, scheduledFor: '2026-10-16' })).not.toBe(first);
+  });
+});
