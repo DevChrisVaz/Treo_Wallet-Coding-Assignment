@@ -13,7 +13,7 @@ module.exports = {
   testTimeout: 30_000,
   transform: { '\\.mjs$': preset.transform['\\.[jt]sx?$'] },
   transformIgnorePatterns: [
-    nodeModules.replace(/\)\)$/, '|@devchrisvaz))'),
+    nodeModules.replace(/\)\)$/, '|@devchrisvaz|lucide-react-native|react-native-svg))'),
     ...otherIgnorePatterns,
   ],
   // Metro resuelve la salida ESM del contrato (condición `import`); Jest usaría la CommonJS, cuyo

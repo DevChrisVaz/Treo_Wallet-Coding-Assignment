@@ -5,7 +5,7 @@ import { formatMXN } from '@devchrisvaz/wallet-contract';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import { movementPresentation } from '../display';
+import { movementPresentation, sumAmounts } from '../display';
 
 const SRC = join(__dirname, '..', '..');
 
@@ -44,5 +44,13 @@ describe('formato de montos en es-MX', () => {
       )
       .map((file) => relative(SRC, file));
     expect(offenders).toEqual([]);
+  });
+});
+
+describe('sumAmounts', () => {
+  test('MOB-19 suma los saldos en centavos sin punto flotante', () => {
+    expect(sumAmounts(['25000.00', '10000.00'])).toBe('35000.00');
+    expect(sumAmounts(['0.10', '0.20'])).toBe('0.30');
+    expect(sumAmounts([])).toBe('0.00');
   });
 });

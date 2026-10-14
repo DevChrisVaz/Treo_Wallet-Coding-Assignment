@@ -1,11 +1,13 @@
 import type { Movement, Transfer } from '@devchrisvaz/wallet-contract';
 import { act, render, screen } from '@testing-library/react-native';
-import { AccessibilityInfo, Animated } from 'react-native';
+import { AccessibilityInfo, Animated, View } from 'react-native';
+import type { ReactTestRendererJSON } from 'react-test-renderer';
 
 import { theme } from '@/theme';
 
 import {
   AccountCard,
+  Avatar,
   DailyLimitMeter,
   EmptyState,
   InlineAlert,
@@ -48,7 +50,14 @@ describe('MovementRow', () => {
       fontVariant: ['tabular-nums'],
     });
     expect(screen.getByText('Saldo $24,850.00')).toBeOnTheScreen();
-    expect(screen.getByText('12 oct, 19:05')).toBeOnTheScreen();
+    expect(screen.getByLabelText('12 oct, 19:05')).toBeOnTheScreen();
+  });
+
+  test('MOB-20 muestra hora, referencia y saldo, con avatar por tipo', async () => {
+    await render(<MovementRow movement={movement({})} />);
+    expect(screen.getByText('19:05 · Ref. 1')).toBeOnTheScreen();
+    expect(screen.getByText('Saldo $24,850.00')).toBeOnTheScreen();
+    expect(screen.getByTestId('movement-avatar', { includeHiddenElements: true })).toBeTruthy();
   });
 
   test('DSG-10 un depósito de la Tesorería (sin contraparte) muestra +$ en verde', async () => {
@@ -90,6 +99,11 @@ describe('InlineAlert', () => {
     expect(screen.getByText('No tienes saldo suficiente.')).toHaveStyle({
       color: theme.colors.status.danger.fg,
     });
+  });
+
+  test('DSG-15 la alerta de error lleva su icono, decorativo', async () => {
+    await render(<InlineAlert tone="danger" message="No tienes saldo suficiente." />);
+    expect(screen.getByTestId('inline-alert-icon', { includeHiddenElements: true })).toBeTruthy();
   });
 
   test('DSG-11 un aviso informativo se anuncia sin interrumpir', async () => {
@@ -189,5 +203,32 @@ describe('Receipt', () => {
     expect(screen.getByText('1234567')).toBeOnTheScreen();
     expect(screen.getByText('13 oct 2026, 10:42')).toBeOnTheScreen();
     expect(screen.getByText(transfer.id)).toBeOnTheScreen();
+  });
+
+  test('MOB-13 el comprobante usa el icono de éxito solo si la transferencia se completó', async () => {
+    // El avatar renderizado debe ser idéntico al de la tabla: mismo tono e icono.
+    const avatarJson = () =>
+      JSON.stringify(
+        (screen.toJSON() as ReactTestRendererJSON).children
+          ?.filter((child): child is ReactTestRendererJSON => typeof child !== 'string')
+          .find((child) => child.props.testID === 'receipt-avatar'),
+      );
+    const expected = async (tone: 'success' | 'neutral', icon: 'success' | 'info') => {
+      await screen.unmount();
+      await render(
+        <View testID="receipt-avatar">
+          <Avatar size="lg" tone={tone} icon={icon} />
+        </View>,
+      );
+      return JSON.stringify(screen.toJSON());
+    };
+    await render(<Receipt transfer={transfer} />);
+    const completed = avatarJson();
+    await expected('success', 'success').then((json) => expect(completed).toBe(json));
+    await screen.unmount();
+    await render(<Receipt transfer={{ ...transfer, status: 'FAILED' }} />);
+    const failed = avatarJson();
+    await expected('neutral', 'info').then((json) => expect(failed).toBe(json));
+    expect(failed).not.toBe(completed);
   });
 });

@@ -44,6 +44,19 @@ export const WithError = () => (
   </View>
 );
 
+// `hero`: el monto protagonista del paso de monto (MOB-21), grande, centrado y subrayado.
+export const Hero = () => (
+  <View style={{ ...frame, backgroundColor: theme.colors.surface.canvas }}>
+    <AmountField
+      variant="hero"
+      label="Monto"
+      value="1250.00"
+      help="Hasta 2 decimales, sin comas."
+      onChangeText={noop}
+    />
+  </View>
+);
+
 export const Disabled = () => (
   <View style={frame}>
     <AmountField label="Monto" value="3000.00" disabled onChangeText={noop} />

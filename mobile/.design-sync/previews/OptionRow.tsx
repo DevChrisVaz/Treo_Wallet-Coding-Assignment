@@ -1,4 +1,4 @@
-import { Button, OptionRow, Text, View, theme } from 'wallet-mobile-ui';
+import { Button, IconButton, OptionRow, Text, View, theme } from 'wallet-mobile-ui';
 
 const noop = () => {};
 
@@ -26,12 +26,13 @@ export const LabelOnly = () => (
   </View>
 );
 
-// Contenido de la hoja inferior que abre Select: título y la lista de opciones.
+// Contenido de la hoja inferior que abre Select (la de BottomSheet: fondo verde al 60 %, asa,
+// título con Cerrar). La hoja real es un Modal: ver la historia SourceAccount de BottomSheet.
 export const AccountSheet = () => (
   <View
     style={{
       width: 360,
-      minHeight: 320,
+      minHeight: 340,
       justifyContent: 'flex-end',
       overflow: 'hidden',
       borderRadius: theme.radius.md,
@@ -44,7 +45,7 @@ export const AccountSheet = () => (
         right: 0,
         bottom: 0,
         left: 0,
-        backgroundColor: theme.colors.surface.inverse,
+        backgroundColor: theme.colors.surface.hero,
         opacity: 0.6,
       }}
     />
@@ -53,16 +54,31 @@ export const AccountSheet = () => (
         backgroundColor: theme.colors.surface.default,
         borderTopLeftRadius: theme.radius.lg,
         borderTopRightRadius: theme.radius.lg,
-        paddingTop: theme.spacing[5],
-        paddingHorizontal: theme.spacing[4],
-        paddingBottom: theme.spacing[4],
-        gap: theme.spacing[3],
+        paddingTop: theme.spacing[3],
+        paddingHorizontal: theme.spacing[5],
+        paddingBottom: theme.spacing[6],
+        gap: theme.spacing[4],
+        ...theme.elevation.sheet,
       }}
     >
-      <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }}>
-        Cuenta de origen
-      </Text>
-      <View>
+      <View
+        style={{
+          alignSelf: 'center',
+          width: theme.spacing[10],
+          height: theme.spacing[1],
+          borderRadius: theme.radius.pill,
+          backgroundColor: theme.colors.border.default,
+        }}
+      />
+      <View
+        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+      >
+        <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }}>
+          Cuenta de origen
+        </Text>
+        <IconButton icon="close" label="Cerrar" onPress={noop} />
+      </View>
+      <View style={{ gap: theme.spacing[2] }}>
         <OptionRow
           option={{
             value: 'principal',

@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { formatDateTime, maskClabe } from '@/lib/display';
 import { theme } from '@/theme';
 
+import { Avatar } from './avatar';
 import { StatusBadge } from './status-badge';
 
 interface ReceiptProps {
@@ -26,8 +27,16 @@ function Row({ label, value, selectable }: { label: string; value: string; selec
 /** Comprobante: estado, monto, origen, destino, concepto, referencia, fecha y folio. */
 export function Receipt({ transfer, fromAccountName }: ReceiptProps) {
   const { destination } = transfer;
+  const completed = transfer.status === 'COMPLETED';
   return (
     <View style={styles.card}>
+      <View testID="receipt-avatar">
+        <Avatar
+          size="lg"
+          tone={completed ? 'success' : 'neutral'}
+          icon={completed ? 'success' : 'info'}
+        />
+      </View>
       <StatusBadge status={transfer.status} />
       <Text style={styles.amount}>{formatMXN(transfer.amount)}</Text>
       <Row label="Origen" value={fromAccountName ?? 'Tu cuenta'} />
@@ -49,10 +58,10 @@ export function Receipt({ transfer, fromAccountName }: ReceiptProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface.default,
-    borderRadius: theme.radius.md,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
     borderColor: theme.colors.border.default,
-    padding: theme.spacing[5],
+    padding: theme.spacing[6],
     gap: theme.spacing[3],
     ...theme.elevation.card,
   },

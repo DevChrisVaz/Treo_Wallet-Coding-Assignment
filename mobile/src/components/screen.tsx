@@ -16,16 +16,24 @@ interface ScreenProps {
   /** Deslizar hacia abajo para actualizar. */
   refresh?: { refreshing: boolean; onRefresh: () => void };
   footer?: ReactNode;
+  /** Encabezado fijo sobre el contenido desplazable. */
+  header?: ReactNode;
+  /**
+   * Reservado; en móvil la barra no se superpone: el navegador de pestañas la pone debajo de la
+   * pantalla, así que el contenido no reserva su alto (se conserva por compatibilidad).
+   */
+  tabBar?: boolean;
 }
 
 /** Contenedor de pantalla: área segura, desplazamiento, teclado y margen del sistema. */
-export function Screen({ children, refresh, footer }: ScreenProps) {
+export function Screen({ children, refresh, footer, header }: ScreenProps) {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        {header}
         <ScrollView
           testID="screen-scroll"
           contentContainerStyle={styles.content}
@@ -50,7 +58,7 @@ export function Screen({ children, refresh, footer }: ScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: theme.colors.surface.default },
+  safe: { flex: 1, backgroundColor: theme.colors.surface.canvas },
   flex: { flex: 1 },
   content: { padding: theme.spacing[5], gap: theme.spacing[5], flexGrow: 1 },
   footer: {

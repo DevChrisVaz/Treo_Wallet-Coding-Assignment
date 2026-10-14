@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, userEvent } from '@testing-library/react-native';
 import { useState } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { theme } from '@/theme';
 
@@ -27,7 +28,7 @@ describe('Button', () => {
     expect(button).toHaveStyle({
       backgroundColor: '#1C4B42',
       borderRadius: theme.radius.pill,
-      minHeight: theme.touchTarget,
+      minHeight: theme.spacing[12],
     });
     expect(screen.getByText('Enviar')).toHaveStyle({ color: '#FFFFFF' });
   });
@@ -62,7 +63,7 @@ describe('Button', () => {
     const button = screen.getByRole('button', { name: 'Enviar' });
     expect(button).toBeDisabled();
     expect(button).toBeBusy();
-    expect(button).toHaveStyle({ minHeight: theme.touchTarget });
+    expect(button).toHaveStyle({ minHeight: theme.spacing[12] });
     expect(screen.getByText('Enviar')).toBeOnTheScreen();
     await fireEvent.press(button);
     expect(onPress).not.toHaveBeenCalled();
@@ -114,6 +115,28 @@ describe('AmountField', () => {
   });
 });
 
+describe('AmountField hero', () => {
+  test('MOB-08 la variante héroe muestra el prefijo $ y limpia el valor pegado igual que la normal', async () => {
+    const onChangeText = jest.fn();
+    await render(<AmountField variant="hero" label="Monto" value="" onChangeText={onChangeText} />);
+    expect(screen.getByText('$')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Monto'), '1,250.50');
+    expect(onChangeText).toHaveBeenCalledWith('1250.50');
+  });
+
+  test('MOB-08 el campo del monto héroe mide su texto para que el $ quede junto al monto', async () => {
+    await render(
+      <AmountField variant="hero" label="Monto" value="1250.00" onChangeText={() => {}} />,
+    );
+    const mirror = screen.getByTestId('hero-amount-mirror', { includeHiddenElements: true });
+    expect(mirror).toHaveTextContent('1250.00');
+    await fireEvent(mirror, 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 180, height: 48 } },
+    });
+    expect(screen.getByLabelText('Monto')).toHaveStyle({ width: 180 + theme.spacing[1] });
+  });
+});
+
 describe('OtpField', () => {
   test('DSG-11 acepta pegar el código, se queda con 6 dígitos y se ofrece al autocompletado', async () => {
     const onChangeText = jest.fn();
@@ -133,16 +156,23 @@ describe('Select', () => {
     { value: 'a2', label: 'Ahorro', description: '•••• 1234' },
   ];
 
+  const metrics = {
+    frame: { x: 0, y: 0, width: 390, height: 844 },
+    insets: { top: 0, left: 0, right: 0, bottom: 0 },
+  };
+
   function ControlledSelect() {
     const [value, setValue] = useState<string | undefined>(undefined);
     return (
-      <Select
-        label="Cuenta de origen"
-        placeholder="Elige una cuenta"
-        options={options}
-        value={value}
-        onChange={setValue}
-      />
+      <SafeAreaProvider initialMetrics={metrics}>
+        <Select
+          label="Cuenta de origen"
+          placeholder="Elige una cuenta"
+          options={options}
+          value={value}
+          onChange={setValue}
+        />
+      </SafeAreaProvider>
     );
   }
 
