@@ -32,7 +32,8 @@ function TransferDetailContent({ transferId }: { transferId: string }) {
   const overview = useAccountsOverview();
   const query = useTransfer(transferId);
   const [ended, setEnded] = useState<ActionProblem | null>(null);
-  // Confirmada en esta página: su comprobante toma el foco (WEB-23); al abrirla ya resuelta, no.
+  // Confirmada en esta página: el título del comprobante aparece y toma el foco (WEB-23); al abrirla
+  // ya resuelta no hay título de paso.
   const [confirmedHere, setConfirmedHere] = useState(false);
 
   if (query.isPending || overview.isPending) {
@@ -86,11 +87,11 @@ function TransferDetailContent({ transferId }: { transferId: string }) {
       </>
     );
   }
+  // Al abrirla ya resuelta, la página ("Transferencia") y el comprobante bastan, como en la historia
+  // aprobada (WEB-25). Confirmada aquí, el título del paso anuncia el resultado y toma el foco (WEB-23).
   return (
     <>
-      <StepHeading key="receipt" focus={confirmedHere}>
-        {receiptTitle(transfer)}
-      </StepHeading>
+      {confirmedHere ? <StepHeading key="receipt">{receiptTitle(transfer)}</StepHeading> : null}
       <ReceiptStep transfer={transfer} accounts={overview.data.accounts} actions="inline" />
     </>
   );

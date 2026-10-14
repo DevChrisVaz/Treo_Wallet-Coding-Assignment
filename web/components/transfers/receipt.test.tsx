@@ -163,10 +163,17 @@ describe('TransferDetailScreen', () => {
     expect(await screen.findByRole('heading', { name: 'Transferencia enviada' })).toHaveFocus();
   });
 
-  it('WEB-23 al abrir el detalle de una transferencia completada, su título no toma el foco', async () => {
+  // Reemplaza "al abrir el detalle de una transferencia completada, su título no toma el foco"
+  // (superseded by WEB-25: la historia aprobada `TransferDetail` no lleva título de paso; la página
+  // ya se llama "Transferencia"). El foco sigue sin moverse al abrirla.
+  it('WEB-23 WEB-25 al abrir el detalle de una transferencia completada no hay título de paso y el foco no se mueve', async () => {
     reads(transfer());
     renderWithClient(<TransferDetailScreen transferId={transfer().id} />);
-    expect(await screen.findByRole('heading', { name: 'Transferencia enviada' })).not.toHaveFocus();
+    await screen.findByRole('region', { name: 'Comprobante' });
+    expect(
+      screen.queryByRole('heading', { name: 'Transferencia enviada' }),
+    ).not.toBeInTheDocument();
+    expect(document.body).toHaveFocus();
   });
 
   it('WEB-18 WEB-23 al agotar los intentos en el detalle, el título lo dice, la alerta recibe el foco y el comprobante queda "Fallida"', async () => {
