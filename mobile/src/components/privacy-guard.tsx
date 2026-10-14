@@ -20,11 +20,7 @@ export function PrivacyGuard({ children }: { children: ReactNode }) {
   const covered = state === 'inactive' || state === 'background';
   return (
     <View style={styles.root}>
-      <View
-        style={styles.root}
-        importantForAccessibility={covered ? 'no-hide-descendants' : 'auto'}
-        accessibilityElementsHidden={covered}
-      >
+      <View style={styles.root} aria-hidden={covered}>
         {children}
       </View>
       {covered ? <PrivacyOverlay /> : null}
