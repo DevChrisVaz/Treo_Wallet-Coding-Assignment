@@ -222,3 +222,47 @@ Decidí alinear los textos de las specs con el paquete de diseño y corregir el 
 - **Perdió una edición sin commit.** Para revertir una mutación en `action.ts` usó `git checkout`, que también descartó su propia edición sin commit de ese archivo. Lo detectó al revisar el archivo y la volvió a aplicar. Las mutaciones siguientes se revirtieron desde una copia del archivo.
 
 **Hallazgo de npm.** Al reinstalar el paquete con `file:`, npm instala la versión nueva pero conserva la anterior en el lockfile, porque la ruta no cambia. Se actualizó con `npm install @devchrisvaz/wallet-contract@file:../contract`.
+
+### Integración de la API
+
+El subagente de la API terminó `api-foundation` (48/48) y `api-ledger` (69/69) en 123 commits.
+
+**Verificación antes de integrar.** La AI principal hizo las mismas revisiones que con web y móvil:
+- Volvió a correr en el worktree lint, typecheck, formato, build y las 713 pruebas, con PostgreSQL y Mailpit reales.
+- Revisó que todos los commits usaran mi identidad y llevaran trailers.
+- Revisó que la rama solo tocara `api/`, su workflow y sus dos changes.
+
+Después de integrar, reinstaló el contrato 1.1.0 en `/api` y repitió las pruebas: siguen pasando las 713.
+
+**Comprobaciones con datos reales:**
+- **Seed.** `db:seed` crea 120,128 asientos en 10.7 s, y la segunda corrida no agrega nada.
+- **Historial.** Los planes de EXPLAIN ANALYZE del historial (0.17 a 0.77 ms, sin ordenamiento) están en `api-ledger/design.md`.
+- **CI.** La simulación del CI en un clon limpio corre las migraciones de ida, de vuelta y de ida otra vez.
+
+**Errores de la AI que detectaron las pruebas:**
+- Supuso que `/auth/refresh` devolvía los tokens anidados en `tokens`.
+- En tres pruebas adelantó el reloj más que la vigencia del token o del OTP.
+- Una prueba de acceso a recursos ajenos (IDOR) usaba una cuenta de la misma usuaria, así que habría fallado por otra razón.
+- El EXPLAIN mostró un ordenamiento causado por un hash join. Se corrigió con `JOIN LATERAL`.
+- El seed fallaba después de un `db:fund` del mismo día. Lo encontró al probar los comandos del README.
+- La simulación del CI expuso una prueba que dependía del orden de los archivos.
+
+**Mutaciones que sobrevivieron** y obligaron a mejorar las pruebas:
+- la firma del cursor comparada en bytes;
+- la frontera del vencimiento con `<`;
+- ciclos del seed con saldo negativo, que los depósitos grandes ocultaban.
+
+**Mutaciones detectadas:**
+- quitar los bloqueos;
+- invertir el orden de bloqueo, lo que provoca deadlocks;
+- quitar `ON CONFLICT`;
+- una auditoría que se traga el error;
+- usar el día en UTC en lugar de la Ciudad de México;
+- quitar `FOR UPDATE` en la transferencia.
+
+**Mismo error de proceso que en la integración.** El subagente usó `git checkout` para revertir una mutación y perdió cambios sin commit de la tarea 7.2. Los rehízo, y desde entonces respalda el archivo antes de cada mutación.
+
+**Huecos del contrato que reportó:**
+- `deliveryStatus` es obligatorio en cada lectura, pero no se guarda, así que después de la creación y del reenvío siempre dice `SENT`.
+- No hay un 422 declarado para un id mal formado en la ruta. La API responde 404.
+- Las extensiones del Problem son opcionales en el esquema, aunque las pruebas exigen que estén.
