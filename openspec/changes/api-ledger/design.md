@@ -408,12 +408,202 @@ Migraciones en este orden, cada una con `down` y con sus grants explícitos para
 
 Rollback: `db:migrate:revert` en orden inverso; los `down` eliminan triggers, funciones e índices antes que las tablas.
 
+## Notas de implementación
+
+Decisiones tomadas al implementar que precisan o ajustan este diseño, sin cambiar requisitos:
+
+- **Referencia como entero:** `transfers.reference` es `integer` (0 a 9999999) y la huella usa el valor interpretado, así que `"0001234"` y `"1234"` son el mismo contenido para la idempotencia; las respuestas devuelven `"1234"`.
+- **Ids mal formados responden 404:** `getAccount`, `getTransfer`, `confirmTransfer`, `resendTransferOtp` y `listAccountMovements` responden `404 NOT_FOUND` a un id que no es UUID, igual que a uno inexistente o ajeno. El contrato no declara `422` para el parámetro de ruta (ver huecos del contrato).
+- **Reintento de una transferencia no completada:** con la misma llave, una `REJECTED` repite el mismo `422` (con `Idempotent-Replayed` y `remaining` recalculado al momento); una `FAILED`, `PENDING_OTP` o vencida responde `200` con su estado actual. TRF-03 habla de la "rechazada", que es `REJECTED`; un `FAILED` ocurrió al confirmar, no al crear.
+- **`dailyLimit` de `GET /accounts`:** usa el `limit_cents` de la fila del día si existe (el límite vigente cuando se creó) y acota `remaining` a cero.
+- **`deliveryStatus` no se guarda:** la creación y el reenvío informan el resultado real del envío; las lecturas posteriores (`getTransfer`, reintentos) informan `SENT`, porque el contrato lo exige en cada `OtpChallenge` y la base no lo persiste (ver huecos del contrato). `TRANSFER_OTP_SENT` se audita dentro de la transacción (TRF-25), antes del envío; una falla de envío queda en el log, no en la auditoría.
+- **Orden de bloqueos de la confirmación:** fila contador → transferencia (`FOR UPDATE`, con el dueño en la misma sentencia) → código (`one_time_codes`, `FOR UPDATE`) → cuentas. El código se valida antes de bloquear las cuentas para que un código incorrecto no las retenga; el reenvío toma transferencia → código, así que no hay ciclos. `TransferLocker` expone sus pasos (`lockCounter`, `lockAccounts`) para intercalar la transferencia. Si la medianoche llega mientras espera, el reintento vuelve a validar el código (su consumo se revirtió). Una `PENDING_OTP` sin código usable es un estado inconsistente y responde 500.
+- **Eventos de la confirmación:** `OTP_ATTEMPT_FAILED` y `OTP_ATTEMPTS_EXHAUSTED` llevan `purpose: TRANSFER_CONFIRMATION` y `attemptsRemaining`; `TRANSFER_FAILED`, `reason` y `amount`. Los intentos fallidos y los `FAILED` se confirman antes de responder el error.
+- **Comprobante solo para quien envía:** `getTransfer` responde 404 a quien recibió la transferencia y a los fondeos (`FUNDING`), como dice el contrato en `Movement.transferId`.
+- **`displayName` y contraparte de un beneficiario:** su alias. Entre cuentas propias, el nombre de la cuenta; en las entradas, el nombre completo del remitente. Siempre solo los últimos 4 dígitos de la CLABE.
+- **Correo del OTP:** monto con `Money.toDisplayString()` (es-MX armado con aritmética de centavos, sin depender de los datos de ICU del entorno), nombre del destino y últimos 4 dígitos; nunca la CLABE completa.
+- **Historial:** el `LIMIT` se aplica en una subconsulta antes de unir nada y las uniones son `JOIN LATERAL`; con joins normales el planificador elegía un hash join y agregaba un `Sort` (ver EXPLAIN ANALYZE). El cursor guarda el momento con microsegundos (la precisión de `timestamptz`) y la respuesta lo muestra con milisegundos. La firma del cursor se compara como texto: comparar los bytes decodificados aceptaría un cursor con los bits sobrantes de su último carácter cambiados a mano. El hash de filtros incluye la cuenta.
+- **Filtros del historial:** un `type` repetido es 422 (el contrato declara `uniqueItems`), igual que un parámetro desconocido o un escalar repetido (`limit=10&limit=20`); `to` anterior a `from` se reporta en `/to` con `INVALID_DATE`.
+- **Restricciones adicionales al diseño:** `ck_transfers_fingerprint_hex`, checks de `kind`, `status` y motivos por estado, `ck_daily_transfer_usage_limit_positive` e índices de llaves foráneas (`ix_transfers_from_account`, `ix_transfers_to_account`, `ix_transfers_beneficiary`, `ix_beneficiaries_account`). Los constraint triggers aparecen en `pg_constraint` con `contype = 't'` y la prueba de nombres los acepta con prefijo `tg_`.
+- **Seed:** los 50 usuarios generados comparten una contraseña demo (un solo hash argon2); los beneficiarios del seed no generan `BENEFICIARY_CREATED` y las transferencias históricas no generan eventos `TRANSFER_*` (son datos de desarrollo), pero todo fondeo, inicial o periódico, se audita con `FUNDING_POSTED`. Todas las transferencias generadas tienen un lado en "Principal" de Ana (60,013 asientos de 120,128). La regla de "nada del día actual" solo revisa los asientos que agrega cada corrida, para que un `db:fund` de hoy no haga fallar otro `db:seed`; las demás invariantes revisan todo el ledger. Tarda 10.7 s en local.
+- **Prueba de planes con volumen real:** con unos miles de asientos el planificador elige para `DEPOSIT` un `Bitmap Heap Scan` seguido de `Sort` (barato con 13 filas), así que la prueba automatizada siembra el volumen completo (≈14 s, con timeout propio).
+- **Validación de contrato en todas las pruebas:** el helper `authed()` valida sola cada respuesta contra la operación que corresponde a su método y ruta, además del recorrido de contrato de la tarea 12.1.
+
+### Huecos del contrato (ninguno bloqueante)
+
+1. **Id de ruta mal formado:** las operaciones con `{accountId}` o `{transferId}` no declaran `422`; se eligió `404 NOT_FOUND`, que sí está declarado y no revela nada.
+2. **`OtpChallenge.deliveryStatus` en lecturas:** es obligatorio en cada transferencia pendiente, pero solo tiene sentido en la respuesta que hizo el envío. Las lecturas dicen `SENT`. Si la app necesita saber después que el correo falló, el contrato podría hacerlo opcional o la API persistirlo.
+3. **Extensiones del Problem:** `transferId`, `remaining`, `attemptsRemaining` y `transferStatus` son opcionales en el esquema; las pruebas exigen su presencia en los códigos donde el contrato las describe.
+
 ## EXPLAIN ANALYZE
 
-> **Pendiente:** se llena con la tarea 11.4, después de ejecutar `npm run db:seed`, con la salida real de `EXPLAIN (ANALYZE, BUFFERS)` de estas tres consultas sobre la cuenta "Principal" de Ana (~60k asientos, ~120k en total):
->
-> 1. Primera página sin filtros (`limit` 20).
-> 2. Filtrada por un tipo poco frecuente (`DEPOSIT`).
-> 3. Rango de fechas antiguo (un mes de hace 11 meses), segunda página con cursor.
->
-> Para cada una: el plan, el índice usado, la ausencia de nodo `Sort` y el tiempo de ejecución.
+Capturado con la tarea 11.4 el 2026-10-13 en el PostgreSQL 16.14 del `docker compose` local, después de `npm run db:seed` (120,128 asientos en total, 60,013 en la cuenta "Principal" de Ana; el seed termina con `ANALYZE`). Se ejecutó `EXPLAIN (ANALYZE, BUFFERS)` con el rol de la aplicación sobre el SQL exacto que genera `buildMovementQuery` (el mismo que usa `PgMovementReader`), con `limit` 20, es decir `LIMIT 21`.
+
+| Consulta | Índice del recorrido | Nodo `Sort` | Tiempo de ejecución |
+|---|---|---|---|
+| Primera página sin filtros (limit 20 → LIMIT 21) | `ix_ledger_entries_account_created` | no | 0.771 ms |
+| Filtrada por DEPOSIT (tipo poco frecuente) | `ix_ledger_entries_account_type_created` | no | 0.170 ms |
+| Rango antiguo 2025-11-01 a 2025-11-30, segunda página con cursor | `ix_ledger_entries_account_created` | no | 0.742 ms |
+
+**Hallazgo al capturarlos:** la primera versión de la consulta unía transferencia, asiento opuesto, cuenta, usuario y beneficiario con `JOIN` normales; el planificador eligió un `Hash Left Join` para `users` y tuvo que volver a ordenar al final, así que los tres planes terminaban en un nodo `Sort` (de solo 21 filas, pero HIS-09 pide que no exista). Se cambiaron esos joins por `JOIN LATERAL` sobre la página ya limitada: los `Nested Loop` conservan el orden del recorrido por índice y el `ORDER BY` externo queda satisfecho sin ordenar. La prueba automatizada de planes (tarea 11.5) fija este comportamiento. Las tablas pequeñas (`accounts`, `beneficiaries`) se leen con `Seq Scan` dentro del lateral porque tienen decenas de filas; con más usuarios el planificador pasaría a sus llaves primarias.
+
+### 1. Primera página sin filtros (limit 20 → LIMIT 21)
+
+Recorrido `Index Scan using ix_ledger_entries_account_created` con `Index Cond` sobre la cuenta; el `Limit` corta a las 21 filas (20 + 1 para saber si hay otra página) después de leer 4 páginas del índice.
+
+```text
+Nested Loop Left Join  (cost=5.47..330.46 rows=42 width=200) (actual time=0.082..0.678 rows=21 loops=1)
+  Buffers: shared hit=278
+  ->  Nested Loop  (cost=0.84..93.31 rows=21 width=120) (actual time=0.029..0.140 rows=21 loops=1)
+        Buffers: shared hit=88
+        ->  Limit  (cost=0.42..3.84 rows=21 width=77) (actual time=0.012..0.015 rows=21 loops=1)
+              Buffers: shared hit=4
+              ->  Index Scan using ix_ledger_entries_account_created on ledger_entries e  (cost=0.42..9815.46 rows=60300 width=77) (actual time=0.011..0.013 rows=21 loops=1)
+                    Index Cond: (account_id = 'c4319c65-6ad7-4a62-a537-bfd3c0241473'::uuid)
+                    Buffers: shared hit=4
+        ->  Memoize  (cost=0.42..8.44 rows=1 width=43) (actual time=0.006..0.006 rows=1 loops=21)
+              Cache Key: e.transfer_id
+              Cache Mode: logical
+              Hits: 0  Misses: 21  Evictions: 0  Overflows: 0  Memory Usage: 4kB
+              Buffers: shared hit=84
+              ->  Index Scan using pk_transfers on transfers t  (cost=0.41..8.43 rows=1 width=43) (actual time=0.005..0.005 rows=1 loops=21)
+                    Index Cond: (id = e.transfer_id)
+                    Buffers: shared hit=84
+  ->  Result  (cost=4.63..11.25 rows=2 width=64) (actual time=0.022..0.025 rows=1 loops=21)
+        One-Time Filter: (e.type <> 'DEPOSIT'::text)
+        Buffers: shared hit=190
+        ->  Nested Loop Left Join  (cost=4.63..11.24 rows=2 width=56) (actual time=0.022..0.024 rows=1 loops=21)
+              Buffers: shared hit=190
+              ->  Nested Loop Left Join  (cost=4.62..9.45 rows=2 width=51) (actual time=0.020..0.022 rows=1 loops=21)
+                    Buffers: shared hit=169
+                    ->  Hash Join  (cost=4.48..8.82 rows=2 width=43) (actual time=0.015..0.017 rows=1 loops=21)
+                          Hash Cond: (other.id = o.account_id)
+                          Buffers: shared hit=127
+                          ->  Seq Scan on accounts other  (cost=0.00..4.05 rows=105 width=59) (actual time=0.000..0.004 rows=105 loops=21)
+                                Buffers: shared hit=63
+                          ->  Hash  (cost=4.46..4.46 rows=2 width=16) (actual time=0.008..0.008 rows=1 loops=21)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=64
+                                ->  Index Only Scan using uq_ledger_entries_transfer_account on ledger_entries o  (cost=0.42..4.46 rows=2 width=16) (actual time=0.003..0.003 rows=1 loops=21)
+                                      Index Cond: (transfer_id = e.transfer_id)
+                                      Filter: (account_id <> e.account_id)
+                                      Rows Removed by Filter: 1
+                                      Heap Fetches: 0
+                                      Buffers: shared hit=64
+                    ->  Index Scan using pk_users on users sender  (cost=0.14..0.31 rows=1 width=40) (actual time=0.001..0.001 rows=1 loops=21)
+                          Index Cond: (id = other.user_id)
+                          Buffers: shared hit=42
+              ->  Materialize  (cost=0.00..1.77 rows=1 width=5) (actual time=0.002..0.002 rows=1 loops=21)
+                    Buffers: shared hit=21
+                    ->  Seq Scan on beneficiaries b  (cost=0.00..1.76 rows=1 width=5) (actual time=0.001..0.001 rows=1 loops=21)
+                          Filter: (id = t.beneficiary_id)
+                          Rows Removed by Filter: 27
+                          Buffers: shared hit=21
+Planning:
+  Buffers: shared hit=16
+Planning Time: 0.366 ms
+Execution Time: 0.771 ms
+```
+
+### 2. Filtrada por DEPOSIT (tipo poco frecuente)
+
+Recorrido `Index Scan using ix_ledger_entries_account_type_created` con `Index Cond` sobre cuenta y tipo: lee solo los 13 depósitos de la cuenta en lugar de filtrar 60,013 asientos.
+
+```text
+Nested Loop Left Join  (cost=5.47..410.72 rows=42 width=200) (actual time=0.026..0.107 rows=13 loops=1)
+  Buffers: shared hit=68
+  ->  Nested Loop  (cost=0.84..173.57 rows=21 width=120) (actual time=0.023..0.095 rows=13 loops=1)
+        Buffers: shared hit=68
+        ->  Limit  (cost=0.42..84.10 rows=21 width=77) (actual time=0.012..0.021 rows=13 loops=1)
+              Buffers: shared hit=16
+              ->  Index Scan using ix_ledger_entries_account_type_created on ledger_entries e  (cost=0.42..135.91 rows=34 width=77) (actual time=0.012..0.020 rows=13 loops=1)
+                    Index Cond: ((account_id = 'c4319c65-6ad7-4a62-a537-bfd3c0241473'::uuid) AND (type = 'DEPOSIT'::text))
+                    Buffers: shared hit=16
+        ->  Memoize  (cost=0.42..8.44 rows=1 width=43) (actual time=0.005..0.005 rows=1 loops=13)
+              Cache Key: e.transfer_id
+              Cache Mode: logical
+              Hits: 0  Misses: 13  Evictions: 0  Overflows: 0  Memory Usage: 2kB
+              Buffers: shared hit=52
+              ->  Index Scan using pk_transfers on transfers t  (cost=0.41..8.43 rows=1 width=43) (actual time=0.005..0.005 rows=1 loops=13)
+                    Index Cond: (id = e.transfer_id)
+                    Buffers: shared hit=52
+  ->  Result  (cost=4.63..11.25 rows=2 width=64) (actual time=0.000..0.000 rows=0 loops=13)
+        One-Time Filter: (e.type <> 'DEPOSIT'::text)
+        ->  Nested Loop Left Join  (cost=4.63..11.24 rows=2 width=56) (never executed)
+              ->  Nested Loop Left Join  (cost=4.62..9.45 rows=2 width=51) (never executed)
+                    ->  Hash Join  (cost=4.48..8.82 rows=2 width=43) (never executed)
+                          Hash Cond: (other.id = o.account_id)
+                          ->  Seq Scan on accounts other  (cost=0.00..4.05 rows=105 width=59) (never executed)
+                          ->  Hash  (cost=4.46..4.46 rows=2 width=16) (never executed)
+                                ->  Index Only Scan using uq_ledger_entries_transfer_account on ledger_entries o  (cost=0.42..4.46 rows=2 width=16) (never executed)
+                                      Index Cond: (transfer_id = e.transfer_id)
+                                      Filter: (account_id <> e.account_id)
+                                      Heap Fetches: 0
+                    ->  Index Scan using pk_users on users sender  (cost=0.14..0.31 rows=1 width=40) (never executed)
+                          Index Cond: (id = other.user_id)
+              ->  Materialize  (cost=0.00..1.77 rows=1 width=5) (never executed)
+                    ->  Seq Scan on beneficiaries b  (cost=0.00..1.76 rows=1 width=5) (never executed)
+                          Filter: (id = t.beneficiary_id)
+Planning:
+  Buffers: shared hit=16
+Planning Time: 0.351 ms
+Execution Time: 0.170 ms
+```
+
+### 3. Rango antiguo 2025-11-01 a 2025-11-30, segunda página con cursor
+
+Mismo índice que la primera consulta, con el rango de fechas y la comparación de filas `(created_at, id) < (…)` del cursor dentro del `Index Cond`: el recorrido empieza justo después del último movimiento de la página anterior, sin `OFFSET`.
+
+```text
+Nested Loop Left Join  (cost=5.47..395.55 rows=42 width=200) (actual time=0.066..0.631 rows=21 loops=1)
+  Buffers: shared hit=278
+  ->  Nested Loop  (cost=0.84..158.41 rows=21 width=120) (actual time=0.018..0.101 rows=21 loops=1)
+        Buffers: shared hit=88
+        ->  Limit  (cost=0.42..68.93 rows=21 width=77) (actual time=0.009..0.012 rows=21 loops=1)
+              Buffers: shared hit=4
+              ->  Index Scan using ix_ledger_entries_account_created on ledger_entries e  (cost=0.42..2166.82 rows=664 width=77) (actual time=0.009..0.011 rows=21 loops=1)
+                    Index Cond: ((account_id = 'c4319c65-6ad7-4a62-a537-bfd3c0241473'::uuid) AND (created_at >= '2025-11-01 06:00:00+00'::timestamp with time zone) AND (created_at < '2025-12-01 06:00:00+00'::timestamp with time zone) AND (ROW(created_at, id) < ROW('2025-12-01 03:09:58.8+00'::timestamp with time zone, '16179'::bigint)))
+                    Buffers: shared hit=4
+        ->  Memoize  (cost=0.42..8.44 rows=1 width=43) (actual time=0.004..0.004 rows=1 loops=21)
+              Cache Key: e.transfer_id
+              Cache Mode: logical
+              Hits: 0  Misses: 21  Evictions: 0  Overflows: 0  Memory Usage: 4kB
+              Buffers: shared hit=84
+              ->  Index Scan using pk_transfers on transfers t  (cost=0.41..8.43 rows=1 width=43) (actual time=0.004..0.004 rows=1 loops=21)
+                    Index Cond: (id = e.transfer_id)
+                    Buffers: shared hit=84
+  ->  Result  (cost=4.63..11.25 rows=2 width=64) (actual time=0.022..0.024 rows=1 loops=21)
+        One-Time Filter: (e.type <> 'DEPOSIT'::text)
+        Buffers: shared hit=190
+        ->  Nested Loop Left Join  (cost=4.63..11.24 rows=2 width=56) (actual time=0.022..0.024 rows=1 loops=21)
+              Buffers: shared hit=190
+              ->  Nested Loop Left Join  (cost=4.62..9.45 rows=2 width=51) (actual time=0.020..0.022 rows=1 loops=21)
+                    Buffers: shared hit=169
+                    ->  Hash Join  (cost=4.48..8.82 rows=2 width=43) (actual time=0.014..0.017 rows=1 loops=21)
+                          Hash Cond: (other.id = o.account_id)
+                          Buffers: shared hit=127
+                          ->  Seq Scan on accounts other  (cost=0.00..4.05 rows=105 width=59) (actual time=0.000..0.004 rows=105 loops=21)
+                                Buffers: shared hit=63
+                          ->  Hash  (cost=4.46..4.46 rows=2 width=16) (actual time=0.007..0.007 rows=1 loops=21)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=64
+                                ->  Index Only Scan using uq_ledger_entries_transfer_account on ledger_entries o  (cost=0.42..4.46 rows=2 width=16) (actual time=0.002..0.002 rows=1 loops=21)
+                                      Index Cond: (transfer_id = e.transfer_id)
+                                      Filter: (account_id <> e.account_id)
+                                      Rows Removed by Filter: 1
+                                      Heap Fetches: 0
+                                      Buffers: shared hit=64
+                    ->  Index Scan using pk_users on users sender  (cost=0.14..0.31 rows=1 width=40) (actual time=0.001..0.001 rows=1 loops=21)
+                          Index Cond: (id = other.user_id)
+                          Buffers: shared hit=42
+              ->  Materialize  (cost=0.00..1.77 rows=1 width=5) (actual time=0.002..0.002 rows=1 loops=21)
+                    Buffers: shared hit=21
+                    ->  Seq Scan on beneficiaries b  (cost=0.00..1.76 rows=1 width=5) (actual time=0.001..0.001 rows=1 loops=21)
+                          Filter: (id = t.beneficiary_id)
+                          Rows Removed by Filter: 29
+                          Buffers: shared hit=21
+Planning:
+  Buffers: shared hit=16
+Planning Time: 0.348 ms
+Execution Time: 0.742 ms
+```
