@@ -19,7 +19,7 @@ Requiere `contract-v1-2` (paquete 1.2.0). La tarea 1.1 va antes de que cualquier
 - [x] 2.11 [api] Ruta `listScheduledTransfers` con orden, exclusión de los demás estados y aislamiento por usuario (TRF-33)
 - [x] 2.12 [api] Programadas fuera del historial y del límite; `getTransfer` con `scheduledFor` y `cancelledAt`; conformidad de las respuestas con el contrato (TRF-34)
 - [x] 2.13 [api] El ejecutor en el arranque: configuración validada (`SCHEDULER_ENABLED`, `SCHEDULER_INTERVAL_MS`, `SCHEDULER_BATCH_SIZE`), una pasada a la vez, apagado ordenado con `SIGTERM`; prueba de la falla de auditoría que deja la transferencia en `SCHEDULED` para la siguiente pasada (TRF-30, TRF-36)
-- [ ] 2.14 [api] README: transferencias programadas, configuración del ejecutor, concurrencia y cómo verlas ejecutarse en local (TRF-30, TRF-31)
+- [x] 2.14 [api] README: transferencias programadas, configuración del ejecutor, concurrencia y cómo verlas ejecutarse en local (TRF-30, TRF-31)
 
 ## 3. Web
 
