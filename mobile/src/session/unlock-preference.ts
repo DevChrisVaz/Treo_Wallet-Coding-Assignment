@@ -44,3 +44,50 @@ export async function clearUnlockPreference(): Promise<void> {
     console.warn('No se pudo borrar la preferencia de desbloqueo del almacenamiento seguro.');
   }
 }
+
+type Listener = () => void;
+
+/**
+ * Copia en memoria de la preferencia, compartida por la puerta de desbloqueo y los controles de la
+ * pantalla de inicio. La puerta la consulta al volver de segundo plano sin esperar al almacenamiento
+ * seguro (D4). `undefined` mientras no se ha leído.
+ */
+export class UnlockPreferenceStore {
+  private value: UnlockPreference | null | undefined = undefined;
+  private readonly listeners = new Set<Listener>();
+
+  getSnapshot = (): UnlockPreference | null | undefined => this.value;
+
+  subscribe = (listener: Listener): (() => void) => {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  };
+
+  async load(): Promise<UnlockPreference | null> {
+    const value = await readUnlockPreference();
+    this.set(value);
+    return value;
+  }
+
+  async save(value: UnlockPreference): Promise<void> {
+    await saveUnlockPreference(value);
+    this.set(value);
+  }
+
+  async clear(): Promise<void> {
+    await clearUnlockPreference();
+    this.set(null);
+  }
+
+  /** La sesión ya la borró del almacenamiento al cerrarse o al quedar revocada (MOB-27). */
+  forget(): void {
+    this.set(null);
+  }
+
+  private set(value: UnlockPreference | null): void {
+    this.value = value;
+    this.listeners.forEach((listener) => listener());
+  }
+}

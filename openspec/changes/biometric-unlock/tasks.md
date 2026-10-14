@@ -7,7 +7,7 @@
 
 - [x] 2.1 [mobile] `UnlockGate` antes de `RootNavigator`: con la preferencia activa y un refresh token, `LockScreen` y diálogo biométrico antes de restaurar; prueba de que la API falsa no recibe la renovación hasta el éxito; sin preferencia, la restauración de MOB-02 no cambia (MOB-25)
 - [x] 2.2 [mobile] `LockScreen` con "Desbloquear con <tipo>" y "Usar mi contraseña", un solo diálogo automático y los resultados de D5 (cancelación, bloqueo temporal, sin registro, error desconocido); pruebas de cada resultado y de que no muestra datos de la cuenta (MOB-25, MOB-26)
-- [ ] 2.3 [mobile] Bloqueo al volver de segundo plano con 60 segundos o más (reloj inyectado), sin bloqueo con menos, con la pantalla de privacidad hasta que la pantalla de bloqueo la sustituye; las pruebas de MOB-16 siguen pasando (MOB-25)
+- [x] 2.3 [mobile] Bloqueo al volver de segundo plano con 60 segundos o más (reloj inyectado), sin bloqueo con menos, con la pantalla de privacidad hasta que la pantalla de bloqueo la sustituye; las pruebas de MOB-16 siguen pasando (MOB-25)
 - [ ] 2.4 [mobile] "Usar mi contraseña" y biometría retirada: cierre de sesión como MOB-04 (con y sin red), preferencia borrada e inicio de sesión (MOB-26, MOB-27)
 
 ## 3. Activación

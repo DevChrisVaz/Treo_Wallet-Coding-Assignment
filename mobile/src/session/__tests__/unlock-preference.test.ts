@@ -1,7 +1,10 @@
 import type { TokenPair } from '@devchrisvaz/wallet-contract';
 import * as SecureStore from 'expo-secure-store';
 
+import { createServices } from '@/app-services';
+import { createFakeApi } from '@/test-utils/fake-api';
 import { secureStoreMock } from '@/test-utils/native-mocks';
+import { TEST_BASE_URL } from '@/test-utils/render-app';
 
 import { REFRESH_TOKEN_KEY, Session } from '../session';
 import {
@@ -9,6 +12,7 @@ import {
   readUnlockPreference,
   saveUnlockPreference,
   UNLOCK_PREFERENCE_KEY,
+  UnlockPreferenceStore,
   type UnlockPreference,
 } from '../unlock-preference';
 
@@ -82,5 +86,36 @@ describe('preferencia del desbloqueo biométrico', () => {
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(UNLOCK_PREFERENCE_KEY, {
       keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
     });
+  });
+
+  test('MOB-24 la copia en memoria refleja lo guardado y avisa de cada cambio', async () => {
+    const store = new UnlockPreferenceStore();
+    const listener = jest.fn();
+    store.subscribe(listener);
+    expect(store.getSnapshot()).toBeUndefined();
+
+    secureStoreMock.set(UNLOCK_PREFERENCE_KEY, 'declined');
+    expect(await store.load()).toBe('declined');
+    expect(store.getSnapshot()).toBe('declined');
+
+    await store.save('enabled');
+    expect(store.getSnapshot()).toBe('enabled');
+    expect(secureStoreMock.entries()).toEqual({ [UNLOCK_PREFERENCE_KEY]: 'enabled' });
+
+    await store.clear();
+    expect(store.getSnapshot()).toBeNull();
+    expect(secureStoreMock.entries()).toEqual({});
+    expect(listener).toHaveBeenCalledTimes(3);
+  });
+
+  test('MOB-27 al cerrar la sesión la copia en memoria de la preferencia también se vacía', async () => {
+    const services = createServices(TEST_BASE_URL, createFakeApi().fetch, { testing: true });
+    await services.session.start(tokens);
+    await services.unlockPreference.save('enabled');
+
+    await services.session.clear('logout');
+
+    expect(services.unlockPreference.getSnapshot()).toBeNull();
+    expect(secureStoreMock.entries()).toEqual({});
   });
 });

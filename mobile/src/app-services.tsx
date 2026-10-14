@@ -13,6 +13,7 @@ import {
   type TokenRefresher,
 } from '@/api/client';
 import { Session, type SessionSnapshot } from '@/session/session';
+import { UnlockPreferenceStore } from '@/session/unlock-preference';
 
 export interface AppServices {
   baseUrl: string;
@@ -20,6 +21,8 @@ export interface AppServices {
   refresher: TokenRefresher;
   api: ApiClient;
   queryClient: QueryClient;
+  /** Preferencia del desbloqueo biométrico en memoria (MOB-24). */
+  unlockPreference: UnlockPreferenceStore;
 }
 
 const ServicesContext = createContext<AppServices | null>(null);
@@ -57,9 +60,13 @@ export function createServices(
       },
     },
   });
-  // Al cerrar sesión no queda en memoria ningún dato de la persona anterior.
+  const unlockPreference = new UnlockPreferenceStore();
+  // Al cerrar sesión no queda en memoria ningún dato de la persona anterior, ni su preferencia de
+  // desbloqueo, que la sesión ya borró del almacenamiento seguro (MOB-27).
   session.subscribe(() => {
-    if (session.getSnapshot().status === 'signedOut') queryClient.clear();
+    if (session.getSnapshot().status !== 'signedOut') return;
+    queryClient.clear();
+    unlockPreference.forget();
   });
   return {
     baseUrl,
@@ -67,6 +74,7 @@ export function createServices(
     refresher,
     api: createWalletApi({ ...options, refresher }),
     queryClient,
+    unlockPreference,
   };
 }
 
