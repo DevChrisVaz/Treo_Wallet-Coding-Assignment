@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Canvas</title>
+<style>
+  :root { --bg:#eceeea; --dot:#c9cdc6; --ink:#1d2420; --muted:#68716b; --line:#d5d9d3; }
+  html, body { margin:0; height:100%; overflow:hidden; background:var(--bg); color:var(--ink);
+    font:13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  #viewport { position:fixed; inset:0; overflow:hidden; cursor:default;
+    background-image:radial-gradient(var(--dot) 1px, transparent 1px); background-size:24px 24px; }
+  body.panning #viewport, body.panning iframe { cursor:grab; }
+  body.dragging #viewport, body.dragging iframe { cursor:grabbing; }
+  body.panning iframe { pointer-events:none; }
+  #world { position:absolute; left:0; top:0; transform-origin:0 0; padding:160px; width:max-content; }
+  .group { margin:0 0 220px; }
+  .group > h1 { font:600 44px/1.1 system-ui; margin:0 0 64px; letter-spacing:-.01em; }
+  .comps { display:flex; flex-wrap:wrap; gap:120px 160px; align-items:flex-start; max-width:4200px; }
+  .comp { max-width:2900px; }
+  .comp > h2 { font:600 26px/1.2 system-ui; margin:0 0 20px; }
+  .boards { display:flex; flex-wrap:wrap; gap:56px; align-items:flex-start; }
+  .board > .label { font:500 14px system-ui; color:var(--muted); margin:0 0 10px; white-space:nowrap; }
+  .board iframe { display:block; border:0; background:#fff; border-radius:6px;
+    box-shadow:0 1px 2px rgba(0,0,0,.08), 0 10px 30px rgba(0,0,0,.08); }
+  .board.loading iframe { opacity:.35; }
+  #hud { position:fixed; right:16px; bottom:16px; display:flex; align-items:center; gap:2px; padding:4px;
+    background:#fff; border-radius:10px; box-shadow:0 2px 12px rgba(0,0,0,.15); user-select:none; }
+  #hud button { border:0; background:none; font:500 13px system-ui; padding:6px 10px; border-radius:6px; cursor:pointer; color:var(--ink); }
+  #hud button:hover { background:#f0f2ef; }
+  #zoom { min-width:52px; text-align:center; font-variant-numeric:tabular-nums; color:var(--muted); }
+  #help { position:fixed; left:16px; bottom:16px; padding:8px 12px; background:#fff; border-radius:10px;
+    box-shadow:0 2px 12px rgba(0,0,0,.15); color:var(--muted); font-size:12px; }
+  #status { color:var(--ink); font-weight:500; }
+</style>
+</head>
+<body>
+<div id="viewport"><div id="world"></div></div>
+<div id="help"><span id="status">Cargando…</span> · Rueda: desplazar · Ctrl/⌘ + rueda: zoom · Espacio + arrastrar: mover · 0: ajustar · 1: 100 %</div>
+<div id="hud">
+  <button id="out" title="Alejar">−</button><span id="zoom">100 %</span><button id="in" title="Acercar">+</button>
+  <button id="fit">Ajustar</button><button id="one">100 %</button>
+</div>
+<script>
+(async function () {
+  const world = document.getElementById('world');
+  const viewport = document.getElementById('viewport');
+  const status = document.getElementById('status');
+  const view = { x: 0, y: 0, z: 0.25 };
+  const apply = () => {
+    world.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.z})`;
+    document.getElementById('zoom').textContent = Math.round(view.z * 100) + ' %';
+  };
+  const zoomAt = (factor, cx, cy) => {
+    const z = Math.min(4, Math.max(0.03, view.z * factor));
+    view.x = cx - (cx - view.x) * (z / view.z);
+    view.y = cy - (cy - view.y) * (z / view.z);
+    view.z = z; apply();
+  };
+  const fit = () => {
+    const w = world.scrollWidth, h = world.scrollHeight;
+    const z = Math.min(innerWidth / w, innerHeight / h) * 0.95;
+    view.z = z; view.x = (innerWidth - w * z) / 2; view.y = (innerHeight - h * z) / 2; apply();
+  };
+  const onWheel = (e, ox = 0, oy = 0) => {
+    e.preventDefault();
+    const cx = ox + e.clientX * (ox || oy ? view.z : 1), cy = oy + e.clientY * (ox || oy ? view.z : 1);
+    if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-e.deltaY * 0.0025), cx, cy);
+    else { view.x -= e.deltaX; view.y -= e.deltaY; apply(); }
+  };
+  viewport.addEventListener('wheel', (e) => onWheel(e), { passive: false });
+  let drag = null;
+  const startDrag = (e) => { drag = { x: e.screenX, y: e.screenY, vx: view.x, vy: view.y }; document.body.classList.add('dragging'); };
+  const moveDrag = (e) => { if (!drag) return; view.x = drag.vx + e.screenX - drag.x; view.y = drag.vy + e.screenY - drag.y; apply(); };
+  const endDrag = () => { drag = null; document.body.classList.remove('dragging'); };
+  viewport.addEventListener('mousedown', (e) => { if (e.target === viewport || e.target === world || document.body.classList.contains('panning')) startDrag(e); });
+  addEventListener('mousemove', moveDrag); addEventListener('mouseup', endDrag);
+  const keys = (e) => {
+    if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    if (e.code === 'Space') { e.preventDefault(); document.body.classList.toggle('panning', e.type === 'keydown'); if (e.type === 'keyup') endDrag(); return; }
+    if (e.type !== 'keydown') return;
+    if (e.key === '0') fit();
+    if (e.key === '1') zoomAt(1 / view.z, innerWidth / 2, innerHeight / 2);
+    if (e.key === '+' || e.key === '=') zoomAt(1.25, innerWidth / 2, innerHeight / 2);
+    if (e.key === '-') zoomAt(0.8, innerWidth / 2, innerHeight / 2);
+  };
+  addEventListener('keydown', keys); addEventListener('keyup', keys);
+  document.getElementById('in').onclick = () => zoomAt(1.25, innerWidth / 2, innerHeight / 2);
+  document.getElementById('out').onclick = () => zoomAt(0.8, innerWidth / 2, innerHeight / 2);
+  document.getElementById('one').onclick = () => zoomAt(1 / view.z, innerWidth / 2, innerHeight / 2);
+  document.getElementById('fit').onclick = fit;
+  apply();
+
+  // Componentes y grupos: del encabezado @ds-bundle de _ds_bundle.js.
+  const src = await (await fetch('_ds_bundle.js')).text();
+  const header = JSON.parse(/@ds-bundle: (\{.*?\}) \*\//.exec(src)[1]);
+  document.title = 'Canvas — ' + header.namespace;
+  const MOBILE = /mobile/i.test(header.namespace);
+  const BASE_W = MOBILE ? 1000 : 1280;   // ancho de render inicial antes de medir
+  const MIN_W = MOBILE ? 320 : 680;      // web: por encima de sm (640) para no cambiar el layout
+  const comps = header.components.map((c) => {
+    const [, group, name] = /components\/([^/]+)\/([^/]+)\//.exec(c.sourcePath);
+    return { group, name, html: `components/${group}/${name}/${name}.html` };
+  });
+  // Las pantallas (historias de PageShell / Screen) van primero, como su propia sección.
+  const SCREENS = new Set(['AppShell', 'Screen']);
+  const screenGroup = (comps.find((c) => SCREENS.has(c.name)) || {}).group;
+  const groups = [...new Set(comps.map((c) => c.group))].sort((a, b) => (b === screenGroup) - (a === screenGroup) || a.localeCompare(b));
+  const groupTitle = (g) => (g === screenGroup ? 'Pantallas' : g[0].toUpperCase() + g.slice(1));
+
+  const until = (fn, ms = 8000) => new Promise((res) => {
+    const t0 = Date.now();
+    (function poll() { const v = fn(); if (v || Date.now() - t0 > ms) res(v); else setTimeout(poll, 50); })();
+  });
+  const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  // Cajas que no se estiran: el ancho natural de la historia (los bloques a todo lo ancho se
+  // recorren hacia adentro; los textos sueltos se miden por su rango).
+  function extent(doc) {
+    const root = doc.getElementById('r0');
+    if (!root) return { right: 0 };
+    const full = root.getBoundingClientRect().width;
+    let right = 0;
+    (function walk(el) {
+      for (const c of el.children) {
+        const r = c.getBoundingClientRect();
+        if (!r.width && !r.height) continue;
+        if (r.width >= full - 1) {
+          if (c.children.length) walk(c);
+          else if (c.textContent.trim()) {
+            const range = doc.createRange(); range.selectNodeContents(c);
+            right = Math.max(right, range.getBoundingClientRect().right);
+          }
+        } else right = Math.max(right, r.right);
+      }
+    })(root);
+    return { right };
+  }
+
+  async function measure(iframe, board) {
+    const doc = iframe.contentDocument, win = iframe.contentWindow;
+    await until(() => doc.getElementById('r0') && doc.getElementById('r0').childElementCount);
+    try { await doc.fonts.ready; } catch {}
+    await frame(); await new Promise((r) => setTimeout(r, 150));
+    const pad = parseFloat(win.getComputedStyle(doc.body).paddingLeft) || 0;
+    const { right } = extent(doc);
+    let w = Math.max(MIN_W, Math.min(BASE_W, Math.ceil(right + pad + 8)));
+    if (right >= iframe.clientWidth - pad - 2) w = BASE_W;
+    iframe.style.width = w + 'px';
+    await frame();
+    const sw = doc.documentElement.scrollWidth;
+    if (sw > w) iframe.style.width = sw + 'px';
+    // body sin alto fijo: su offsetHeight es el contenido (el scrollHeight del documento nunca baja del viewport).
+    const fitHeight = () => { iframe.style.height = Math.ceil(doc.body.getBoundingClientRect().height) + 'px'; };
+    fitHeight();
+    new win.ResizeObserver(fitHeight).observe(doc.body);
+    doc.documentElement.style.overflow = 'hidden';
+    doc.addEventListener('wheel', (e) => {
+      const r = iframe.getBoundingClientRect(); onWheel(e, r.left, r.top);
+    }, { passive: false });
+    const fwdKeys = (e) => keys(e);
+    doc.addEventListener('keydown', fwdKeys); doc.addEventListener('keyup', fwdKeys);
+    doc.addEventListener('mousedown', (e) => { if (document.body.classList.contains('panning')) startDrag(e); });
+    board.classList.remove('loading');
+  }
+
+  // Esqueleto del lienzo: un grupo por columna, un componente por fila, una historia por mesa.
+  const jobs = [];
+  for (const g of groups) {
+    const col = document.createElement('section'); col.className = 'group';
+    col.innerHTML = `<h1>${groupTitle(g)}</h1><div class="comps"></div>`;
+    world.appendChild(col);
+    const compsEl = col.querySelector('.comps');
+    for (const c of comps.filter((x) => x.group === g).sort((a, b) => a.name.localeCompare(b.name))) {
+      const row = document.createElement('section'); row.className = 'comp';
+      row.innerHTML = `<h2>${c.name}</h2><div class="boards"></div>`;
+      compsEl.appendChild(row);
+      jobs.push({ c, boards: row.querySelector('.boards') });
+    }
+  }
+
+  // Nombres de las historias: cada tarjeta los publica en window.__dsCells.
+  async function stories(c) {
+    const probe = document.createElement('iframe');
+    probe.style.cssText = 'position:fixed;left:-9999px;width:10px;height:10px';
+    probe.src = c.html + '?story=__canvas_probe__';
+    document.body.appendChild(probe);
+    await new Promise((r) => (probe.onload = r));
+    const cells = await until(() => probe.contentWindow.__dsCells);
+    probe.remove();
+    return cells || [];
+  }
+
+  let done = 0, total = 0;
+  const queue = [];
+  for (const { c, boards } of jobs) {
+    for (const s of await stories(c)) {
+      const board = document.createElement('div'); board.className = 'board loading';
+      board.innerHTML = `<div class="label">${c.name} / ${s}</div>`;
+      const iframe = document.createElement('iframe');
+      iframe.style.width = BASE_W + 'px'; iframe.style.height = '320px';
+      iframe.title = `${c.name} / ${s}`;
+      board.appendChild(iframe); boards.appendChild(board);
+      queue.push({ iframe, board, src: `${c.html}?story=${encodeURIComponent(s)}` });
+      total++;
+    }
+  }
+  status.textContent = `0 / ${total} historias`;
+  view.z = 0.5; view.x = -40; view.y = -40; apply();
+
+  async function worker() {
+    while (queue.length) {
+      const { iframe, board, src } = queue.shift();
+      await new Promise((r) => { iframe.onload = r; iframe.src = src; });
+      try { await measure(iframe, board); } catch (e) { board.classList.remove('loading'); }
+      status.textContent = `${++done} / ${total} historias`;
+    }
+  }
+  await Promise.all(Array.from({ length: 6 }, worker));
+  status.textContent = `${total} historias de ${comps.length} componentes`;
+})();
+</script>
+</body>
+</html>

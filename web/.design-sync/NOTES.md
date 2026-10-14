@@ -123,3 +123,10 @@ la pantalla (no se pueden importar: usan Server Actions, TanStack Query y next/n
   navegador de captura (en es-MX la app muestra `dd/mm/aaaa`).
 - Si una pantalla de la app cambia, su historia queda desfasada sin que nada falle: es una copia
   del JSX. Revísalas en cada re-sync contra `components/{auth,accounts,beneficiaries,transfers}/`.
+
+## Revisión local
+
+- `review/canvas.html` es el lienzo (pantallas primero, luego componentes por grupo). `package-build`
+  vacía `ds-bundle/`: después de cada build corre `node .design-sync/review/install.mjs`.
+- `web/.design-sync/review/serve.mjs` sirve ambos bundles en un solo origen (`/web/*`, `/mobile/*`)
+  y el lienzo de paridad en `/parity.html`.

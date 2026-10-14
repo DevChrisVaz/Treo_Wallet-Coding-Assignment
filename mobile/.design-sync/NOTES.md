@@ -121,3 +121,10 @@ expo-router, TanStack Query y la sesión, no se pueden importar):
   código, `expired`, `completed` repetido (`replayed`).
 - Si una pantalla de la app cambia, su historia queda desfasada sin que nada falle: es una copia
   del JSX. Revísalas en cada re-sync contra `src/features/` y `src/navigation/root-navigator.tsx`.
+
+## Revisión local
+
+- `review/canvas.html` es el lienzo (pantallas primero, luego componentes por grupo). `package-build`
+  vacía `ds-bundle/`: después de cada build corre `node .design-sync/review/install.mjs`.
+- `web/.design-sync/review/serve.mjs` sirve ambos bundles en un solo origen (`/web/*`, `/mobile/*`)
+  y el lienzo de paridad en `/parity.html`.
