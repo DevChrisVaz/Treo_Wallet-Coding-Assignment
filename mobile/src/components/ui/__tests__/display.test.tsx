@@ -52,17 +52,30 @@ describe('MovementRow', () => {
     expect(screen.getByText('Saldo $24,850.00')).toBeOnTheScreen();
   });
 
-  test('MOB-06 los lectores de pantalla oyen la fecha completa y la referencia', async () => {
+  test.each([false, true])(
+    'MOB-06 los lectores de pantalla oyen la fecha completa y la referencia (timeOnly: %s)',
+    async (timeOnly) => {
+      await render(<MovementRow movement={movement({})} timeOnly={timeOnly} />);
+      expect(screen.getByLabelText('12 oct, 19:05 · Ref. 1')).toBeOnTheScreen();
+      expect(screen.queryByLabelText('12 oct, 19:05')).toBeNull();
+    },
+  );
+
+  test('MOB-06 por omisión muestra la fecha completa y la referencia, con borde inferior', async () => {
     await render(<MovementRow movement={movement({})} />);
-    expect(screen.getByLabelText('12 oct, 19:05 · Ref. 1')).toBeOnTheScreen();
-    expect(screen.queryByLabelText('12 oct, 19:05')).toBeNull();
+    expect(screen.getByText('12 oct, 19:05 · Ref. 1')).toBeOnTheScreen();
+    expect(screen.getByTestId('movement-row')).toHaveStyle({
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border.default,
+    });
   });
 
-  test('MOB-20 muestra hora, referencia y saldo, con avatar por tipo', async () => {
-    await render(<MovementRow movement={movement({})} />);
+  test('MOB-20 con timeOnly muestra hora, referencia y saldo, con avatar por tipo y sin borde', async () => {
+    await render(<MovementRow movement={movement({})} timeOnly />);
     expect(screen.getByText('19:05 · Ref. 1')).toBeOnTheScreen();
     expect(screen.getByText('Saldo $24,850.00')).toBeOnTheScreen();
     expect(screen.getByTestId('movement-avatar', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByTestId('movement-row')).not.toHaveStyle({ borderBottomWidth: 1 });
   });
 
   test('DSG-10 un depósito de la Tesorería (sin contraparte) muestra +$ en verde', async () => {

@@ -7,8 +7,21 @@ import { theme } from '@/theme';
 
 import { Avatar } from './avatar';
 
-/** Movimiento: avatar por tipo, etiqueta, contraparte y concepto, hora y referencia, monto y saldo. */
-export function MovementRow({ movement }: { movement: Movement }) {
+interface MovementRowProps {
+  movement: Movement;
+  /**
+   * Para listas que ya agrupan por día (MovementList, MOB-20): solo la hora a la vista y sin borde
+   * propio, porque la lista pone los divisores. Por omisión, la fecha completa y el borde inferior,
+   * como en las listas planas.
+   */
+  timeOnly?: boolean;
+}
+
+/**
+ * Movimiento: avatar por tipo, etiqueta, contraparte y concepto, fecha (u hora, con `timeOnly`) y
+ * referencia, monto y saldo.
+ */
+export function MovementRow({ movement, timeOnly = false }: MovementRowProps) {
   const { label, amountText, color, direction } = movementPresentation(
     movement.type,
     movement.amount,
@@ -16,9 +29,10 @@ export function MovementRow({ movement }: { movement: Movement }) {
   const detail = movement.counterparty
     ? `${movement.counterparty.name} · ${movement.concept}`
     : movement.concept;
+  const dateTime = formatDateTime(movement.occurredAt);
   const reference = `Ref. ${movement.reference}`;
   return (
-    <View testID="movement-row" style={styles.row}>
+    <View testID="movement-row" style={[styles.row, timeOnly ? null : styles.separated]}>
       <View testID="movement-avatar">
         <Avatar
           tone={direction === 'in' ? 'success' : 'neutral'}
@@ -31,11 +45,8 @@ export function MovementRow({ movement }: { movement: Movement }) {
           {detail}
         </Text>
         {/* La etiqueta reemplaza al texto para los lectores de pantalla: lleva la fecha y la referencia. */}
-        <Text
-          style={styles.caption}
-          accessibilityLabel={`${formatDateTime(movement.occurredAt)} · ${reference}`}
-        >
-          {`${formatTime(movement.occurredAt)} · ${reference}`}
+        <Text style={styles.caption} accessibilityLabel={`${dateTime} · ${reference}`}>
+          {`${timeOnly ? formatTime(movement.occurredAt) : dateTime} · ${reference}`}
         </Text>
       </View>
       <View style={styles.amounts}>
@@ -53,6 +64,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing[3],
     paddingVertical: theme.spacing[3],
   },
+  separated: { borderBottomWidth: 1, borderBottomColor: theme.colors.border.default },
   main: { flex: 1, gap: theme.spacing[1] },
   amounts: { alignItems: 'flex-end', gap: theme.spacing[1] },
   label: { ...theme.typography.label, color: theme.colors.text.primary },
