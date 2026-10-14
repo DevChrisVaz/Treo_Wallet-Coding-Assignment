@@ -2,6 +2,7 @@ import { formatMXN, type Account, type Transfer } from '@devchrisvaz/wallet-cont
 import { useId, type ReactNode } from 'react';
 import { formatDateTime } from '@/lib/format';
 import { maskClabe } from '@/lib/money';
+import { formatScheduledDate } from '@/lib/scheduled-date';
 import { StatusBadge } from './StatusBadge';
 
 export interface ReceiptProps {
@@ -21,7 +22,7 @@ function Row({ term, children }: { term: string; children: ReactNode }) {
 
 /**
  * Comprobante (D7 de design-system, WEB-16): estado, monto, origen, destino, concepto, referencia,
- * fecha y folio (`transferId`).
+ * fecha programada si la tiene (WEB-34), fecha y folio (`transferId`).
  */
 export function Receipt({ transfer, fromAccount }: ReceiptProps) {
   const titleId = useId();
@@ -44,6 +45,13 @@ export function Receipt({ transfer, fromAccount }: ReceiptProps) {
         <Row term="Destino">{destination}</Row>
         <Row term="Concepto">{transfer.concept}</Row>
         <Row term="Referencia">{transfer.reference}</Row>
+        {transfer.scheduledFor ? (
+          <Row term="Programada para">
+            <time dateTime={transfer.scheduledFor}>
+              {formatScheduledDate(transfer.scheduledFor)}
+            </time>
+          </Row>
+        ) : null}
         <Row term="Fecha">
           <time dateTime={transfer.completedAt ?? transfer.createdAt}>
             {formatDateTime(transfer.completedAt ?? transfer.createdAt)}
