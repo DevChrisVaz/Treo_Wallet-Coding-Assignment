@@ -1005,6 +1005,60 @@ Así se rastrea cada requisito en el código:
 | `redesign`                                                | design-tokens, web, mobile      | DSG-13 a DSG-17, WEB-24 a WEB-31, MOB-18 a MOB-22       | En curso, en su propia rama                                 |
 | `delivery`                                                | docs                            | Sin requisitos nuevos                                   | Pendiente: documento de AWS, matriz de trazabilidad y video |
 
+### Mapa de la especificación
+
+Cada historia de usuario del enunciado (HU1 a HU6) se traza a sus requisitos, al change que los implementa y a las secciones de tareas. Las tareas nombran los requisitos que cubren, los commits los citan en los trailers `Task:` y `Refs:`, y los títulos de las pruebas empiezan con el ID.
+
+- **Matriz completa, generada:** [`docs/traceability.md`](docs/traceability.md) (requisito → change → tareas → commits → pruebas, más la lista de huecos). Se regenera con `scripts/trace.sh`; con `--check` termina con error si queda algún hueco.
+- **Requisitos vigentes:** [`openspec/specs/`](openspec/specs/) tiene las capabilities ya archivadas (hoy `api-contract`, del change `contract-v1`). El resto vive en `openspec/changes/<change>/specs/<capability>/spec.md` hasta que cada change se archive.
+
+| Historia de usuario | Requisitos | Change y secciones de tareas |
+| ------------------- | ---------- | ---------------------------- |
+| **HU1.** Registro e inicio de sesión | IDN-01 a IDN-15, PLT-07 y PLT-09 (IP y límites de tasa), PLT-16 (correo); WEB-01 a WEB-05, WEB-11, WEB-12, WEB-22; MOB-01 a MOB-04 | `api-foundation` §6 y §7; `web-app` §2 y §4; `mobile-app` §2; validadores en `contract-v1` §3 |
+| **HU2.** Cuentas con saldo disponible | ACC-01 a ACC-06, ACC-10 a ACC-16; WEB-13; MOB-05 | `api-foundation` §2 y §7; `api-ledger` §3 y §4; `web-app` §6; `mobile-app` §3 |
+| **HU3.** Beneficiarios con CLABE validada | BEN-01 a BEN-11, ACC-05 (dígito verificador en la base), CTR-09; WEB-15; MOB-07 | `api-ledger` §5; `web-app` §7; `contract-v1` §3; `mobile-app` §4 |
+| **HU4.** Transferencias con concepto y referencia | TRF-01 a TRF-10, TRF-21 a TRF-26 (partida doble, concurrencia, auditoría, comprobante), CTR-06 y CTR-08 (llave de idempotencia y montos); WEB-16, WEB-17, WEB-19, WEB-21; MOB-08 a MOB-11, MOB-13 a MOB-15 | `api-ledger` §1 a §3, §6, §8 y §10; `web-app` §8; `mobile-app` §4; `contract-v1` §2 y §4 |
+| **HU5.** Historial con filtros y paginación | HIS-01 a HIS-10; WEB-14; MOB-06 | `api-ledger` §9 y §11; `web-app` §6; `mobile-app` §3 |
+| **HU6.** Límite diario y OTP | TRF-11 a TRF-13 (límite diario), TRF-14 a TRF-20 (OTP por correo), ACC-11 (límite restante); WEB-18; MOB-12 | `api-ledger` §6 y §7; `web-app` §8; `mobile-app` §4 |
+
+**Bonus del enunciado:**
+
+| Bonus | Requisitos | Change |
+| ----- | ---------- | ------ |
+| Estado de cuenta mensual en PDF | HIS-11, HIS-12, AUD-07, WEB-32 | `account-statements` (§1 API, §2 web) |
+| Transferencias programadas | TRF-27 a TRF-36, AUD-08, WEB-33, WEB-34, MOB-23 | `scheduled-transfers` (§2 API, §3 web, §4 móvil) |
+| Desbloqueo biométrico | MOB-24 a MOB-27 | `biometric-unlock` |
+
+**Transversales a las seis historias:**
+
+- **Plataforma y errores:** PLT-01 a PLT-06, PLT-08, PLT-10 a PLT-15, PLT-17 y PLT-18, en `api-foundation` §1 a §5, §8 y §9.
+- **Auditoría:** AUD-01 a AUD-06, en `api-foundation` §4.
+- **Contrato:** CTR-01 a CTR-17 (`openspec/specs/api-contract/`), más CTR-07 y CTR-15 (`contract-v1-1`) y CTR-13, CTR-18 y CTR-19 (`contract-v1-2`).
+- **Sistema de diseño y rediseño:** DSG-01 a DSG-18, WEB-24 a WEB-31 y MOB-18 a MOB-22 (`design-system`, `redesign`).
+- **Cobertura de pruebas del dominio:** `domain-test-coverage` (solo pruebas, sin requisitos nuevos).
+
+Los huecos que hoy tiene la matriz (cuatro requisitos que se verifican en el CI y no con una prueba) están explicados al final de [`docs/traceability.md`](docs/traceability.md).
+
+### Decisiones clave
+
+Cada change tiene un `design.md` con las decisiones y las alternativas descartadas:
+
+| Change | Decisiones principales |
+| ------ | ---------------------- |
+| [`contract-v1`](openspec/changes/archive/2026-10-13-contract-v1/design.md) (archivado) | Contrato primero con el `openapi.yaml` escrito a mano; tipos con `openapi-typescript`; llave de idempotencia provista por el consumidor; montos como string con aritmética entera; paquete como artefacto local |
+| [`design-system`](openspec/changes/design-system/design.md) | Una fuente de tokens con tres salidas; dinero, estados y movimientos como datos; textos de la interfaz en el paquete |
+| [`api-foundation`](openspec/changes/api-foundation/design.md) | Módulos por contexto con capas; dónde TypeORM no alcanza; roles `wallet_migrator` y `wallet_app`; autenticación con refresh rotativo; errores RFC 9457 traducidos por nombre de constraint |
+| [`api-ledger`](openspec/changes/api-ledger/design.md) | Ledger de partida doble; bloqueo de filas en orden determinista; idempotencia por columna única; límite diario con fila contador; `EXPLAIN ANALYZE` del historial con volumen |
+| [`web-app`](openspec/changes/web-app/design.md) | Next.js como BFF con la sesión en el servidor; Server Actions para mutaciones y proxy para lecturas; ciclo de vida de la llave de idempotencia |
+| [`mobile-app`](openspec/changes/mobile-app/design.md) | Expo con Expo Router; máquina de estados del intento de transferencia; reintento con la misma llave tras perder la red; tokens en almacenamiento seguro |
+| [`contract-v1-1`](openspec/changes/contract-v1-1/design.md) y [`contract-v1-2`](openspec/changes/contract-v1-2/design.md) | Versiones 1.1.0 y 1.2.0 del contrato; calendario de la Ciudad de México; descarga binaria |
+| [`account-statements`](openspec/changes/account-statements/design.md) | PDFKit en la API; instantánea `REPEATABLE READ READ ONLY`; conciliación del resumen en el dominio |
+| [`scheduled-transfers`](openspec/changes/scheduled-transfers/design.md) | Ejecutor dentro de la API con `SKIP LOCKED`; tope de 20 por usuario; huella de idempotencia estable |
+| [`biometric-unlock`](openspec/changes/biometric-unlock/design.md) | `expo-local-authentication`; puerta antes de restaurar la sesión; preferencia en el almacenamiento seguro |
+| [`redesign`](openspec/changes/redesign/design.md) | Prototipo en una rama con aprobación visual antes de aplicar; paridad web y móvil; tokens v2 aditivos |
+| [`domain-test-coverage`](openspec/changes/domain-test-coverage/design.md) | Cada prueba escrita después del código se demuestra rompiendo la regla; una base de datos por línea de trabajo |
+| [`delivery`](openspec/changes/delivery/design.md) | Propuesta de AWS ([`docs/aws-deploy.md`](docs/aws-deploy.md)), trazabilidad generada, guion del video |
+
 La [bitácora de AI](docs/ai-log.md) registra qué propuso la AI, qué acepté, qué rechacé o cambié, y dónde se equivocó y se corrigió.
 
 ## Avisos conocidos

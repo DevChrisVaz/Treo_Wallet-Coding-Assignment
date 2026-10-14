@@ -26,8 +26,8 @@
 ## 3. README raíz
 
 - [x] 3.1 [docs] README raíz único que reúne la información de los README de los cinco proyectos en secciones comunes: qué incluye, estructura y desviaciones del enunciado (sin `/specs`, sin monorepo, web con BFF en lugar de S3 + CloudFront), arquitectura, requisitos, instalación de todos los proyectos, configuración, ejecución en local con los usuarios demo, pruebas (incluidas las de integración contra PostgreSQL real y las de concurrencia), scripts, cómo funciona, verificaciones manuales, especificación y avisos conocidos; la nota de alcance enlazada al ai-log y, al final, una sola sección "¿Qué haría con más tiempo?" con la lista acordada actualizada. Los README de cada proyecto se conservan (PLT, MOB, TRF)
-- [ ] 3.2 [docs] Escribir el Mapa de la especificación: tabla HU1–HU6 → IDs de requisito → change → secciones de tareas, con enlace a `docs/traceability.md` y a `openspec/specs/` (todas las capabilities)
-- [ ] 3.3 [docs] Escribir la sección de decisiones clave con enlaces a los `design.md` de cada change (archivados)
+- [x] 3.2 [docs] Escribir el Mapa de la especificación: tabla HU1–HU6 → IDs de requisito → change → secciones de tareas, con enlace a `docs/traceability.md` y a `openspec/specs/` (todas las capabilities)
+- [x] 3.3 [docs] Escribir la sección de decisiones clave con enlaces a los `design.md` de cada change (archivados)
 
 ## 4. Bitácora de AI y video
 
