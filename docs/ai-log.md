@@ -357,3 +357,32 @@ Un subagente implementó `biometric-unlock` en su propio worktree: 9 de 10 tarea
   - el diálogo real de Android;
   - si Android informa el bloqueo por intentos como `lockout`;
   - qué tipo de biometría reporta mi teléfono.
+
+### Estado de cuenta en PDF
+
+Un subagente implementó `account-statements` en su worktree: 12 de 13 tareas. La 3.1 es la verificación en el navegador contra la API real y queda para la AI principal. La sesión del subagente también se cortó por el límite de uso y se retomó con el estado exacto del worktree. Antes de integrar, la AI principal volvió a correr todo:
+- API: 110 archivos y 785 pruebas, con PostgreSQL y Mailpit reales.
+- Web: 48 archivos y 406 pruebas.
+- Lint, typecheck y formato limpios en ambos.
+
+**Medido:**
+- **Prueba de rendimiento:** 5,000 movimientos por HTTP en 0.6 s, 162 páginas y 409 KB.
+- **Seed real:** con la "Principal" de Ana en septiembre (4,933 movimientos), el documento se genera en alrededor de 1 s.
+- **Conciliación:** la consulta del README dio exactamente las cifras del documento, 1,023,976,666 + 156,541,080 − 61,646,290 = 1,118,871,456 centavos.
+
+**Lo que el subagente descubrió y corrigió:**
+- **WOFF2 truena en fontkit** al recortar glifos compuestos. Con WOFF el documento tardaba 4.3 s: un perfil de CPU mostró que fontkit descomprime la tabla en cada consulta. Convertir el WOFF a TrueType una sola vez al arrancar lo bajó a 0.8 s, sin versionar archivos TTF. Escribió esa conversión antes de su prueba y lo reconoció en sus notas.
+- **El plan de la consulta no coincide con el diseño (D4).** La tanda ascendente no recorre el índice hacia atrás: PostgreSQL usa un Bitmap Index Scan con un `Sort` top-N, unos 4 ms por tanda. Como está acotado al mes, lo dejó y lo documentó.
+- **El `down` de la migración del catálogo** recrea la constraint anterior como `NOT VALID`. La bitácora es inmutable, así que una constraint validada haría imposible revertir una vez que existan eventos de estado de cuenta.
+- **La prueba de arranque de PLT-08 excedía su tiempo** con la máquina sin memoria. La causa era que la configuración se validaba después de cargar toda la app. Ahora `main.ts` valida antes de importar la composición.
+- **Mutaciones que las pruebas detectan:** cambiar la instantánea a `READ COMMITTED` hace fallar la prueba de la transferencia confirmada a mitad de la lectura.
+
+**Hallazgo grave: el contrato 1.2.0 rompió `main`.** El subagente encontró la línea base de la API en rojo antes de tocar nada: 87 pruebas fallando y el typecheck roto. La web y el móvil tampoco compilaban.
+- **Causa:** con `file:../contract` e `install-links`, `npm ci` copia lo que haya en la carpeta del contrato, sin importar la versión del lockfile.
+- **El diseño se equivocó.** `contract-v1-2` suponía que los consumidores instalarían 1.2.0 cuando quisieran. La AI principal no lo verificó al publicar 1.2.0: corrió solo las pruebas del paquete.
+- **Corrección:** el subagente adaptó la API y la web con lo mínimo (campos nulos, códigos en el catálogo y fixtures). La AI principal adaptó el móvil, como tarea 4.1 de `scheduled-transfers`, con un `switch` exhaustivo de códigos y fixtures. Las dos pruebas de MOB-23 pasaron sin cambios, porque las etiquetas ya venían del paquete de diseño 1.1.0; lo que sí falló primero fue el typecheck y una prueba de MOB-14.
+- **Lección:** mientras los consumidores usen `file:`, un cambio del contrato que agrega campos obligatorios en respuestas o valores de enums exhaustivos se integra junto con la adaptación de todos los consumidores, no antes.
+
+**Corrección de la AI principal al revisar.** El subagente reportó que Express responde HEAD con el handler de GET: un HEAD generaba el PDF y registraba `STATEMENT_EXPORTED` sin entregar nada. La AI principal escribió primero la prueba, que falló con 200 en lugar de 405, y luego hizo que la ruta responda 405 con `Allow: GET` antes de generar.
+
+**Pendiente para la verificación 3.1.** Antes de abrir la web hay que correr `npm run db:migrate` en la base de desarrollo. Sin esa migración, cada descarga responde 500, porque la auditoría falla, que es justo lo que pide AUD-07.
