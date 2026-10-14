@@ -1,0 +1,80 @@
+name: web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'contract/**'
+      - 'design-tokens/**'
+      - '.github/workflows/web.yml'
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'contract/**'
+      - 'design-tokens/**'
+      - '.github/workflows/web.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, tipos, formato, pruebas y build
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            contract/package-lock.json
+            design-tokens/package-lock.json
+            web/package-lock.json
+
+      # La web instala /contract y /design-tokens como copia (install-links=true), y npm copia
+      # solo los archivos publicados (dist): hay que compilarlos antes del npm ci de la web.
+      - name: Compilar el contrato
+        working-directory: contract
+        run: |
+          npm ci
+          npm run build
+
+      - name: Compilar los tokens de diseño
+        working-directory: design-tokens
+        run: |
+          npm ci
+          npm run build
+
+      - name: Instalar la web
+        working-directory: web
+        run: npm ci
+
+      - name: Lint (incluye la regla de montos sin floats, WEB-21)
+        working-directory: web
+        run: npm run lint
+
+      - name: Typecheck (incluye la exhaustividad contra el contrato, WEB-19, DSG-10)
+        working-directory: web
+        run: npm run typecheck
+
+      - name: Formato
+        working-directory: web
+        run: npm run format:check
+
+      - name: Pruebas (BFF, pantallas y vitest-axe, WEB-01 a WEB-23)
+        working-directory: web
+        run: npm test
+
+      # El build no necesita API_BASE_URL: el servidor la lee en cada petición y next start la exige.
+      - name: Build de Next.js
+        working-directory: web
+        run: npm run build

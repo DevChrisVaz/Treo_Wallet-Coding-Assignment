@@ -1,0 +1,184 @@
+import { problemMessage } from '@devchrisvaz/wallet-design-tokens';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { axe } from 'vitest-axe';
+import { confirmTransfer, resendTransferOtp } from '@/app/actions/transfers';
+import { pendingOtpTransfer, problem, transfer } from '@/test/fixtures';
+import { router, setLocation } from '@/test/support/next-navigation';
+import { EndedStep, OtpStep } from './OtpStep';
+
+vi.mock('@/app/actions/transfers', () => ({
+  createTransfer: vi.fn(),
+  confirmTransfer: vi.fn(),
+  resendTransferOtp: vi.fn(),
+}));
+vi.mock('next/navigation', () => import('@/test/support/next-navigation'));
+
+const confirmMock = vi.mocked(confirmTransfer);
+const resendMock = vi.mocked(resendTransferOtp);
+const PENDING = pendingOtpTransfer();
+
+function renderStep(pending = PENDING) {
+  const onConfirmed = vi.fn();
+  const onEnded = vi.fn();
+  const view = render(<OtpStep transfer={pending} onConfirmed={onConfirmed} onEnded={onEnded} />);
+  return { ...view, onConfirmed, onEnded, user: userEvent.setup() };
+}
+
+async function submitCode(user: ReturnType<typeof userEvent.setup>, code = '123456') {
+  await user.type(screen.getByLabelText('Código de 6 dígitos'), code);
+  await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+}
+
+beforeEach(() => {
+  confirmMock.mockReset();
+  resendMock.mockReset();
+  setLocation('/transfers/new');
+});
+
+describe('OtpStep', () => {
+  it('WEB-16 indica el destino enmascarado del código y la hora de expiración', () => {
+    renderStep();
+    expect(screen.getByText(/an\*\*\*@example\.com/)).toHaveTextContent('Vence a las 10:52');
+  });
+
+  it('WEB-18 con el código correcto confirma la transferencia', async () => {
+    confirmMock.mockResolvedValue({ ok: true, data: transfer() });
+    const { user, onConfirmed } = renderStep();
+
+    await submitCode(user);
+
+    expect(confirmMock).toHaveBeenCalledWith({ transferId: PENDING.id, otp: '123456' });
+    expect(onConfirmed).toHaveBeenCalledWith(transfer());
+  });
+
+  it('WEB-18 con doble clic en "Confirmar" envía una sola confirmación con el botón deshabilitado', async () => {
+    confirmMock.mockReturnValue(new Promise(() => undefined));
+    const { user } = renderStep();
+    await user.type(screen.getByLabelText('Código de 6 dígitos'), '123456');
+
+    await user.dblClick(screen.getByRole('button', { name: 'Confirmar' }));
+
+    expect(confirmMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Confirmando…' })).toBeDisabled();
+  });
+
+  it('WEB-18 un código incorrecto muestra los intentos restantes', async () => {
+    confirmMock.mockResolvedValue({
+      ok: false,
+      problem: problem('OTP_INVALID', { attemptsRemaining: 1 }),
+    });
+    const { user, onEnded } = renderStep();
+
+    await submitCode(user, '000000');
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(problemMessage('OTP_INVALID'));
+    expect(alert).toHaveTextContent('Te queda 1 intento');
+    expect(alert).toHaveFocus();
+    expect(onEnded).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'OTP_ATTEMPTS_EXHAUSTED',
+    'TRANSFER_EXPIRED',
+    'DAILY_LIMIT_EXCEEDED',
+    'INSUFFICIENT_FUNDS',
+  ] as const)('WEB-18 %s termina el intento', async (code) => {
+    const ended = problem(code, { status: code === 'TRANSFER_EXPIRED' ? 409 : 422 });
+    confirmMock.mockResolvedValue({ ok: false, problem: ended });
+    const { user, onEnded } = renderStep();
+
+    await submitCode(user);
+
+    expect(onEnded).toHaveBeenCalledWith(ended);
+  });
+
+  it('WEB-18 si el envío del correo falló, ofrece reenviar el código', async () => {
+    resendMock.mockResolvedValue({
+      ok: true,
+      data: { ...PENDING.otp!, deliveryStatus: 'SENT', resendsRemaining: 2 },
+    });
+    const { user } = renderStep(
+      pendingOtpTransfer({ otp: { ...PENDING.otp!, deliveryStatus: 'FAILED' } }),
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent('No pudimos enviarte el código');
+    await user.click(screen.getByRole('button', { name: 'Reenviar código' }));
+
+    expect(resendMock).toHaveBeenCalledWith({ transferId: PENDING.id });
+    expect(await screen.findByText('Te enviamos un código nuevo.')).toBeVisible();
+  });
+
+  it('WEB-18 sin reenvíos disponibles no ofrece reenviar; RESEND_LIMIT_REACHED se anuncia', async () => {
+    resendMock.mockResolvedValue({ ok: false, problem: problem('RESEND_LIMIT_REACHED') });
+    const { user, unmount } = renderStep();
+    await user.click(screen.getByRole('button', { name: 'Reenviar código' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      problemMessage('RESEND_LIMIT_REACHED'),
+    );
+    expect(screen.queryByRole('button', { name: 'Reenviar código' })).not.toBeInTheDocument();
+    unmount();
+
+    renderStep(pendingOtpTransfer({ otp: { ...PENDING.otp!, resendsRemaining: 0 } }));
+    expect(screen.queryByRole('button', { name: 'Reenviar código' })).not.toBeInTheDocument();
+  });
+
+  it('WEB-07 un código que no tiene 6 dígitos no se envía', async () => {
+    const { user } = renderStep();
+    await submitCode(user, '12');
+    expect(screen.getByLabelText('Código de 6 dígitos')).toHaveAttribute('aria-invalid', 'true');
+    expect(confirmMock).not.toHaveBeenCalled();
+  });
+
+  it('WEB-22 si la sesión terminó, lleva al inicio de sesión', async () => {
+    confirmMock.mockResolvedValue({
+      ok: false,
+      problem: problem('UNAUTHENTICATED', { status: 401 }),
+    });
+    const { user } = renderStep();
+    await submitCode(user);
+    expect(router.replace).toHaveBeenCalledWith(
+      `/login?next=%2Ftransfers%2F${PENDING.id}&reason=expired`,
+    );
+  });
+
+  it('WEB-23 no tiene problemas de accesibilidad', async () => {
+    const { container } = renderStep();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe('EndedStep', () => {
+  it('WEB-18 con los intentos agotados indica que no se realizó y ofrece iniciar una nueva', async () => {
+    const onRestart = vi.fn();
+    const user = userEvent.setup();
+    render(<EndedStep problem={problem('OTP_ATTEMPTS_EXHAUSTED')} onRestart={onRestart} />);
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('La transferencia no se realizó');
+    expect(alert).toHaveTextContent(problemMessage('OTP_ATTEMPTS_EXHAUSTED'));
+    await user.click(screen.getByRole('button', { name: 'Iniciar una nueva transferencia' }));
+    expect(onRestart).toHaveBeenCalled();
+  });
+
+  it('WEB-18 con el código vencido pide iniciar la transferencia de nuevo', () => {
+    render(
+      <EndedStep problem={problem('TRANSFER_EXPIRED', { status: 409 })} onRestart={vi.fn()} />,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(problemMessage('TRANSFER_EXPIRED'));
+  });
+
+  it('WEB-18 una revalidación fallida por límite diario indica el restante', () => {
+    render(
+      <EndedStep
+        problem={problem('DAILY_LIMIT_EXCEEDED', { remaining: '1500.00' })}
+        onRestart={vi.fn()}
+      />,
+    );
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('Superaste tu límite diario');
+    expect(alert).toHaveTextContent('Hoy puedes enviar hasta $1,500.00');
+  });
+});
