@@ -97,6 +97,7 @@ export function transfer(overrides: Partial<Transfer> = {}): Transfer {
     otp: null,
     rejectionReason: null,
     failureReason: null,
+    // Contrato 1.2.0: una transferencia inmediata no tiene fecha programada ni cancelación.
     scheduledFor: null,
     cancelledAt: null,
     createdAt: '2026-10-13T16:42:00.000Z',

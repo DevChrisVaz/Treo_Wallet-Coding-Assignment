@@ -104,3 +104,13 @@ Agregar valores a un enum de respuesta no está en la lista de cambios incompati
   - La app no usa la programación. CTR-15 solo exige que el paquete cargue en Hermes, y eso ya lo cubre la prueba de humo.
 - **[Riesgo] El tipo generado para el cuerpo binario.**
   - Mitigación: la verificación de tipos generados (`check:types`) y una prueba de cliente que compila contra el tipo.
+
+## Corrección posterior a la implementación
+
+D5 y la propuesta suponían que cada consumidor instalaría 1.2.0 cuando quisiera. No es así. Con `file:../contract` e `install-links=true`, `npm ci` copia lo que haya en la carpeta del contrato aunque el lockfile diga otra versión. Al integrar 1.2.0 en `main`, la API, la web y el móvil quedaron compilando contra 1.2.0 y fallaron:
+- **Respuestas:** a `Transfer` le faltaban `scheduledFor` y `cancelledAt` en las respuestas de la API y en los fixtures de los clientes.
+- **Códigos:** los `switch` exhaustivos de `ProblemCode` no cubrían los dos códigos nuevos.
+
+Lo arreglaron la rama de `account-statements` (API y web) y la tarea 4.1 de `scheduled-transfers` (móvil).
+
+Mientras los consumidores usen `file:`, un cambio del contrato que agregue campos obligatorios a una respuesta o valores a un enum se integra en `main` junto con la adaptación de todos los consumidores, no antes. Al publicar el paquete en un registro, cuando se separen los repositorios, el problema desaparece: cada consumidor fija su versión.

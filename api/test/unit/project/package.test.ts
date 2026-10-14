@@ -39,6 +39,20 @@ describe('PLT-13 proyecto /api', () => {
     expect(lstatSync(installed).isSymbolicLink()).toBe(false);
   });
 
+  it('HIS-11 instala el paquete de diseño como copia desde ../design-tokens, como el contrato', () => {
+    expect(pkg.dependencies['@devchrisvaz/wallet-design-tokens']).toBe('file:../design-tokens');
+    const installed = resolve(root, 'node_modules/@devchrisvaz/wallet-design-tokens');
+    expect(lstatSync(installed).isSymbolicLink()).toBe(false);
+  });
+
+  it('HIS-11 el lockfile registra el contrato 1.2.0 y el paquete de diseño 1.1.0', () => {
+    const lock = JSON.parse(readFileSync(resolve(root, 'package-lock.json'), 'utf8')) as {
+      packages: Record<string, { version?: string }>;
+    };
+    expect(lock.packages['node_modules/@devchrisvaz/wallet-contract']?.version).toBe('1.2.0');
+    expect(lock.packages['node_modules/@devchrisvaz/wallet-design-tokens']?.version).toBe('1.1.0');
+  });
+
   it('PLT-13 expone openapi.yaml del paquete del contrato', () => {
     const require = createRequire(import.meta.url);
     const yamlPath = require.resolve('@devchrisvaz/wallet-contract/openapi.yaml');
