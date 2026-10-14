@@ -35,4 +35,4 @@ Requiere `contract-v1-2` (paquete 1.2.0). La tarea 1.1 va antes de que cualquier
 
 ## 5. Verificación
 
-- [ ] 5.1 [docs] Verificación manual contra la API real: programar desde la web una transferencia menor y otra mayor al umbral, cancelar una y ver ejecutarse otra con el procedimiento del README; comprobar estados, asientos y auditoría en la base (TRF-27, TRF-28, TRF-30, TRF-32, WEB-33, WEB-34)
+- [x] 5.1 [docs] Verificación manual contra la API real: programar desde la web una transferencia menor y otra mayor al umbral, cancelar una y ver ejecutarse otra con el procedimiento del README; comprobar estados, asientos y auditoría en la base (TRF-27, TRF-28, TRF-30, TRF-32, WEB-33, WEB-34)
