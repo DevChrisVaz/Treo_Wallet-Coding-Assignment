@@ -1,6 +1,6 @@
 ## 1. Base
 
-- [ ] 1.1 [mobile] Instalar `expo-local-authentication` con `npx expo install`, declarar su plugin en `app.json` y agregar su simulación configurable a `native-mocks`; las pruebas vigentes siguen pasando (MOB-24)
+- [x] 1.1 [mobile] Instalar `expo-local-authentication` con `npx expo install`, declarar su plugin en `app.json` y agregar su simulación configurable a `native-mocks`; las pruebas vigentes siguen pasando (MOB-24)
 - [ ] 1.2 [mobile] Preferencia `treowallet.biometricUnlock` en el almacenamiento seguro (`enabled`, `declined` o vacía) y su borrado en `logout` y en la sesión revocada; pruebas de que nunca contiene un token y de que se borra en ambos casos (MOB-24, MOB-27)
 
 ## 2. Puerta y pantalla de bloqueo

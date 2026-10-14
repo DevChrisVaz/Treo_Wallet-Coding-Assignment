@@ -29,7 +29,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Permite que $(PRODUCT_NAME) use Face ID para desbloquear la app."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
