@@ -22,6 +22,7 @@ import {
   Receipt,
   Select,
   Skeleton,
+  StepActions,
   TextField,
   buttonClasses,
   centsToDecimalString,
@@ -573,24 +574,6 @@ function Summary({ draft }: { draft: Draft }) {
           : `Te quedan ${formatMXN(draft.remaining ?? dailyLimit.remaining)} de tu límite diario de hoy.`}
       </p>
     </ListSection>
-  );
-}
-
-/**
- * Acciones del paso. En teléfono quedan fijas abajo con un borde superior, como el `footer` de
- * Screen en la app móvil; el espaciador reserva su alto para que no tapen el contenido. En el
- * dashboard van en línea, debajo del paso.
- */
-function StepActions({ children, stacked = false }: { children: ReactNode; stacked?: boolean }) {
-  return (
-    <>
-      <div aria-hidden="true" className={`${stacked ? 'h-36' : 'h-21'} dashboard:hidden`} />
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-surface-canvas px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dashboard:static dashboard:border-0 dashboard:bg-transparent dashboard:p-0">
-        <div className="mx-auto grid max-w-app gap-3 dashboard:mx-0 dashboard:flex dashboard:max-w-none">
-          {children}
-        </div>
-      </div>
-    </>
   );
 }
 

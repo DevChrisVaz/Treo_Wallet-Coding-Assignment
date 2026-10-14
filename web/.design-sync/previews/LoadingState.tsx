@@ -1,46 +1,43 @@
-import { LoadingState, Select, TextField, buttonClasses } from 'wallet-web-ui';
+import { ListSection, LoadingState } from 'wallet-web-ui';
+
+/*
+ * Estados de carga de las pantallas rediseñadas: esqueletos y un anuncio para lectores de pantalla.
+ * Las listas cargan dentro de su ListSection (Movimientos, "Últimos movimientos" de Inicio); las
+ * tarjetas y Beneficiarios, directo sobre el lienzo.
+ */
 
 export const Lines = () => (
-  <div className="max-w-2xl">
-    <LoadingState label="Cargando movimientos" />
+  <div className="max-w-xl bg-surface-canvas p-5">
+    <ListSection>
+      <LoadingState label="Cargando movimientos" count={4} />
+    </ListSection>
   </div>
 );
 
 export const Cards = () => (
-  <div className="max-w-2xl">
+  <div className="max-w-xl bg-surface-canvas p-5">
     <LoadingState label="Cargando tus cuentas" variant="card" count={2} />
   </div>
 );
 
 export const LongList = () => (
-  <div className="max-w-2xl">
+  <div className="max-w-xl bg-surface-canvas p-5">
     <LoadingState label="Cargando tus beneficiarios" count={6} />
   </div>
 );
 
-export const AccountsPage = () => (
-  <div className="grid max-w-2xl gap-6">
-    <div className="flex flex-wrap items-end justify-between gap-4">
-      <h1 className="text-h1 text-fg">Tus cuentas</h1>
-      <a href="#nueva-transferencia" className={buttonClasses('primary')}>
-        Nueva transferencia
-      </a>
-    </div>
-    <LoadingState label="Cargando tus cuentas" variant="card" count={2} />
-  </div>
-);
-
-export const MovementsPage = () => (
-  <div className="grid max-w-2xl gap-6">
-    <h1 className="text-h1 text-fg">Movimientos</h1>
-    <div className="grid gap-4 sm:grid-cols-3">
-      <Select label="Cuenta" defaultValue="principal">
-        <option value="principal">Principal</option>
-        <option value="ahorro">Ahorro</option>
-      </Select>
-      <TextField label="Desde" type="date" defaultValue="2026-10-01" />
-      <TextField label="Hasta" type="date" defaultValue="2026-10-13" />
-    </div>
-    <LoadingState label="Cargando movimientos" />
+/** Inicio: los últimos movimientos de la cuenta elegida cargan por su cuenta, con su título. */
+export const HomeLatest = () => (
+  <div className="max-w-xl bg-surface-canvas p-5">
+    <ListSection
+      title="Últimos movimientos"
+      action={
+        <a href="#" className="inline-flex min-h-11 items-center text-label text-action">
+          Ver todos
+        </a>
+      }
+    >
+      <LoadingState label="Cargando movimientos" count={4} />
+    </ListSection>
   </div>
 );

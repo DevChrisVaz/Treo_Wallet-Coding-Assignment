@@ -8,16 +8,24 @@ Sincroniza el sistema de diseño de la web con un proyecto de Claude Design. Tod
   sintético `wallet-web-ui` en `.design-sync/.cache/pkg/` (gitignored): `dist/index.mjs` (esbuild
   sobre `entry.ts`, alias `@/` del tsconfig, React externo), `dist/types/**` (tsc de la app con
   `emitDeclarationOnly`; los `@/` se reescriben a rutas relativas) y `dist/styles.css`.
-- `entry.ts` es la lista explícita de lo que se sincroniza: components/ui + LoadingState/ErrorState,
-  PageShell y StepHeading. Agregar un componente = exportarlo ahí (y su grupo en `docs/`).
+- `entry.ts` es la lista explícita de lo que se sincroniza: components/ui (con `StepActions`) +
+  LoadingState/ErrorState, `AppShell` y `BrandShell` (las estructuras de página), StepHeading y las
+  piezas de los bonus (`ScheduleField`, `StatementDownload`). También exporta, sin tarjeta, las
+  funciones de montos `sumAmounts` (web) y `formatMXN`, `toCents`, `centsToDecimalString` (contrato),
+  para que las historias y el agente de diseño sumen y muestren montos en centavos, nunca con
+  `Number`. Agregar un componente = exportarlo ahí (y su grupo en `docs/`).
 - `dist/styles.css` es `app/globals.css` compilado con `@tailwindcss/postcss` de la app
   (`tailwind.css` es la entrada). Es estático: solo existen las clases que aparecen en la app, en
   `previews/` o en los `@source inline(...)` de `tailwind.css` (el vocabulario que puede usar el
   agente de diseño). **Si una preview usa una clase nueva, vuelve a correr `buildCmd` antes de
   `package-build.mjs`**; `preview-rebuild.mjs` no recompila el CSS.
-- Work Sans: la app la sirve con `next/font/google`; aquí entra por `@import url(Google Fonts)` en
-  `tailwind.css` (validate imprime `[FONT_REMOTE]`, es lo esperado) y `--font-work-sans` se define
-  en `:root`, porque `globals.css` arma `--dt-font-sans` con esa variable.
+- Work Sans: un solo archivo versionado, `app/fonts/WorkSans-latin.woff2` (la variable de pesos de
+  Google Fonts v24, subconjunto latino; licencia OFL en `app/fonts/OFL.txt`). La app lo sirve con
+  `next/font/local` y el lienzo con `fonts.css` (`extraFonts` de `config.json`, que lo copia a
+  `fonts/` del bundle), así que los dos dibujan el mismo texto; `app/fonts.test.ts` lo comprueba.
+  `tailwind.css` define `--font-work-sans` en `:root`, porque `globals.css` arma `--dt-font-sans`
+  con esa variable. Antes el lienzo la pedía a Google Fonts, que entrega otra compilación según el
+  navegador (con otros anchos de letra que la que guardaba `next/font/google`).
 - Grupos: los componentes de `components/ui` caen en `general`; los stubs `docs/<Name>.md` (solo
   frontmatter `category`) los reparten en Actions/Forms/Feedback/Wallet/Brand. Los que viven en
   otras carpetas toman el grupo de la carpeta (states, layout, transfers): el `category` del doc
@@ -53,16 +61,22 @@ node .ds-sync/package-validate.mjs ./ds-bundle
   mensajes de validación del contrato.
 - Antes de usar una clase en una preview, comprueba que exista en `.cache/pkg/dist/styles.css`
   (`grep -F '.max-w-md' …`). Si no existe, agrégala al safelist de `tailwind.css` y corre `buildCmd`.
-- El viewport de captura es de 900 px, así que aplican los breakpoints `sm:`. Por eso AccountCard
-  (usa `sm:grid-cols-2`) y PageShell (encabezado a todo lo ancho) van en `cardMode: column`.
+- El viewport de captura es de 900 px: aplican los breakpoints `sm:` y la forma de app (por debajo
+  de `dashboard:`, 1024 px). AccountCard, Select, LoadingState, BrandShell e Icon van en
+  `cardMode: column`, igual que ScheduleField, StatementDownload y StepActions; AppShell en `single` con `Home` como historia principal (R23: la hoja fija de
+  `MovementsFilters` desbordaba la grilla) y BottomSheet en `single` de 480x520.
+- Las previews de componentes van en el contexto del rediseño: sobre el lienzo de la app
+  (`bg-surface-canvas`, con el margen de 20 px) y, donde las pantallas reales los ponen, dentro de
+  una `ListSection` (el límite diario, las filas de movimientos, los estados de carga de una lista).
 - `StepHeading` se enfoca al montarse: en las previews va con `focus={false}` para no robar el foco
   ni desplazar el lienzo. Por lo mismo, no se usa `focusOnMount` de InlineAlert.
 - `ErrorState` pasa `error` por `describeError`, que solo da mensajes por `code` con una instancia
   de `ProblemError` (no se exporta en `entry.ts`). Las previews usan `new TypeError('Failed to
   fetch')`, que muestra el mensaje de conexión. Para previsualizar mensajes por código habría que
   reexportar `ProblemError` desde `entry.ts` (y excluirlo de las tarjetas con `componentSrcMap`).
-- `PageShell` recibe la navegación como `actions`: AppNav y LogoutButton no están en el bundle
-  (dependen de next/navigation y react-query); las previews los rearman con las clases de AppHeader.
+- `AppShell` y `BrandShell` son los de la app; las historias pasan `onLogout={noop}`. Los enlaces del
+  kit (`RouterLink`) son `<a>` en el lienzo, porque solo AppFrame conecta `next/link`; el `next/link`
+  que importan `ScheduleField` y `StatementDownload` se resuelve a `next-link.ts` en `build-ui.mjs`.
 - `rounded-sm` se emite después de `rounded-pill`: un `className` no puede cambiar el radio que el
   componente ya trae (por ejemplo, Skeleton).
 - `dtsPropsFor` (MovementRow, Receipt, AccountCard, DailyLimitMeter): el extractor no resuelve los
@@ -81,7 +95,10 @@ cada re-sync vuelve a validarlo y reporta lo que ya no exista (no lo reescribas 
 
 ## Known render warns
 
-Ninguno: el último validate terminó limpio (18/18). `[FONT_REMOTE]` es informativo y esperado.
+Ninguno: el último validate (tarea 8.3) terminó limpio, 36/36 previews y "bundle is complete".
+`[DOCS_UNMAPPED]` de AppShell, BrandShell, ErrorState, LoadingState, ScheduleField,
+StatementDownload y StepHeading es informativo: viven fuera de `components/ui` y toman el grupo de
+su carpeta. Ya no aparece `[FONT_REMOTE]`: Work Sans viaja en el bundle (`fonts/`).
 
 ## Re-sync risks
 
@@ -91,38 +108,45 @@ Ninguno: el último validate terminó limpio (18/18). `[FONT_REMOTE]` es informa
   que se exporte ahí y tenga su stub en `docs/`.
 - El CSS sale de `app/globals.css` + el safelist de `tailwind.css`: si la app cambia de tokens o de
   versión de Tailwind, revisa que el safelist siga generando las familias del header.
-- Work Sans se carga en tiempo de ejecución desde Google Fonts (red); no hay archivos locales.
-- Las previews de PageShell rearman AppNav con las clases de `components/layout/AppHeader.tsx`;
-  si ese encabezado cambia, las previews quedan desfasadas sin que nada falle.
+- Work Sans es un archivo versionado (`app/fonts/`): si se cambia, cambia en la app y en el lienzo a
+  la vez, y la paridad con las historias aprobadas se vuelve a medir.
+- Las historias de `AppShell` copian el JSX de las pantallas reales
+  (`components/{auth,accounts,beneficiaries,transfers}`) sobre el kit real: si una pantalla cambia,
+  su historia queda desfasada sin que nada falle. `parity-real.mjs` lo detecta (columna A).
 - Las grades viven en `.design-sync/.cache/review/` (gitignored); la verificación entre máquinas sale
   del `_ds_sync.json` subido al proyecto.
 
-## Mapa de pantallas (`previews/PageShell.tsx`)
+## Mapa de pantallas (`previews/AppShell.tsx`)
 
-Cada ruta y cada estado de página completo es una historia de PageShell, portada del JSX real de
-la pantalla (no se pueden importar: usan Server Actions, TanStack Query y next/navigation):
+Cada ruta y cada estado de página completo es una historia de `AppShell` (o de `BrandShell` para las
+públicas), portada del JSX de la pantalla real sobre el kit real (las pantallas no se pueden
+importar: usan Server Actions, TanStack Query y next/navigation). Los nombres son los de las
+historias de `Screen` de la app móvil, para que `parity.html` y `parity-check.mjs` las emparejen:
 
 | Ruta | Historias |
 |---|---|
-| `/login`, `/register`, `/verify-email` | `LoginPage`, `RegisterPage`, `VerifyEmailPage` |
-| `/` | `AccountsPage`, `AccountsEmpty` |
-| `/accounts/[id]/movements` | `MovementsPage`, `MovementsEmpty` |
-| `/beneficiaries`, `/beneficiaries/new` | `BeneficiariesPage`, `BeneficiariesEmpty`, `NewBeneficiaryPage` |
-| `/transfers/new` (TransferFlow) | `TransferFormPage`, `TransferConfirmPage`, `TransferInsufficientFundsPage`, `TransferUncertainPage`, `TransferOtpPage`, `TransferReceiptPage`, `TransferRejectedPage` |
-| `/transfers/[id]` | `TransferDetailPage` |
+| `/login`, `/register`, `/verify-email` (BrandShell) | `Login`, `Register`, `VerifyEmail` |
+| `/` | `Home`, `HomeEmpty`, `HomeLoading`, `HomeError` |
+| `/accounts/[id]/movements` | `Movements`, `MovementsEmpty`, `MovementsFilters` |
+| `/transfers/new` (`mode="flow"`) | `TransferRecipient`, `TransferAmount`, `TransferReview`, `TransferUncertain`, `TransferRejected`, `TransferOtp`, `TransferCompleted`, `TransferFailed`; programada (bonus): `TransferAmountScheduled`, `TransferReviewScheduled`, `TransferScheduled` |
+| `/transfers/scheduled` (bonus) | `ScheduledTransfers`, `ScheduledTransfersEmpty`, `ScheduledTransfersCancel`, `ScheduledTransfersCancelError` |
+| `/beneficiaries`, `/beneficiaries/new` | `Beneficiaries`, `BeneficiariesEmpty`, `NewBeneficiary` |
+| `/transfers/[id]` | `TransferDetail` |
 
-- La navegación (AppNav + "Cerrar sesión") se rearma con las clases de `AppHeader.tsx`; el ítem
-  actual sigue `isCurrent()` (en `/transfers/[id]` no hay ítem actual, igual que en la app).
-- Montos, CLABE enmascaradas y la hora de vencimiento del código van ya formateados: `formatMXN`,
-  `maskClabe` y `formatTime` no se exportan en `wallet-web-ui`.
+- Las parejas con la app móvil son `Login`, las cuatro de Inicio, `Movements`, `MovementsEmpty` y
+  los pasos del flujo de `TransferRecipient` a `TransferFailed` (15). Las demás son solo de la web.
+- Datos canónicos (iguales en la historia móvil): Ana, Principal (`…9719`, $25,000.00), Ahorro
+  (`…1234`, $10,000.00), Luis (`…5678`) y Mamá (`…4321`), el límite con $31,500.00 disponibles y el
+  reloj en el 13 de octubre de 2026 a las 12:00 de la Ciudad de México.
+- Los montos calculados se restan y suman en centavos con las funciones que exporta `entry.ts`
+  (`sumAmounts`, `toCents`, `centsToDecimalString`) y se muestran con `formatMXN`; las CLABE
+  enmascaradas y las horas van ya formateadas (`maskClabe` y `formatTime` no se exportan).
+- Las acciones de los pasos usan el `StepActions` del kit, el mismo de la app: fijas abajo en
+  teléfono, con el espaciador que deja lo último del paso a 20 px del pie.
 - Omitidos a propósito (variantes de una sola alerta o ya cubiertos por previews de componentes):
-  loading/error de cada pantalla, `/login?reason=expired`, subestados del código (entrega fallida,
-  reenviado, código inválido), `/transfers/[id]` en PENDING_OTP, errores de validación por campo.
-- Las celdas de la hoja de revisión se recortan a 900x700; las páginas más altas se verificaron
-  con capturas de página completa. Los `type="date"` muestran `mm/dd/yyyy` por el locale del
-  navegador de captura (en es-MX la app muestra `dd/mm/aaaa`).
-- Si una pantalla de la app cambia, su historia queda desfasada sin que nada falle: es una copia
-  del JSX. Revísalas en cada re-sync contra `components/{auth,accounts,beneficiaries,transfers}/`.
+  `/login?reason=expired`, subestados del código (entrega fallida, reenviado, código inválido),
+  `/transfers/[id]` en `PENDING_OTP` (está en `StepHeading`: `DetailPendingOtp`), errores de
+  validación por campo.
 
 ## Revisión local
 
@@ -149,8 +173,8 @@ historias con el mismo nombre en `AppShell` (web) y `Screen` (móvil), WEB-25 / 
   (barra de pestañas, acciones del paso) quedaba al final del contenido en lugar de abajo del
   teléfono. Se captura con Work Sans cargada y dos cuadros ya pintados, sin espera fija (tres
   corridas seguidas dan el mismo `report.json`).
-- `diffRatio` es una guía, no una prueba: el texto nunca coincide píxel a píxel, porque la web carga
-  Work Sans variable de Google Fonts y la app móvil los TTF estáticos de `@expo-google-fonts` (en el
+- `diffRatio` es una guía, no una prueba: el texto nunca coincide píxel a píxel, porque la web usa
+  Work Sans variable (`app/fonts/`) y la app móvil los TTF estáticos de `@expo-google-fonts` (en el
   diff se ve rojo dentro de las letras, no fuera). Revisa el `-diff.png` de cada pareja que suba.
 
 Regla de veredicto, en este orden (cualquier otra cosa es estructural y se corrige):
@@ -202,7 +226,7 @@ Lo que se alineó para llegar ahí (en la primera medición, con el `transform`,
 
 ## Paridad (pantallas reales)
 
-Tarea 8.1 del rediseño (WEB-25, final-review M-8): cada pantalla real contra su historia aprobada y
+Tareas 8.1 y 8.3 del rediseño (WEB-25, final-review M-8): cada pantalla real contra su historia aprobada y
 cada pareja web↔móvil sobre código real, a 390×844 (ventana y página completa) y, la web, a 1280×800.
 `review/parity-real.mjs` captura y mide; escribe en `.design-sync/.cache/parity-real/` (gitignored)
 `approved/`, `real/`, `diff/` y `report.json` (`[{ story, A390, A390full, B1280, B1280full, C390,
@@ -239,73 +263,92 @@ C390full, D390, D390full }]`, cada uno `{ ratio, heights }` o `null`).
   crecido lo que le falta a su ScrollView). En la página completa de Chromium lo `fixed` (pestañas,
   pie del paso) se queda donde estaba la ventana; así baja al final, como en la app. La línea base
   móvil aprobada se capturó con el marco fijo: C completa compara esos 844 px.
-- **Fuente.** Google Fonts entrega otra compilación de Work Sans según el agente: `next/font` guarda
-  la de su agente (Chrome 104, `…/worksans/v24/QGYsz_wNahGAdqQ43Rh_fKDptfpA4Q.woff2`) y el Chromium
-  de captura del lienzo recibe `…fKDp.woff2`, con otros anchos de letra ("Transferir" a 400: 64 px
-  frente a 67 px; `tabular-nums` distinto). Por eso la corrida normal de A/B nunca baja de ~0.002.
-  `--font canvas` sirve a la web real el mismo archivo que recibe el lienzo: con él, A y B dan
-  0.0000 salvo en las zonas acordadas. El veredicto de A/B se toma con `--font canvas`; D con la
-  misma fuente repite exactamente la medición de lienzo contra lienzo de "Paridad" en cada pareja
-  que no cambió.
+- **Fuente.** La app (`next/font/local`) y el lienzo (`fonts.css`) usan el mismo archivo,
+  `app/fonts/WorkSans-latin.woff2` (tarea 8.3). Antes, Google Fonts entregaba otra compilación de
+  Work Sans según el agente: `next/font/google` guardaba la de su agente (Chrome 104) y el Chromium
+  de captura del lienzo recibía otra, con otros anchos de letra ("Transferir" a 400: 64 px frente a
+  67 px). En 8.1 la corrida normal de A/B nunca bajaba de ~0.002 por eso, y los veredictos se tomaron
+  con una opción `--font canvas` que servía a la web real el archivo del lienzo. Con el archivo fijo,
+  la corrida normal (lo que ve la persona usuaria) ya da 0.0000 fuera de las zonas acordadas y el
+  script no usa la red.
+- **Arranque de la web.** `next dev` usa Turbopack. Si se detiene con "OS file watch limit reached",
+  el presupuesto de inotify del usuario está lleno (65,536 observadores; en 8.3, VS Code tenía unos
+  52,700 y Expo unos 8,000): hay que liberar observadores antes de capturar. La corrida de 8.3 se hizo
+  con `next dev --webpack` porque Turbopack no arrancaba; la comparación es de píxeles ya dibujados y
+  el archivo de fuente servido era el mismo (mismo SHA-256 que `app/fonts/`), pero conviene repetirla
+  con Turbopack. El script espera a que la página de inicio de sesión no tenga red pendiente antes de
+  escribir (con un servidor lento, el formulario se enviaba antes de hidratarse).
 
 ### Comandos
 
 ```bash
-# 1. Antes de reconstruir los lienzos: la línea base aprobada (el servidor de revisión en 4310 sirve
-#    web/ds-bundle y mobile/ds-bundle desde disco; nunca se detiene).
-cd web && node .design-sync/review/parity-real.mjs --phase approved
-# 2–3. Historias de Screen con las vistas reales; reconstruir ambos lienzos (ver "Revisión local").
+# 1. Antes de reconstruir los lienzos: la línea base aprobada (el servidor de revisión sirve
+#    web/ds-bundle y mobile/ds-bundle desde disco; --base si no es el de 4310).
+cd web && node .design-sync/review/parity-real.mjs --phase approved [--base http://127.0.0.1:4321]
+# 2–3. Cambios y reconstrucción de los lienzos (ver "Revisión local").
 # 4. La web real (en segundo plano) contra la API simulada:
 node e2e/fake-api.mjs --port 4999
 API_BASE_URL=http://127.0.0.1:4999 SESSION_COOKIE_SECURE=false npx next dev --port 3101 --hostname 127.0.0.1
-# 5. Capturar y comparar (normal y con la fuente del lienzo, en otra carpeta con la misma línea base):
-node .design-sync/review/parity-real.mjs --phase real
-mkdir -p .design-sync/.cache/parity-real-font && cp -a .design-sync/.cache/parity-real/approved .design-sync/.cache/parity-real-font/
-node .design-sync/review/parity-real.mjs --phase real --font canvas --out .design-sync/.cache/parity-real-font
+# 5. Capturar y comparar:
+node .design-sync/review/parity-real.mjs --phase real [--base http://127.0.0.1:4321]
 ```
 
 Regla de veredicto: la de "Paridad" (por diseño → idéntico → suavizado; lo demás es estructural y
-se corrige), con A/B leídos en la corrida `--font canvas`.
+se corrige), aplicada a cada columna. La columna "Veredicto" da el de la peor columna y la nombra
+entre paréntesis; con "por diseño", la nota dice la zona acordada y el "resto" de esa columna, que
+a su vez cumple la regla (idéntico si es < 0.002; si no, suavizado tras revisar el `-diff.png`).
 
 ### Resultado
 
-Celdas: corrida normal / `--font canvas`. C no depende de la fuente de la web. D: ventana y, entre
-paréntesis, página completa (`-tall`), las dos con la misma fuente.
+Corrida de la tarea 8.3, con la fuente fija: la web real (`next dev --webpack`, ver "Arranque de la
+web", contra la API simulada) contra
+los lienzos de antes de reconstruirlos (los de P2, con las historias aprobadas) y contra las vistas
+móviles reales. D: ventana y, entre paréntesis, página completa (`-tall`).
 
-| Historia | A 390 | A 390 completa | B 1280 | C móvil | D pareja | Veredicto | Nota |
-|---|---|---|---|---|---|---|---|
-| `Beneficiaries` | 0.0077 / 0.0000 | 0.0077 / 0.0000 | 0.0035 / 0.0000 | — | — | idéntico | "Agregar beneficiario" en la barra superior, como la historia (R44, WEB-26) |
-| `BeneficiariesEmpty` | 0.0107 / 0.0000 | 0.0107 / 0.0000 | 0.0045 / 0.0000 | — | — | idéntico | |
-| `Home` | 0.0174 / 0.0000 | 0.0218 / 0.0000 | 0.0126 / 0.0000 | 0.0000 | 0.0119 (0.0089) | por diseño | D: 4.ª pestaña y "Mostrar CLABE" (R29); resto de la página completa sin la barra 0.0050 (suavizado) |
-| `HomeEmpty` | 0.0132 / 0.0000 | 0.0132 / 0.0000 | 0.0054 / 0.0000 | 0.0000 | 0.0140 (0.0140) | por diseño | D: 4.ª pestaña; texto del vacío de cada app |
-| `HomeError` | 0.0081 / 0.0000 | 0.0081 / 0.0000 | 0.0035 / 0.0000 | 0.0000 | 0.0081 (0.0081) | por diseño | D: 4.ª pestaña |
-| `HomeLoading` | 0.0020 / 0.0000 | 0.0020 / 0.0000 | 0.0017 / 0.0000 | 0.0000 | 0.0081 (0.0081) | por diseño | D: 4.ª pestaña; las dos saludan a Ana mientras cargan |
-| `Login` | 0.0071 / 0.0000 | 0.0071 / 0.0000 | 0.0022 / 0.0000 | 0.0000 | 0.0048 (0.0048) | por diseño | D: nota de registro (la app móvil no registra) |
-| `Movements` | 0.0213 / 0.0000 | 0.0195 / 0.0017 | 0.0108 / 0.0000 | 0.0000 | 0.0439 (0.0400) | por diseño | A completa: tarjeta "Estado de cuenta" (R53) bajo la lista; D: fila "Filtros" (+56 px), 4.ª pestaña, "Cargar más" de la web (WEB-14; la app muestra los últimos 20, MOB-20) y R53; encabezado y lista alineados 0.0042 (suavizado) |
-| `MovementsEmpty` | 0.0183 / 0.0080 | 0.0183 / 0.0080 | 0.0076 / 0.0021 | 0.0000 | 0.0350 (0.0342) | por diseño | A/B: "Estado de cuenta" (R53), resto 0.0000; D: "Filtros", vacío filtrado de la web ("Limpiar filtros"), 4.ª pestaña y R53; encabezado 0.0000 |
-| `MovementsFilters` | 0.0099 / 0.0000 | 0.0103 / 0.0017 | 0.0072 / 0.0000 | — | — | por diseño | A completa: "Estado de cuenta" (R53) detrás de la hoja; en escritorio el panel centrado de la historia (R44, WEB-29/D9) |
-| `NewBeneficiary` | 0.0109 / 0.0000 | 0.0109 / 0.0000 | 0.0056 / 0.0000 | — | — | idéntico | |
-| `Register` | 0.0119 / 0.0000 | 0.0124 / 0.0000 | 0.0042 / 0.0000 | — | — | idéntico | sin pie fijo, como la historia (R44, WEB-25) |
-| `TransferAmount` | 0.0122 / 0.0000 | 0.0122 / 0.0000 | 0.0081 / 0.0000 | 0.0000 | 0.0218 (0.0218) | por diseño | C: corregido (ver abajo); D: select nativo de una línea y ayuda del monto de cada app (R30) |
-| `TransferCompleted` | 0.0159 / 0.0000 | 0.0157 / 0.0000 | 0.0104 / 0.0000 | 0.0000 | 0.0025 (0.0025) | suavizado | A completa: la página es 27 px más corta que la historia (853/880, corregido: el pie a 20 px) |
-| `TransferDetail` | 0.0140 / 0.0000 | 0.0140 / 0.0000 | 0.0059 / 0.0000 | — | — | idéntico | corregido (ver abajo); "Ver mis cuentas" va en el contenedor en línea de `StepActions` (pre-flight #20): sin diferencia visible |
-| `TransferFailed` | 0.0158 / 0.0000 | 0.0141 / 0.0000 | 0.0113 / 0.0000 | 0.0000 | 0.0016 (0.0023) | idéntico | D completa: suavizado; A completa: 945/972, el pie a 20 px (corregido) |
-| `TransferOtp` | 0.0159 / 0.0000 | 0.0159 / 0.0000 | 0.0109 / 0.0000 | 0.0000 | 0.0037 (0.0037) | por diseño | D: "Vence a las 12:05." frente a la cuenta regresiva de móvil; B corregido (ver abajo) |
-| `TransferRecipient` | 0.0166 / 0.0128 | 0.0166 / 0.0128 | 0.0093 / 0.0041 | 0.0000 | 0.0125 (0.0125) | por diseño | A/B: la fila "Principal" de "Tus cuentas" (R38: todas las cuentas propias), resto 0.0000; D: cuentas propias de la web, beneficiarios alineados 0.0029 |
-| `TransferRejected` | 0.0251 / 0.0080 | 0.0251 / 0.0080 | 0.0136 / 0.0033 | 0.0000 | 0.0103 (0.0103) | por diseño | A/B: título "Saldo insuficiente" y "Saldo disponible en Principal: $25,000.00" en la alerta (WEB-16), resto 0.0000; D: lo mismo, resto 0.0037 (suavizado) |
-| `TransferReview` | 0.0092 / 0.0000 | 0.0092 / 0.0000 | 0.0073 / 0.0000 | 0.0000 | 0.0013 (0.0013) | idéntico | |
-| `TransferUncertain` | 0.0159 / 0.0000 | 0.0159 / 0.0000 | 0.0101 / 0.0000 | 0.0000 | 0.0013 (0.0013) | idéntico | |
-| `VerifyEmail` | 0.0153 / 0.0000 | 0.0153 / 0.0000 | 0.0051 / 0.0000 | — | — | idéntico | |
-| `LoginRateLimited` | — | — | — | 0.0000 | — | idéntico | solo móvil |
-| `StartupLoading` | — | — | — | 0.0000 | — | idéntico | solo móvil (el indicador gira: hasta 0.0001) |
-| `StartupOffline` | — | — | — | 0.0000 | — | idéntico | solo móvil |
-| `TransferRecipientEmpty` | — | — | — | 0.0000 | — | idéntico | solo móvil |
-| `TransferRetrying` | — | — | — | 0.0000 | — | idéntico | solo móvil |
+| Historia | A 390 (completa) | B 1280 | C móvil | D pareja | Veredicto (columna) | Nota |
+|---|---|---|---|---|---|---|
+| `Beneficiaries` | 0.0000 (0.0000) | 0.0000 | — | — | idéntico (A, B) | "Agregar beneficiario" en la barra superior, como la historia (R44, WEB-26) |
+| `BeneficiariesEmpty` | 0.0000 (0.0000) | 0.0000 | — | — | idéntico (A, B) | |
+| `Home` | 0.0000 (0.0000) | 0.0000 | 0.0000 | 0.0119 (0.0089) | por diseño (D) | 4.ª pestaña y "Mostrar CLABE" (R29); resto sin la barra: ventana 0.0041, página completa 0.0050 (suavizado) |
+| `HomeEmpty` | 0.0000 (0.0000) | 0.0000 | 0.0000 | 0.0140 (0.0140) | por diseño (D) | 4.ª pestaña y el texto del vacío de cada app; resto 0.0010 (idéntico) |
+| `HomeError` | 0.0000 (0.0000) | 0.0000 | 0.0000 | 0.0081 (0.0081) | por diseño (D) | 4.ª pestaña; resto 0.0000 |
+| `HomeLoading` | 0.0000 (0.0000) | 0.0000 | 0.0000 | 0.0081 (0.0081) | por diseño (D) | 4.ª pestaña; resto 0.0000 (las dos saludan a Ana mientras cargan) |
+| `Login` | 0.0000 (0.0000) | 0.0000 | 0.0000 | 0.0048 (0.0048) | por diseño (D) | la nota de registro de cada app (la app móvil no registra); resto 0.0005 (idéntico) |
+| `Movements` | 0.0000 (0.0000) | 0.0000 | 0.0000 | 0.0439 (0.0400) | por diseño (D) | fila "Filtros" (+56 px), 4.ª pestaña, "Cargar más" de la web (WEB-14; la app muestra los últimos 20, MOB-20) y la tarjeta "Estado de cuenta" (R53); resto: encabezado y lista alineados 0.0042 en ventana y 0.0041 en página completa (suavizado) |
+| `MovementsEmpty` | 0.0000 (0.0000) | 0.0000 | 0.0000 | 0.0350 (0.0342) | por diseño (D) | "Filtros", vacío filtrado de la web ("Limpiar filtros"), 4.ª pestaña y R53; resto: encabezado 0.0000 |
+| `MovementsFilters` | 0.0000 (0.0000) | 0.0000 | — | — | idéntico (A, B) | en escritorio, el panel centrado de la historia (R44, WEB-29/D9) |
+| `NewBeneficiary` | 0.0000 (0.0000) | 0.0000 | — | — | idéntico (A, B) | |
+| `Register` | 0.0000 (0.0000) | 0.0000 | — | — | idéntico (A, B) | sin pie fijo, como la historia (R44, WEB-25) |
+| `TransferAmount` | 0.0005 (0.0005) | 0.0046 | 0.0000 | 0.0222 (0.0847) | por diseño (A, B, D) | "Cuándo" (Ahora/Programar) bajo Referencia, el bonus de programar (R56), que esta historia no tiene (está en `TransferAmountScheduled`; la página real es 51 px más alta, 895/844); resto A 0.0000 y B 0.0000. D además: select nativo de una línea y ayuda del monto de cada app (R30); resto D 0.0026 (suavizado) |
+| `TransferCompleted` | 0.0000 (0.0000) | 0.0000 | 0.0000 | 0.0025 (0.0025) | suavizado (D) | |
+| `TransferDetail` | 0.0000 (0.0000) | 0.0000 | — | — | idéntico (A, B) | "Ver mis cuentas" en el `StepActions` en línea (pre-flight #20): sin diferencia visible |
+| `TransferFailed` | 0.0000 (0.0000) | 0.0000 | 0.0000 | 0.0016 (0.0023) | suavizado (D completa) | en ventana, idéntico |
+| `TransferOtp` | 0.0000 (0.0000) | 0.0000 | 0.0000 | 0.0037 (0.0037) | por diseño (D) | "Vence a las 12:05." (web) frente a la cuenta regresiva de móvil; resto 0.0026 (suavizado) |
+| `TransferRecipient` | 0.0166 (0.0166) | 0.0041 | 0.0000 | 0.0144 (0.0144) | por diseño (A, B, D) | la fila "Principal" de "Tus cuentas" (R38: todas las cuentas propias), que empuja lo demás; el enlace "Transferencias programadas" de teléfono (R56) ya está en la historia. Resto A 0.0000 y B 0.0000 (columna del paso). D: las cuentas propias y el enlace de la web; resto 0.0029 (suavizado) |
+| `TransferRejected` | 0.0080 (0.0080) | 0.0033 | 0.0000 | 0.0103 (0.0103) | por diseño (A, B, D) | título "Saldo insuficiente" y "Saldo disponible en Principal: $25,000.00" en la alerta (WEB-16); resto A 0.0000 y B 0.0000 (todo lo de arriba de la alerta); resto D sin la alerta 0.0037 (suavizado) |
+| `TransferReview` | 0.0000 (0.0000) | 0.0000 | 0.0000 | 0.0013 (0.0013) | idéntico (D) | |
+| `TransferUncertain` | 0.0000 (0.0000) | 0.0000 | 0.0000 | 0.0013 (0.0013) | idéntico (D) | |
+| `VerifyEmail` | 0.0000 (0.0000) | 0.0000 | — | — | idéntico (A, B) | |
+| `LoginRateLimited`, `StartupLoading`, `StartupOffline`, `TransferRecipientEmpty`, `TransferRetrying` | — | — | 0.0000 | — | idéntico (C) | solo móvil |
+| `HomeUnlockOffer`, `LockScreen`, `LockScreenLockout`, `TransferOutcomeScheduled`, `TransferOutcomeCancelled` | — | — | 0.0000 | — | idéntico (C) | solo móvil (bonus, P2) |
 
-"Resto" es el ratio de la misma captura sin la zona acordada, alineando lo que esta empuja. Sin
-diferencia visible en los casos que la lista de 8.1 preveía: el contenido a 1200 px en escritorio
-(la línea base ya lo tenía), la línea de la persona en la navegación lateral, el segundo de la
-cuenta regresiva del código (4:32 en las dos) y el nivel de los encabezados por día de Movimientos.
+- **Sin receta en `parity-real.mjs`:** las historias de los bonus de la web (`ScheduledTransfers*`,
+  `TransferAmountScheduled`, `TransferReviewScheduled`, `TransferScheduled`). No tienen pareja; las
+  cubren las pruebas en navegador (`e2e/scheduled.spec.ts`, axe) y su revisión en P2.
+- **Alturas.** La página real de `TransferCompleted` y `TransferFailed` a 390 mide 853 y 945 px; las
+  historias de antes de 8.3 medían 880 y 972 (27 px de más al final). Desde 8.3 las historias usan
+  el `StepActions` del kit y miden lo mismo que la pantalla real; la ventana no cambia.
+- **8.1 frente a 8.3.** Con `--font canvas`, 8.1 midió lo mismo que esta corrida normal en todas las
+  historias que no cambiaron. Lo que sí cambió viene de los bonus integrados después (P1 y P2):
+  `TransferAmount` ("Cuándo"), `TransferRecipient` (el enlace de teléfono, ahora también en la
+  historia) y `Movements`/`MovementsEmpty`/`MovementsFilters` (la tarjeta R53, ahora también en la
+  historia: la A de `MovementsEmpty` pasa de 0.0080 a 0.0000).
+
+"Resto" es el ratio de la misma captura sin la zona acordada, juntando lo que la zona empujaba (se
+quitan sus filas de cada imagen; en el dashboard se compara solo la columna del paso). Sin diferencia
+visible en los casos que la lista de 8.1 preveía: el contenido a 1200 px en escritorio, la línea de
+la persona en la navegación lateral, el segundo de la cuenta regresiva del código y el nivel de los
+encabezados por día de Movimientos.
 
 **Estructural, corregido en el código real** (cada uno con su prueba):
 
@@ -383,3 +426,6 @@ rediseño (kit, tokens, ritmo de 20 px, tarjetas sobre el lienzo, lima solo sobr
   el `RouterLink` del kit sin proveedor (un `<a>`); sin ese alias el bundle no cargaba ("Dynamic
   require of react/jsx-runtime").
 
+## Subida a Claude Design
+
+Pendiente: subir a Claude Design. Requiere autenticarse con `/design-login` (no se ha hecho en este entorno); después, `resync` desde cada app según 'Preparar'.

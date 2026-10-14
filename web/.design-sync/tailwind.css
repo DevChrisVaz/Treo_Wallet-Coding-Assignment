@@ -36,3 +36,14 @@
 @source inline("sticky fixed top-0 bottom-0 left-0 right-0 inset-x-0 z-{10,20,50} {bg-surface-inverse,bg-fg}/{40,60,80} opacity-{50,60,80}");
 @source inline("ring-2 ring-action underline underline-offset-2 no-underline cursor-pointer transition-colors");
 
+/*
+ * Rediseño (v2, DSG-13 y WEB-24): lienzo y hero, lima solo sobre surface-hero (DSG-14; los controles
+ * sobre oscuro llevan su anillo lima), display mayor, elevaciones, medidas de las dos formas y los
+ * espaciadores del pie fijo de los pasos (StepActions: h-12 y h-27; antes, h-21 y h-36).
+ */
+@source inline("bg-surface-canvas bg-surface-hero text-fg-on-hero-muted bg-accent-on-dark text-accent-on-dark outline-accent-on-dark focus-visible:outline-accent-on-dark");
+@source inline("text-display-xl shadow-{raised,sheet} max-w-{app,content} w-sidebar h-(--dt-layout-tab-bar-height) h-{12,21,27,36}");
+
+/* Variantes de forma: app: (≥ 480 px, la columna centrada) y dashboard: (≥ 1024 px). */
+@source inline("{app:,dashboard:}{flex,inline-flex,grid,block,hidden,static,flex-row,flex-col,flex-wrap,flex-1,items-center,items-end,content-center,justify-start,justify-center,justify-between,justify-self-start,justify-self-center,grid-cols-2,grid-cols-3,col-span-2,mx-auto,mx-0,ml-auto,max-w-none,max-w-md,max-w-xl,max-w-2xl,max-w-app,max-w-content,w-80,min-w-56,p-0,p-8,p-16,px-0,px-10,px-16,py-3,pt-0,pt-8,pb-6,pb-10,gap-0,gap-3,gap-4,rounded-none,rounded-lg,shadow-card,bg-surface,bg-transparent,border-0,border-b,border-border,text-body-sm}");
+@source inline("dashboard:grid-cols-[minmax(0,1fr)_320px]");
