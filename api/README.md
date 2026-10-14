@@ -1,8 +1,8 @@
 # API de la billetera (`/api`)
 
-Backend de la billetera digital en MXN: identidad (registro con verificación por correo, sesiones con refresh rotativo), cuentas con CLABE y bitácora de auditoría inmutable. Express 5 + TypeScript estricto + PostgreSQL 16 con TypeORM (sin `synchronize`, migraciones con SQL explícito).
+Backend de la billetera digital en MXN: identidad (registro con verificación por correo, sesiones con refresh rotativo), cuentas con CLABE, beneficiarios, transferencias con ledger de partida doble (idempotencia, límite diario, OTP por correo), historial con paginación por cursor y bitácora de auditoría inmutable. Express 5 + TypeScript estricto + PostgreSQL 16 con TypeORM (sin `synchronize`, migraciones con SQL explícito).
 
-El contrato es [`contract/openapi.yaml`](../contract/openapi.yaml) (paquete `@devchrisvaz/wallet-contract`). Especificación: `openspec/changes/api-foundation/` (requisitos PLT, IDN, AUD y ACC-01 a ACC-09).
+El contrato es [`contract/openapi.yaml`](../contract/openapi.yaml) (paquete `@devchrisvaz/wallet-contract`). Especificación: `openspec/changes/api-foundation/` (requisitos PLT, IDN, AUD y ACC-01 a ACC-09) y `openspec/changes/api-ledger/` (ACC-10 a ACC-16, BEN, TRF e HIS).
 
 ## Requisitos
 
@@ -26,7 +26,7 @@ docker compose up -d --wait
 # 3. Roles, bases y esquema (superusuario, idempotente)
 npm run db:bootstrap
 
-# 4. Esquema y datos demo
+# 4. Esquema y datos demo (~120k asientos; unos 11 s en local)
 npm run db:migrate
 npm run db:seed
 
@@ -34,21 +34,22 @@ npm run db:seed
 npm run dev
 ```
 
-| URL                                | Qué es                                                      |
-| ---------------------------------- | ----------------------------------------------------------- |
-| http://localhost:4000/health       | Salud del servicio                                          |
-| http://localhost:4000/docs         | Swagger UI del contrato (fuera de producción)               |
-| http://localhost:4000/openapi.yaml | El contrato tal cual (fuera de producción)                  |
-| http://localhost:8025              | Bandeja de Mailpit: aquí llegan los códigos de verificación |
+| URL                                | Qué es                                                              |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| http://localhost:4000/health       | Salud del servicio                                                  |
+| http://localhost:4000/docs         | Swagger UI del contrato (fuera de producción)                       |
+| http://localhost:4000/openapi.yaml | El contrato tal cual (fuera de producción)                          |
+| http://localhost:8025              | Bandeja de Mailpit: códigos de verificación y OTP de transferencias |
 
 ### Credenciales demo
 
-| Usuario          | Email              | Contraseña        |
-| ---------------- | ------------------ | ----------------- |
-| Ana Gómez Cruz   | `ana@example.com`  | `Ana-demo-2026!`  |
-| Luis Pérez López | `luis@example.com` | `Luis-demo-2026!` |
+| Usuario               | Email                                             | Contraseña           |
+| --------------------- | ------------------------------------------------- | -------------------- |
+| Ana Gómez Cruz        | `ana@example.com`                                 | `Ana-demo-2026!`     |
+| Luis Pérez López      | `luis@example.com`                                | `Luis-demo-2026!`    |
+| 50 usuarios generados | `usuario01@example.com` … `usuario50@example.com` | `Demo-usuario-2026!` |
 
-Ambos están verificados y tienen sus cuentas "Principal" y "Ahorro". Sus CURP y RFC son sintéticos.
+Todos están verificados y tienen sus cuentas "Principal" y "Ahorro"; sus CURP, RFC y teléfonos son sintéticos (válidos en estructura y dígito verificador, no corresponden a personas reales). Ana ya tiene registrado a Luis (alias "Luis") y a otros nueve usuarios como beneficiarios, y su "Principal" tiene unos 60,000 movimientos de los últimos 12 meses. Para probar transferencias desde cero, fondea otra cuenta con `db:fund`.
 
 ### Registro manual
 
@@ -63,9 +64,52 @@ Ambos están verificados y tienen sus cuentas "Principal" y "Ahorro". Sus CURP y
 | `db:bootstrap`                          | `db/bootstrap.sql` con psql como superusuario (`BOOTSTRAP_DATABASE_URL`): roles `wallet_migrator` y `wallet_app`, bases `wallet` y `wallet_test`, esquema `app`. Las contraseñas de los roles llegan por variables de entorno |
 | `db:migrate`                            | Aplica migraciones pendientes con el rol dueño (`MIGRATION_DATABASE_URL`)                                                                                                                                                     |
 | `db:revert`                             | Revierte la última migración; `npm run db:revert -- --all` revierte todas                                                                                                                                                     |
-| `db:seed`                               | Usuarios demo (idempotente)                                                                                                                                                                                                   |
+| `db:seed`                               | Datos de desarrollo con volumen (ver abajo). Idempotente y termina verificando las invariantes del ledger                                                                                                                     |
+| `db:fund`                               | Fondea una cuenta desde la Tesorería: `npm run db:fund -- --account <id o CLABE> --amount 1000.00`                                                                                                                            |
 | `lint`, `typecheck`, `format:check`     | ESLint (incluye la regla de capas), TypeScript, Prettier                                                                                                                                                                      |
 | `test`, `test:unit`, `test:integration` | Vitest                                                                                                                                                                                                                        |
+
+## Datos de desarrollo (`db:seed`)
+
+`npm run db:seed` usa el rol dueño (`MIGRATION_DATABASE_URL`) y es idempotente: correrlo otra vez no duplica nada. Crea:
+
+1. Ana, Luis y 50 usuarios generados, verificados, con sus dos cuentas.
+2. Beneficiarios: Luis y otros nueve para Ana; "Ana" para cada uno de los demás.
+3. Fondeo inicial de cada "Principal" desde la Tesorería con el mismo servicio que `db:fund` (evento `FUNDING_POSTED`): 10,000.00 para Ana y 600,000.00 para los demás.
+4. 60,000 transferencias completadas (120,000 asientos), todas con un lado en "Principal" de Ana, más 12 depósitos de nómina de la Tesorería, repartidas en los 12 meses que terminan **ayer a las 23:59 de CDMX**: nada cae en el día actual, así que el límite diario de hoy está libre. Se generan por tandas de 5,000 con `generate_series` y el `balance_after` se calcula en staging con una función de ventana.
+5. Ajuste de cada saldo al `balance_after` de su último asiento, `ANALYZE` y verificación de invariantes: mínimo de 100,000 asientos, suma global cero, ningún `balance_after` negativo en cuentas USER, cadena de `balance_after` correcta, saldos iguales al último asiento, Tesorería igual al negativo de las cuentas USER y ningún movimiento de hoy. Si algo falla, el comando termina con código 1.
+
+Tiempo medido en local (PostgreSQL 16 en Docker, 2026-10-13): **10.7 s** la primera vez (120,128 asientos, 60,013 en "Principal" de Ana) y 0.5 s las siguientes. Los planes de las consultas del historial con este volumen están en `openspec/changes/api-ledger/design.md` (sección "EXPLAIN ANALYZE").
+
+`db:fund` es la única forma de meter dinero (no hay endpoint que lo cree): valida el monto con las mismas reglas que la API antes de conectarse, usa el rol de la aplicación y registra `FUNDING_POSTED` con actor SYSTEM.
+
+## Conciliación del ledger
+
+Las mismas consultas que usan las pruebas (`test/helpers/reconciliation.ts`) y la verificación del seed; con `psql` como `wallet_migrator` sobre el esquema `app`:
+
+```sql
+-- 1. Saldo = suma de asientos, por cuenta (debe devolver 0 filas)
+SELECT a.id FROM accounts a
+LEFT JOIN ledger_entries e ON e.account_id = a.id
+GROUP BY a.id, a.balance_cents
+HAVING a.balance_cents <> COALESCE(SUM(e.amount_cents), 0);
+
+-- 2. Suma global de asientos (debe ser 0)
+SELECT COALESCE(SUM(amount_cents), 0) FROM ledger_entries;
+
+-- 3. Cadena de balance_after (debe devolver 0 filas)
+SELECT * FROM (
+  SELECT id, account_id, balance_after_cents,
+         SUM(amount_cents) OVER (PARTITION BY account_id ORDER BY created_at, id) AS running
+    FROM ledger_entries) t
+WHERE balance_after_cents <> running;
+
+-- 4. Tesorería = negativo de la suma de las cuentas USER (debe ser 0)
+SELECT (SELECT balance_cents FROM accounts WHERE type = 'SYSTEM')
+     + (SELECT COALESCE(SUM(balance_cents), 0) FROM accounts WHERE type = 'USER');
+```
+
+La base también lo protege por su cuenta: un trigger diferido rechaza al hacer `COMMIT` cualquier transferencia cuyos asientos no sean exactamente dos que sumen cero, y los asientos no se pueden modificar ni borrar (sin `UPDATE`/`DELETE`/`TRUNCATE` para `wallet_app` y un trigger que lo impide incluso al dueño).
 
 ## Base de datos y privilegios
 
@@ -91,8 +135,12 @@ src/
     identity/   domain (CURP, RFC, teléfono) · application (casos de uso y puertos) · infrastructure (PostgreSQL, argon2, JWT, rutas)
     accounts/   domain (CLABE) · application (apertura de cuentas) · infrastructure
     audit/      domain (catálogo de eventos) · application (puerto) · infrastructure (escritor en PostgreSQL)
+    beneficiaries/  alta por CLABE de la plataforma y listado
+    transfers/  domain (ledger, máquina de estados, huella) · application (creación, OTP, confirmación, fondeo) · infrastructure
+    movements/  historial: filtros, cursor firmado y consulta keyset
   platform/     config, contexto de petición, http (app, errores RFC 9457, validación, auth, rate limit, docs), logging, mail, persistencia
   shared/       núcleo sin dependencias: errores de dominio, Clock, transacción opaca, enmascarado
+  seed/         datos de desarrollo (usuarios, beneficiarios, fondeo y volumen)
   composition.ts  raíz de composición con inyección manual
   main.ts         arranque del proceso
 migrations/     migraciones TypeORM con SQL explícito (constraints, funciones, triggers y GRANTs)
