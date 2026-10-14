@@ -131,6 +131,7 @@ describe('AmountField hero', () => {
     );
     const mirror = screen.getByTestId('hero-amount-mirror', { includeHiddenElements: true });
     expect(mirror).toHaveTextContent('1250.00');
+    expect(screen.queryByTestId('hero-amount-mirror')).toBeNull(); // oculto a los lectores de pantalla
     await fireEvent(mirror, 'layout', {
       nativeEvent: { layout: { x: 0, y: 0, width: 180, height: 48 } },
     });

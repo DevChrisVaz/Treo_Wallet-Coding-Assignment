@@ -91,8 +91,7 @@ function HeroAmountField({
         />
         <Text
           testID="hero-amount-mirror"
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
+          aria-hidden
           onLayout={(event) => setTextWidth(event.nativeEvent.layout.width)}
           style={[styles.input, styles.mirror]}
         >
