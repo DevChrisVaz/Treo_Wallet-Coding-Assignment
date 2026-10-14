@@ -29,7 +29,7 @@ Cada tarea agrega o corrige pruebas sin tocar código de producción. Cada prueb
 - [x] 3.4 [api] Un token válido de un usuario que ya no existe responde 401 `UNAUTHENTICATED`; el logout con un refresh token vencido responde 204 (IDN-10, IDN-13)
 - [x] 3.5 [api] Registrar un email sin verificar después del límite de reenvíos no envía correo; dos registros simultáneos con el mismo email nuevo dejan un solo usuario (IDN-01, IDN-03, IDN-07)
 - [x] 3.6 [api] Un email ya verificado recibe exactamente la misma respuesta que un código incorrecto; se auditan `OTP_ATTEMPTS_EXHAUSTED` de la verificación de email y `LOGIN_FAILED` con `EMAIL_NOT_VERIFIED` (IDN-06, IDN-08, AUD-01)
-- [ ] 3.7 [api] Vector de CURP con fecha 00-02-29 que distingue 1900 de 2000; el código vence exactamente a los 15 minutos (IDN-02, IDN-05)
+- [x] 3.7 [api] Vector de CURP con fecha 00-02-29 que distingue 1900 de 2000; el código vence exactamente a los 15 minutos (IDN-02, IDN-05)
 
 ## 4. Cuentas, beneficiarios y auditoría
 

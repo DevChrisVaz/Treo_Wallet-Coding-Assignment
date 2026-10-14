@@ -131,6 +131,19 @@ describe('IDN-06 verificación de correo', () => {
     expect(res.body).toMatchObject({ code: 'VERIFICATION_CODE_INVALID', attemptsRemaining: 0 });
   });
 
+  it('IDN-05 el código vence exactamente a los 15 minutos y sirve un segundo antes', async () => {
+    const early = await registerPerson(t);
+    t.clock.advance(15 * 60_000 - 1_000);
+    expect((await verify(early.person.email, early.code)).status).toBe(200);
+
+    const { person, code } = await registerPerson(t);
+    t.clock.advance(15 * 60_000);
+    const res = await verify(person.email, code);
+    expect(res.status).toBe(422);
+    expect(res.body).toMatchObject({ code: 'VERIFICATION_CODE_INVALID', attemptsRemaining: 0 });
+    expect((await userByEmail(person.email)).email_verified_at).toBeNull();
+  });
+
   it('AUD-01 audita la verificación y los intentos fallidos con su propósito', async () => {
     const { person, code } = await registerPerson(t);
     await verify(person.email, wrongCode(code));
