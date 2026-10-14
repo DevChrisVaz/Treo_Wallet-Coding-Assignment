@@ -7,7 +7,7 @@ Cada tarea agrega o corrige pruebas sin tocar código de producción. Cada prueb
 - [x] 1.3 [api] Una transferencia mayor al umbral que excede el límite diario se rechaza al crearla con `DAILY_LIMIT_EXCEEDED`, sin emitir código ni enviar correo (TRF-11, TRF-14)
 - [x] 1.4 [api] Repetición con la misma llave de un rechazo `DAILY_LIMIT_EXCEEDED` (con `remaining` recalculado) y de una transferencia FAILED (200 con estado FAILED) (TRF-03, TRF-11)
 - [x] 1.5 [api] La llave de idempotencia es por usuario: dos usuarios con la misma llave crean dos transferencias independientes (TRF-02, TRF-03)
-- [ ] 1.6 [api] Reversión cuando falla la auditoría de `TRANSFER_OTP_SENT`, `OTP_ATTEMPT_FAILED`/`OTP_ATTEMPTS_EXHAUSTED` (el contador de intentos también se revierte), `TRANSFER_FAILED` y `TRANSFER_OTP_RESENT` (TRF-25)
+- [x] 1.6 [api] Reversión cuando falla la auditoría de `TRANSFER_OTP_SENT`, `OTP_ATTEMPT_FAILED`/`OTP_ATTEMPTS_EXHAUSTED` (el contador de intentos también se revierte), `TRANSFER_FAILED` y `TRANSFER_OTP_RESENT` (TRF-25)
 - [ ] 1.7 [api] Bordes de validación: referencia de más de 7 dígitos y concepto de exactamente 40 caracteres contados por punto de código (TRF-09)
 - [ ] 1.8 [api] Bajo el bloqueo se vuelve a comprobar que el destino propio pertenece al usuario y que el de un beneficiario es una cuenta de usuario (TRF-06)
 

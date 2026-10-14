@@ -5,12 +5,15 @@ import { PgAuditWriter } from '../../../src/modules/audit/infrastructure/pg-audi
 import { auditEvents, leakedValues } from '../../helpers/audit.js';
 import { buildTestApp, type TestApp } from '../../helpers/app.js';
 import { useIntegrationHarness } from '../../helpers/harness.js';
+import { wrongCode } from '../../helpers/identity.js';
 import {
   addBeneficiary,
   balanceOf,
+  confirmTransfer,
   fund,
   ledgerUser,
   postTransfer,
+  resendTransferOtp,
   type LedgerUser,
 } from '../../helpers/ledger-api.js';
 import { reconcile, RECONCILED } from '../../helpers/reconciliation.js';
@@ -146,5 +149,150 @@ describe('TRF-25 la operación se revierte si la auditoría falla', () => {
     expect(res.status).toBe(500);
     expect(await countOf('transfers')).toBe(0);
     expect(await balanceOf(harness, ana.principal.id)).toBe('100.00');
+  });
+});
+
+describe('TRF-25 el camino con OTP se revierte si la auditoría falla', () => {
+  /** Transferencia de 15,000.00 en PENDING_OTP con el código que llegó por correo. */
+  async function pending() {
+    await fund(t, ana.principal.id, '20000.00');
+    const res = await postTransfer(t, ana, toLuis('15000.00'));
+    expect(res.body.status).toBe('PENDING_OTP');
+    return { id: res.body.id as string, code: t.mailer.lastCode(ana.person.email) };
+  }
+
+  async function codeRow(id: string) {
+    const [row] = await harness.migrator.query(
+      `SELECT code_hash, attempts, resend_count, consumed_at FROM app.one_time_codes
+        WHERE subject_id = $1`,
+      [id],
+    );
+    return row;
+  }
+
+  async function statusOf(id: string): Promise<string> {
+    const [row] = await harness.migrator.query('SELECT status FROM app.transfers WHERE id = $1', [
+      id,
+    ]);
+    return row.status;
+  }
+
+  async function actionsOf(id: string): Promise<string[]> {
+    return (await transferEvents(id)).map((event) => event.action);
+  }
+
+  it('TRF-25 si falla TRANSFER_OTP_SENT no queda transferencia ni código, no sale correo y la llave sigue libre', async () => {
+    await fund(t, ana.principal.id, '20000.00');
+    const mailsBefore = t.mailer.sent.length;
+    failOn = 'TRANSFER_OTP_SENT';
+    const key = randomUUID();
+    const res = await postTransfer(t, ana, toLuis('15000.00'), key);
+    expect(res.status).toBe(500);
+    expect(await countOf('transfers')).toBe(0);
+    expect(
+      await harness.migrator.query('SELECT 1 FROM app.one_time_codes WHERE purpose = $1', [
+        'TRANSFER_CONFIRMATION',
+      ]),
+    ).toEqual([]);
+    expect(
+      (await auditEvents(harness.migrator)).filter((e) => e.action.startsWith('TRANSFER_')),
+    ).toEqual([]);
+    expect(t.mailer.sent.length).toBe(mailsBefore);
+
+    failOn = null;
+    const retry = await postTransfer(t, ana, toLuis('15000.00'), key);
+    expect(retry.status).toBe(201);
+    expect(retry.body.status).toBe('PENDING_OTP');
+    expect(retry.headers['idempotent-replayed']).toBeUndefined();
+  });
+
+  it('TRF-25 si falla OTP_ATTEMPT_FAILED el intento no se cuenta y el siguiente aún tiene 2 restantes', async () => {
+    const { id, code } = await pending();
+    failOn = 'OTP_ATTEMPT_FAILED';
+    const res = await confirmTransfer(t, ana, id, { otp: wrongCode(code) });
+    expect(res.status).toBe(500);
+    expect((await codeRow(id)).attempts).toBe(0);
+    expect(await statusOf(id)).toBe('PENDING_OTP');
+    expect(await actionsOf(id)).not.toContain('OTP_ATTEMPT_FAILED');
+
+    failOn = null;
+    const next = await confirmTransfer(t, ana, id, { otp: wrongCode(code) });
+    expect(next.status).toBe(422);
+    expect(next.body).toMatchObject({ code: 'OTP_INVALID', attemptsRemaining: 2 });
+    expect((await codeRow(id)).attempts).toBe(1);
+  });
+
+  it('TRF-25 si falla OTP_ATTEMPTS_EXHAUSTED el tercer intento no se cuenta y la transferencia sigue PENDING_OTP', async () => {
+    const { id, code } = await pending();
+    await confirmTransfer(t, ana, id, { otp: wrongCode(code) });
+    await confirmTransfer(t, ana, id, { otp: wrongCode(code) });
+    failOn = 'OTP_ATTEMPTS_EXHAUSTED';
+    const res = await confirmTransfer(t, ana, id, { otp: wrongCode(code) });
+    expect(res.status).toBe(500);
+    expect((await codeRow(id)).attempts).toBe(2);
+    expect(await statusOf(id)).toBe('PENDING_OTP');
+    expect(await actionsOf(id)).not.toContain('OTP_ATTEMPTS_EXHAUSTED');
+
+    failOn = null;
+    const next = await confirmTransfer(t, ana, id, { otp: wrongCode(code) });
+    expect(next.status).toBe(422);
+    expect(next.body.code).toBe('OTP_ATTEMPTS_EXHAUSTED');
+    expect(await statusOf(id)).toBe('FAILED');
+  });
+
+  it('TRF-25 si falla TRANSFER_FAILED al agotar los intentos se revierte también el contador y el estado', async () => {
+    const { id, code } = await pending();
+    await confirmTransfer(t, ana, id, { otp: wrongCode(code) });
+    await confirmTransfer(t, ana, id, { otp: wrongCode(code) });
+    failOn = 'TRANSFER_FAILED';
+    const res = await confirmTransfer(t, ana, id, { otp: wrongCode(code) });
+    expect(res.status).toBe(500);
+    expect((await codeRow(id)).attempts).toBe(2);
+    expect(await statusOf(id)).toBe('PENDING_OTP');
+    expect(await actionsOf(id)).toEqual([
+      'TRANSFER_CREATED',
+      'TRANSFER_OTP_SENT',
+      'OTP_ATTEMPT_FAILED',
+      'OTP_ATTEMPT_FAILED',
+    ]);
+  });
+
+  it('TRF-25 si falla TRANSFER_FAILED por saldo insuficiente al confirmar, el código no se consume y sigue PENDING_OTP', async () => {
+    const { id, code } = await pending();
+    // El saldo se gasta mientras la transferencia espera el OTP.
+    const spent = await postTransfer(t, ana, {
+      ...toLuis('10000.00'),
+      destination: { type: 'OWN_ACCOUNT', accountId: ana.ahorro.id },
+    });
+    expect(spent.body.status).toBe('COMPLETED');
+    failOn = 'TRANSFER_FAILED';
+    const res = await confirmTransfer(t, ana, id, { otp: code });
+    expect(res.status).toBe(500);
+    expect(await statusOf(id)).toBe('PENDING_OTP');
+    expect((await codeRow(id)).consumed_at).toBeNull();
+    expect(await actionsOf(id)).not.toContain('TRANSFER_FAILED');
+
+    failOn = null;
+    const next = await confirmTransfer(t, ana, id, { otp: code });
+    expect(next.status).toBe(422);
+    expect(next.body.code).toBe('INSUFFICIENT_FUNDS');
+    expect(await statusOf(id)).toBe('FAILED');
+  });
+
+  it('TRF-25 si falla TRANSFER_OTP_RESENT no hay código nuevo, ni reenvío contado ni correo', async () => {
+    const { id } = await pending();
+    const before = await codeRow(id);
+    const mailsBefore = t.mailer.sent.length;
+    failOn = 'TRANSFER_OTP_RESENT';
+    const res = await resendTransferOtp(t, ana, id);
+    expect(res.status).toBe(500);
+    expect(await codeRow(id)).toEqual(before);
+    expect(t.mailer.sent.length).toBe(mailsBefore);
+    expect(await actionsOf(id)).not.toContain('TRANSFER_OTP_RESENT');
+
+    failOn = null;
+    const next = await resendTransferOtp(t, ana, id);
+    expect(next.status).toBe(202);
+    expect((await codeRow(id)).resend_count).toBe(1);
   });
 });
