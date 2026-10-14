@@ -52,6 +52,21 @@ describe('vista del interruptor', () => {
     expect(control).toHaveProp('activeThumbColor', theme.colors.surface.default);
     expect(control).toBeChecked();
   });
+
+  test('MOB-24 DSG-01 apagado, el pulgar sigue siendo la superficie del tema', async () => {
+    await render(
+      <UnlockSwitchView
+        kind="huella"
+        available
+        enabled={false}
+        busy={false}
+        onChange={() => undefined}
+      />,
+    );
+    const control = screen.getByRole('switch', { name: 'Desbloqueo con huella' });
+    expect(control).toHaveProp('activeThumbColor', theme.colors.surface.default);
+    expect(control).not.toBeChecked();
+  });
 });
 
 describe('interruptor del desbloqueo biométrico', () => {

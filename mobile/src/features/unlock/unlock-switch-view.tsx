@@ -14,9 +14,11 @@ const EXPLANATIONS: Record<BiometricKind, string> = {
 /**
  * En el teléfono `thumbColor` vale para los dos estados; react-native-web (Expo web y el lienzo de
  * diseño) pinta el encendido con `activeThumbColor`, que por omisión es #009688, fuera de los tokens.
- * React Native no lo tipa, así que va aparte y se esparce.
+ * React Native no lo tipa, así que va aparte, con tipo propio, y se esparce (el teléfono lo ignora).
  */
-const WEB_THUMB = { activeThumbColor: theme.colors.surface.default };
+const WEB_THUMB: { readonly activeThumbColor: string } = {
+  activeThumbColor: theme.colors.surface.default,
+};
 
 export interface UnlockSwitchViewProps {
   kind: BiometricKind;
