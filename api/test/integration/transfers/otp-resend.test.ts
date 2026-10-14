@@ -151,3 +151,33 @@ describe('TRF-20 reenvío que no procede', () => {
     );
   });
 });
+
+describe('TRF-20 escenarios de reenvío', () => {
+  it('TRF-20 después de un reenvío, el código anterior responde 422 OTP_INVALID y el nuevo confirma', async () => {
+    const { id, code: oldCode } = await pending();
+    await resendTransferOtp(t, ana, id);
+    const newCode = t.mailer.lastCode(ana.person.email);
+    expect(newCode).not.toBe(oldCode);
+    const withOld = await confirmTransfer(t, ana, id, { otp: oldCode });
+    expect(withOld.status).toBe(422);
+    expect(withOld.body).toMatchObject({ code: 'OTP_INVALID', attemptsRemaining: 2 });
+    const withNew = await confirmTransfer(t, ana, id, { otp: newCode });
+    expect(withNew.status).toBe(200);
+    expect(withNew.body.status).toBe('COMPLETED');
+  });
+
+  it('TRF-20 tres reenvíos dejan 2, 1 y 0 restantes; el cuarto responde 422 RESEND_LIMIT_REACHED y el último código sigue sirviendo', async () => {
+    const { id } = await pending();
+    const remaining: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      remaining.push((await resendTransferOtp(t, ana, id)).body.resendsRemaining);
+    }
+    expect(remaining).toEqual([2, 1, 0]);
+    const lastCode = t.mailer.lastCode(ana.person.email);
+    const fourth = await resendTransferOtp(t, ana, id);
+    expect(fourth.status).toBe(422);
+    expect(fourth.body.code).toBe('RESEND_LIMIT_REACHED');
+    expect(t.mailer.lastCode(ana.person.email)).toBe(lastCode);
+    expect((await confirmTransfer(t, ana, id, { otp: lastCode })).status).toBe(200);
+  });
+});
