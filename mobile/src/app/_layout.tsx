@@ -1,6 +1,7 @@
 import * as SplashScreen from 'expo-splash-screen';
 
 import { AppProviders } from '@/app-services';
+import { PrivacyGuard } from '@/components/privacy-guard';
 import { readApiUrl } from '@/config/api-url';
 import { ConfigGate } from '@/config/config-gate';
 import { RootNavigator } from '@/navigation/root-navigator';
@@ -15,13 +16,15 @@ const apiUrl = readApiUrl();
 export default function RootLayout() {
   return (
     <FontsGate>
-      <ConfigGate config={apiUrl}>
-        {(baseUrl) => (
-          <AppProviders baseUrl={baseUrl}>
-            <RootNavigator />
-          </AppProviders>
-        )}
-      </ConfigGate>
+      <PrivacyGuard>
+        <ConfigGate config={apiUrl}>
+          {(baseUrl) => (
+            <AppProviders baseUrl={baseUrl}>
+              <RootNavigator />
+            </AppProviders>
+          )}
+        </ConfigGate>
+      </PrivacyGuard>
     </FontsGate>
   );
 }

@@ -40,7 +40,7 @@
 
 ## 5. Privacidad
 
-- [ ] 5.1 [mobile] Pantalla de privacidad en la raíz (`surface.inverse` con el `Wordmark`) que cubre el contenido con `AppState` `inactive` o `background` y se retira con `active`; pruebas con `AppState` simulado (MOB-16, DSG-11)
+- [x] 5.1 [mobile] Pantalla de privacidad en la raíz (`surface.inverse` con el `Wordmark`) que cubre el contenido con `AppState` `inactive` o `background` y se retira con `active`; pruebas con `AppState` simulado (MOB-16, DSG-11)
 - [ ] 5.2 [mobile] Activar `expo-screen-capture` mientras hay sesión para dejar en blanco la miniatura del selector de apps en Android y desactivarlo al cerrar sesión (MOB-16)
 
 ## 6. Documentación y CI

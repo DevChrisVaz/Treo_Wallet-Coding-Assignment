@@ -8,6 +8,7 @@ export { InlineAlert, type AlertTone } from './inline-alert';
 export { MovementRow } from './movement-row';
 export { OtpField } from './otp-field';
 export { Receipt } from './receipt';
+export { PrivacyOverlay } from './privacy-overlay';
 export { OptionRow, Select, type SelectOption } from './select';
 export { Skeleton } from './skeleton';
 export { StatusBadge } from './status-badge';
