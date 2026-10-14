@@ -25,6 +25,40 @@ describe('TabBar', () => {
     );
     expect(within(nav).getByRole('link', { name: 'Inicio' })).not.toHaveAttribute('aria-current');
   });
+
+  it('WEB-27 WEB-28 fija abajo, publica su alto real para que el contenido lo reserve aunque crezca con el texto agrandado', () => {
+    let measure: () => void = () => undefined;
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          measure = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    const root = document.documentElement;
+    const { unmount } = render(<TabBar items={WEB_ITEMS} current="home" />);
+    const list = within(screen.getByRole('navigation', { name: 'Principal' })).getByRole('list');
+    vi.spyOn(list, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 390, 136));
+    measure();
+    expect(root.style.getPropertyValue('--tab-bar-height')).toBe('136px');
+    unmount();
+    expect(root.style.getPropertyValue('--tab-bar-height')).toBe('');
+  });
+
+  it('WEB-27 dentro de un lienzo (posición estática) no reserva alto en la página', () => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+    render(<TabBar items={WEB_ITEMS} current="home" position="static" />);
+    expect(document.documentElement.style.getPropertyValue('--tab-bar-height')).toBe('');
+  });
 });
 
 describe('SideNav', () => {
