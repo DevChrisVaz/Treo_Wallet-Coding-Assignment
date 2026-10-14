@@ -164,6 +164,15 @@ export function expectToMatchContract(res: ContractResponse, operationId: string
       `${where}: Content-Type "${contentType}" no es ${Object.keys(content).join(' ni ')}`,
     );
   }
+  // Un cuerpo binario (`contentMediaType`, como el PDF del estado de cuenta) no es JSON: basta con
+  // que lleguen bytes; su contenido lo revisa cada prueba.
+  const schema = content[mediaType]?.schema as Json | undefined;
+  if (schema && typeof schema.contentMediaType === 'string') {
+    if (!(res.body instanceof Uint8Array) || res.body.length === 0) {
+      throw new Error(`${where}: se esperaban bytes de ${mediaType} en el cuerpo`);
+    }
+    return;
+  }
   const validate = validatorAt(ref([...location, 'content', mediaType, 'schema']));
   if (!validate(res.body)) {
     const details = (validate.errors ?? [])

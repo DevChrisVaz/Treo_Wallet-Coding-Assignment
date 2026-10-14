@@ -6,11 +6,13 @@ on:
     paths:
       - 'api/**'
       - 'contract/**'
+      - 'design-tokens/**'
       - '.github/workflows/api.yml'
   pull_request:
     paths:
       - 'api/**'
       - 'contract/**'
+      - 'design-tokens/**'
       - '.github/workflows/api.yml'
 
 permissions:
@@ -72,11 +74,20 @@ jobs:
           cache: npm
           cache-dependency-path: |
             contract/package-lock.json
+            design-tokens/package-lock.json
             api/package-lock.json
 
-      # file:../contract con install-links copia el paquete construido: hay que construirlo antes.
+      # file:../contract y file:../design-tokens con install-links copian los paquetes construidos
+      # (solo sus archivos publicados, dist incluido): hay que construirlos antes del npm ci.
       - name: Construir el contrato
         working-directory: contract
+        run: |
+          npm ci
+          npm run build
+
+      # Etiquetas de los movimientos y color de la marca del estado de cuenta (HIS-12).
+      - name: Construir el paquete de diseño
+        working-directory: design-tokens
         run: |
           npm ci
           npm run build

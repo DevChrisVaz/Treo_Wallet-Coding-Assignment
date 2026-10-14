@@ -1,4 +1,3 @@
-import { createApp, createContainer } from './composition.js';
 import { ConfigError, loadConfig } from './platform/config/config.js';
 import {
   assertRuntimeRoleIsNotSchemaOwner,
@@ -11,6 +10,9 @@ import {
  */
 export async function main(): Promise<void> {
   const config = loadConfig(process.env);
+  // La aplicación (con PDFKit y las fuentes del estado de cuenta) se carga después de validar la
+  // configuración: un error de configuración termina sin cargar nada más.
+  const { createApp, createContainer } = await import('./composition.js');
   const dataSource = createAppDataSource(config.databaseUrl);
   await dataSource.initialize();
   await assertRuntimeRoleIsNotSchemaOwner(dataSource);

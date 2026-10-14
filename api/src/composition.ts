@@ -50,6 +50,10 @@ import { MovementCursor } from './modules/movements/application/cursor.js';
 import { ListMovements } from './modules/movements/application/list-movements.js';
 import { movementRoutes } from './modules/movements/infrastructure/http/routes.js';
 import { PgMovementReader } from './modules/movements/infrastructure/pg-movement-reader.js';
+import { GenerateStatement } from './modules/statements/application/generate-statement.js';
+import { statementRoutes } from './modules/statements/infrastructure/http/routes.js';
+import { PdfKitStatementRenderer } from './modules/statements/infrastructure/pdfkit-statement-renderer.js';
+import { PgStatementReader } from './modules/statements/infrastructure/pg-statement-reader.js';
 import { ConfirmTransfer } from './modules/transfers/application/confirm-transfer.js';
 import { CreateTransfer } from './modules/transfers/application/create-transfer.js';
 import { GetTransfer } from './modules/transfers/application/get-transfer.js';
@@ -107,6 +111,9 @@ export interface Container {
   };
   readonly movements: {
     readonly listMovements: ListMovements;
+  };
+  readonly statements: {
+    readonly generateStatement: GenerateStatement;
   };
   readonly beneficiaries: {
     readonly createBeneficiary: CreateBeneficiary;
@@ -236,6 +243,15 @@ export async function createContainer(
         cursors: new MovementCursor(config.cursorSigningSecret),
       }),
     },
+    statements: {
+      generateStatement: new GenerateStatement({
+        reader: new PgStatementReader(dataSource),
+        renderer: new PdfKitStatementRenderer(),
+        audit,
+        clock,
+        logger,
+      }),
+    },
     beneficiaries: {
       beneficiaries: beneficiaryStore,
       createBeneficiary: new CreateBeneficiary({
@@ -314,6 +330,7 @@ export function createApp(container: Container): Express {
     identityRoutes(container.identity, authenticateRequest, container.clock),
     accountRoutes(container.accounts, authenticateRequest),
     movementRoutes(container.movements, authenticateRequest),
+    statementRoutes(container.statements, authenticateRequest, container.clock),
     beneficiaryRoutes(container.beneficiaries, authenticateRequest, container.clock),
     transferRoutes(container.transfers, authenticateRequest),
   ];
