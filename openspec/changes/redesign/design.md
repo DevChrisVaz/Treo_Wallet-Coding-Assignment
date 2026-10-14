@@ -145,12 +145,12 @@ Ninguna. Las preguntas abiertas se cerraron en el prototipo, que el usuario apro
 
 ## Valores y decisiones cerrados en el prototipo
 
-**Tokens (paquete 1.1.0, aditivo):**
+**Tokens (paquete 1.2.0, aditivo):**
 
 - `text.onHeroMuted` = `#BFCDCA` (`green200`), 6.00:1 sobre `surface.hero`.
 - `elevation.raised` = `0 4px 12px rgb(0 26 5 / 0.08), 0 1px 3px rgb(0 26 5 / 0.1)` en CSS. En React Native: sombra `#001A05`, opacidad 0.12, radio 12, desplazamiento (0, 4) y `elevation` 4.
 - `elevation.sheet` = `0 -8px 24px rgb(0 26 5 / 0.12)` en CSS. En React Native: sombra `#001A05`, opacidad 0.12, radio 24, desplazamiento (0, −8) y `elevation` 16.
-- Ningún token vigente cambió de valor, así que el paquete sigue en la línea 1.x.
+- Ningún token vigente cambió de valor, así que el paquete sigue en la línea 1.x. La línea v2 y los estados `SCHEDULED` y `CANCELLED` de `main` salieron cada una como 1.1.0; al integrar `main` quedan juntas en 1.2.0.
 
 **Iconos (Lucide 1.48.0):** `lucide-react` en web y `lucide-react-native` con `react-native-svg` 15.15.4 en móvil. Cada concepto usa este icono:
 
