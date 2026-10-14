@@ -1,8 +1,8 @@
 import { useId, type ReactNode } from 'react';
 
-/** Control de formulario del sistema: borde de campo, alto de 44 px y error en `status.danger`. */
+/** Control de formulario del sistema: borde de campo, alto de 52 px y error en `status.danger`. */
 export const CONTROL_CLASSES =
-  'min-h-11 w-full rounded-sm border border-border-input bg-surface px-3.5 text-body text-fg ' +
+  'min-h-13 w-full rounded-md border border-border-input bg-surface px-4 text-body text-fg ' +
   'aria-invalid:border-danger disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-fg-muted';
 
 export interface FieldProps {

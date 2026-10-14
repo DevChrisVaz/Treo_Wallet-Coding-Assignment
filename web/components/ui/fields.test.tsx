@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { AmountField } from './AmountField';
 import { OtpField } from './OtpField';
@@ -26,9 +26,9 @@ describe('TextField', () => {
     expect(screen.getByText('El correo no tiene un formato válido')).toHaveClass('text-danger');
   });
 
-  it('WEB-23 DSG-06 usa el borde de campo del sistema, alto de 44 px y foco visible', () => {
+  it('WEB-23 DSG-06 usa el borde de campo del sistema, alto de 52 px y foco visible', () => {
     render(<TextField label="Nombre" />);
-    expect(screen.getByLabelText('Nombre')).toHaveClass('border-border-input', 'min-h-11');
+    expect(screen.getByLabelText('Nombre')).toHaveClass('border-border-input', 'min-h-13');
   });
 
   it('WEB-23 no tiene problemas de accesibilidad en reposo, error y deshabilitado', async () => {
@@ -53,6 +53,24 @@ describe('AmountField', () => {
     expect(screen.getByText('$')).toHaveAttribute('aria-hidden', 'true');
     await user.type(input, '1,250.50');
     expect(input).toHaveValue('1,250.50');
+  });
+
+  it('WEB-30 en la variante hero el campo mide lo que su texto, así "$" y el monto quedan juntos al centro', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<AmountField label="Monto" variant="hero" onChange={onChange} />);
+    const input = screen.getByLabelText('Monto');
+    expect(input).not.toHaveClass('w-full');
+    expect(input.getAttribute('style')).toContain('calc(1ch + 0.25em)');
+    await user.type(input, '1,250');
+    expect(input).toHaveValue('1,250');
+    expect(input.getAttribute('style')).toContain('calc(5ch + 0.25em)');
+    expect(onChange).toHaveBeenCalledTimes(5);
+  });
+
+  it('WEB-30 en la variante hero el ancho inicial sale de defaultValue', () => {
+    render(<AmountField label="Monto" variant="hero" defaultValue="1,250.00" />);
+    expect(screen.getByLabelText('Monto').getAttribute('style')).toContain('calc(8ch + 0.25em)');
   });
 
   it('WEB-23 no tiene problemas de accesibilidad con error', async () => {

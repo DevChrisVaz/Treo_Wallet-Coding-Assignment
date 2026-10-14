@@ -1,9 +1,11 @@
+import type { IconConcept } from '@devchrisvaz/wallet-design-tokens';
 import type { ComponentPropsWithRef, ReactNode } from 'react';
+import { Icon } from './Icon';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 
 const BASE =
-  'relative inline-flex min-h-11 items-center justify-center gap-2 rounded-pill border px-6 text-label ' +
+  'relative inline-flex min-h-12 items-center justify-center gap-2 rounded-pill border px-6 text-label ' +
   'transition-colors duration-150 ease-standard ' +
   'disabled:cursor-not-allowed disabled:border-transparent disabled:bg-action-disabled disabled:text-fg-disabled';
 
@@ -28,6 +30,8 @@ export interface ButtonProps extends ComponentPropsWithRef<'button'> {
   /** Enviando: se deshabilita, anuncia `aria-busy` y muestra `loadingLabel` con el mismo tamaño. */
   loading?: boolean;
   loadingLabel?: ReactNode;
+  /** Icono a la izquierda del texto. */
+  icon?: IconConcept;
 }
 
 function Spinner() {
@@ -39,11 +43,12 @@ function Spinner() {
   );
 }
 
-/** Botón del sistema (D7 de design-system): píldora, alto mínimo de 44 px y foco visible. */
+/** Botón del sistema (D7 de design-system): píldora, alto mínimo de 48 px y foco visible. */
 export function Button({
   variant = 'primary',
   loading = false,
   loadingLabel = 'Enviando…',
+  icon,
   disabled,
   type = 'button',
   className = '',
@@ -62,6 +67,7 @@ export function Button({
         <>
           {/* El texto original conserva el ancho del botón; el de envío se superpone. */}
           <span aria-hidden="true" className="invisible">
+            {icon ? <Icon name={icon} /> : null}
             {children}
           </span>
           <span className="absolute inset-0 inline-flex items-center justify-center gap-2">
@@ -70,7 +76,10 @@ export function Button({
           </span>
         </>
       ) : (
-        children
+        <>
+          {icon ? <Icon name={icon} /> : null}
+          {children}
+        </>
       )}
     </button>
   );

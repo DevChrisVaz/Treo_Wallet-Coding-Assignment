@@ -1,4 +1,4 @@
-import { formatMXN, toCents } from '@devchrisvaz/wallet-contract';
+import { centsToDecimalString, formatMXN, toCents } from '@devchrisvaz/wallet-contract';
 import type { Direction } from '@devchrisvaz/wallet-design-tokens';
 import { MONEY } from './conventions';
 
@@ -11,6 +11,11 @@ import { MONEY } from './conventions';
 export function signedAmount(direction: Direction, amount: string): string {
   const absolute = amount.startsWith('-') ? amount.slice(1) : amount;
   return `${MONEY[direction].sign}${formatMXN(absolute)}`;
+}
+
+/** Suma de montos en centavos con BigInt (WEB-28, WEB-21). */
+export function sumAmounts(amounts: readonly string[]): string {
+  return centsToDecimalString(amounts.reduce((total, amount) => total + toCents(amount), 0n));
 }
 
 /** CLABE enmascarada salvo los últimos 4 dígitos: `•••• 9719`. */
