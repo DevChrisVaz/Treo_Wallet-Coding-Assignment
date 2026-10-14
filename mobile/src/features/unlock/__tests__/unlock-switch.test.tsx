@@ -1,5 +1,5 @@
 import * as LocalAuthentication from 'expo-local-authentication';
-import { act, fireEvent, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, userEvent, waitFor } from '@testing-library/react-native';
 
 import MovementsRoute from '@/app/(app)/(tabs)/movements';
 import { HomeScreen } from '@/features/accounts/home-screen';
@@ -11,6 +11,9 @@ import { overview } from '@/test-utils/fixtures';
 import { localAuthMock, secureStoreMock } from '@/test-utils/native-mocks';
 import { renderApp, TEST_TOKENS } from '@/test-utils/render-app';
 import { renderRoot } from '@/test-utils/render-root';
+import { theme } from '@/theme';
+
+import { UnlockSwitchView } from '../unlock-switch-view';
 
 const EXPLANATION = 'Registra una huella en los ajustes de tu teléfono para usar esta opción.';
 
@@ -37,6 +40,19 @@ const toggle = (value: boolean) =>
 
 /** Deja terminar las lecturas pendientes (`renderRouter` activa los temporizadores simulados). */
 const settle = () => act(() => jest.advanceTimersByTimeAsync(500));
+
+describe('vista del interruptor', () => {
+  test('MOB-24 DSG-01 encendido, el pulgar es la superficie del tema también en react-native-web (lienzo)', async () => {
+    await render(
+      <UnlockSwitchView kind="huella" available enabled busy={false} onChange={() => undefined} />,
+    );
+    const control = screen.getByRole('switch', { name: 'Desbloqueo con huella' });
+    // En el teléfono `thumbColor` vale para los dos estados; react-native-web pinta el encendido con
+    // `activeThumbColor` (por omisión #009688, fuera de los tokens).
+    expect(control).toHaveProp('activeThumbColor', theme.colors.surface.default);
+    expect(control).toBeChecked();
+  });
+});
 
 describe('interruptor del desbloqueo biométrico', () => {
   test('MOB-24 el interruptor "Desbloqueo con huella" es accesible y empieza apagado', async () => {

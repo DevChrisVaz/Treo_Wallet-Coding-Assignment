@@ -11,6 +11,13 @@ const EXPLANATIONS: Record<BiometricKind, string> = {
   biometría: 'Registra una huella o tu rostro en los ajustes de tu teléfono para usar esta opción.',
 };
 
+/**
+ * En el teléfono `thumbColor` vale para los dos estados; react-native-web (Expo web y el lienzo de
+ * diseño) pinta el encendido con `activeThumbColor`, que por omisión es #009688, fuera de los tokens.
+ * React Native no lo tipa, así que va aparte y se esparce.
+ */
+const WEB_THUMB = { activeThumbColor: theme.colors.surface.default };
+
 export interface UnlockSwitchViewProps {
   kind: BiometricKind;
   /** Hay biometría registrada; sin ella, el interruptor se deshabilita con la explicación. */
@@ -53,6 +60,7 @@ export function UnlockSwitchView({
         disabled={disabled}
         trackColor={{ false: theme.colors.border.input, true: theme.colors.action.primary }}
         thumbColor={theme.colors.surface.default}
+        {...WEB_THUMB}
         ios_backgroundColor={theme.colors.border.input}
       />
     </View>
