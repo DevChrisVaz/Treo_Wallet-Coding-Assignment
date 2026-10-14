@@ -1075,3 +1075,7 @@ La [bitácora de AI](docs/ai-log.md) registra qué propuso la AI, qué acepté, 
 - **Pruebas de contrato dirigidas por el consumidor** (Pact) y una política de versiones del contrato con avisos de deprecación.
 - **Publicar el contrato y los tokens en GitHub Packages al separar los repositorios.** Así cada consumidor fija su versión, y un cambio del contrato ya no llega a todos a la vez.
 - **Infraestructura como código** (Terraform) para el despliegue en AWS.
+
+**Interfaz:**
+
+- **Pulir la interfaz de usuario para mejorar la experiencia de usuario** en la web y en la app móvil: flujos más claros, retroalimentación más evidente en cada acción y una revisión visual y de accesibilidad de las pantallas.
