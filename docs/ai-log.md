@@ -329,3 +329,31 @@ La AI principal implementó `contract-v1-2` (5 tareas) y la tarea 1.1 de `schedu
 - **Un formateador creado al importar.** La primera versión de `mexicoCityDate` creaba el `Intl.DateTimeFormat` con la zona horaria al cargar el módulo. Si un motor no tuviera la zona, todo el paquete fallaría al importarse en la app, aunque la app no usa esas funciones. La AI lo cambió para crearlo al primer uso.
 - **Una tarea pedía un script que no existe.** La tarea 1.5 decía "`npm run verify` completo", pero el paquete no tiene ese script. Se corrieron los pasos del workflow de CI uno por uno y se corrigió el texto de la tarea en el mismo commit, explicándolo en el mensaje.
 - **El lockfile no se actualizó solo con la versión.** La AI subió la versión en `package.json` pero no en `package-lock.json`. Lo detectó al revisar cómo se había hecho la versión 1.1.0 y corrigió su propio commit, que aún no se había publicado.
+
+### Desbloqueo biométrico
+
+Un subagente implementó `biometric-unlock` en su propio worktree: 9 de 10 tareas, con un commit por tarea. La 4.2 es la verificación en mi Android con Expo Go. La sesión del subagente se cortó por el límite de uso a mitad de la tarea 4.1; al retomarla, la AI principal le indicó el estado exacto del worktree y el subagente revisó su diff antes de seguir. Antes de integrar, la AI principal volvió a correr lint, typecheck, formato y Jest (44 suites, 273 pruebas; la línea base tenía 36 y 200), revisó la puerta de desbloqueo y luego hizo el merge `--no-ff`.
+
+**Hechos que el subagente confirmó leyendo el código instalado de `expo-local-authentication`, no solo la documentación:**
+- En Android, sin huellas pero con PIN, el diálogo cae al PIN y puede tener éxito. Sin revisar `isEnrolledAsync()` antes de cada diálogo, el escenario "huellas retiradas" de MOB-26 no se cumpliría en un teléfono con PIN.
+- Android informa la falta de huellas o de hardware como `not_available`, no como `not_enrolled`.
+- `cancelLabel` no aparece en Android cuando se permite la credencial del dispositivo.
+
+**Huecos del spec que encontró y que corregí en el spec:**
+- **Etiqueta del botón.** MOB-25 decía "Desbloquear", y el diseño y la tarea decían "Desbloquear con <tipo>". Quedó "Desbloquear con <tipo>".
+- **Oferta y el interruptor.** Si la oferta dependía solo de que la preferencia estuviera vacía, apagar el interruptor (que la borra) la volvía a mostrar al instante. El subagente lo descubrió en la tarea 3.2, con dos pruebas que fallaron, y ató la oferta al inicio de sesión con contraseña. El diseño ahora lo dice explícitamente.
+
+**Errores del subagente, corregidos por él mismo:**
+- Un ayudante de pruebas esperaba con un temporizador real mientras expo-router usa temporizadores simulados, y dejó `act` abierto: las demás pruebas fallaron en cascada y parecía un error de la app.
+- Un `unmount()` sin `await` encimó `act` en cuatro pruebas.
+- Un intento de corrección no se aplicó porque iba encadenado detrás de un comando que falló.
+
+**Pruebas en verde desde el principio.** Algunos escenarios negativos ("no pide la huella a los 30 segundos") pasan desde antes de implementar, porque la app aún no hacía nada. Cada uno tiene una prueba positiva hermana que sí falló primero. Además, el subagente comprobó con mutaciones que las pruebas detectan, por ejemplo, decidir el bloqueo en una promesa o remontar la navegación al bloquear.
+
+**Pendiente:**
+- **Aviso de `act()` sin verificar.** Aparece en `transfer/__tests__/lost-response.test.tsx`, una prueba que este change no toca, y no se comparó con la línea base.
+- **Lo que solo se puede probar en el teléfono:**
+  - que la pantalla de privacidad y la de bloqueo se sustituyan sin mostrar saldos entre ambas;
+  - el diálogo real de Android;
+  - si Android informa el bloqueo por intentos como `lockout`;
+  - qué tipo de biometría reporta mi teléfono.
