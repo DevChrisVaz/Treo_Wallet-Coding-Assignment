@@ -1,5 +1,6 @@
 import { navDestinations, type NavDestination } from '@devchrisvaz/wallet-design-tokens';
 import { Icon } from './Icon';
+import { RouterLink } from './RouterLink';
 
 export interface NavItem {
   key: NavDestination;
@@ -30,7 +31,7 @@ export function TabBar({ items, current, position = 'fixed', className = '' }: T
           const active = key === current;
           return (
             <li key={key} className="flex-1">
-              <a
+              <RouterLink
                 href={href}
                 aria-current={active ? 'page' : undefined}
                 className="flex h-full flex-col items-center justify-center gap-1 text-caption"
@@ -43,7 +44,7 @@ export function TabBar({ items, current, position = 'fixed', className = '' }: T
                 <span className={active ? 'font-medium text-action' : 'text-fg-muted'}>
                   {label}
                 </span>
-              </a>
+              </RouterLink>
             </li>
           );
         })}

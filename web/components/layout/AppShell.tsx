@@ -51,31 +51,33 @@ export function AppShell({
         onLogout={onLogout}
         className="hidden dashboard:flex"
       />
-      <div className="mx-auto w-full max-w-app dashboard:max-w-content dashboard:px-10">
-        {tabs ? (
-          <AppHeader
-            user={user}
-            title={current === 'home' ? undefined : title}
-            onLogout={onLogout}
-            className="dashboard:hidden"
-          />
-        ) : null}
-        {tabs ? (
-          <TopBar title={title} action={primaryAction} className="hidden dashboard:flex" />
-        ) : null}
-        <main
-          id={MAIN_CONTENT_ID}
-          tabIndex={-1}
-          // Con pestañas, 20 px entre el encabezado y el contenido en teléfono, como el margen del
-          // contenido de Screen en la app móvil (WEB-25); en el flujo lo da FlowHeader.
-          className={`grid gap-5 px-5 focus-visible:outline-none dashboard:px-0 dashboard:pb-10 ${
-            tabs
-              ? 'pt-5 pb-[calc(var(--dt-layout-tab-bar-height)+env(safe-area-inset-bottom)+1.5rem)] dashboard:pt-0'
-              : 'pb-6'
-          }`}
-        >
-          {children}
-        </main>
+      <div className="w-full min-w-0 dashboard:px-10">
+        <div className="mx-auto w-full max-w-app dashboard:max-w-content">
+          {tabs ? (
+            <AppHeader
+              user={user}
+              title={current === 'home' ? undefined : title}
+              onLogout={onLogout}
+              className="dashboard:hidden"
+            />
+          ) : null}
+          {tabs ? (
+            <TopBar title={title} action={primaryAction} className="hidden dashboard:flex" />
+          ) : null}
+          <main
+            id={MAIN_CONTENT_ID}
+            tabIndex={-1}
+            // Con pestañas, 20 px entre el encabezado y el contenido en teléfono, como el margen del
+            // contenido de Screen en la app móvil (WEB-25); en el flujo lo da FlowHeader.
+            className={`grid gap-5 px-5 focus-visible:outline-none dashboard:px-0 dashboard:pb-10 ${
+              tabs
+                ? 'pt-5 pb-[calc(var(--dt-layout-tab-bar-height)+env(safe-area-inset-bottom)+1.5rem)] dashboard:pt-0'
+                : 'pb-6'
+            }`}
+          >
+            {children}
+          </main>
+        </div>
       </div>
       {tabs ? <TabBar items={items} current={current} className="dashboard:hidden" /> : null}
     </div>

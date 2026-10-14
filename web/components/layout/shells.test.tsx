@@ -55,6 +55,18 @@ describe('AppShell', () => {
     );
     expect(screen.getAllByRole('navigation', { name: 'Principal' })).toHaveLength(1);
   });
+
+  it('WEB-24 en el dashboard el contenido mide hasta 1200 px sin contar el margen lateral', () => {
+    render(
+      <AppShell current="home" title="Inicio" user={USER}>
+        <p>Contenido</p>
+      </AppShell>,
+    );
+    const content = screen.getByRole('main').parentElement;
+    expect(content).toHaveClass('max-w-app', 'dashboard:max-w-content');
+    expect(content).not.toHaveClass('dashboard:px-10');
+    expect(content?.parentElement).toHaveClass('dashboard:px-10');
+  });
 });
 
 describe('AppShell encabezados', () => {

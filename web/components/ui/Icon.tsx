@@ -21,6 +21,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
+import { RouterLink } from './RouterLink';
 
 /** Componente de Lucide de cada concepto; una prueba lo compara con `iconNames` del paquete (DSG-15). */
 export const ICONS = {
@@ -105,9 +106,9 @@ export function IconButton({
       : 'text-fg hover:bg-surface-subtle'
   } ${className}`.trim();
   return href ? (
-    <a href={href} aria-label={label} className={classes}>
+    <RouterLink href={href} aria-label={label} className={classes}>
       <Icon name={icon} size="lg" />
-    </a>
+    </RouterLink>
   ) : (
     <button type="button" aria-label={label} onClick={onClick} className={classes}>
       <Icon name={icon} size="lg" />

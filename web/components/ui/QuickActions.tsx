@@ -1,5 +1,6 @@
 import type { IconConcept } from '@devchrisvaz/wallet-design-tokens';
 import { Icon } from './Icon';
+import { RouterLink } from './RouterLink';
 
 export interface QuickAction {
   key: string;
@@ -28,9 +29,9 @@ export function QuickActions({ actions }: { actions: readonly QuickAction[] }) {
         return (
           <li key={key}>
             {href ? (
-              <a href={href} className={classes}>
+              <RouterLink href={href} className={classes}>
                 {content}
-              </a>
+              </RouterLink>
             ) : (
               <button type="button" onClick={onClick} className={classes}>
                 {content}

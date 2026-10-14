@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AppHeader } from './AppHeader';
+import { RouterLinkProvider, type RouterLinkProps } from './RouterLink';
 import { SideNav } from './SideNav';
 import { TabBar, type NavItem } from './TabBar';
 
@@ -68,5 +69,33 @@ describe('AppHeader', () => {
   it('WEB-27 en otras pestañas muestra el título de la página', () => {
     render(<AppHeader user={USER} title="Movimientos" />);
     expect(screen.getByRole('heading', { level: 1, name: 'Movimientos' })).toBeInTheDocument();
+  });
+});
+
+function AppLink({ children, ...props }: RouterLinkProps) {
+  return (
+    <a data-app-link="" {...props}>
+      {children}
+    </a>
+  );
+}
+
+describe('RouterLink', () => {
+  it('WEB-24 con el proveedor de la app, pestañas y navegación lateral usan su enlace', () => {
+    render(
+      <RouterLinkProvider value={AppLink}>
+        <TabBar items={WEB_ITEMS} current="home" position="static" />
+        <SideNav items={WEB_ITEMS} current="home" user={USER} />
+      </RouterLinkProvider>,
+    );
+    const links = screen.getAllByRole('link');
+    expect(links).toHaveLength(8);
+    for (const link of links) expect(link).toHaveAttribute('data-app-link');
+  });
+
+  it('WEB-24 sin proveedor (lienzos de design-sync) son enlaces <a> normales', () => {
+    render(<TabBar items={WEB_ITEMS} current="home" position="static" />);
+    expect(screen.getByRole('link', { name: 'Inicio' })).not.toHaveAttribute('data-app-link');
+    expect(screen.getByRole('link', { name: 'Inicio' })).toHaveAttribute('href', '/');
   });
 });

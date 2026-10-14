@@ -1,6 +1,7 @@
 import { navDestinations, type NavDestination } from '@devchrisvaz/wallet-design-tokens';
 import { Avatar, initials } from './Avatar';
 import { Icon } from './Icon';
+import { RouterLink } from './RouterLink';
 import type { NavItem } from './TabBar';
 import { Wordmark } from './Wordmark';
 
@@ -32,14 +33,14 @@ export function SideNav({ items, current, user, onLogout, className = '' }: Side
             const active = key === current;
             return (
               <li key={key}>
-                <a
+                <RouterLink
                   href={href}
                   aria-current={active ? 'page' : undefined}
                   className={`${ITEM} ${active ? 'bg-fg-on-inverse/10 text-accent-on-dark' : 'text-fg-on-hero-muted hover:bg-fg-on-inverse/10 hover:text-fg-on-inverse'}`}
                 >
                   <Icon name={icon} />
                   {label}
-                </a>
+                </RouterLink>
               </li>
             );
           })}

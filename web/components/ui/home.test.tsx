@@ -2,8 +2,10 @@ import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { movement } from '@/test/fixtures';
 import { BalanceHero } from './BalanceHero';
+import { IconButton } from './Icon';
 import { MovementList } from './MovementList';
 import { QuickActions } from './QuickActions';
+import { RouterLinkProvider, type RouterLinkProps } from './RouterLink';
 
 describe('BalanceHero', () => {
   it('WEB-28 muestra el total completo para lectores de pantalla y el disponible de hoy', () => {
@@ -84,5 +86,30 @@ describe('MovementList', () => {
     expect(within(row).getByText('13 oct 2026,', { exact: false })).toHaveClass('sr-only');
     expect(row).not.toHaveClass('border-b');
     expect(row.parentElement).toHaveClass('divide-y', 'divide-border');
+  });
+});
+
+function AppLink({ children, ...props }: RouterLinkProps) {
+  return (
+    <a data-app-link="" {...props}>
+      {children}
+    </a>
+  );
+}
+
+describe('enlaces internos del kit', () => {
+  it('WEB-24 las acciones rápidas y el botón de icono con destino usan el enlace de la app', () => {
+    render(
+      <RouterLinkProvider value={AppLink}>
+        <QuickActions
+          actions={[{ key: 't', label: 'Transferir', icon: 'transfer', href: '/transfers/new' }]}
+        />
+        <IconButton icon="close" label="Salir de la transferencia" href="/" />
+      </RouterLinkProvider>,
+    );
+    expect(screen.getByRole('link', { name: 'Transferir' })).toHaveAttribute('data-app-link');
+    expect(screen.getByRole('link', { name: 'Salir de la transferencia' })).toHaveAttribute(
+      'data-app-link',
+    );
   });
 });
