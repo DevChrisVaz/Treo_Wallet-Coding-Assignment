@@ -7,6 +7,7 @@ Billetera digital en pesos mexicanos (MXN): registro con verificación de correo
 [![mobile](https://github.com/DevChrisVaz/Treo_Wallet-Coding-Assignment/actions/workflows/mobile.yml/badge.svg?branch=release)](https://github.com/DevChrisVaz/Treo_Wallet-Coding-Assignment/actions/workflows/mobile.yml)
 [![contract](https://github.com/DevChrisVaz/Treo_Wallet-Coding-Assignment/actions/workflows/contract.yml/badge.svg?branch=release)](https://github.com/DevChrisVaz/Treo_Wallet-Coding-Assignment/actions/workflows/contract.yml)
 [![design-tokens](https://github.com/DevChrisVaz/Treo_Wallet-Coding-Assignment/actions/workflows/design-tokens.yml/badge.svg?branch=release)](https://github.com/DevChrisVaz/Treo_Wallet-Coding-Assignment/actions/workflows/design-tokens.yml)
+[![infrastructure](https://github.com/DevChrisVaz/Treo_Wallet-Coding-Assignment/actions/workflows/infrastructure.yml/badge.svg?branch=release)](https://github.com/DevChrisVaz/Treo_Wallet-Coding-Assignment/actions/workflows/infrastructure.yml)
 
 Este README reúne la información de los cinco proyectos. Cada proyecto conserva su propio `README.md` porque se separará en un repositorio propio.
 
@@ -63,6 +64,7 @@ Son cinco proyectos independientes en un solo repositorio. **No es un monorepo:*
 | [`api/`](api/)                     | API                                 | Express 5, TypeScript estricto, PostgreSQL 16 con TypeORM y migraciones con SQL explícito                                                                                               |
 | [`web/`](web/)                     | Web                                 | Next.js (App Router) como BFF de la API, con TanStack Query y Server Actions                                                                                                            |
 | [`mobile/`](mobile/)               | App móvil                           | Expo SDK 57, React Native y Expo Router                                                                                                                                                 |
+| [`infrastructure/`](infrastructure/README.md) | Infraestructura en AWS | Terraform de la propuesta de [`docs/aws-deploy.md`](docs/aws-deploy.md): un módulo raíz para dev, staging y prod, con pruebas que corren sin credenciales. No se ha aplicado en una cuenta real |
 | [`openspec/`](openspec/)           | Especificación                      | Changes de OpenSpec: propuesta, requisitos, diseño y tareas de cada parte                                                                                                               |
 | [`docs/`](docs/)                   | Documentación                       | Bitácora de AI, [propuesta de AWS](docs/aws-deploy.md), [matriz de trazabilidad](docs/traceability.md) |
 | [`scripts/`](scripts/)             | Herramientas del repositorio        | `trace.sh`, que genera la matriz de trazabilidad (`scripts/trace.sh --check` falla si hay huecos) |
@@ -321,12 +323,13 @@ En todos los proyectos, el título de cada prueba empieza con el ID del requisit
 
 ### Integración continua
 
-Hay un workflow por proyecto en `.github/workflows/`: `api`, `web`, `mobile`, `contract` y `design-tokens`. Cada uno corre en los pushes a `release`, la rama principal, y en los pull requests que tocan su carpeta.
+Hay un workflow por proyecto en `.github/workflows/`: `api`, `web`, `mobile`, `contract`, `design-tokens` e `infrastructure`. Cada uno corre en los pushes a `release`, la rama principal, y en los pull requests que tocan su carpeta.
 
 - **Paquetes compartidos:** los workflows de la API, la web y la app también corren cuando cambian `contract/**` o `design-tokens/**`, porque instalan esos paquetes como copia.
 - **Pasos:** lint, typecheck, formato y pruebas.
 - **API:** además levanta PostgreSQL y Mailpit como servicios del CI.
 - **Paquetes:** además verifican los tipos o las salidas generadas, las rutas, la compatibilidad con Hermes, la instalación como copia y una prueba de humo en Node 20, 22 y 24.
+- **Infraestructura:** `terraform fmt`, `validate` y `terraform test` con proveedores simulados para cada ambiente, sin credenciales de AWS ([detalle](infrastructure/README.md#verificar-sin-una-cuenta-de-aws)).
 
 ## Scripts
 
@@ -1089,12 +1092,13 @@ Dónde está cada punto de la lista de entregables y su estado.
 | Repositorio de GitHub con historial completo, sin squash | [DevChrisVaz/Treo_Wallet-Coding-Assignment](https://github.com/DevChrisVaz/Treo_Wallet-Coding-Assignment). El historial conserva cada commit de cada tarea, con los trailers `Task:` y `Refs:`, y las ramas se integraron con `--no-ff` | Cumple. Comprobar la visibilidad del repositorio antes de enviarlo |
 | Carpeta `/specs` con los cuatro archivos de la Fase 1 | **Desviación declarada:** no hay `/specs`; se usa OpenSpec. `requirements.md` equivale a los `specs/` de cada change ([`openspec/specs/`](openspec/specs/) y `openspec/changes/*/specs/`); `design.md` a los [`design.md`](#decisiones-clave) de cada change (incluye el diagrama ER en Mermaid de [`api-foundation`](openspec/changes/api-foundation/design.md) y [`api-ledger`](openspec/changes/api-ledger/design.md), la concurrencia, la idempotencia y el `EXPLAIN ANALYZE`); `tasks.md` a los `tasks.md` de cada change, con etiquetas `[api]`, `[web]`, `[mobile]`; `ai-log.md` a [`docs/ai-log.md`](docs/ai-log.md) | Cumple, con la estructura de OpenSpec. Mapa en [Especificación y bitácora de AI](#especificación-y-bitácora-de-ai) |
 | Trazabilidad requerimiento → diseño → tarea → commit → prueba | [`docs/traceability.md`](docs/traceability.md), generado por [`scripts/trace.sh`](scripts/trace.sh) | Cumple; los huecos que quedan están explicados en ese archivo |
-| [`docs/aws-deploy.md`](docs/aws-deploy.md) con la propuesta y su diagrama | [`docs/aws-deploy.md`](docs/aws-deploy.md) | Escrito. Falta abrir el diagrama en GitHub para confirmar que renderiza, y revisar con el usuario las decisiones D1 a D12 (tarea 1.1) |
+| [`docs/aws-deploy.md`](docs/aws-deploy.md) con la propuesta y su diagrama | [`docs/aws-deploy.md`](docs/aws-deploy.md) | Escrito. El diagrama renderiza con `mermaid-cli`; falta verlo en GitHub y revisar con el usuario las decisiones D1 a D12 (tarea 1.1) |
+| Esqueleto de infraestructura como código (bonus) | [`infrastructure/`](infrastructure/README.md), en Terraform | Escrito y probado con proveedores simulados en cada ambiente. **No se ha aplicado** en una cuenta de AWS y faltan los `Dockerfile` |
 | Documentación OpenAPI navegable en local | Swagger UI en `http://localhost:4000/docs` y el contrato en `/openapi.yaml` ([Ejecución en local](#ejecución-en-local)) | Cumple. Verificado desde un clon limpio |
 | Instrucciones para correr la app móvil | [App móvil](#3-app-móvil) y [Configuración](#app-móvil-mobileenv) (Expo Go o simulador apuntando a la API local) | Cumple. El bundle compila (`npx expo export`); falta el recorrido en un teléfono ([Verificaciones manuales](#verificaciones-manuales)) |
 | Video de 5 minutos como máximo, con un intento de transferencia con saldo insuficiente | No grabado ni enlazado. El guion (`docs/video-script.md`) se retiró del historial del repositorio | **Pendiente** |
 | `README.md` con cómo correr en local, cómo correr pruebas y "qué haría con más tiempo" | Este archivo: [Ejecución en local](#ejecución-en-local), [Pruebas](#pruebas), [¿Qué haría con más tiempo?](#qué-haría-con-más-tiempo) | Cumple |
-| Pipeline de CI con lint y pruebas, en verde en la rama principal | Un workflow por proyecto en [`.github/workflows/`](.github/workflows/) (`api`, `web`, `mobile`, `contract`, `design-tokens`), con sus insignias arriba | **Pendiente de comprobar:** los workflows corren en `release`, la rama principal de este repositorio, y no existe una rama `main`. No se ha verificado con `gh run list` que estén en verde |
+| Pipeline de CI con lint y pruebas, en verde en la rama principal | Un workflow por proyecto en [`.github/workflows/`](.github/workflows/) (`api`, `web`, `mobile`, `contract`, `design-tokens`, `infrastructure`), con sus insignias arriba | **Pendiente de comprobar:** los workflows corren en `release`, la rama principal de este repositorio, y no existe una rama `main`. No se ha verificado con `gh run list` que estén en verde |
 
 ## Avisos conocidos
 
@@ -1163,7 +1167,7 @@ Dónde está cada punto de la lista de entregables y su estado.
 
 - **Pruebas de contrato dirigidas por el consumidor** (Pact) y una política de versiones del contrato con avisos de deprecación.
 - **Publicar el contrato y los tokens en GitHub Packages al separar los repositorios.** Así cada consumidor fija su versión, y un cambio del contrato ya no llega a todos a la vez.
-- **Infraestructura como código** (Terraform) para el despliegue en AWS.
+- **Aplicar la infraestructura de [`infrastructure/`](infrastructure/README.md) en una cuenta real,** con los `Dockerfile` de la API y de la web, el workflow de despliegue (migraciones antes de actualizar el servicio) y una política de mínimo privilegio para el rol que aplica los cambios.
 
 **Interfaz:**
 

@@ -497,6 +497,31 @@ Pedí cerrar todo con subagentes. La AI escribió y validó el change `domain-te
 - **Arranque desde un clon limpio (tarea 5.2).** Se clonó el repositorio y se siguieron los pasos del README: `npm ci` y build de `contract` y `design-tokens`, `npm ci` de la API, la web y la app, `docker compose up`, `db:bootstrap`, `db:migrate`, `db:seed` (120,128 asientos en 17.8 s), la API, `/health`, Swagger UI en `/docs` y el contrato en `/openapi.yaml`, el inicio de sesión de Ana por HTTP, la web en `/login` y `npx expo export --platform android`. Todo funcionó y el README no necesitó cambios. Límites de la prueba: se usaron puertos alternos (55433, 51025, 58025, 4010 y 3010) y un proyecto de compose distinto, porque los puertos habituales ya estaban ocupados por el entorno de desarrollo del usuario; no se recorrió la web con el navegador ni la app en un teléfono. Un hallazgo: `db:bootstrap` sin `psql` instalado usa `docker compose exec` en la carpeta de la API y, con el proyecto de compose por defecto, **ejecutó los roles contra el contenedor ya existente del usuario** antes de que se fijara `COMPOSE_PROJECT_NAME`. Fue inocuo (idempotente y con las mismas contraseñas de desarrollo), pero la herramienta no distingue entre dos entornos con el mismo nombre de proyecto.
 - **El diagrama de Mermaid no se renderizó.** El repositorio no incluye ninguna herramienta para validarlo; se revisó la sintaxis a mano (etiquetas con acentos y puntos entre comillas, sin palabras reservadas como identificadores). Falta abrirlo en GitHub para confirmarlo.
 
+## Sesión 8 — 2026-10-14 · Infraestructura en Terraform
+
+**Prompt clave:** "Now I want you to build the terraform configuration in a new infrastructure folder".
+
+**Quién:** Claude Code con Claude Opus 5.5, sin subagentes. No se creó un change de OpenSpec para este trabajo: la configuración `openspec/config.yaml` no tiene etiqueta ni prefijo de requisitos para infraestructura.
+
+**Qué se hizo:** [`infrastructure/`](../infrastructure/README.md) traduce [`docs/aws-deploy.md`](aws-deploy.md) a Terraform: `bootstrap/` (estado y roles OIDC por cuenta), un módulo raíz `stack/` para los tres ambientes, catorce módulos y un archivo de variables y un backend por ambiente. Se agregó el workflow `infrastructure` (formato, `validate` y `terraform test`). Nada se aplicó en una cuenta de AWS.
+
+**Decisiones de la AI, pendientes de revisar:**
+
+| Tema | Decisión |
+|---|---|
+| ALB | Interno, con CloudFront por *VPC origin*. El documento lo ponía en subredes públicas; se actualizó el documento y su diagrama |
+| Secretos | Contraseñas efímeras en argumentos de solo escritura, para que no queden en el estado. Excepción: la credencial SMTP de SES |
+| Despliegue | Dos `apply` por versión: primero la imagen de la tarea de migraciones, después la de los servicios |
+| Redis | Se crea aunque ninguna aplicación lo usa todavía; mientras tanto, afinidad por cookie hacia el BFF |
+| Rol de apply en GitHub | `AdministratorAccess`, protegido por la condición de ambiente; la política de mínimo privilegio queda pendiente |
+
+**Hallazgos de esta sesión:**
+- **Un ciclo de dependencias.** El secreto de `wallet_app` lo lee RDS Proxy, y su contenido lleva el endpoint del proxy. `terraform validate` lo detectó y se separaron los secretos de sus versiones.
+- **La validación de ACM no habría planeado.** Las llaves de su `for_each` salían de un atributo que ACM calcula. Lo encontró la prueba del stack con proveedores simulados, no `validate`; ahora las llaves salen de los nombres configurados.
+- **Los proveedores simulados no admiten recursos efímeros.** Las pruebas usan el proveedor `random` real, que no necesita credenciales.
+- **Se comprobaron dos supuestos en la fuente original** antes de documentarlos: en el código del proveedor, que con `secret_string_wo` el valor del secreto no se lee de vuelta al estado; en la guía de CloudFront, que la lista de prefijos de CloudFront sirve para los VPC origins. La guía mostró además que los VPC origins no funcionan en algunas zonas (`use1-az3` en us-east-1), y el módulo de red las excluye.
+- **Las pruebas se probaron a sí mismas.** Al dar a la API el secreto de `wallet_migrator`, la prueba de separación de credenciales falló, como se esperaba.
+
 ## Correcciones a la AI, en conjunto
 
 Índice de lo que la AI propuso mal o dejó inseguro, ordenado por lo que importa en un sistema de dinero. Cada punto está explicado en la sesión que se indica.

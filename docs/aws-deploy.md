@@ -1,6 +1,8 @@
 # Propuesta de despliegue en AWS
 
-Este documento explica cómo llevaría TreoWallet a producción en AWS para una empresa regulada del sector financiero. **No se despliega nada y no hay infraestructura como código:** es una propuesta escrita, con las alternativas descartadas y por qué. Responde la Fase 4 del enunciado (tabla de seis temas y tres preguntas por escrito).
+Este documento explica cómo llevaría TreoWallet a producción en AWS para una empresa regulada del sector financiero, con las alternativas descartadas y por qué. Responde la Fase 4 del enunciado (tabla de seis temas y tres preguntas por escrito).
+
+**No se despliega nada.** La propuesta también está escrita como Terraform en [`infrastructure/`](../infrastructure/README.md): valida y sus pruebas pasan con proveedores simulados, pero nunca se ha aplicado contra una cuenta de AWS. Donde el código precisa algo de este documento, aquí se indica.
 
 Las decisiones de fondo están en [`openspec/changes/delivery/design.md`](../openspec/changes/delivery/design.md) (D1 a D12); aquí se desarrollan.
 
@@ -25,10 +27,10 @@ flowchart TB
 
   subgraph vpc["VPC en dos o más zonas de disponibilidad"]
     subgraph pub["Subredes públicas"]
-      alb["ALB"]
       nat["NAT Gateway"]
     end
     subgraph priv["Subredes privadas"]
+      alb["ALB interno"]
       bff["ECS Fargate: web Next.js BFF"]
       api["ECS Fargate: API Express"]
       mig["Tarea puntual de migraciones<br/>rol wallet_migrator"]
@@ -53,11 +55,11 @@ flowchart TB
   app -->|HTTPS| r53
   r53 --> cf
   waf -.-> cf
-  cf -->|"web.dominio"| alb
-  cf -->|"api.dominio"| alb
+  cf -->|"VPC origin: web.dominio"| alb
+  cf -->|"VPC origin: api.dominio"| alb
   alb --> bff
   alb --> api
-  bff -->|"red interna con X-Forwarded-For"| api
+  bff -->|"api.dominio por la red interna, con X-Forwarded-For"| alb
   bff --> redis
   api --> redis
   api --> proxy
@@ -81,7 +83,8 @@ flowchart TB
 Lectura rápida:
 
 - **Dos dominios detrás de un solo CloudFront y un ALB** (`web.dominio` para el BFF, `api.dominio` para la API), con ruteo por host. La app móvil habla con la API; el navegador solo con el BFF, que llama a la API por la red interna.
-- **Todo el cómputo y los datos están en subredes privadas.** Solo el ALB y el NAT Gateway están en las públicas. El grupo de seguridad del ALB solo acepta tráfico de los rangos de CloudFront (lista de prefijos administrada).
+- **Todo el cómputo y los datos están en subredes privadas.** Solo el NAT Gateway está en las públicas. El ALB es interno: CloudFront llega a él por un *VPC origin*, y su grupo de seguridad solo acepta la lista de prefijos administrada de CloudFront y al BFF. RDS y ElastiCache están además en subredes de datos sin ruta a internet.
+- **El BFF llama a la API por el mismo ALB.** Dentro de la VPC, una zona privada de Route 53 resuelve `api.dominio` al ALB interno: el certificado es el mismo y la llamada no sale de la red.
 - **RDS no es alcanzable desde internet.** La API entra por RDS Proxy; la tarea de migraciones entra directo con otro rol.
 
 ## 1. Cómputo de la API: ECS Fargate
@@ -232,7 +235,7 @@ Antes de cualquiera de estos cambios, la regla es medir: el `EXPLAIN ANALYZE` de
 | CDK | Atractivo porque el equipo escribe TypeScript, pero el resultado (CloudFormation sintetizado) es más difícil de revisar en una aprobación de cambios |
 | SAM | Está pensado para aplicaciones serverless; con Fargate no aplica |
 
-**El esqueleto de código queda fuera de esta entrega:** es opcional en el enunciado y no se escribió. Tampoco hay `Dockerfile`, por la misma razón.
+**El código está en [`infrastructure/`](../infrastructure/README.md):** un módulo raíz para los tres ambientes, con un archivo de variables y un backend por cuenta, y pruebas con `terraform test` que corren en el CI sin credenciales. Las contraseñas se generan como valores efímeros y se escriben en argumentos de solo escritura, así que no quedan en el estado. Sigue sin haber `Dockerfile`.
 
 ## Resumen frente al enunciado
 
