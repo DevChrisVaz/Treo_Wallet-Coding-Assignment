@@ -1,10 +1,11 @@
 import { act, screen, userEvent } from '@testing-library/react-native';
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { createFakeApi, json, problem, type FakeApi, type FakeReply } from '@/test-utils/fake-api';
 import { luis, overview } from '@/test-utils/fixtures';
 import { renderApp } from '@/test-utils/render-app';
 import { pendingOtp, transfer } from '@/test-utils/transfer-fixtures';
+import { theme } from '@/theme';
 
 import { TransferFlowScreen } from '../transfer-flow-screen';
 
@@ -31,6 +32,23 @@ async function open(fake: FakeApi, fakeTimers = false) {
   return { ...rendered, user };
 }
 
+type Instance = ReturnType<typeof screen.getByText>;
+
+/** Separación del contenedor más cercano que apila a los dos elementos (su ancestro común con `gap`). */
+function stackGap(first: Instance, second: Instance): unknown {
+  const ancestors = new Set<Instance>();
+  for (let node: Instance | null = first; node; node = node.parent) ancestors.add(node);
+  for (let node: Instance | null = second; node; node = node.parent) {
+    if (!ancestors.has(node)) continue;
+    const props = node.props as { style?: unknown; contentContainerStyle?: unknown };
+    const gap = (
+      StyleSheet.flatten(props.style ?? props.contentContainerStyle) as { gap?: unknown }
+    )?.gap;
+    if (gap !== undefined) return gap;
+  }
+  return undefined;
+}
+
 async function review(user: ReturnType<typeof userEvent.setup>, amount: string) {
   await user.type(await screen.findByLabelText('Monto'), amount);
   await user.type(screen.getByLabelText('Concepto'), 'Renta');
@@ -48,6 +66,17 @@ describe('flujo por pasos', () => {
     expect(screen.getByLabelText('Paso 2 de 5: Monto')).toBeOnTheScreen();
     expect(screen.getByText('Luis · CLABE •••• 5678')).toBeOnTheScreen();
     expect(screen.getByTestId('hero-amount-mirror', { includeHiddenElements: true })).toBeTruthy();
+  });
+
+  test('MOB-21 los campos del paso de monto van a la distancia de las secciones de la pantalla, como en la historia aprobada', async () => {
+    await open(apiWith(json(201, transfer())));
+    const amount = await screen.findByLabelText('Monto');
+    const concept = screen.getByLabelText('Concepto');
+    const reference = screen.getByLabelText('Referencia');
+    // La pantalla separa sus secciones con spacing[5]; el formulario no agrega otra pila más apretada.
+    expect(stackGap(concept, reference)).toBe(theme.spacing[5]);
+    expect(stackGap(amount, concept)).toBe(theme.spacing[5]);
+    expect(stackGap(screen.getByText('Para'), amount)).toBe(theme.spacing[5]);
   });
 
   test('MOB-21 en el paso de código el indicador muestra el paso 4 de 5 y lo anuncia', async () => {

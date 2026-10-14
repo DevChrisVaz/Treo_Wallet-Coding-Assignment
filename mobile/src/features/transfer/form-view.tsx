@@ -27,8 +27,9 @@ interface FormViewProps {
  */
 export function FormView({ accounts, beneficiary, values, errors, onChange }: FormViewProps) {
   const set = (patch: Partial<FormValues>) => onChange({ ...values, ...patch });
+  // Sin pila propia: los campos son secciones de la pantalla y llevan su separación (historia aprobada).
   return (
-    <View style={styles.form}>
+    <>
       {beneficiary ? (
         <ListSection>
           <View style={styles.row}>
@@ -78,12 +79,11 @@ export function FormView({ accounts, beneficiary, values, errors, onChange }: Fo
         keyboardType="number-pad"
         inputMode="numeric"
       />
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  form: { gap: theme.spacing[4] },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
