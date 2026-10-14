@@ -35,6 +35,8 @@ export interface PassSummary {
   readonly completed: number;
   readonly failed: number;
   readonly skipped: number;
+  /** Candidatas cuya transacción se revirtió por un error: siguen SCHEDULED para otra pasada. */
+  readonly errors: number;
 }
 
 /**
@@ -51,30 +53,43 @@ export interface PassSummary {
  * su motivo, auditada con actor SYSTEM y el dueño en los metadatos. No hay OTP: se confirmó al
  * programar. Varias instancias pueden correr pasadas a la vez: `SKIP LOCKED` reparte el trabajo y
  * el filtro de estado bajo bloqueo impide ejecutar dos veces.
+ *
+ * Los errores quedan aislados por transferencia (TRF-36): si algo lanza (por ejemplo la auditoría),
+ * se revierte solo esa transacción, se registra un ERROR con su id y la pasada sigue; la
+ * transferencia queda SCHEDULED y se reintenta en la siguiente pasada (no en la misma: el lote
+ * siguiente empieza después de ella).
  */
 export class ScheduledTransferRunner {
   constructor(private readonly deps: ScheduledTransferRunnerDeps) {}
 
   async runOnce(): Promise<PassSummary> {
-    const { queue, clock, batchSize } = this.deps;
+    const { queue, clock, batchSize, logger } = this.deps;
     const today = businessDayOf(clock.now());
-    const summary = { completed: 0, failed: 0, skipped: 0 };
+    const summary = { completed: 0, failed: 0, skipped: 0, errors: 0 };
     let after: string | null = null;
     for (;;) {
       const batch = await queue.due(today, batchSize, after);
       for (const candidate of batch) {
-        const outcome = await this.execute(candidate);
-        if (outcome.kind === 'COMPLETED') summary.completed += 1;
-        else if (outcome.kind === 'FAILED') summary.failed += 1;
-        else summary.skipped += 1;
+        try {
+          const outcome = await this.execute(candidate);
+          if (outcome.kind === 'COMPLETED') summary.completed += 1;
+          else if (outcome.kind === 'FAILED') summary.failed += 1;
+          else summary.skipped += 1;
+        } catch (error) {
+          summary.errors += 1;
+          logger.error(
+            { transferId: candidate.id, err: error },
+            'scheduled transfer execution failed',
+          );
+        }
       }
       // Lote lleno: puede haber más vencidas; el siguiente empieza después de la última.
       const last = batch.at(-1);
       if (batch.length < batchSize || !last) break;
       after = last.id;
     }
-    if (summary.completed + summary.failed + summary.skipped > 0) {
-      this.deps.logger.info({ day: today, ...summary }, 'scheduled transfers pass');
+    if (summary.completed + summary.failed + summary.skipped + summary.errors > 0) {
+      logger.info({ day: today, ...summary }, 'scheduled transfers pass');
     }
     return summary;
   }

@@ -109,7 +109,7 @@ describe('TRF-32 cancelación de una programada', () => {
     await cancel(ana, id);
     t.clock.set('2026-10-15T06:00:30.000Z');
     const pass = await t.container.scheduler.runner.runOnce();
-    expect(pass).toEqual({ completed: 0, failed: 0, skipped: 0 });
+    expect(pass).toEqual({ completed: 0, failed: 0, skipped: 0, errors: 0 });
     expect((await rowOf(id)).status).toBe('CANCELLED');
     const entries = await harness.migrator.query(
       `SELECT 1 FROM app.ledger_entries WHERE transfer_id = $1`,

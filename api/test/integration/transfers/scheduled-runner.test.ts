@@ -331,7 +331,7 @@ describe('TRF-30 ejecución en la fecha programada', () => {
   it('TRF-30 si el lote viene lleno, repite la pasada hasta que venga incompleto', async () => {
     t = await buildTestApp(harness, {
       now: OCT_14_NOON,
-      config: { scheduler: { batchSize: 2 } },
+      config: { scheduler: { enabled: false, intervalMs: 60_000, batchSize: 2 } },
     });
     ana = await ledgerUser(t, harness);
     luis = await ledgerUser(t, harness);

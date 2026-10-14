@@ -85,6 +85,38 @@ describe('PLT-08 configuración validada al arrancar', () => {
     ]);
   });
 
+  it('TRF-30 el ejecutor de programadas está activo cada 60 s con lotes de 100 por defecto', () => {
+    expect(loadConfig(validEnv).scheduler).toEqual({
+      enabled: true,
+      intervalMs: 60_000,
+      batchSize: 100,
+    });
+  });
+
+  it('TRF-30 SCHEDULER_ENABLED=false lo desactiva y los demás valores se pueden ajustar', () => {
+    const config = loadConfig({
+      ...validEnv,
+      SCHEDULER_ENABLED: 'false',
+      SCHEDULER_INTERVAL_MS: '1000',
+      SCHEDULER_BATCH_SIZE: '25',
+    });
+    expect(config.scheduler).toEqual({ enabled: false, intervalMs: 1_000, batchSize: 25 });
+  });
+
+  it('TRF-30 rechaza un intervalo fuera de 1,000 a 3,600,000, un booleano raro y un lote vacío', () => {
+    for (const interval of ['999', '3600001', 'cada minuto']) {
+      expect(errorOf({ ...validEnv, SCHEDULER_INTERVAL_MS: interval }).variables).toEqual([
+        'SCHEDULER_INTERVAL_MS',
+      ]);
+    }
+    expect(errorOf({ ...validEnv, SCHEDULER_ENABLED: 'sí' }).variables).toEqual([
+      'SCHEDULER_ENABLED',
+    ]);
+    expect(errorOf({ ...validEnv, SCHEDULER_BATCH_SIZE: '0' }).variables).toEqual([
+      'SCHEDULER_BATCH_SIZE',
+    ]);
+  });
+
   it('HIS-05 exige el secreto de firma de cursores', () => {
     const { CURSOR_SIGNING_SECRET: _omitted, ...env } = validEnv;
     expect(errorOf(env).variables).toEqual(['CURSOR_SIGNING_SECRET']);

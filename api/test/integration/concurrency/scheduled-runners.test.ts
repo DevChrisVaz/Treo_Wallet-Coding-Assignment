@@ -162,7 +162,7 @@ describe('TRF-31 ejecución única ante concurrencia', () => {
 
       const pass = await within(t.container.scheduler.runner.runOnce(), 2_000);
 
-      expect(pass).toEqual({ completed: 1, failed: 0, skipped: 1 });
+      expect(pass).toEqual({ completed: 1, failed: 0, skipped: 1, errors: 0 });
       const statuses = await harness.migrator.query(
         `SELECT id, status FROM app.transfers WHERE id = ANY($1)`,
         [[held, free]],
@@ -238,7 +238,7 @@ describe('TRF-31 ejecución única ante concurrencia', () => {
       if (manual.isTransactionActive) await manual.rollbackTransaction();
       await manual.release();
     }
-    expect(await pass).toEqual({ completed: 1, failed: 0, skipped: 0 });
+    expect(await pass).toEqual({ completed: 1, failed: 0, skipped: 0, errors: 0 });
   });
 
   it('TRF-31 el ejecutor contra transferencias manuales desde la misma cuenta: sin deadlocks y con el saldo conciliado', async () => {

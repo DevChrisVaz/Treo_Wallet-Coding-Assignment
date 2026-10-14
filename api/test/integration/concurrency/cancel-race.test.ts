@@ -102,7 +102,7 @@ describe('TRF-32 cancelación y ejecución al mismo tiempo', () => {
     await waitForLockWaiters(harness.migrator, 1);
     executing.release();
 
-    expect(await pass).toEqual({ completed: 1, failed: 0, skipped: 0 });
+    expect(await pass).toEqual({ completed: 1, failed: 0, skipped: 0, errors: 0 });
     const res = await cancelling;
     expect(res.status).toBe(409);
     expect(res.body).toMatchObject({
@@ -123,7 +123,7 @@ describe('TRF-32 cancelación y ejecución al mismo tiempo', () => {
     await cancelling.arrived;
 
     const pass = await within(t.container.scheduler.runner.runOnce(), 2_000);
-    expect(pass).toEqual({ completed: 0, failed: 0, skipped: 1 });
+    expect(pass).toEqual({ completed: 0, failed: 0, skipped: 1, errors: 0 });
     cancelling.release();
 
     const res = await request;
@@ -133,6 +133,7 @@ describe('TRF-32 cancelación y ejecución al mismo tiempo', () => {
       completed: 0,
       failed: 0,
       skipped: 0,
+      errors: 0,
     });
     expect(await outcome()).toEqual({
       status: 'CANCELLED',
@@ -173,7 +174,7 @@ describe('TRF-32 cancelación y ejecución al mismo tiempo', () => {
       await holder.release();
     }
 
-    expect(await pass).toEqual({ completed: 0, failed: 0, skipped: 1 });
+    expect(await pass).toEqual({ completed: 0, failed: 0, skipped: 1, errors: 0 });
     expect(await outcome()).toEqual({
       status: 'CANCELLED',
       entries: 0,

@@ -187,8 +187,8 @@ describe('TRF-35 aviso de falla de una programada', () => {
     t.clock.advance(60_000);
     const second = await t.container.scheduler.runner.runOnce();
 
-    expect(first).toEqual({ completed: 0, failed: 1, skipped: 0 });
-    expect(second).toEqual({ completed: 0, failed: 0, skipped: 0 });
+    expect(first).toEqual({ completed: 0, failed: 1, skipped: 0, errors: 0 });
+    expect(second).toEqual({ completed: 0, failed: 0, skipped: 0, errors: 0 });
     expect(await statusOf(id)).toBe('FAILED');
     const executions = (await auditEvents(harness.migrator)).filter(
       (event) => event.entity_id === id && event.action === 'TRANSFER_FAILED',
