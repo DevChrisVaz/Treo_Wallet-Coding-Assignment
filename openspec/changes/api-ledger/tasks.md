@@ -29,7 +29,7 @@
 
 ## 4. Cuentas
 
-- [ ] 4.1 [api] Caso de uso y endpoint `GET /accounts` (`listAccounts`): cuentas USER del usuario con `balance` y `currency`, sin la Tesorería (ACC-10, ACC-13)
+- [x] 4.1 [api] Caso de uso y endpoint `GET /accounts` (`listAccounts`): cuentas USER del usuario con `balance` y `currency`, sin la Tesorería (ACC-10, ACC-13)
 - [ ] 4.2 [api] `dailyLimit` en `GET /accounts` leyendo la fila contador del día de CDMX (o 0), con `remaining`, `resetsAt` y `timeZone` (ACC-11)
 - [ ] 4.3 [api] Endpoint `GET /accounts/{accountId}` (`getAccount`) con 404 idéntico para cuenta inexistente, ajena o SYSTEM (ACC-12, ACC-16)
 - [ ] 4.4 [api] Pruebas de integración de cuentas: dos cuentas con saldos correctos, 401 sin token, 404 ajena, `dailyLimit` con transferencias propias excluidas y `resetsAt` correcto con `Clock` fijo, saldo intacto con una transferencia `PENDING_OTP` (ACC-10, ACC-11, ACC-12, ACC-13)

@@ -16,6 +16,8 @@ import { JoseAccessTokens } from './modules/identity/infrastructure/jose-access-
 import { PgRefreshTokenStore } from './modules/identity/infrastructure/pg-refresh-token-store.js';
 import { OpenDefaultAccounts } from './modules/accounts/application/open-default-accounts.js';
 import { PgAccountRepository } from './modules/accounts/infrastructure/pg-account-repository.js';
+import { ListAccounts } from './modules/accounts/application/list-accounts.js';
+import { accountRoutes } from './modules/accounts/infrastructure/http/routes.js';
 import { Argon2PasswordHasher } from './modules/identity/infrastructure/argon2-password-hasher.js';
 import { identityRoutes } from './modules/identity/infrastructure/http/routes.js';
 import { PgOneTimeCodeStore } from './modules/identity/infrastructure/pg-one-time-code-store.js';
@@ -76,6 +78,9 @@ export interface Container {
     readonly login: Login;
     readonly logout: Logout;
     readonly getCurrentUser: GetCurrentUser;
+  };
+  readonly accounts: {
+    readonly listAccounts: ListAccounts;
   };
   readonly ledger: {
     readonly fundAccount: FundAccount;
@@ -167,6 +172,9 @@ export async function createContainer(
       logout: new Logout({ transactions, store: refreshTokens, audit, clock }),
       getCurrentUser: new GetCurrentUser(users),
     },
+    accounts: {
+      listAccounts: new ListAccounts({ accounts, dailyLimit: config.transfers.dailyLimit, clock }),
+    },
     ledger: {
       fundAccount: new FundAccount({
         transactions,
@@ -183,7 +191,10 @@ export async function createContainer(
 /** La aplicación HTTP: plataforma + routers de los módulos. */
 export function createApp(container: Container): Express {
   const authenticateRequest = authenticate(container.accessTokens, container.clock);
-  const tables = [identityRoutes(container.identity, authenticateRequest, container.clock)];
+  const tables = [
+    identityRoutes(container.identity, authenticateRequest, container.clock),
+    accountRoutes(container.accounts, authenticateRequest),
+  ];
   for (const table of tables) assertPublicRoutesAllowed(table.table);
   return createHttpApp({
     trustedProxies: container.config.trustedProxies,
