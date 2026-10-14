@@ -45,6 +45,6 @@
 
 ## 6. Documentación y CI
 
-- [ ] 6.1 [mobile] README de `/mobile`: requisitos, instalación del paquete de contrato, `EXPO_PUBLIC_API_URL` con la IP de la red local (y `10.0.2.2` en el emulador de Android), ejecución en Expo Go o simulador, bandeja de Mailpit para los OTP, usuarios del seed, pruebas y "qué haría con más tiempo" (biometría y recuperar el intento tras matar la app) (MOB-17)
+- [x] 6.1 [mobile] README de `/mobile`: requisitos, instalación del paquete de contrato, `EXPO_PUBLIC_API_URL` con la IP de la red local (y `10.0.2.2` en el emulador de Android), ejecución en Expo Go o simulador, bandeja de Mailpit para los OTP, usuarios del seed, pruebas y "qué haría con más tiempo" (biometría y recuperar el intento tras matar la app) (MOB-17)
 - [ ] 6.2 [mobile] Workflow `.github/workflows/mobile.yml` disparado por `mobile/**`, `contract/**`, `design-tokens/**` y el propio workflow: compilar el contrato y el paquete de diseño, `npm ci` en `/mobile`, lint, `tsc --noEmit` y pruebas (MOB-01–MOB-17)
 - [ ] 6.3 [mobile] Verificación manual en Expo Go contra la API local con el guion del video: inicio de sesión, saldo, movimientos, transferencia mayor a 10,000.00 con OTP leído en Mailpit, intento con saldo insuficiente y modo avión a mitad del envío (MOB-01, MOB-05, MOB-06, MOB-10, MOB-12, MOB-14)
