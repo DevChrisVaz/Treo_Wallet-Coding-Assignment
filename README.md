@@ -1020,6 +1020,17 @@ La [bitácora de AI](docs/ai-log.md) registra qué propuso la AI, qué acepté, 
 
 ## ¿Qué haría con más tiempo?
 
+**Arquitectura de la API:**
+
+- **Migrar la API a NestJS con una arquitectura hexagonal estricta**, para separar cada capa sin depender de la disciplina del equipo y hacer el sistema más mantenible y escalable.
+  - **Punto de partida:** la API ya separa dominio, aplicación e infraestructura en cada módulo, con puertos e inyección manual en `composition.ts`. Una regla de ESLint impide que las capas internas importen las externas. Pero la separación depende de esa regla y de un archivo de composición que crece con cada funcionalidad.
+  - **Límites de módulo que impone el framework.** Cada contexto (identidad, cuentas, beneficiarios, transferencias, historial, estados de cuenta, auditoría) sería un módulo de NestJS que solo exporta sus casos de uso. Sus repositorios y adaptadores quedarían privados en el contenedor de inyección, y otro módulo no podría usarlos aunque quisiera.
+  - **Dominio y aplicación sin framework.** Entidades, reglas de negocio y casos de uso seguirían en TypeScript puro, sin importar NestJS, Express ni TypeORM. NestJS viviría solo en la capa de infraestructura, donde conecta controladores, providers y adaptadores.
+  - **Actualizaciones con cambios incompatibles, aisladas.** Cada dependencia externa (ORM, correo, generador de PDF, JWT, almacén de límites de tasa) quedaría detrás de un puerto, en un adaptador propio con sus pruebas. Una versión mayor de cualquiera de esos paquetes cambiaría ese adaptador, no los casos de uso ni sus pruebas.
+  - **Cambios de infraestructura sin tocar la lógica de negocio.** Cambiar SMTP por Amazon SES, llevar el ejecutor de programadas a EventBridge o a una cola, cambiar Express por Fastify o PostgreSQL por Aurora sería registrar otro provider para el mismo puerto.
+  - **Escalabilidad.** El mismo módulo podría desplegarse como proceso independiente, como el ejecutor de programadas en un worker propio, reutilizando los mismos casos de uso y escalando por separado.
+  - **Una migración segura.** Se haría módulo por módulo. Las pruebas de integración actuales servirían de red: validan cada respuesta contra el contrato OpenAPI y las invariantes del ledger, sin importar el framework que las sirva.
+
 **Dinero y transferencias:**
 
 - **Tabla genérica de idempotencia** (`idempotency_keys`) con la respuesta guardada, TTL y purga, para todas las mutaciones. Hoy la llave es una columna de `transfers`.
