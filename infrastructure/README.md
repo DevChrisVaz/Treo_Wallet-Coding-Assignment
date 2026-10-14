@@ -64,9 +64,11 @@ terraform test
 cd ../../bootstrap
 terraform init -backend=false
 terraform validate
+terraform test
 ```
 
 - **`stack/tests/stack.tftest.hcl`** simula un `apply` del stack completo con cada archivo de ambiente. Detecta lo que `validate` no ve: así se encontró que las llaves del `for_each` de la validación de ACM dependían de atributos que solo se conocen después del apply.
+- **`bootstrap/tests/github-roles.tftest.hcl`** comprueba quién asume los roles de GitHub: por defecto ningún pull request, nunca en prod, y el rol de plan solo escribe el archivo de bloqueo del estado.
 - **`modules/compute/tests/secrets.tftest.hcl`** comprueba la separación de credenciales: la API solo puede leer los secretos de `wallet_app`, firma, SMTP y caché; el BFF ninguno de la base; la tarea de migraciones solo el de `wallet_migrator`, y solo la de bootstrap el superusuario. También que ningún secreto llegue como variable en texto plano. Se comprobó que la prueba falla si se le da a la API el secreto de `wallet_migrator`.
 
 El workflow [`infrastructure`](../.github/workflows/infrastructure.yml) corre estos mismos pasos en cada cambio de `infrastructure/**`.
@@ -120,7 +122,12 @@ Las migraciones corren antes de actualizar el servicio (docs/aws-deploy.md, secc
 3. `aws ecs run-task` con `treo-<ambiente>-migrations`, y se detiene el despliegue si no termina con exit code 0.
 4. `terraform apply -var api_image_tag=<nueva> -var web_image_tag=<nueva>`: ECS hace el despliegue *rolling* con *circuit breaker* y rollback automático, y `apply` espera a que el servicio quede estable.
 
-Cada paso de `apply` deja un plan revisable, que es la razón para elegir Terraform (pregunta 3). El workflow de despliegue con estos pasos todavía no está escrito; `bootstrap/` ya crea los dos roles que usaría: `github-plan` (lectura, para pull requests) y `github-apply` (solo desde el GitHub Environment del ambiente).
+Cada paso de `apply` deja un plan revisable, que es la razón para elegir Terraform (pregunta 3). El workflow de despliegue con estos pasos todavía no está escrito; `bootstrap/` ya crea los dos roles que usaría, y los dos los asume solo un job que corre en el GitHub Environment del ambiente:
+
+- **`github-plan`:** lectura de la cuenta y del estado. Solo escribe y borra el archivo de bloqueo (`<llave>.tflock`), así que no puede reemplazar ni borrar el estado.
+- **`github-apply`:** aplica los cambios.
+
+Leer el estado es leer la credencial SMTP (ver [Secretos](#secretos)). Por eso los pull requests no asumen el rol de plan, salvo que se active `allow_pull_request_plan`, y en prod nunca: la variable lo rechaza.
 
 ## Secretos
 
@@ -134,7 +141,7 @@ Para rotarlos se aumenta la versión correspondiente y se aplica:
 | `cache_auth_token_version` | Token de ElastiCache | Reiniciar los servicios |
 | `signing_secrets_version` | `JWT_SECRET`, `OTP_HMAC_SECRET`, `CURSOR_SIGNING_SECRET` | Reiniciar la API. Cierra todas las sesiones: la API acepta un solo `JWT_SECRET` |
 
-**Excepción declarada:** SES por SMTP exige la llave de un usuario de IAM, y esa llave y la contraseña SMTP derivada sí quedan en el estado (el bucket está cifrado con KMS y su acceso es restringido). Se rotan con `terraform apply -replace=module.email.aws_iam_access_key.smtp`.
+**Excepción declarada:** SES por SMTP exige la llave de un usuario de IAM, y esa llave y la contraseña SMTP derivada sí quedan en el estado (el bucket está cifrado con KMS y su acceso es restringido). Se rotan con `terraform apply -replace=module.email.aws_iam_access_key.smtp`. Quien puede leer el estado puede leer esa credencial; de ahí las restricciones del rol de plan.
 
 ## Requisitos de las imágenes
 
@@ -165,5 +172,6 @@ No hay `Dockerfile` en el repositorio. La configuración asume que las imágenes
 - Aplicarlo en una cuenta real. Con proveedores simulados no se prueban las cuotas, la disponibilidad de los servicios en la región ni los permisos reales.
 - Los `Dockerfile` y el workflow de despliegue.
 - Una política de mínimo privilegio para el rol `github-apply` en lugar de `AdministratorAccess`.
+- Sacar la credencial SMTP del estado: crear la llave de acceso fuera de Terraform (o rotarla con una Lambda) y que Terraform solo cree el usuario, su política y el secreto vacío.
 - La rotación automática de las contraseñas de la base con Secrets Manager: el secreto lleva la URL completa y la rotación administrada solo cambiaría `password`.
 - El colector de OpenTelemetry (ADOT) como sidecar, cuando la API y el BFF tengan instrumentación.

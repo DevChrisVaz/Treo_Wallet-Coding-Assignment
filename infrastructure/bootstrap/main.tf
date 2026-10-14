@@ -136,14 +136,22 @@ resource "aws_iam_openid_connect_provider" "github" {
   client_id_list = ["sts.amazonaws.com"]
 }
 
-# Dos roles por ambiente:
-#   - plan:  lectura de la cuenta y del estado. Lo asumen los pull requests y el job de plan.
-#   - apply: aplica cambios. Solo lo asume un job que corre en el GitHub Environment del ambiente,
-#            que en prod exige aprobación manual y solo admite tags.
+# Dos roles por ambiente. Los dos los asume solo un job que corre en el GitHub Environment del
+# ambiente (en prod, con aprobación manual y solo desde tags):
+#   - plan:  lectura de la cuenta y del estado; solo escribe el archivo de bloqueo.
+#   - apply: aplica cambios.
+#
+# Leer el estado es leer la credencial SMTP de SES (la excepción declarada en modules/email). Por
+# eso un pull request no asume el rol de plan salvo que se habilite, y nunca en prod.
+locals {
+  environment_subject  = "repo:${var.github_repository}:environment:${var.environment}"
+  pull_request_subject = "repo:${var.github_repository}:pull_request"
+}
+
 data "aws_iam_policy_document" "github_assume" {
   for_each = {
-    plan  = ["repo:${var.github_repository}:pull_request", "repo:${var.github_repository}:environment:${var.environment}"]
-    apply = ["repo:${var.github_repository}:environment:${var.environment}"]
+    plan  = concat([local.environment_subject], var.allow_pull_request_plan ? [local.pull_request_subject] : [])
+    apply = [local.environment_subject]
   }
 
   statement {
@@ -173,20 +181,31 @@ resource "aws_iam_role" "github" {
   max_session_duration = 3600
 }
 
-# El plan lee la cuenta; además escribe el archivo de bloqueo del estado.
+# El plan lee el estado y solo escribe y borra el archivo de bloqueo (<llave>.tflock); no puede
+# reemplazar ni borrar el estado. El apply lo escribe.
 data "aws_iam_policy_document" "state_access" {
+  for_each = {
+    plan  = { write_objects = ["${aws_s3_bucket.state.arn}/*.tflock"], kms = ["kms:Decrypt", "kms:GenerateDataKey"] }
+    apply = { write_objects = ["${aws_s3_bucket.state.arn}/*"], kms = ["kms:Decrypt", "kms:Encrypt", "kms:GenerateDataKey"] }
+  }
+
   statement {
     actions   = ["s3:ListBucket"]
     resources = [aws_s3_bucket.state.arn]
   }
 
   statement {
-    actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+    actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.state.arn}/*"]
   }
 
   statement {
-    actions   = ["kms:Decrypt", "kms:Encrypt", "kms:GenerateDataKey"]
+    actions   = ["s3:PutObject", "s3:DeleteObject"]
+    resources = each.value.write_objects
+  }
+
+  statement {
+    actions   = each.value.kms
     resources = [aws_kms_key.state.arn]
   }
 }
@@ -196,7 +215,7 @@ resource "aws_iam_role_policy" "state_access" {
 
   name   = "terraform-state"
   role   = each.value.id
-  policy = data.aws_iam_policy_document.state_access.json
+  policy = data.aws_iam_policy_document.state_access[each.key].json
 }
 
 resource "aws_iam_role_policy_attachment" "plan_read_only" {

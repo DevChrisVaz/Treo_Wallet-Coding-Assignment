@@ -18,6 +18,17 @@ variable "region" {
   type        = string
 }
 
+variable "allow_pull_request_plan" {
+  description = "Permite que los pull requests asuman el rol de plan. Quien abre un PR podría leer el estado, que incluye la credencial SMTP de SES; nunca en prod."
+  type        = bool
+  default     = false
+
+  validation {
+    condition     = !(var.allow_pull_request_plan && var.environment == "prod")
+    error_message = "allow_pull_request_plan no se permite en prod."
+  }
+}
+
 variable "github_repository" {
   description = "Repositorio de GitHub (dueño/nombre) cuyos workflows pueden asumir los roles."
   type        = string

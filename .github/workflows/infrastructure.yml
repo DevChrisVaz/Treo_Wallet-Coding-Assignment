@@ -38,11 +38,12 @@ jobs:
       - name: Formato
         run: terraform fmt -recursive -check
 
-      - name: Validar bootstrap
+      - name: Validar bootstrap y probar los roles de GitHub
         working-directory: infrastructure/bootstrap
         run: |
           terraform init -backend=false -input=false
           terraform validate
+          terraform test
 
       - name: Validar stack
         working-directory: infrastructure/stack
