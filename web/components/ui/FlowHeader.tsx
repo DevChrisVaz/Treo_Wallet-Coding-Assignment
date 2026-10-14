@@ -9,10 +9,14 @@ export interface FlowHeaderProps {
   closeHref: string;
 }
 
-/** Encabezado del flujo de transferencia: cerrar, título y pasos (WEB-30). */
+/**
+ * Encabezado del flujo de transferencia: cerrar, título y pasos (WEB-30). Va dentro del contenido
+ * de AppShell, que da el margen lateral (20 px en teléfono, como en la app móvil, WEB-25); en el
+ * dashboard baja a la altura del título de TopBar.
+ */
 export function FlowHeader({ title, step, total, stepLabel, closeHref }: FlowHeaderProps) {
   return (
-    <header className="grid gap-4 px-5 pt-4 pb-2 dashboard:px-0">
+    <header className="grid gap-4 pt-4 pb-2 dashboard:pt-8">
       <div className="flex items-center gap-2">
         <IconButton
           icon="close"

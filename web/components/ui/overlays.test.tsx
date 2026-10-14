@@ -88,6 +88,15 @@ describe('FlowHeader', () => {
     const close = screen.getByRole('link', { name: 'Salir de la transferencia' });
     expect(close).toHaveAttribute('href', '/inicio');
   });
+
+  it('WEB-25 no trae margen lateral propio: el de 20 px lo da el contenido de AppShell, como en móvil', () => {
+    render(
+      <FlowHeader title="Transferir" step={1} total={3} stepLabel="Destino" closeHref="/inicio" />,
+    );
+    const header = screen.getByRole('heading', { level: 1, name: 'Transferir' }).closest('header');
+    expect(header?.className).not.toMatch(/(^|\s)px-/);
+    expect(header).toHaveClass('pt-4', 'dashboard:pt-8');
+  });
 });
 
 describe('Stepper', () => {
