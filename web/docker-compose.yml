@@ -1,0 +1,24 @@
+# Entorno local de /web: Redis para el almacén de sesiones del BFF (WEB-37).
+# Uso: `docker compose up -d --wait` desde /web y `REDIS_URL=redis://localhost:6379` en .env.local.
+# Sin REDIS_URL la web usa el almacén en memoria y las sesiones se pierden al reiniciar el servidor.
+name: treo-web
+
+services:
+  redis:
+    # Redis 7, como ElastiCache for Redis OSS en AWS (D5 de delivery).
+    image: redis:7.2-alpine
+    # AOF: las sesiones sobreviven también a recrear el contenedor.
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      # Solo en 127.0.0.1: este Redis no tiene contraseña y no debe alcanzarse desde la red.
+      - '127.0.0.1:${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  redis-data:
