@@ -80,6 +80,16 @@ export class PgBeneficiaryStore implements BeneficiaryStore, PlatformAccountDire
     return rows.map(fromRow);
   }
 
+  /** Beneficiario del usuario (para resolver el destino de una transferencia). */
+  async findOwned(userId: string, beneficiaryId: string): Promise<{ accountId: string } | null> {
+    if (!/^[0-9a-f-]{36}$/i.test(beneficiaryId)) return null;
+    const rows: { account_id: string }[] = await this.dataSource.query(
+      `SELECT account_id FROM beneficiaries WHERE id = $1 AND user_id = $2`,
+      [beneficiaryId, userId],
+    );
+    return rows[0] ? { accountId: rows[0].account_id } : null;
+  }
+
   async findUserAccountByClabe(clabe: string) {
     const rows: { id: string; user_id: string }[] = await this.dataSource.query(
       `SELECT id, user_id FROM accounts WHERE clabe = $1 AND type = 'USER'`,

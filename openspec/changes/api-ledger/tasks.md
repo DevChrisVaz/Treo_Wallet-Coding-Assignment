@@ -46,7 +46,7 @@
 ## 6. Transferencias: creación
 
 - [x] 6.1 [api] Esquema Zod de `CreateTransferRequest` (unión discriminada del destino, monto solo string, concepto y referencia) y validación del header `Idempotency-Key` (400 `IDEMPOTENCY_KEY_MISSING` / `IDEMPOTENCY_KEY_INVALID`) (TRF-02, TRF-08, TRF-09)
-- [ ] 6.2 [api] Resolución del destino y de la propiedad antes de la transacción (beneficiario del usuario → `account_id`, cuenta propia, Tesorería excluida), con 404 sin consumir la llave, y `kind` derivado en el servidor (TRF-06, TRF-07, ACC-16)
+- [x] 6.2 [api] Resolución del destino y de la propiedad antes de la transacción (beneficiario del usuario → `account_id`, cuenta propia, Tesorería excluida), con 404 sin consumir la llave, y `kind` derivado en el servidor (TRF-06, TRF-07, ACC-16)
 - [ ] 6.3 [api] Reclamo de la llave con `INSERT … ON CONFLICT ON CONSTRAINT uq_transfers_user_idempotency_key DO NOTHING RETURNING` y rama de reintento: relectura, comparación de fingerprint, 200 con estado actual y `Idempotent-Replayed: true`, mismo 422 si fue rechazada o `IDEMPOTENCY_KEY_REUSED` (TRF-03, TRF-04)
 - [ ] 6.4 [api] Bloqueos en orden global: fila contador (solo `THIRD_PARTY`), cuentas `ORDER BY id FOR NO KEY UPDATE` con propiedad en la misma sentencia, hora tomada después de los bloqueos y reintento único si el día cambió durante la espera (TRF-06, TRF-12, TRF-13, TRF-24)
 - [ ] 6.5 [api] Validaciones de negocio bajo bloqueo y rechazo persistido como `REJECTED` con motivo, 422 con `transferId` (y `remaining` en límite) y evento `TRANSFER_REJECTED` (TRF-10, TRF-11, TRF-25)

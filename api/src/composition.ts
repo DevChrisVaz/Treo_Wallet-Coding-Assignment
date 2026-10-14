@@ -45,6 +45,7 @@ import { createAppDataSource } from './platform/persistence/data-sources.js';
 import { PgErrorTranslator } from './platform/persistence/pg-errors.js';
 import { registerLedgerTranslations } from './modules/transfers/infrastructure/error-translations.js';
 import { FundAccount } from './modules/transfers/application/fund-account.js';
+import { TransferDestinationResolver } from './modules/transfers/application/destination-resolver.js';
 import { LedgerPoster } from './modules/transfers/application/ledger-poster.js';
 import { PgAccountLocks } from './modules/transfers/infrastructure/pg-account-locks.js';
 import { PgLedgerStore } from './modules/transfers/infrastructure/pg-ledger-store.js';
@@ -92,6 +93,9 @@ export interface Container {
   readonly beneficiaries: {
     readonly createBeneficiary: CreateBeneficiary;
     readonly beneficiaries: PgBeneficiaryStore;
+  };
+  readonly transfers: {
+    readonly destinations: TransferDestinationResolver;
   };
   readonly ledger: {
     readonly fundAccount: FundAccount;
@@ -203,6 +207,9 @@ export async function createContainer(
         audit,
         clock,
       }),
+    },
+    transfers: {
+      destinations: new TransferDestinationResolver(accounts, beneficiaryStore),
     },
     ledger: {
       fundAccount: new FundAccount({
