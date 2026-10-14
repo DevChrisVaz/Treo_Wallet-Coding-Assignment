@@ -2,7 +2,8 @@
 // API simulada para las pruebas de navegador y la paridad de las pantallas reales (WEB-23, WEB-24,
 // WEB-25): responde lo que la web pide al servidor con los datos canónicos de las historias. Nunca
 // toca la base de datos. `POST /__scenario` cambia los datos (cuentas vacías, beneficiarios vacíos,
-// una lectura que no responde, saldos de siete cifras en los movimientos) y reinicia el estado;
+// una lectura que no responde, saldos de siete cifras en los movimientos, sin programadas, una
+// programada que ya no se puede cancelar) y reinicia el estado;
 // `GET /__requests` devuelve las peticiones que recibió desde entonces (para comprobar lo que el BFF
 // reenvía, como el `limit=5` de Inicio).
 import { randomUUID } from 'node:crypto';
@@ -164,9 +165,18 @@ const scheduled = {
   completedAt: null,
 };
 
-const DEFAULTS = { accounts: 'ok', beneficiaries: 'ok', movements: 'ok' };
+// `scheduled: 'empty'`: no hay programadas; `cancel: 'gone'`: el proceso ya ejecutó la programada y
+// cancelarla responde 409 `TRANSFER_NOT_CANCELLABLE` (WEB-34).
+const DEFAULTS = {
+  accounts: 'ok',
+  beneficiaries: 'ok',
+  movements: 'ok',
+  scheduled: 'ok',
+  cancel: 'ok',
+};
 let scenario = { ...DEFAULTS };
 let debited = false; // tras enviar los $1,250.00: Principal en $23,750.00 y el límite en $30,250.00
+let cancelled = false; // tras cancelar la programada (o si ya se ejecutó), la lista queda vacía
 /** Peticiones recibidas desde el último `POST /__scenario` (método, ruta y query). */
 let requests = [];
 
@@ -245,6 +255,7 @@ createServer(async (req, res) => {
   if (route === 'POST /__scenario') {
     scenario = { ...DEFAULTS, ...(await readBody(req)) };
     debited = false;
+    cancelled = false;
     requests = [];
     return send(res, 204);
   }
@@ -282,11 +293,29 @@ createServer(async (req, res) => {
   }
   if (route === 'GET /beneficiaries')
     return send(res, 200, { items: scenario.beneficiaries === 'empty' ? [] : [luis, mama] });
-  if (route === 'GET /transfers/scheduled') return send(res, 200, { items: [scheduled] });
+  if (route === 'GET /transfers/scheduled')
+    return send(res, 200, {
+      items: scenario.scheduled === 'empty' || cancelled ? [] : [scheduled],
+    });
+  if (route === `GET /transfers/${scheduled.id}`) return send(res, 200, scheduled);
+  if (route === `POST /transfers/${scheduled.id}/cancel`) {
+    cancelled = true;
+    if (scenario.cancel === 'gone')
+      return fail(res, 409, 'TRANSFER_NOT_CANCELLABLE', { transferStatus: 'COMPLETED' });
+    return send(res, 200, { ...scheduled, status: 'CANCELLED', cancelledAt: later(0) });
+  }
   if (route === `GET /transfers/${sent.id}`) return send(res, 200, sent);
   if (route === `GET /transfers/${pending.id}`) return send(res, 200, pending);
   if (route === 'POST /transfers') {
-    const { amount } = await readBody(req);
+    const { amount, scheduledFor } = await readBody(req);
+    // Con fecha (WEB-33): una programada nueva, sin mover saldos.
+    if (scheduledFor)
+      return send(res, 201, {
+        ...scheduled,
+        id: randomUUID(),
+        amount: String(amount),
+        scheduledFor,
+      });
     const whole = String(amount).replace(/\.00$/, '');
     if (whole === '30000')
       return fail(res, 422, 'INSUFFICIENT_FUNDS', { transferId: randomUUID() });

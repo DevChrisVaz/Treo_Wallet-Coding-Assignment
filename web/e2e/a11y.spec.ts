@@ -115,4 +115,37 @@ for (const width of [390, 1280] as const) {
     await expect(page.getByRole('region', { name: 'Comprobante' })).toBeVisible();
     expect(await axe(page), 'comprobante').toEqual([]);
   });
+
+  test(`WEB-23 DSG-14 WEB-33 WEB-34 a ${width} px axe no reporta problemas al programar ni al cancelar una programada`, async ({
+    page,
+  }) => {
+    await scenario(page, {});
+    await page.setViewportSize({ width, height: 900 });
+    await login(page);
+
+    await page.goto('/transfers/new');
+    await page.getByRole('button', { name: /^Luis/ }).click();
+    await page.getByLabel('Monto').fill('1000');
+    await page.getByLabel('Concepto').fill('Renta');
+    await page.getByLabel('Referencia').fill('1');
+    await page.getByLabel('Programar').check();
+    await page.getByLabel('Fecha de envío').fill('2026-10-20');
+    expect(await axe(page), 'paso de monto con "Programar"').toEqual([]);
+    await page.getByRole('button', { name: 'Continuar' }).click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Revisa tu transferencia' }),
+    ).toBeVisible();
+    expect(await axe(page), 'revisión con "Cuándo"').toEqual([]);
+    await page.getByRole('button', { name: 'Enviar' }).click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Transferencia programada' }),
+    ).toBeVisible();
+    expect(await axe(page), 'resultado programado').toEqual([]);
+
+    await page.goto('/transfers/scheduled');
+    await page.getByRole('button', { name: /^Cancelar la transferencia de/ }).click();
+    await page.getByRole('button', { name: 'Cancelar transferencia', exact: true }).click();
+    await expect(page.getByText('Transferencia cancelada')).toBeVisible();
+    expect(await axe(page), 'programada cancelada').toEqual([]);
+  });
 }
