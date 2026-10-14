@@ -29,6 +29,24 @@ describe('AppShell', () => {
     );
   });
 
+  it('WEB-25 con pestañas el contenido empieza 20 px bajo el encabezado en teléfono, como Screen en móvil', () => {
+    render(
+      <AppShell current="home" title="Inicio" user={USER}>
+        <p>Contenido</p>
+      </AppShell>,
+    );
+    expect(screen.getByRole('main')).toHaveClass('pt-5', 'dashboard:pt-0');
+  });
+
+  it('WEB-25 en el flujo el contenido no suma margen superior: lo da FlowHeader', () => {
+    render(
+      <AppShell current="transfer" title="Transferir" user={USER} mode="flow">
+        <p>Paso</p>
+      </AppShell>,
+    );
+    expect(screen.getByRole('main')).not.toHaveClass('pt-5');
+  });
+
   it('WEB-27 en el flujo de transferencia no hay barra de pestañas', () => {
     render(
       <AppShell current="transfer" title="Transferir" user={USER} mode="flow">

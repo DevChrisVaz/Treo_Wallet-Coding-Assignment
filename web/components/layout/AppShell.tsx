@@ -66,9 +66,11 @@ export function AppShell({
         <main
           id={MAIN_CONTENT_ID}
           tabIndex={-1}
+          // Con pestañas, 20 px entre el encabezado y el contenido en teléfono, como el margen del
+          // contenido de Screen en la app móvil (WEB-25); en el flujo lo da FlowHeader.
           className={`grid gap-5 px-5 focus-visible:outline-none dashboard:px-0 dashboard:pb-10 ${
             tabs
-              ? 'pb-[calc(var(--dt-layout-tab-bar-height)+env(safe-area-inset-bottom)+1.5rem)]'
+              ? 'pt-5 pb-[calc(var(--dt-layout-tab-bar-height)+env(safe-area-inset-bottom)+1.5rem)] dashboard:pt-0'
               : 'pb-6'
           }`}
         >
