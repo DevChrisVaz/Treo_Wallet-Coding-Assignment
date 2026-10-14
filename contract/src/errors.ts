@@ -22,8 +22,15 @@ export class ProblemError extends Error {
   readonly transferStatus: TransferStatus | undefined;
   readonly remaining: string | undefined;
   readonly attemptsRemaining: number | undefined;
+  /** Segundos de `Retry-After` de la respuesta, si es un entero positivo (D2 de contract-v1-1). */
+  readonly retryAfter: number | undefined;
 
-  constructor(status: number, body: Record<string, unknown>, fallbackRequestId?: string | null) {
+  constructor(
+    status: number,
+    body: Record<string, unknown>,
+    fallbackRequestId?: string | null,
+    retryAfter?: number,
+  ) {
     const title = typeof body.title === 'string' ? body.title : 'Error de la API';
     super(title);
     const rawCode = typeof body.code === 'string' ? body.code : 'INTERNAL_ERROR';
@@ -41,6 +48,7 @@ export class ProblemError extends Error {
     this.remaining = stringOrUndefined(body.remaining);
     this.attemptsRemaining =
       typeof body.attemptsRemaining === 'number' ? body.attemptsRemaining : undefined;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -53,6 +61,16 @@ export class NetworkError extends Error {
   }
 }
 
+/**
+ * Segundos de espera de `Retry-After`. El contrato lo define como entero de segundos (mínimo 1);
+ * cualquier otra forma, incluida una fecha HTTP, se ignora.
+ */
+function parseRetryAfter(value: string | null): number | undefined {
+  if (value === null || !/^[0-9]+$/.test(value)) return undefined;
+  const seconds = Number(value);
+  return Number.isSafeInteger(seconds) && seconds >= 1 ? seconds : undefined;
+}
+
 function stringOrUndefined(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
@@ -63,12 +81,18 @@ function stringOrUndefined(value: unknown): string | undefined {
  */
 export async function toProblemError(response: Response): Promise<ProblemError> {
   const requestId = response.headers.get('X-Request-Id');
+  const retryAfter = parseRetryAfter(response.headers.get('Retry-After'));
   const contentType = response.headers.get('Content-Type') ?? '';
   if (contentType.includes('application/problem+json')) {
     try {
       const body: unknown = await response.json();
       if (body && typeof body === 'object') {
-        return new ProblemError(response.status, body as Record<string, unknown>, requestId);
+        return new ProblemError(
+          response.status,
+          body as Record<string, unknown>,
+          requestId,
+          retryAfter,
+        );
       }
     } catch {
       // Cuerpo ilegible: se trata igual que una respuesta que no es problem+json.
@@ -78,5 +102,6 @@ export async function toProblemError(response: Response): Promise<ProblemError> 
     response.status,
     { code: 'INTERNAL_ERROR', title: 'Error inesperado' },
     requestId,
+    retryAfter,
   );
 }

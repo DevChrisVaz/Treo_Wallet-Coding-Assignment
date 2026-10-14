@@ -106,6 +106,67 @@ describe('errores de la API', () => {
   });
 });
 
+describe('Retry-After', () => {
+  const login = { email: 'ana@example.com', password: 'una-contraseña-larga' };
+
+  function rateLimited(retryAfter?: string): Response {
+    const headers = new Headers({ 'Content-Type': 'application/problem+json' });
+    if (retryAfter !== undefined) headers.set('Retry-After', retryAfter);
+    return new Response(
+      JSON.stringify({
+        type: '/problems/rate-limited',
+        title: 'Demasiados intentos',
+        status: 429,
+        code: 'RATE_LIMITED',
+        requestId: 'req-5',
+      }),
+      { status: 429, headers },
+    );
+  }
+
+  it('CTR-07 un 429 con Retry-After expone retryAfter en segundos', async () => {
+    const { fetch } = fakeFetch(() => rateLimited('300'));
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    const error = await rejectionOf(client.POST('/auth/login', { body: login }));
+
+    expect(error).toBeInstanceOf(ProblemError);
+    expect(error).toMatchObject({ status: 429, code: 'RATE_LIMITED', retryAfter: 300 });
+  });
+
+  it.each([
+    ['sin header', undefined],
+    ['0', '0'],
+    ['-5', '-5'],
+    ['1.5', '1.5'],
+    ['abc', 'abc'],
+    ['como fecha HTTP', 'Wed, 21 Oct 2026 07:28:00 GMT'],
+  ])('CTR-07 Retry-After %s deja retryAfter sin definir', async (_, retryAfter) => {
+    const { fetch } = fakeFetch(() => rateLimited(retryAfter));
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    const error = await rejectionOf(client.POST('/auth/login', { body: login }));
+
+    expect(error).toMatchObject({ code: 'RATE_LIMITED' });
+    expect((error as ProblemError).retryAfter).toBeUndefined();
+  });
+
+  it('CTR-07 un 503 que no es problem+json también conserva Retry-After', async () => {
+    const { fetch } = fakeFetch(
+      () =>
+        new Response('<html>Mantenimiento</html>', {
+          status: 503,
+          headers: { 'Content-Type': 'text/html', 'Retry-After': '120' },
+        }),
+    );
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    const error = await rejectionOf(client.GET('/accounts'));
+
+    expect(error).toMatchObject({ status: 503, code: 'INTERNAL_ERROR', retryAfter: 120 });
+  });
+});
+
 describe('errores de red', () => {
   it('CTR-07 una petición sin respuesta llega como NetworkError, distinto de ProblemError', async () => {
     const { fetch } = fakeFetch(() => {
