@@ -53,6 +53,18 @@ export function UnlockGate({ children, now = Date.now }: UnlockGateProps) {
     };
   }, [session, unlockPreference]);
 
+  // "Usar mi contraseña" o biometría retirada (MOB-26): cuando la sesión ya se borró, la pantalla de
+  // bloqueo se retira y la navegación muestra el inicio de sesión. Al arrancar, la navegación se
+  // monta hasta este momento, así que ya no encuentra un refresh que renovar.
+  useEffect(
+    () =>
+      session.subscribe(() => {
+        if (session.getSnapshot().status !== 'signedOut') return;
+        setState((current) => (current === 'locked' || current === 'relocked' ? 'open' : current));
+      }),
+    [session],
+  );
+
   // Solo `background` cuenta: iOS emite `inactive` al abrir el centro de control. La decisión es
   // síncrona (preferencia y sesión en memoria), así que el bloqueo entra en el mismo render que
   // retira la pantalla de privacidad (MOB-16) y ningún saldo queda a la vista entre ambas.
