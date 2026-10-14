@@ -68,6 +68,13 @@ export function MovementsView({
           />
           <Button label="Reintentar" variant="secondary" onPress={onRetryAccounts} />
         </View>
+      ) : overview.data.accounts.length === 0 ? (
+        <EmptyState
+          icon="account"
+          title="Aún no tienes cuentas"
+          description="Cuando tu cuenta esté lista, aquí verás su saldo."
+          action={{ label: 'Volver a cargar', onPress: onRetryAccounts }}
+        />
       ) : (
         <>
           <View style={styles.segmented}>

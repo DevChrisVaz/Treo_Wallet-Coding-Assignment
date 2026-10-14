@@ -154,27 +154,42 @@ describe('selector de cuenta y día', () => {
       const items = times.map((occurredAt, index) => movement(index + 1, { occurredAt }));
       await openMovements(createFakeApi().on('GET', MOVEMENTS_PATH, json(200, page(items))));
       await screen.findAllByTestId('movement-row');
-      return screen.getAllByRole('header').map((node) => node.props.children);
+      return screen.getAllByRole('header');
+    }
+
+    function expectHeaders(headers: ReturnType<typeof screen.getAllByRole>, texts: string[]) {
+      expect(headers).toHaveLength(texts.length);
+      texts.forEach((text, index) =>
+        expect(headers[index]).toHaveTextContent(text, { exact: true }),
+      );
     }
 
     test('MOB-20 un movimiento de las 05:30 UTC de hoy aparece bajo "Ayer"', async () => {
-      expect(
+      expectHeaders(
         await dayHeaders('2026-10-13T18:00:00Z', ['2026-10-13T16:42:00Z', '2026-10-13T05:30:00Z']),
-      ).toEqual(['Movimientos', 'Hoy', 'Ayer']);
+        ['Movimientos', 'Hoy', 'Ayer'],
+      );
     });
 
     test('MOB-20 el 1 de enero, un movimiento de las 23:30 del 31 de diciembre aparece bajo "Ayer"', async () => {
-      expect(
+      expectHeaders(
         await dayHeaders('2026-01-01T18:00:00Z', ['2026-01-01T16:00:00Z', '2026-01-01T05:30:00Z']),
-      ).toEqual(['Movimientos', 'Hoy', 'Ayer']);
+        ['Movimientos', 'Hoy', 'Ayer'],
+      );
     });
   });
 
   test('MOB-20 si la lectura falla, el error dice qué lectura falló y permite reintentar', async () => {
-    const fake = createFakeApi().on('GET', MOVEMENTS_PATH, 'network-error');
+    const fake = createFakeApi().on(
+      'GET',
+      MOVEMENTS_PATH,
+      'network-error',
+      json(200, page([movement(1)])),
+    );
     await openMovements(fake);
     expect(await screen.findByText('No pudimos cargar los movimientos')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeOnTheScreen();
+    await userEvent.press(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByText('Luis · Movimiento 1')).toBeOnTheScreen();
   });
 
   test('MOB-20 si GET /accounts falla, muestra el error de cuentas con reintento', async () => {
@@ -199,6 +214,26 @@ describe('selector de cuenta y día', () => {
       await screen.getByTestId('screen-scroll').props.refreshControl.props.onRefresh();
     });
     expect(fake.requests.filter((request) => request.path.includes('/accounts//'))).toHaveLength(0);
+    expect(fake.requests.filter((request) => request.path.includes('/movements'))).toHaveLength(0);
+  });
+
+  test('MOB-20 mientras cargan las cuentas muestra esqueletos', async () => {
+    jest.useFakeTimers();
+    const fake = createFakeApi().on('GET', '/me', json(200, me)).on('GET', '/accounts', 'hang');
+    await renderApp({ fake, routes: { movements: MovementsScreen }, initialUrl: '/movements' });
+    expect(
+      screen.getAllByTestId('skeleton', { includeHiddenElements: true }).length,
+    ).toBeGreaterThan(0);
+    jest.useRealTimers();
+  });
+
+  test('MOB-20 sin cuentas termina en el estado vacío, no en esqueletos', async () => {
+    const fake = createFakeApi()
+      .on('GET', '/me', json(200, me))
+      .on('GET', '/accounts', json(200, overview([])));
+    await renderApp({ fake, routes: { movements: MovementsScreen }, initialUrl: '/movements' });
+    expect(await screen.findByText('Aún no tienes cuentas')).toBeOnTheScreen();
+    expect(screen.queryByTestId('skeleton', { includeHiddenElements: true })).toBeNull();
     expect(fake.requests.filter((request) => request.path.includes('/movements'))).toHaveLength(0);
   });
 });
