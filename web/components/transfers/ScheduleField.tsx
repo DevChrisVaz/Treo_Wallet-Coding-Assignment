@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useEffect } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
+import { InlineAlert } from '@/components/ui/InlineAlert';
 import { TextField } from '@/components/ui/TextField';
 import { scheduledTransfersKey } from '@/lib/client/scheduled-transfers';
 import { SCHEDULED_TRANSFERS_PATH } from '@/lib/navigation';
@@ -74,8 +75,10 @@ export function scheduledSendText(scheduledFor: string): string {
 }
 
 /**
- * Nota del resultado `SCHEDULED`: la fecha y el enlace a la página de programadas. Hay una
- * programada nueva, así que la lista en caché se vuelve a consultar (WEB-34).
+ * Nota del resultado `SCHEDULED`: la fecha y el enlace a la página de programadas, en el aviso
+ * informativo del kit (el tono de la insignia "Programada"), como el aviso de la transferencia
+ * fallida sobre su comprobante. Hay una programada nueva, así que la lista en caché se vuelve a
+ * consultar (WEB-34).
  */
 export function ScheduledOutcome({ scheduledFor }: { scheduledFor: string }) {
   const queryClient = useQueryClient();
@@ -83,12 +86,12 @@ export function ScheduledOutcome({ scheduledFor }: { scheduledFor: string }) {
     void queryClient.invalidateQueries({ queryKey: scheduledTransfersKey });
   }, [queryClient]);
   return (
-    <p className="text-body text-fg-secondary">
+    <InlineAlert tone="info">
       {scheduledSendText(scheduledFor)}. Puedes cancelarla antes de esa fecha en{' '}
       <Link href={SCHEDULED_TRANSFERS_PATH} className="text-action underline underline-offset-2">
         tus transferencias programadas
       </Link>
       .
-    </p>
+    </InlineAlert>
   );
 }

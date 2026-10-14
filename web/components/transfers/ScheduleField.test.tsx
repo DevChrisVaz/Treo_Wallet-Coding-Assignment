@@ -127,6 +127,16 @@ describe('ScheduledOutcome', () => {
     );
   });
 
+  it('WEB-33 DSG-17 es el aviso informativo del kit, con el tono de la insignia "Programada"', () => {
+    renderWithClient(<ScheduledOutcome scheduledFor="2026-10-20" />);
+    const note = screen.getByRole('status');
+    expect(note).toHaveClass('bg-info-soft', 'text-info');
+    expect(note).toHaveTextContent(
+      'Se enviará el 20 de octubre de 2026. Puedes cancelarla antes de esa fecha en tus transferencias programadas.',
+    );
+    expect(note.querySelector('svg.lucide-info')).not.toBeNull();
+  });
+
   it('WEB-34 la lista de programadas en caché se vuelve a consultar', () => {
     const client = testQueryClient();
     client.setQueryData(scheduledTransfersKey, { items: [] });
