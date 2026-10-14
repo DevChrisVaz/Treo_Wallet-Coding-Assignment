@@ -3,9 +3,14 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { testDb } from '../../helpers/env.js';
+import { useIntegrationHarness } from '../../helpers/harness.js';
 import { sqlState, withClient } from '../../helpers/pg.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+
+// Cada prueba empieza con las tablas vacías: revertir el esquema con datos de otro archivo puede
+// chocar con un `down` protegido (el de las programadas se niega si existen).
+useIntegrationHarness();
 
 /** La tabla de control de TypeORM no es parte del modelo: su PK la nombra la herramienta. */
 const TOOL_TABLES = ['typeorm_migrations'];
