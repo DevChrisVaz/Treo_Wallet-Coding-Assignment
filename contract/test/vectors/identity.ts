@@ -34,10 +34,20 @@ export const clabeVectors: Vector[] = [
  * - GOMC900101HDFNLR0 → suma 1991 → DV = (10 − 1) mod 10 = 9.
  * - GOMC040229MDFNLRA → suma 2080 → DV = 0 (2004 es bisiesto; la letra indica nacimiento ≥ 2000).
  * - GOMC990231HDFNLR0 → suma 2149 → DV = 1 (el dígito es correcto; lo inválido es el 31 de febrero).
+ * - GOMC000229HDFNLR0 → suma 1968 → DV = 2; GOMC000229HDFNLRA → suma 1988 → DV = 2. Misma fecha 00-02-29,
+ *   distinto carácter 17: con dígito el siglo es 1900 (no bisiesto), con letra es 2000 (bisiesto).
  */
 export const curpVectors: Vector[] = [
   { input: 'GOMC900101HDFNLR09', valid: true },
   { input: 'GOMC040229MDFNLRA0', valid: true, note: '29 de febrero de 2004' },
+  { input: 'GOMC000229HDFNLRA2', valid: true, note: '29-02-00 con letra: 2000 es bisiesto' },
+  {
+    input: 'GOMC000229HDFNLR02',
+    valid: false,
+    code: 'INVALID_DATE',
+    contractValid: true,
+    note: '29-02-00 con dígito: 1900 no es bisiesto',
+  },
   {
     input: 'GOMC900101HDFNLR08',
     valid: false,

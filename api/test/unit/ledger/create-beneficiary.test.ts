@@ -88,11 +88,13 @@ describe('BEN-07 alta idempotente por contenido', () => {
   });
 
   it('BEN-07 el mismo contenido otra vez devuelve el existente sin auditar de nuevo', async () => {
-    const { useCase, events } = setup();
+    const { useCase, events, store } = setup();
     const first = await useCase.execute(USER, { name: 'Luis Pérez', alias: 'Luis', clabe: CLABE });
     const again = await useCase.execute(USER, { name: 'Luis Pérez', alias: 'Luis', clabe: CLABE });
     expect(again).toEqual({ beneficiary: first.beneficiary, created: false });
     expect(events).toHaveLength(1);
+    // Tras el reintento sigue habiendo un solo beneficiario con esa CLABE.
+    expect((await store.listByUser(USER)).filter((row) => row.clabe === CLABE)).toHaveLength(1);
   });
 
   it('BEN-07 la misma CLABE con otro alias o nombre es BENEFICIARY_CONFLICT', async () => {

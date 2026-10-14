@@ -3,11 +3,15 @@
  * CURP se calcularon a mano con el diccionario 0-9A-ZÑ y pesos 18..2:
  * - GOMC900101HDFNLR0 → suma 1991 → DV = (10 − 1) mod 10 = 9.
  * - GOMC040229MDFNLRA → suma 2080 → DV = 0 (2004 es bisiesto; la letra indica nacimiento ≥ 2000).
+ * - GOMC000229HDFNLR0 → suma 1968 → DV = (10 − 8) mod 10 = 2 (carácter 17 dígito: siglo 1900).
+ * - GOMC000229HDFNLRA → suma 1988 → DV = (10 − 8) mod 10 = 2 (carácter 17 letra: siglo 2000).
  * - GOMC990231HDFNLR0 → suma 2149 → DV = 1 (el dígito es correcto; lo inválido es el 31 de febrero).
  */
 export const curpVectors = [
   { input: 'GOMC900101HDFNLR09', result: 'VALID' },
   { input: 'GOMC040229MDFNLRA0', result: 'VALID', note: '29 de febrero de 2004' },
+  { input: 'GOMC000229HDFNLR02', result: 'INVALID_DATE', note: '1900 no es bisiesto (dígito)' },
+  { input: 'GOMC000229HDFNLRA2', result: 'VALID', note: '2000 sí es bisiesto (letra)' },
   { input: 'GOMC900101HDFNLR08', result: 'INVALID_CHECK_DIGIT' },
   { input: 'GOMC990231HDFNLR01', result: 'INVALID_DATE', note: '31 de febrero' },
   { input: 'GOMC010229HDFNLR05', result: 'INVALID_DATE', note: '2001 no es bisiesto' },

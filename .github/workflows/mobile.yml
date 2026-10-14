@@ -4,7 +4,7 @@ name: mobile
 # un cambio en cualquiera de los dos también se verifica aquí.
 on:
   push:
-    branches: [main]
+    branches: [release]
     paths:
       - 'mobile/**'
       - 'contract/**'

@@ -6,6 +6,7 @@ import {
 import type { ResolvedRoute } from '../../../src/modules/transfers/application/destination-resolver.js';
 import { PgAccountLocks } from '../../../src/modules/transfers/infrastructure/pg-account-locks.js';
 import { PgDailyUsage } from '../../../src/modules/transfers/infrastructure/pg-daily-usage.js';
+import { TREASURY_ACCOUNT_ID } from '../../../migrations/1760400002000-accounts.js';
 import { TypeormTransactionRunner } from '../../../src/platform/persistence/transaction.js';
 import { Money } from '../../../src/shared/money.js';
 import { FakeClock } from '../../helpers/fake-clock.js';
@@ -56,6 +57,34 @@ describe('TRF-24 bloqueos de una transferencia', () => {
       kind: 'OWN',
       fromAccountId: luis.principalId,
       toAccountId: ana.ahorroId,
+      beneficiaryId: null,
+    };
+    await expect(
+      runner().run((tx) => locker(new FakeClock()).acquire(tx, ana.userId, route)),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('TRF-06 bajo el bloqueo un destino propio que es de otro usuario es 404', async () => {
+    const ana = await insertUserWithAccounts(harness.migrator);
+    const luis = await insertUserWithAccounts(harness.migrator);
+    // La resolución previa ya dijo "propio", pero la cuenta es de Luis: el bloqueo lo vuelve a comprobar.
+    const route: ResolvedRoute = {
+      kind: 'OWN',
+      fromAccountId: ana.principalId,
+      toAccountId: luis.principalId,
+      beneficiaryId: null,
+    };
+    await expect(
+      runner().run((tx) => locker(new FakeClock()).acquire(tx, ana.userId, route)),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('TRF-06 bajo el bloqueo el destino de un beneficiario debe ser una cuenta de usuario: Tesorería es 404', async () => {
+    const ana = await insertUserWithAccounts(harness.migrator);
+    const route: ResolvedRoute = {
+      kind: 'THIRD_PARTY',
+      fromAccountId: ana.principalId,
+      toAccountId: TREASURY_ACCOUNT_ID,
       beneficiaryId: null,
     };
     await expect(

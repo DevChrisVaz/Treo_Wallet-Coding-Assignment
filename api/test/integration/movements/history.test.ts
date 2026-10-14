@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { signInAgain } from '../../helpers/scheduled.js';
 import { buildTestApp, type TestApp } from '../../helpers/app.js';
 import { expectToMatchContract } from '../../helpers/contract.js';
 import { useIntegrationHarness } from '../../helpers/harness.js';
@@ -244,6 +245,26 @@ describe('HIS-06 a HIS-08 filtros y últimos movimientos', () => {
     expect(items(day).map((m) => m.occurredAt)).toEqual(['2026-10-01T05:30:00.000Z']);
     const next = await movements(s, s.ana, s.ana.principal.id, '?from=2026-10-01&to=2026-10-01');
     expect(items(next)).toEqual([]);
+  });
+
+  it('HIS-06 un filtro de fecha de un solo lado deja el rango abierto del otro', async () => {
+    const s = await scene('2026-09-20T18:00:00.000Z');
+    await fund(s.t, s.ana.principal.id, '1.00'); // 20 de septiembre
+    s.t.clock.advance(10 * 86_400_000);
+    await fund(s.t, s.ana.principal.id, '2.00'); // 30 de septiembre
+    s.t.clock.advance(10 * 86_400_000);
+    await fund(s.t, s.ana.principal.id, '3.00'); // 10 de octubre
+    // El reloj avanzó 20 días: el access token de 10 minutos ya venció.
+    const ana = await signInAgain(s.t, s.ana);
+    const amounts = (res: { body: { items: { amount: string }[] } }) =>
+      res.body.items.map((m) => m.amount);
+
+    // Solo `from`: incluye el día mismo y todo lo posterior, sin tope.
+    const onlyFrom = await movements(s, ana, ana.principal.id, '?from=2026-09-30');
+    expect(amounts(onlyFrom)).toEqual(['3.00', '2.00']);
+    // Solo `to`: incluye el día mismo y todo lo anterior, sin piso.
+    const onlyTo = await movements(s, ana, ana.principal.id, '?to=2026-09-30');
+    expect(amounts(onlyTo)).toEqual(['2.00', '1.00']);
   });
 
   it('HIS-06 from 2026-10-10 con to 2026-10-01 responde 422 VALIDATION_FAILED', async () => {

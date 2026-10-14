@@ -202,4 +202,43 @@ describe('TRF-35 aviso de falla de una programada', () => {
     });
     expect(t.logs.text()).not.toContain(ana.person.email.toLowerCase());
   });
+
+  it('TRF-35 si el aviso lanza un error (no lee la transferencia), se registra un WARN y la pasada sigue con las demás', async () => {
+    await fund(setup, ana.principal.id, '100.00');
+    const failing = [await scheduleToLuis('1000.00'), await scheduleToLuis('2000.00')];
+    const passing = await scheduleToLuis('50.00');
+    // La lectura del detalle para armar el aviso falla (no el envío del correo).
+    let armed = false;
+    const dataSource = new Proxy(harness.app, {
+      get(target, prop) {
+        if (prop === 'query') {
+          return (sql: string, params?: unknown[]) => {
+            if (armed && sql.includes('owner_email')) throw new Error('falla forzada de lectura');
+            return target.query(sql, params);
+          };
+        }
+        const value = Reflect.get(target, prop, target) as unknown;
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+    const mailer = new InMemoryMailer();
+    const t = await buildTestApp(harness, {
+      now: OCT_15_RUN,
+      overrides: { mailer, dataSource },
+    });
+    armed = true;
+
+    const pass = await t.container.scheduler.runner.runOnce();
+
+    expect(pass).toEqual({ completed: 1, failed: 2, skipped: 0, errors: 0 });
+    for (const id of failing) expect(await statusOf(id)).toBe('FAILED');
+    expect(await statusOf(passing)).toBe('COMPLETED');
+    expect(mailer.sent).toEqual([]);
+    const warnings = t.logs
+      .entries()
+      .filter((entry) => entry.msg === 'scheduled transfer failure notice failed');
+    expect(warnings.map((entry) => entry.transferId).sort()).toEqual([...failing].sort());
+    expect(warnings[0]).toMatchObject({ level: 'warn' });
+    expect(t.logs.text()).not.toContain(ana.person.email.toLowerCase());
+  });
 });

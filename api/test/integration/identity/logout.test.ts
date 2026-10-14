@@ -45,6 +45,15 @@ describe('IDN-13 cierre de sesión', () => {
     expect((await logout('y'.repeat(43))).status).toBe(204);
   });
 
+  it('IDN-13 un refresh token vencido también responde 204 y no sirve', async () => {
+    const user = await verifiedUser(t);
+    t.clock.advance(7 * 24 * 60 * 60_000 + 1_000);
+    expect((await logout(user.refreshToken)).status).toBe(204);
+    const res = await refresh(user.refreshToken);
+    expect(res.status).toBe(401);
+    expect(res.body.code).toBe('SESSION_REVOKED');
+  });
+
   it('IDN-13 no cierra otras sesiones del mismo usuario', async () => {
     const user = await verifiedUser(t);
     const other = await request(t.app)

@@ -114,6 +114,22 @@ describe('AUD-01 auditoría del inicio de sesión', () => {
     ]);
   });
 
+  it('AUD-01 un usuario sin verificar deja LOGIN_FAILED con motivo EMAIL_NOT_VERIFIED', async () => {
+    const { person } = await registerPerson(t);
+    const res = await login(person.email, person.password);
+    expect(res.status).toBe(403);
+    const [user] = await harness.migrator.query('SELECT id FROM app.users WHERE email = $1', [
+      person.email,
+    ]);
+    const events = await auditEvents(harness.migrator);
+    expect(events.at(-1)).toMatchObject({
+      action: 'LOGIN_FAILED',
+      actor_type: 'ANONYMOUS',
+      entity_id: user.id,
+      metadata: { reason: 'EMAIL_NOT_VERIFIED' },
+    });
+  });
+
   it('AUD-01 una contraseña incorrecta deja LOGIN_FAILED con el usuario afectado como entidad', async () => {
     const user = await verifiedUser(t);
     await login(user.person.email, 'contraseña equivocada');

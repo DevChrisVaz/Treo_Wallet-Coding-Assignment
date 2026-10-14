@@ -7,11 +7,11 @@ import { verifiedUser } from '../../helpers/identity.js';
 
 const harness = useIntegrationHarness();
 
-async function setUsage(userId: string, day: string, usedCents: number) {
+async function setUsage(userId: string, day: string, usedCents: number, limitCents = 5000000) {
   await harness.migrator.query(
     `INSERT INTO app.daily_transfer_usage (user_id, day, used_cents, limit_cents)
-     VALUES ($1, $2, $3, 5000000)`,
-    [userId, day, usedCents],
+     VALUES ($1, $2, $3, $4)`,
+    [userId, day, usedCents, limitCents],
   );
 }
 
@@ -32,6 +32,22 @@ describe('ACC-11 estado del límite diario en el resumen de cuentas', () => {
       remaining: '38000.00',
       resetsAt: '2026-10-14T06:00:00.000Z',
       timeZone: 'America/Mexico_City',
+    });
+  });
+
+  it('ACC-11 el límite guardado en la fila del día manda sobre el de la configuración', async () => {
+    // La configuración de prueba tiene 50,000.00; la fila del día guardó 30,000.00 al crearse.
+    const t = await buildTestApp(harness, { now: '2026-10-13T23:00:00.000Z' });
+    const ana = await verifiedUser(t);
+    await setUsage(ana.userId, '2026-10-13', 1_000_000, 3_000_000);
+    const res = await request(t.app)
+      .get('/accounts')
+      .set('Authorization', `Bearer ${ana.accessToken}`);
+    expectToMatchContract(res, 'listAccounts');
+    expect(res.body.dailyLimit).toMatchObject({
+      limit: '30000.00',
+      used: '10000.00',
+      remaining: '20000.00',
     });
   });
 

@@ -116,11 +116,9 @@ Tarea 4.2 de `biometric-unlock`, en un Android con al menos una huella registrad
 
 ## Qué haría con más tiempo
 
-- **Atar el refresh token a la biometría** con `requireAuthentication: true` de `expo-secure-store`, como seguimiento del desbloqueo biométrico (ver "Alcance de seguridad"): requiere un development build en iOS y un flujo de recuperación para cuando cambian las huellas registradas.
-- **Recuperar un intento de transferencia si el sistema operativo mata la app** a mitad del envío: hoy el intento vive en memoria; persistiría la llave y el payload congelado en el almacenamiento seguro y, al volver, consultaría la transferencia o reintentaría con la misma llave. La transferencia ya es única gracias a la llave y aparece en los movimientos.
-- Registro, verificación de correo, alta de beneficiarios y traspasos entre cuentas propias en el móvil (hoy en la web), historial con filtros y paginación, y pruebas de extremo a extremo en dispositivo (Maestro o Detox).
+La lista está en una sola sección para todo el proyecto: ["¿Qué haría con más tiempo?" del README raíz](../README.md#qué-haría-con-más-tiempo). Lo de la app móvil incluye atar el refresh token a la biometría, recuperar una transferencia si el sistema operativo mata la app y llevar a la app lo que hoy solo está en la web.
 
 ## Notas
 
-- La salida CommonJS de `@devchrisvaz/wallet-contract` falla al llamar a `createApiClient` (interoperabilidad con openapi-fetch). Metro usa la salida ESM y no se ve afectado; en Jest, `jest.config.js` mapea el paquete a su salida ESM. Detalle en `design.md` (N1).
+- La salida CommonJS de `@devchrisvaz/wallet-contract` fallaba al llamar a `createApiClient` (interoperabilidad con openapi-fetch); se corrigió en el contrato 1.1.0 (`contract-v1-1`). Metro usa la salida ESM, y `jest.config.js` sigue mapeando el paquete a esa misma salida. Detalle en `design.md` (N1).
 - `npm audit` reporta avisos (moderados y altos) en herramientas que llegan como dependencias de `expo` y `react-native` (Expo CLI, Metro, Jest y sus utilidades), que corren en la máquina de desarrollo. `npm audit fix --force` cambiaría versiones fijadas por el SDK, así que se revisan al actualizar el SDK de Expo.
