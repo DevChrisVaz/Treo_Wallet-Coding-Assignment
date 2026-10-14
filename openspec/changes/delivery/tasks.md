@@ -21,7 +21,7 @@
 - [x] 2.3 [docs] Implementar la lectura de commits con los trailers `Task:` y `Refs:` vía `git log --format='%(trailers…)'`
 - [x] 2.4 [docs] Implementar la búsqueda de pruebas cuyo título empieza con un ID en `contract/`, `api/`, `web/` y `mobile/` (excluyendo `node_modules`)
 - [x] 2.5 [docs] Generar la tabla Markdown `ID | Requisito | Change | Tareas | Commits | Pruebas` y la sección de huecos; agregar la opción `--check` que termina con error si hay huecos
-- [ ] 2.6 [docs] Ejecutar `scripts/trace.sh --check` sobre el repositorio, corregir o documentar cada hueco y guardar la salida en `docs/traceability.md`
+- [x] 2.6 [docs] Ejecutar `scripts/trace.sh --check` sobre el repositorio, corregir o documentar cada hueco y guardar la salida en `docs/traceability.md`
 
 ## 3. README raíz
 
@@ -38,5 +38,5 @@
 ## 5. Verificación final
 
 - [ ] 5.1 [docs] Verificar con `gh run list --branch main` que los workflows de `contract`, `api`, `web` y `mobile` están en verde y agregar sus badges al README
-- [ ] 5.2 [docs] Verificar desde un clon limpio que el arranque local del README funciona de principio a fin (incluida la documentación OpenAPI navegable en Swagger UI) y corregir el README si algo falla (PLT)
-- [ ] 5.3 [docs] Recorrer el checklist de entregables del enunciado (repositorio con historial completo sin squash, especificaciones, aws-deploy.md, OpenAPI navegable, instrucciones de la app móvil, video, README, CI en verde) y anotar en el README dónde está cada uno
+- [x] 5.2 [docs] Verificar desde un clon limpio que el arranque local del README funciona de principio a fin (incluida la documentación OpenAPI navegable en Swagger UI) y corregir el README si algo falla (PLT)
+- [x] 5.3 [docs] Recorrer el checklist de entregables del enunciado (repositorio con historial completo sin squash, especificaciones, aws-deploy.md, OpenAPI navegable, instrucciones de la app móvil, video, README, CI en verde) y anotar en el README dónde está cada uno
