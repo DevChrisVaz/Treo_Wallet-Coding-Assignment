@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { OVERVIEW } from '@/test/fixtures';
 import { deferred, fakeApi, jsonResponse, problemResponse } from '@/test/support/fake-api';
 import { SESSION_ID, sessionData, tokenPair } from '@/test/support/session';
-import { publicApi, retryAfterOf, SessionEndedError, sessionApi } from './api-client';
+import { publicApi, SessionEndedError, sessionApi } from './api-client';
 import { sessionStore } from './session-store';
 
 const CONTEXT = { requestId: 'bff-123', clientIp: '203.0.113.7' };
@@ -147,6 +147,6 @@ describe('publicApi', () => {
       .catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(ProblemError);
     expect((error as ProblemError).code).toBe('RATE_LIMITED');
-    expect(retryAfterOf(error)).toBe(300);
+    expect((error as ProblemError).retryAfter).toBe(300);
   });
 });

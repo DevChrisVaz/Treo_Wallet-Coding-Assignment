@@ -6,7 +6,7 @@
 
 ## 2. Web
 
-- [ ] 2.1 [web] Reinstalar el paquete 1.1.0 y reemplazar `problemWithRetryAfter` y `retryAfterOf` por `error.retryAfter`; las pruebas de WEB-12 siguen pasando (WEB-12, CTR-07)
+- [x] 2.1 [web] Reinstalar el paquete 1.1.0 y reemplazar `problemWithRetryAfter` y `retryAfterOf` por `error.retryAfter`; las pruebas de WEB-12 siguen pasando (WEB-12, CTR-07)
 
 ## 3. Móvil
 

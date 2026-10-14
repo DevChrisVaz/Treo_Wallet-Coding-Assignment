@@ -9,7 +9,7 @@ import {
 import { cookies } from 'next/headers';
 import type * as z from 'zod';
 import type { ActionProblem, ActionResult } from '@/lib/action-result';
-import { publicApi, retryAfterOf, SessionEndedError, sessionApi } from './api-client';
+import { publicApi, SessionEndedError, sessionApi } from './api-client';
 import { logUnexpectedError } from './log';
 import { getRequestContext, type RequestContext } from './request-context';
 import { endLocalSession, requireSession } from './session';
@@ -80,7 +80,7 @@ function fromProblemError(error: ProblemError, request: RequestContext): ActionP
     transferStatus: error.transferStatus,
     remaining: error.remaining,
     attemptsRemaining: error.attemptsRemaining,
-    retryAfter: retryAfterOf(error),
+    retryAfter: error.retryAfter,
   };
   const defined = Object.fromEntries(
     Object.entries(optional).filter(([, value]) => value !== undefined),

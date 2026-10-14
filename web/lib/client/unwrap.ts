@@ -3,16 +3,14 @@ import type { ActionProblem, ActionResult } from '@/lib/action-result';
 
 /**
  * `ProblemError` del contrato construido con el problema que devolvió una Server Action. Conserva
- * el problema original (con `retryAfter`) para la interfaz.
+ * el problema original para la interfaz.
  */
 export class ActionProblemError extends ProblemError {
   readonly problem: ActionProblem;
-  readonly retryAfter: number | undefined;
 
   constructor(problem: ActionProblem) {
-    super(problem.status, { ...problem });
+    super(problem.status, { ...problem }, undefined, problem.retryAfter);
     this.problem = problem;
-    this.retryAfter = problem.retryAfter;
   }
 }
 

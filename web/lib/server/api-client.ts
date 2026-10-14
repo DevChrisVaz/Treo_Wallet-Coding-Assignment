@@ -1,10 +1,5 @@
 import 'server-only';
-import {
-  createApiClient,
-  ProblemError,
-  toProblemError,
-  type ApiClient,
-} from '@devchrisvaz/wallet-contract';
+import { createApiClient, ProblemError, type ApiClient } from '@devchrisvaz/wallet-contract';
 import { serverEnv } from './env';
 import type { RequestContext } from './request-context';
 import { sessionStore, type SessionData } from './session-store';
@@ -23,20 +18,6 @@ const REFRESH_MARGIN_MS = 30_000;
 
 type Middleware = Parameters<ApiClient['use']>[0];
 
-const RETRY_AFTER = Symbol('retryAfter');
-
-/** Segundos de `Retry-After` de un `429`, conservados en el `ProblemError` (WEB-12). */
-export function retryAfterOf(error: unknown): number | undefined {
-  if (error instanceof ProblemError) {
-    return (error as ProblemError & { [RETRY_AFTER]?: number })[RETRY_AFTER];
-  }
-  return undefined;
-}
-
-function parseRetryAfter(value: string | null): number | undefined {
-  return value && /^[0-9]{1,6}$/.test(value) ? Number.parseInt(value, 10) : undefined;
-}
-
 /** Agrega `X-Forwarded-For` (el cliente del contrato ya agrega `X-Request-Id`). */
 function forwardedForMiddleware(context: RequestContext): Middleware {
   return {
@@ -47,29 +28,13 @@ function forwardedForMiddleware(context: RequestContext): Middleware {
   };
 }
 
-/**
- * Convierte las respuestas de error en `ProblemError` conservando `Retry-After`. Corre antes que el
- * middleware de errores del contrato porque openapi-fetch ejecuta `onResponse` en orden inverso.
- */
-const problemWithRetryAfter: Middleware = {
-  async onResponse({ response }) {
-    if (response.ok) return undefined;
-    const problem = await toProblemError(response);
-    const retryAfter = parseRetryAfter(response.headers.get('Retry-After'));
-    if (retryAfter !== undefined) {
-      Object.defineProperty(problem, RETRY_AFTER, { value: retryAfter });
-    }
-    throw problem;
-  },
-};
-
 function createClient(context: RequestContext, getAccessToken?: () => Promise<string>): ApiClient {
   const client = createApiClient({
     baseUrl: serverEnv().apiBaseUrl,
     getRequestId: () => context.requestId,
     ...(getAccessToken ? { getAccessToken } : {}),
   });
-  client.use(forwardedForMiddleware(context), problemWithRetryAfter);
+  client.use(forwardedForMiddleware(context));
   return client;
 }
 
