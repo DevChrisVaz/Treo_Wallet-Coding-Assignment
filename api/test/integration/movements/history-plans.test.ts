@@ -33,7 +33,7 @@ describe('HIS-09 planes del historial con volumen', () => {
   // Con poco volumen el planificador prefiere, para un tipo poco frecuente, un Bitmap Heap Scan
   // seguido de Sort (barato con 13 filas). HIS-09 trata del volumen real, así que esta prueba
   // siembra lo mismo que `db:seed` (≈120k asientos) una sola vez y revisa las dos consultas.
-  it('HIS-08 y HIS-09 con 60000 movimientos, la primera página trae los 20 más recientes; sin filtros usa ix_ledger_entries_account_created y con DEPOSIT ix_ledger_entries_account_type_created, ambas sin nodo Sort', async () => {
+  it('HIS-08 y HIS-09 con 60000 movimientos, la primera página trae los 20 más recientes; sin filtros y con un rango de fechas antiguo usa ix_ledger_entries_account_created y con DEPOSIT ix_ledger_entries_account_type_created, ambas sin nodo Sort', async () => {
     const summary = await runSeed(harness.migrator, {
       clabe: { bankCode: '999', plazaCode: '180' },
       now: new Date('2026-10-13T18:00:00.000Z'),
@@ -73,6 +73,21 @@ describe('HIS-09 planes del historial con volumen', () => {
     expect(latest.map((node) => node['Index Name'])).toContain('ix_ledger_entries_account_created');
     expect(latest.map((node) => node['Node Type'])).not.toContain('Sort');
     expect(latest.map((node) => node['Node Type'])).not.toContain('Incremental Sort');
+
+    // HIS-09: un rango de fechas antiguo (noviembre de 2025, a ~11 meses del "ahora" del seed)
+    // recorre el índice por cuenta y fecha sin ordenar en memoria.
+    const oldRange = await explain({
+      accountId,
+      types: [],
+      start: new Date('2025-11-01T06:00:00.000Z'),
+      endExclusive: new Date('2025-12-01T06:00:00.000Z'),
+      limit: 21,
+    });
+    expect(oldRange.map((node) => node['Index Name'])).toContain(
+      'ix_ledger_entries_account_created',
+    );
+    expect(oldRange.map((node) => node['Node Type'])).not.toContain('Sort');
+    expect(oldRange.map((node) => node['Node Type'])).not.toContain('Incremental Sort');
 
     const deposits = await explain({ accountId, types: ['DEPOSIT'], limit: 21 });
     expect(deposits.map((node) => node['Index Name'])).toContain(
