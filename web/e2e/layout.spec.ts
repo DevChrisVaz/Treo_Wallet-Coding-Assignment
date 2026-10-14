@@ -292,6 +292,30 @@ test('WEB-25 WEB-27 a 390 px, al final de una página con pestañas, lo último 
   expect(await gapAtEnd(tabs, 'main')).toBeCloseTo(20, 0);
 });
 
+test('WEB-25 WEB-30 a 390 px, al final de un paso, lo último queda a 20 px del pie fijo, como Screen en la app móvil', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await login(page);
+  await page.addStyleTag({ content: HIDE_DEV_INDICATOR });
+  await page.goto('/transfers/new');
+  await page.getByRole('button', { name: /^Luis/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: '¿Cuánto envías?' })).toBeVisible();
+  // Una ventana más baja que cada paso; con una acción y con dos apiladas.
+  await page.setViewportSize({ width: 390, height: 480 });
+  const continueButton = page.getByRole('button', { name: 'Continuar' });
+  expect(await gapAtEnd(continueButton, 'before-spacer')).toBeCloseTo(20, 0);
+
+  await page.getByLabel('Monto').fill('1250');
+  await page.getByLabel('Concepto').fill('Renta');
+  await page.getByLabel('Referencia').fill('1');
+  await continueButton.click();
+  await page.getByRole('button', { name: 'Enviar' }).click();
+  await expect(page.getByRole('region', { name: 'Comprobante' })).toBeVisible();
+  const another = page.getByRole('button', { name: 'Hacer otra transferencia' });
+  expect(await gapAtEnd(another, 'before-spacer')).toBeCloseTo(20, 0);
+});
+
 test('WEB-30 a 1280 px el resumen va en su columna a la derecha del paso y sigue lo que se escribe', async ({
   page,
 }) => {

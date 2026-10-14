@@ -20,7 +20,15 @@ export function StepActions({ children, stacked = false, fixed = true }: StepAct
   if (!fixed) return <div className="grid gap-3 dashboard:flex">{children}</div>;
   return (
     <>
-      <div aria-hidden="true" className={`${stacked ? 'h-36' : 'h-21'} dashboard:hidden`} />
+      {/* Mide lo que el pie: su borde, sus márgenes (con el área segura) y uno o dos botones. Descuenta
+          el margen inferior de `main` en el flujo (-mb-6): al final de la página lo último queda a
+          20 px del pie (el espacio del paso), como el contenido sobre el `footer` de Screen (WEB-25). */}
+      <div
+        aria-hidden="true"
+        className="-mb-6 border-t border-transparent pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dashboard:hidden"
+      >
+        <div className={stacked ? 'h-27' : 'h-12'} />
+      </div>
       <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-surface-canvas px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dashboard:static dashboard:border-0 dashboard:bg-transparent dashboard:p-0">
         <div className="mx-auto grid max-w-app gap-3 dashboard:mx-0 dashboard:flex dashboard:max-w-none">
           {children}

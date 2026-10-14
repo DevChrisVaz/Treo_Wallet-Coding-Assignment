@@ -229,7 +229,27 @@ describe('StepActions', () => {
       'bottom-0',
       'dashboard:static',
     );
-    expect(container.querySelector('[aria-hidden="true"]')).toHaveClass('h-36', 'dashboard:hidden');
+    // Superseded by WEB-25 (antes: un espaciador `h-36` fijo): el espaciador repite el borde, los
+    // márgenes y el alto de los botones del pie, y descuenta el margen inferior de `main` (-mb-6),
+    // para que al final de la página lo último quede a 20 px del pie, como en la app móvil.
+    const spacer = container.querySelector('[aria-hidden="true"]');
+    expect(spacer).toHaveClass(
+      'border-t',
+      'pt-4',
+      'pb-[calc(1rem+env(safe-area-inset-bottom))]',
+      '-mb-6',
+      'dashboard:hidden',
+    );
+    expect(spacer?.firstElementChild).toHaveClass('h-27');
+  });
+
+  it('WEB-25 WEB-30 con una sola acción el espaciador reserva el alto de un botón', () => {
+    const { container } = render(
+      <StepActions>
+        <button type="button">Continuar</button>
+      </StepActions>,
+    );
+    expect(container.querySelector('[aria-hidden="true"]')?.firstElementChild).toHaveClass('h-12');
   });
 
   it('WEB-30 en una página con pestañas las acciones van en línea', () => {
