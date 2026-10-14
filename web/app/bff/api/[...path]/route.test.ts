@@ -80,6 +80,10 @@ describe('GET /bff/api/[...path]', () => {
     [['transfers']],
     [['accounts', 'no-es-uuid']],
     [['accounts', PRINCIPAL.id, 'movements', 'extra']],
+    [['accounts', PRINCIPAL.id, 'statements', '2026-09', 'extra']],
+    [['accounts', PRINCIPAL.id, 'statements', 'septiembre']],
+    [['accounts', PRINCIPAL.id, 'statements']],
+    [['accounts', 'no-es-uuid', 'statements', '2026-09']],
     [['..', 'admin']],
     [['auth', 'refresh']],
   ])('WEB-09 responde 404 sin llamar a la API para %j', async (path) => {
@@ -129,6 +133,77 @@ describe('GET /bff/api/[...path]', () => {
     const response = await get(['accounts']);
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ code: 'INTERNAL_ERROR', requestId: 'bff-123' });
+  });
+});
+
+describe('GET /bff/api/accounts/:id/statements/:period', () => {
+  // Bytes que no son UTF-8 válido: si el proxy los pasara por texto, se corromperían.
+  const PDF = new Uint8Array([
+    0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x33, 0x0a, 0xe2, 0xe3, 0xcf, 0xd3, 0x00, 0xff, 0x80,
+    0x0a, 0x25, 0x25, 0x45, 0x4f, 0x46,
+  ]);
+  const FILENAME = 'attachment; filename="estado-de-cuenta-2026-09-0015.pdf"';
+  const STATEMENT = `/accounts/${PRINCIPAL.id}/statements/2026-09`;
+
+  it('WEB-32 entrega los bytes del PDF idénticos a los de la API, con su tipo, nombre y longitud', async () => {
+    const api = fakeApi().on(
+      'GET',
+      STATEMENT,
+      () =>
+        new Response(PDF, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': FILENAME,
+            'Content-Length': String(PDF.length),
+            'Cache-Control': 'no-store',
+            'X-Request-Id': 'api-req',
+          },
+        }),
+    );
+
+    const response = await get(['accounts', PRINCIPAL.id, 'statements', '2026-09']);
+
+    expect(response.status).toBe(200);
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(PDF);
+    expect(response.headers.get('content-type')).toBe('application/pdf');
+    expect(response.headers.get('content-disposition')).toBe(FILENAME);
+    expect(response.headers.get('content-length')).toBe(String(PDF.length));
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('x-request-id')).toBe('api-req');
+    const [call] = api.calls;
+    expect(call?.headers.get('authorization')).toBe('Bearer access-token-1');
+    expect(call?.headers.get('accept')).toBe('application/pdf, application/problem+json');
+  });
+
+  it('WEB-32 un problema de la API llega con su estado, su cuerpo y Retry-After', async () => {
+    fakeApi().on('GET', STATEMENT, () =>
+      problemResponse(429, { code: 'RATE_LIMITED', requestId: 'api-1' }, { 'Retry-After': '60' }),
+    );
+    const response = await get(['accounts', PRINCIPAL.id, 'statements', '2026-09']);
+    expect(response.status).toBe(429);
+    expect(response.headers.get('content-type')).toContain('application/problem+json');
+    expect(response.headers.get('retry-after')).toBe('60');
+    expect(response.headers.get('content-disposition')).toBeNull();
+    expect(await response.json()).toMatchObject({ code: 'RATE_LIMITED', requestId: 'api-1' });
+  });
+
+  it('WEB-32 las demás lecturas siguen pidiendo JSON', async () => {
+    const api = fakeApi().on('GET', '/accounts', () => jsonResponse(200, OVERVIEW));
+    await get(['accounts']);
+    expect(api.calls[0]?.headers.get('accept')).toBe('application/json, application/problem+json');
+  });
+
+  it('WEB-09 un POST a la ruta del estado de cuenta responde 405 sin llamar a la API', async () => {
+    const api = fakeApi();
+    const response = await POST(
+      new Request(`http://localhost:3000/bff/api${STATEMENT}`, {
+        method: 'POST',
+        headers: BROWSER,
+      }),
+    );
+    expect(response.status).toBe(405);
+    expect(api.calls).toHaveLength(0);
   });
 });
 

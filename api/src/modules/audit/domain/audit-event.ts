@@ -1,5 +1,5 @@
 /**
- * Catálogo cerrado de eventos auditados (AUD-01). La base de datos lo replica en
+ * Catálogo cerrado de eventos auditados (AUD-01, AUD-07). La base de datos lo replica en
  * `ck_audit_log_action`; una prueba verifica que ambos coincidan.
  */
 export const AUDIT_ACTIONS = [
@@ -25,6 +25,8 @@ export const AUDIT_ACTIONS = [
   'TRANSFER_FAILED',
   // Sistema
   'FUNDING_POSTED',
+  // Estados de cuenta: la única lectura que se audita (AUD-07)
+  'STATEMENT_EXPORTED',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

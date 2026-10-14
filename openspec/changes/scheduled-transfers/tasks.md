@@ -31,7 +31,7 @@ Requiere `contract-v1-2` (paquete 1.2.0). La tarea 1.1 va antes de que cualquier
 
 ## 4. Móvil
 
-- [ ] 4.1 [mobile] Instalar el contrato 1.2.0 y el paquete de diseño 1.1.0; prueba de la insignia "Programada" en el resultado y de que el flujo no ofrece fecha; las pruebas vigentes siguen pasando (MOB-23)
+- [x] 4.1 [mobile] Instalar el contrato 1.2.0 y el paquete de diseño 1.1.0; prueba de la insignia "Programada" en el resultado y de que el flujo no ofrece fecha; las pruebas vigentes siguen pasando (MOB-23)
 
 ## 5. Verificación
 

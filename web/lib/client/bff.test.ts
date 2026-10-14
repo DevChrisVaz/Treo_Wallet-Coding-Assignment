@@ -1,7 +1,7 @@
 import { ProblemError } from '@devchrisvaz/wallet-contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OVERVIEW } from '@/test/fixtures';
-import { bffGet } from './bff';
+import { bffDownload, bffGet } from './bff';
 
 const fetchMock = vi.fn<(input: string, init?: RequestInit) => Promise<Response>>();
 
@@ -59,5 +59,56 @@ describe('bffGet', () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
     const error = await bffGet('accounts').catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(TypeError);
+  });
+});
+
+describe('bffDownload', () => {
+  const PATH = 'accounts/7b1f0a52-3c1e-4d8e-9a55-2f7d1c3b9e10/statements/2026-09';
+
+  it('WEB-32 descarga por el proxy del BFF y toma el nombre del archivo de Content-Disposition', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0xff]), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': 'attachment; filename="estado-de-cuenta-2026-09-0015.pdf"',
+        },
+      }),
+    );
+
+    const file = await bffDownload(PATH);
+
+    expect(file.filename).toBe('estado-de-cuenta-2026-09-0015.pdf');
+    expect(file.blob.type).toBe('application/pdf');
+    expect(new Uint8Array(await file.blob.arrayBuffer())).toEqual(
+      new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0xff]),
+    );
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe(`/bff/api/${PATH}`);
+    expect(init).toMatchObject({ method: 'GET', credentials: 'same-origin', cache: 'no-store' });
+    expect(new Headers(init?.headers).get('accept')).toBe(
+      'application/pdf, application/problem+json',
+    );
+  });
+
+  it('WEB-32 sin Content-Disposition usa el último segmento de la ruta como nombre', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(new Uint8Array([1]), { headers: { 'Content-Type': 'application/pdf' } }),
+    );
+    expect((await bffDownload(PATH)).filename).toBe('2026-09.pdf');
+  });
+
+  it('WEB-32 un error llega como ProblemError con su code y la espera de Retry-After', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({ title: 't', status: 429, code: 'RATE_LIMITED', requestId: 'r2' }),
+        {
+          status: 429,
+          headers: { 'Content-Type': 'application/problem+json', 'Retry-After': '60' },
+        },
+      ),
+    );
+    const error = await bffDownload(PATH).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ProblemError);
+    expect(error).toMatchObject({ status: 429, code: 'RATE_LIMITED', retryAfter: 60 });
   });
 });

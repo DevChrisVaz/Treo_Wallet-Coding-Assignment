@@ -16,7 +16,7 @@ const fromApi = transfer({
   completedAt: '2026-10-13T16:42:00Z',
 });
 
-async function completeTransfer(fake: FakeApi) {
+async function completeTransfer(fake: FakeApi, expectedBadge = 'Completada') {
   const rendered = await renderApp({
     fake,
     routes: { index: HomeScreen, 'transfer/send': TransferFlowScreen },
@@ -28,7 +28,7 @@ async function completeTransfer(fake: FakeApi) {
   await user.type(screen.getByLabelText('Referencia'), '1');
   await user.press(screen.getByRole('button', { name: 'Continuar' }));
   await user.press(await screen.findByRole('button', { name: 'Enviar' }));
-  await screen.findByText('Completada');
+  await screen.findByText(expectedBadge);
   return { ...rendered, user };
 }
 
@@ -98,5 +98,38 @@ describe('comprobante', () => {
       rendered.services.queryClient.getQueryState(['accounts', principal.id, 'movements'])
         ?.isInvalidated,
     ).toBe(true);
+  });
+});
+
+describe('estados de las programadas', () => {
+  test('MOB-23 una transferencia en SCHEDULED muestra "Programada" con el tono informativo y sin error', async () => {
+    const scheduled = transfer({
+      status: 'SCHEDULED',
+      scheduledFor: '2026-10-20',
+      completedAt: null,
+    });
+    const fake = createFakeApi()
+      .on('GET', '/accounts', json(200, overview()))
+      .on('GET', '/beneficiaries', json(200, { items: [luis] }))
+      .on('POST', '/transfers', json(201, scheduled));
+    await completeTransfer(fake, 'Programada');
+
+    expect(screen.getByText('Programada')).toHaveStyle({ color: theme.colors.status.info.fg });
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  test('MOB-23 el flujo de transferencia no ofrece elegir una fecha de envío', async () => {
+    const fake = createFakeApi()
+      .on('GET', '/accounts', json(200, overview()))
+      .on('GET', '/beneficiaries', json(200, { items: [luis] }));
+    await renderApp({
+      fake,
+      routes: { 'transfer/send': TransferFlowScreen },
+      initialUrl: `/transfer/send?beneficiaryId=${luis.id}`,
+    });
+
+    await screen.findByLabelText('Monto');
+    expect(screen.queryByText(/programar/i)).toBeNull();
+    expect(screen.queryByLabelText(/fecha/i)).toBeNull();
   });
 });
