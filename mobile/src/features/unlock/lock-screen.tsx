@@ -1,10 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-
-import { BrandScreen, Button, InlineAlert, type AlertTone } from '@/components/ui';
-import { theme } from '@/theme';
 
 import { requestUnlock, useBiometricSupport, type UnlockResult } from './biometrics';
+import { LockScreenView, type LockNotice } from './lock-screen-view';
 
 interface LockScreenProps {
   onUnlock: () => void;
@@ -12,31 +9,26 @@ interface LockScreenProps {
   onSignOut: () => void;
 }
 
-interface Notice {
-  tone: AlertTone;
-  message: string;
-}
-
-const LOCKOUT: Notice = {
+const LOCKOUT: LockNotice = {
   tone: 'warning',
   message: 'Demasiados intentos. Intenta más tarde o usa tu contraseña.',
 };
 
-const FAILED: Notice = {
+const FAILED: LockNotice = {
   tone: 'danger',
   message: 'No pudimos verificar tu identidad. Intenta de nuevo o usa tu contraseña.',
 };
 
 /**
  * Pantalla de bloqueo (MOB-25, MOB-26, diseño D5): la marca, el aviso y las dos opciones, sin
- * saldos, movimientos ni datos personales. Pide la biometría una sola vez al aparecer; después,
- * solo con "Desbloquear", para no encadenar diálogos si la persona cancela.
+ * saldos, movimientos ni datos personales (`LockScreenView`). Pide la biometría una sola vez al
+ * aparecer; después, solo con "Desbloquear", para no encadenar diálogos si la persona cancela.
  */
 export function LockScreen({ onUnlock, onSignOut }: LockScreenProps) {
   const support = useBiometricSupport();
   // Empieza pidiendo: el diálogo se abre al aparecer la pantalla.
   const [prompting, setPrompting] = useState(true);
-  const [notice, setNotice] = useState<Notice | null>(null);
+  const [notice, setNotice] = useState<LockNotice | null>(null);
   const prompted = useRef(false);
   const mounted = useRef(false);
 
@@ -82,20 +74,12 @@ export function LockScreen({ onUnlock, onSignOut }: LockScreenProps) {
   }
 
   return (
-    <BrandScreen title="TreoWallet está bloqueada">
-      {notice ? <InlineAlert tone={notice.tone} message={notice.message} /> : null}
-      <View style={styles.actions}>
-        <Button
-          label={support ? `Desbloquear con ${support.kind}` : 'Desbloquear'}
-          onPress={() => void unlock()}
-          loading={prompting}
-        />
-        <Button label="Usar mi contraseña" variant="ghost" onPress={onSignOut} />
-      </View>
-    </BrandScreen>
+    <LockScreenView
+      kind={support?.kind}
+      prompting={prompting}
+      notice={notice}
+      onUnlock={() => void unlock()}
+      onSignOut={onSignOut}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  actions: { gap: theme.spacing[3] },
-});

@@ -5,9 +5,12 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const FEATURES = join(__dirname, '..', 'features');
-/** Lo que una vista no puede importar (salvo `import type`): navegación, consultas, sesión, nativos. */
+/**
+ * Lo que una vista no puede importar (salvo `import type`): navegación, consultas, sesión, nativos y,
+ * en el desbloqueo, la biometría y la preferencia guardada.
+ */
 const IMPURE =
-  /^import\s+(?!type\b)[^;]*?from\s+'(expo-[^']*|@tanstack\/react-query|@react-native-community\/netinfo|@\/app-services|@\/session\/[^']*|@\/features\/[^']*\/queries|\.\/queries|\.\/transfer-attempt|\.\/use-transfer-attempt|\.\/transport|\.\/connectivity)'/m;
+  /^import\s+(?!type\b)[^;]*?from\s+'(expo-[^']*|@tanstack\/react-query|@react-native-community\/netinfo|@\/app-services|@\/session\/[^']*|@\/features\/[^']*\/queries|\.\/queries|\.\/transfer-attempt|\.\/use-transfer-attempt|\.\/transport|\.\/connectivity|\.\/biometrics|\.\/use-unlock-preference)'/m;
 
 export function viewFiles(dir: string = FEATURES): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -26,7 +29,7 @@ describe('vistas de pantalla puras', () => {
     expect(offenders).toEqual([]);
   });
 
-  test('MOB-21 cada pantalla tiene su vista pura', () => {
+  test('MOB-21 MOB-24 MOB-25 cada pantalla, y cada pieza del desbloqueo, tiene su vista pura', () => {
     expect(
       viewFiles()
         .map((file) => file.split('/features/')[1])
@@ -41,6 +44,9 @@ describe('vistas de pantalla puras', () => {
       'transfer/recipient-view.tsx',
       'transfer/review-view.tsx',
       'transfer/transfer-flow-view.tsx',
+      'unlock/lock-screen-view.tsx',
+      'unlock/unlock-offer-view.tsx',
+      'unlock/unlock-switch-view.tsx',
     ]);
   });
 });

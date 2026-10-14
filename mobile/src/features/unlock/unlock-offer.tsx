@@ -1,11 +1,9 @@
 import { useState, useSyncExternalStore } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 
 import { useServices } from '@/app-services';
-import { Button, ListSection } from '@/components/ui';
-import { theme } from '@/theme';
 
 import { requestUnlock, useBiometricSupport } from './biometrics';
+import { UnlockOfferView } from './unlock-offer-view';
 import { useUnlockPreference } from './use-unlock-preference';
 
 /**
@@ -43,21 +41,12 @@ export function UnlockOffer() {
     unlockPreference.save('declined').catch(() => undefined);
   }
 
-  // Tarjeta del kit (DSG-17): su título es el encabezado "Entrar con tu <tipo>".
   return (
-    <ListSection title={`Entrar con tu ${support.kind}`}>
-      <View style={styles.body}>
-        <Text style={styles.text}>
-          {`Abre TreoWallet con tu ${support.kind}, sin escribir tu contraseña.`}
-        </Text>
-        <Button label="Activar" onPress={() => void activate()} loading={activating} />
-        <Button label="Ahora no" variant="ghost" onPress={decline} disabled={activating} />
-      </View>
-    </ListSection>
+    <UnlockOfferView
+      kind={support.kind}
+      activating={activating}
+      onActivate={() => void activate()}
+      onDecline={decline}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  body: { gap: theme.spacing[3] },
-  text: { ...theme.typography.body, color: theme.colors.text.secondary },
-});
