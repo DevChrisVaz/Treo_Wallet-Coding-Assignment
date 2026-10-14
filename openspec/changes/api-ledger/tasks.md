@@ -86,7 +86,7 @@
 ## 10. Concurrencia
 
 - [x] 10.1 [api] Prueba de concurrencia: cuenta fondeada con 1,000.00 y 100 transferencias simultáneas de 15.00 a un tercero con llaves distintas → 66 `COMPLETED`, 34 `REJECTED`, saldo exactamente 10.00, suma global 0, uso diario 990.00 y conciliación completa (TRF-24, TRF-10, ACC-14)
-- [ ] 10.2 [api] Prueba de concurrencia: 10 peticiones simultáneas con la misma llave → una transferencia, dos asientos y 10 respuestas con el mismo `id` (TRF-05)
+- [x] 10.2 [api] Prueba de concurrencia: 10 peticiones simultáneas con la misma llave → una transferencia, dos asientos y 10 respuestas con el mismo `id` (TRF-05)
 - [ ] 10.3 [api] Prueba de concurrencia: transferencias cruzadas Ana ↔ Luis repetidas en paralelo sin errores `40P01` y con saldos conciliados (TRF-24)
 - [ ] 10.4 [api] Prueba de concurrencia: 8,000.00 desde "Principal" y 8,000.00 desde "Ahorro" al mismo tiempo con 40,000.00 usados → exactamente una completada y uso de 48,000.00 (TRF-13)
 
