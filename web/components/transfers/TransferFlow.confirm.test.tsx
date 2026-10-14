@@ -1,5 +1,5 @@
 import { problemMessage } from '@devchrisvaz/wallet-design-tokens';
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTransfer } from '@/app/actions/transfers';
@@ -245,6 +245,26 @@ describe('TransferFlow · confirmación de una programada', () => {
       expect.stringMatching(/^[0-9a-f-]{36}$/),
     );
     expect(screen.getByRole('button', { name: 'Enviando…' })).toBeDisabled();
+  });
+
+  it('WEB-33 WEB-17 dos clics en "Enviar" antes de que React vuelva a pintar envían una sola programación', async () => {
+    createMock.mockReturnValue(new Promise(() => undefined));
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await fillTransfer(user, '1,000', '2026-10-20');
+    const send = await screen.findByRole('button', { name: 'Enviar' });
+
+    // En un mismo act el botón sigue habilitado para el segundo clic: solo el candado lo detiene.
+    act(() => {
+      send.click();
+      send.click();
+    });
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(createMock).toHaveBeenCalledWith(
+      SCHEDULED_REQUEST,
+      expect.stringMatching(/^[0-9a-f-]{36}$/),
+    );
   });
 
   it('WEB-33 WEB-17 tras un error de red, "Reintentar" reenvía la programación con la misma llave', async () => {
