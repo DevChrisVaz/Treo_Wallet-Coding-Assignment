@@ -55,6 +55,15 @@ describe('AppHeader', () => {
     expect(onLogout).toHaveBeenCalledTimes(1);
   });
 
+  test('MOB-18 en Inicio el saludo es el encabezado de la pantalla', async () => {
+    await render(
+      <SafeAreaProvider initialMetrics={metrics}>
+        <AppHeader user={USER} />
+      </SafeAreaProvider>,
+    );
+    expect(screen.getByRole('header', { name: 'Hola, Ana' })).toBeOnTheScreen();
+  });
+
   test('MOB-18 el botón del menú de la cuenta mide al menos 44 px (touchTarget)', async () => {
     await render(
       <SafeAreaProvider initialMetrics={metrics}>

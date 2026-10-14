@@ -25,7 +25,8 @@ export function AppHeader({ user, title, onLogout }: AppHeaderProps) {
           {title}
         </Text>
       ) : (
-        <View>
+        // El saludo es el encabezado de Inicio: se anuncia como uno solo, "Hola, Ana".
+        <View accessible accessibilityRole="header" accessibilityLabel={`Hola, ${firstName}`}>
           <Text style={styles.hello}>Hola,</Text>
           <Text style={styles.title}>{firstName}</Text>
         </View>
