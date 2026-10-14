@@ -44,6 +44,16 @@ export interface TransferStore {
   schedule(tx: Transaction, transferId: string): Promise<void>;
   /** Bloquea (`FOR UPDATE`) la transferencia si es del usuario; `null` si no existe o es ajena. */
   lockOwned(tx: Transaction, transferId: string, userId: string): Promise<TransferRow | null>;
+  /**
+   * Bloquea con `FOR NO KEY UPDATE` la transferencia del usuario para cambiar su estado sin mover
+   * dinero (confirmar o cancelar una programada, D5 y D7); `null` si no existe o es ajena. Choca con
+   * el bloqueo del ejecutor, así que espera si el ejecutor la tiene.
+   */
+  lockOwnedForStatus(
+    tx: Transaction,
+    transferId: string,
+    userId: string,
+  ): Promise<TransferRow | null>;
   /** Marca una transferencia pendiente como FAILED con su motivo (sin asientos). */
   fail(tx: Transaction, transferId: string, reason: FailureReason): Promise<void>;
 }

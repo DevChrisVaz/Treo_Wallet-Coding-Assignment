@@ -141,7 +141,6 @@ export class CreateTransfer {
   private attempt(draft: Draft): Promise<AttemptResult> {
     const { transactions, gate, locker, store, audit, clock, otpThreshold, poster, counter } =
       this.deps;
-    const { codes, otpPolicy } = this.deps;
     return transactions.run(async (tx): Promise<AttemptResult> => {
       const id = randomUUID();
       const claim = await gate.claim(tx, {
@@ -230,22 +229,38 @@ export class CreateTransfer {
         return { kind: 'CREATED', transferId: id, otp: null };
       }
       // Camino con OTP (TRF-14): sin asientos ni contador; el dinero se mueve al confirmar.
-      const otp = await codes.issue(tx, 'TRANSFER_CONFIRMATION', id, otpPolicy);
-      await store.awaitOtp(tx, id, otp.expiresAt);
-      await audit.record(tx, {
-        action: 'TRANSFER_CREATED',
-        actor: { type: 'USER', userId: draft.userId },
-        entity: { type: 'transfer', id },
-        metadata: { status: 'PENDING_OTP', kind: draft.kind, amount },
-      });
-      await audit.record(tx, {
-        action: 'TRANSFER_OTP_SENT',
-        actor: { type: 'USER', userId: draft.userId },
-        entity: { type: 'transfer', id },
-        metadata: { channel: 'EMAIL', expiresAt: otp.expiresAt.toISOString() },
-      });
-      return { kind: 'CREATED', transferId: id, otp };
+      return this.awaitOtp(tx, id, draft);
     });
+  }
+
+  /**
+   * Deja la transferencia en PENDING_OTP con su código (TRF-14, TRF-28) y audita su creación y el
+   * envío; el correo sale después del COMMIT. Una programada lleva su fecha en los metadatos.
+   */
+  private async awaitOtp(tx: Transaction, id: string, draft: Draft): Promise<AttemptResult> {
+    const { codes, otpPolicy, store, audit } = this.deps;
+    const actor = { type: 'USER' as const, userId: draft.userId };
+    const entity = { type: 'transfer', id };
+    const otp = await codes.issue(tx, 'TRANSFER_CONFIRMATION', id, otpPolicy);
+    await store.awaitOtp(tx, id, otp.expiresAt);
+    await audit.record(tx, {
+      action: 'TRANSFER_CREATED',
+      actor,
+      entity,
+      metadata: {
+        status: 'PENDING_OTP',
+        kind: draft.kind,
+        amount: draft.amount.toDecimalString(),
+        ...(draft.scheduledFor === null ? {} : { scheduledFor: draft.scheduledFor }),
+      },
+    });
+    await audit.record(tx, {
+      action: 'TRANSFER_OTP_SENT',
+      actor,
+      entity,
+      metadata: { channel: 'EMAIL', expiresAt: otp.expiresAt.toISOString() },
+    });
+    return { kind: 'CREATED', transferId: id, otp };
   }
 
   /**
@@ -280,10 +295,8 @@ export class CreateTransfer {
         `Ya tienes ${MAX_ACTIVE_SCHEDULED} transferencias programadas; cancela una para programar otra`,
       );
     }
-    if (draft.amount.isGreaterThan(otpThreshold)) {
-      // Programar arriba del umbral (PENDING_OTP con fecha) llega con la tarea 2.6.
-      throw new Error('Programar una transferencia mayor al umbral aún no está disponible');
-    }
+    // Arriba del umbral se confirma con OTP y queda SCHEDULED al confirmar (TRF-28).
+    if (draft.amount.isGreaterThan(otpThreshold)) return this.awaitOtp(tx, id, draft);
     const actor = { type: 'USER' as const, userId: draft.userId };
     const entity = { type: 'transfer', id };
     const amount = draft.amount.toDecimalString();

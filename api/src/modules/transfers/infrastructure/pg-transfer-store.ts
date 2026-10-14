@@ -166,6 +166,19 @@ export class PgTransferStore implements TransferStore {
     return row ? transferFromRow(row) : null;
   }
 
+  async lockOwnedForStatus(
+    tx: Transaction,
+    transferId: string,
+    userId: string,
+  ): Promise<TransferRow | null> {
+    const [row] = await queryForUpdate<Row>(
+      tx,
+      `SELECT ${TRANSFER_SELECT} FROM transfers WHERE id = $1 AND user_id = $2 FOR NO KEY UPDATE`,
+      [transferId, userId],
+    );
+    return row ? transferFromRow(row) : null;
+  }
+
   async fail(tx: Transaction, transferId: string, reason: FailureReason): Promise<void> {
     await queryIn(
       tx,
