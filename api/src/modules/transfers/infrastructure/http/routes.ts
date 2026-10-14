@@ -3,6 +3,7 @@ import { routeTable } from '../../../../platform/http/auth.js';
 import { parseBody } from '../../../../platform/http/validation.js';
 import type { ConfirmTransfer } from '../../application/confirm-transfer.js';
 import type { CreateTransfer } from '../../application/create-transfer.js';
+import type { ResendTransferOtp } from '../../application/resend-transfer-otp.js';
 import {
   confirmTransferRequestSchema,
   createTransferRequestSchema,
@@ -12,6 +13,7 @@ import {
 export interface TransferHandlers {
   readonly createTransfer: CreateTransfer;
   readonly confirmTransfer: ConfirmTransfer;
+  readonly resendTransferOtp: ResendTransferOtp;
 }
 
 /** Rutas de transferencias: solo traducen HTTP y delegan en los casos de uso (PLT-18). */
@@ -45,6 +47,14 @@ export function transferRoutes(handlers: TransferHandlers, authenticateRequest: 
       input.otp,
     );
     res.status(200).json(transfer);
+  });
+
+  routes.post('/transfers/:transferId/otp/resend', async (req, res) => {
+    const challenge = await handlers.resendTransferOtp.execute(
+      res.locals.userId as string,
+      String(req.params.transferId),
+    );
+    res.status(202).json(challenge);
   });
 
   return routes;
