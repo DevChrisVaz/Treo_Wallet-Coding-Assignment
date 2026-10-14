@@ -153,3 +153,55 @@ Amplify quedó documentado como alternativa válida, con sus condiciones: sesion
 **Verificaciones más allá de las pruebas unitarias:** la hoja generada para Tailwind v4 se compiló con el CLI real. Existen las utilidades del sistema, y `bg-red-500` y `text-sm` no se generan, lo que comprueba que los clientes no pueden salirse de la paleta. La referencia visual se revisó renderizada en un navegador.
 
 **Trabajo en paralelo.** API, web y móvil se implementan con tres subagentes de Claude Code, cada uno en su propio worktree de git, a partir de los artefactos de OpenSpec. El de la API arrancó antes, porque no necesita el sistema de diseño; los de web y móvil, en cuanto `/design-tokens` estuvo listo. Integro yo las ramas al terminar.
+
+### Integración de web y móvil
+
+**Interrupción.** Los tres subagentes se detuvieron a la vez al llegar al límite de uso de la sesión, cada uno a mitad de una tarea. Se reanudaron con su contexto, con la instrucción de comprobar el trabajo sin commit contra el ciclo de TDD antes de terminar la tarea.
+
+**Verificación antes de integrar.** La AI principal no se basó en los reportes:
+- Volvió a correr typecheck, lint, formato y pruebas de cada rama. Web: 382 pruebas. Móvil: 200.
+- Revisó que todos los commits usaran mi identidad y llevaran los trailers.
+- Revisó que ninguna rama tocara archivos de otro proyecto.
+
+Después integró con `--no-ff`: web 35/36 tareas, móvil 32/33.
+
+**Errores de la AI que detectaron las pruebas:**
+- **Transferencias sin `Idempotency-Key` (móvil).** En Jest, `randomUUID` de expo-crypto devolvía `undefined`, y openapi-fetch omite un header vacío sin avisar. Lo detectó una prueba de pantalla. Ahora la máquina de estados falla si no hay llave, y las pruebas exigen un UUID v4.
+- **Todas las llaves iguales (web).** Un generador que se recreaba en cada render hacía que todas las llaves salieran iguales.
+- **Zod 4 (web).** `.default()` devolvía el texto sin transformar, así que `SESSION_COOKIE_SECURE` quedaba como cadena.
+- **Accesibilidad (web):**
+  - el nombre accesible de un botón incluía el texto oculto "Enviando…";
+  - dos controles se llamaban "Beneficiario".
+- **Herramientas de prueba (móvil):**
+  - `fireEvent` se usó como síncrono, pero en Testing Library v14 es asíncrono;
+  - los temporizadores de TanStack Query mantenían vivo a Jest 300 s;
+  - una prueba con temporizadores falsos fallaba de forma intermitente.
+
+**Fallas que la AI encontró a mano en la web:**
+- **`next dev` registraba la contraseña** en los argumentos de la Server Action de inicio de sesión. Se apagó con `logging.serverFunctions: false`, con una prueba que lo cubre.
+- **`next dev` escribía un `AGENTS.md`** en el proyecto. Se apagó con `agentRules: false`.
+
+**Cómo se verificó que las pruebas sí detectan errores.** Ambos subagentes hicieron mutaciones temporales y las revirtieron después. Todas hicieron fallar alguna prueba:
+- generar una llave nueva al reintentar;
+- quitar la renovación única del token;
+- quitar la protección contra el doble envío;
+- volver reintentables los 4xx;
+- usar `>=` en el umbral del OTP;
+- formatear con `parseFloat().toFixed`;
+- borrar los tokens después de llamar a la API;
+- quitar la vigencia absoluta de la sesión;
+- quitar la pantalla de privacidad del layout raíz;
+- escribir a mano un color.
+
+**Huecos en trabajo anterior de la AI que encontraron los subagentes:**
+- **La salida CommonJS de `/contract` está rota.** `createApiClient` falla con `require` ("import_openapi_fetch.default is not a function"). La prueba de humo solo comprobaba que la función existiera, no que funcionara. No afecta a los clientes, que usan la salida ESM, y no se ha corregido.
+- **`ProblemError` no conserva `Retry-After`.** Ambos clientes lo resolvieron con un middleware propio.
+- **Textos de los escenarios desactualizados.** Al crear el sistema de diseño, la AI no actualizó los textos literales de los escenarios de `web-app` y `mobile-app`, que quedaron distintos de `problemMessage`. Ambos clientes muestran el texto del paquete:
+  - El subagente móvil actualizó sus escenarios (nota N2).
+  - El web lo dejó documentado sin cambiar la spec (D17).
+
+**Colisión de herramientas.** Los dos subagentes compartían el directorio temporal de la sesión, y el de web sobrescribió un script de simulación de CI del de móvil. El de móvil lo detectó, movió sus scripts a una carpeta propia y revisó que su árbol no tuviera cambios ajenos.
+
+**Pendiente de verificación manual:**
+- **Móvil 6.3:** prueba en un teléfono con Expo Go. La hago yo.
+- **Web 9.2:** teclado y Lighthouse. Se hizo contra una API simulada con la forma del contrato y falta repetirla contra la API real.
