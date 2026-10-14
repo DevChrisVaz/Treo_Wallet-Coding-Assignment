@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, userEvent } from '@testing-library/react-native';
 import { useState } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { theme } from '@/theme';
 
@@ -143,16 +144,23 @@ describe('Select', () => {
     { value: 'a2', label: 'Ahorro', description: '•••• 1234' },
   ];
 
+  const metrics = {
+    frame: { x: 0, y: 0, width: 390, height: 844 },
+    insets: { top: 0, left: 0, right: 0, bottom: 0 },
+  };
+
   function ControlledSelect() {
     const [value, setValue] = useState<string | undefined>(undefined);
     return (
-      <Select
-        label="Cuenta de origen"
-        placeholder="Elige una cuenta"
-        options={options}
-        value={value}
-        onChange={setValue}
-      />
+      <SafeAreaProvider initialMetrics={metrics}>
+        <Select
+          label="Cuenta de origen"
+          placeholder="Elige una cuenta"
+          options={options}
+          value={value}
+          onChange={setValue}
+        />
+      </SafeAreaProvider>
     );
   }
 
