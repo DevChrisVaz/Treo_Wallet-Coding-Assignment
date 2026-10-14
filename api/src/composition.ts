@@ -60,7 +60,10 @@ import { GetTransfer } from './modules/transfers/application/get-transfer.js';
 import { ResendTransferOtp } from './modules/transfers/application/resend-transfer-otp.js';
 import { IdempotencyGate } from './modules/transfers/application/idempotency-gate.js';
 import { TransferLocker } from './modules/transfers/application/transfer-locker.js';
-import { TransferOtpMailer } from './modules/transfers/application/transfer-emails.js';
+import {
+  ScheduledFailureMailer,
+  TransferOtpMailer,
+} from './modules/transfers/application/transfer-emails.js';
 import { PgTransferDetails } from './modules/transfers/infrastructure/pg-transfer-details.js';
 import { transferRoutes } from './modules/transfers/infrastructure/http/routes.js';
 import { businessDayOf } from './shared/business-day.js';
@@ -337,6 +340,7 @@ export async function createContainer(
         executor,
         store: transferStore,
         audit,
+        notifier: new ScheduledFailureMailer(mailer, logger, transferDetails),
         clock,
         logger,
         batchSize: config.scheduler.batchSize,

@@ -7,6 +7,7 @@ import type { AuditWriter } from '../../audit/application/audit-writer.js';
 import type { ResolvedRoute } from './destination-resolver.js';
 import type { LockedTransferExecutor } from './locked-transfer-executor.js';
 import type { DueTransfer, RejectionReason, ScheduledQueue, TransferStore } from './ports.js';
+import type { ScheduledFailureNotifier } from './transfer-emails.js';
 import { DayChangedWhileWaiting, type TransferLocker } from './transfer-locker.js';
 
 export interface ScheduledTransferRunnerDeps {
@@ -16,6 +17,8 @@ export interface ScheduledTransferRunnerDeps {
   readonly executor: LockedTransferExecutor;
   readonly store: TransferStore;
   readonly audit: AuditWriter;
+  /** Aviso al dueño de una programada que quedó FAILED, después del COMMIT (TRF-35). */
+  readonly notifier: ScheduledFailureNotifier;
   readonly clock: Clock;
   readonly logger: AppLogger;
   /** Candidatas por lote (D6: 100). */
@@ -77,11 +80,23 @@ export class ScheduledTransferRunner {
   }
 
   private async execute(candidate: DueTransfer): Promise<Outcome> {
+    let outcome: Outcome;
     try {
-      return await this.attempt(candidate);
+      outcome = await this.attempt(candidate);
     } catch (error) {
       if (!(error instanceof DayChangedWhileWaiting)) throw error;
-      return this.attempt(candidate);
+      outcome = await this.attempt(candidate);
+    }
+    // Después del COMMIT: el aviso nunca revierte ni repite la ejecución (TRF-35, D10).
+    if (outcome.kind === 'FAILED') await this.notifyFailure(candidate.id, outcome.reason);
+    return outcome;
+  }
+
+  private async notifyFailure(transferId: string, reason: RejectionReason): Promise<void> {
+    try {
+      await this.deps.notifier.notify(transferId, reason);
+    } catch (error) {
+      this.deps.logger.warn({ transferId, err: error }, 'scheduled transfer failure notice failed');
     }
   }
 

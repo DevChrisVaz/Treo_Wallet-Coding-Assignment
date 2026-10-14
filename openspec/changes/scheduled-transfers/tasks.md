@@ -14,7 +14,7 @@ Requiere `contract-v1-2` (paquete 1.2.0). La tarea 1.1 va antes de que cualquier
 - [x] 2.6 [api] Programar arriba del umbral: `PENDING_OTP` con fecha y correo con la fecha; confirmación a `SCHEDULED` sin revalidar; doble confirmación; vencida; confirmación después de medianoche (TRF-28, TRF-36)
 - [x] 2.7 [api] `ScheduledTransferRunner.runOnce` con el orden global de bloqueos, `SKIP LOCKED`, servicio de ejecución compartido con `createTransfer`, `COMPLETED` o `FAILED` con su motivo, actor `SYSTEM`, ejecución atrasada y cruce de medianoche; pruebas de integración con reloj falso (TRF-30, TRF-36, AUD-08)
 - [x] 2.8 [api] Concurrencia: dos ejecutores sobre 50 vencidas con conciliación, y ejecutor contra transferencias manuales de la misma cuenta sin deadlocks (TRF-31)
-- [ ] 2.9 [api] Correo de falla después del `COMMIT`; prueba del contenido en Mailpit y de la falla del envío sin revertir `FAILED` (TRF-35)
+- [x] 2.9 [api] Correo de falla después del `COMMIT`; prueba del contenido en Mailpit y de la falla del envío sin revertir `FAILED` (TRF-35)
 - [ ] 2.10 [api] Ruta `cancelTransfer`: `CANCELLED` con `cancelledAt`, doble cancelación, 409 con `transferStatus`, 404 ajena, evento `TRANSFER_CANCELLED` y carrera con el ejecutor con dos conexiones y una barrera (TRF-32, TRF-36, AUD-08)
 - [ ] 2.11 [api] Ruta `listScheduledTransfers` con orden, exclusión de los demás estados y aislamiento por usuario (TRF-33)
 - [ ] 2.12 [api] Programadas fuera del historial y del límite; `getTransfer` con `scheduledFor` y `cancelledAt`; conformidad de las respuestas con el contrato (TRF-34)

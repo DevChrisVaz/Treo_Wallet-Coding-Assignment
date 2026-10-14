@@ -83,4 +83,25 @@ describe('PLT-16 envío después del COMMIT', () => {
     expect(output).not.toContain('ana.gomez@example.com');
     expect(output).not.toContain('493817');
   });
+
+  it('TRF-35 un aviso con contexto se registra como WARN con su id y sin el destinatario', async () => {
+    const logs = captureLogger();
+    const status = await deliverAfterCommit(
+      failingMailer,
+      logs.logger,
+      { to: 'ana.gomez@example.com', subject: 'Aviso', text: 'No se realizó', html: '<p>No</p>' },
+      'scheduled-transfer-failed',
+      { level: 'warn', context: { transferId: '6c3501fc-d2e5-4ae9-86ce-4e386e6ffb2d' } },
+    );
+    expect(status).toBe('FAILED');
+    const [entry] = logs.entries();
+    expect(entry).toMatchObject({
+      level: 'warn',
+      msg: 'mail delivery failed',
+      template: 'scheduled-transfer-failed',
+      transferId: '6c3501fc-d2e5-4ae9-86ce-4e386e6ffb2d',
+    });
+    expect(entry).not.toHaveProperty('to');
+    expect(logs.text()).not.toContain('ana.gomez@example.com');
+  });
 });

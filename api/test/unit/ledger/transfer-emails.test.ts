@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   longSpanishDate,
+  scheduledFailureEmail,
   transferOtpEmail,
 } from '../../../src/modules/transfers/application/transfer-emails.js';
 import { Money } from '../../../src/shared/money.js';
@@ -38,5 +39,42 @@ describe('TRF-28 correo del OTP de una programada', () => {
     const email = transferOtpEmail({ ...base, scheduledFor: null });
     expect(email.text).not.toContain('Programada');
     expect(email).toEqual(transferOtpEmail(base));
+  });
+});
+
+describe('TRF-35 aviso de falla de una programada', () => {
+  const base = {
+    amount: Money.parse('1000.00'),
+    destinationName: 'Luis',
+    clabeLast4: '0031',
+    scheduledFor: '2026-10-15',
+  };
+
+  it('TRF-35 por saldo: monto, destino, últimos 4 dígitos, fecha en palabras y "saldo insuficiente"', () => {
+    const email = scheduledFailureEmail({ ...base, reason: 'INSUFFICIENT_FUNDS' });
+    expect(email.subject).toBe('Tu transferencia programada no se realizó');
+    for (const body of [email.text, email.html]) {
+      expect(body).toContain('$1,000.00');
+      expect(body).toContain('Luis');
+      expect(body).toContain('0031');
+      expect(body).toContain('15 de octubre de 2026');
+      expect(body).toContain('saldo insuficiente');
+    }
+  });
+
+  it('TRF-35 por límite: "se alcanzó el límite diario de transferencias"', () => {
+    const email = scheduledFailureEmail({ ...base, reason: 'DAILY_LIMIT_EXCEEDED' });
+    expect(email.text).toContain('se alcanzó el límite diario de transferencias');
+    expect(email.html).toContain('se alcanzó el límite diario de transferencias');
+  });
+
+  it('TRF-35 escapa el nombre del destino en el HTML', () => {
+    const email = scheduledFailureEmail({
+      ...base,
+      destinationName: '<b>Luis</b>',
+      reason: 'INSUFFICIENT_FUNDS',
+    });
+    expect(email.html).not.toContain('<b>Luis</b>');
+    expect(email.html).toContain('&lt;b&gt;Luis&lt;/b&gt;');
   });
 });
