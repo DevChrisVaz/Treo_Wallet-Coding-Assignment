@@ -137,9 +137,12 @@
     return { right };
   }
 
-  async function measure(iframe, board) {
+  async function measure(iframe, board, screen) {
     const doc = iframe.contentDocument, win = iframe.contentWindow;
     await until(() => doc.getElementById('r0') && doc.getElementById('r0').childElementCount);
+    // Pantallas a sangre (sin el margen de la tarjeta): con `min-h-dvh` y el margen, cada ajuste de
+    // alto agrandaba el viewport del iframe y el contenido volvía a crecer sin fin.
+    if (screen) doc.body.style.padding = '0';
     try { await doc.fonts.ready; } catch {}
     await frame(); await new Promise((r) => setTimeout(r, 150));
     const pad = parseFloat(win.getComputedStyle(doc.body).paddingLeft) || 0;
@@ -198,10 +201,12 @@
       const board = document.createElement('div'); board.className = 'board loading';
       board.innerHTML = `<div class="label">${c.name} / ${s}</div>`;
       const iframe = document.createElement('iframe');
-      iframe.style.width = BASE_W + 'px'; iframe.style.height = '320px';
+      const screen = c.group === screenGroup;
+      // Las pantallas parten del alto de una pantalla (844 px) para que las páginas cortas lo llenen.
+      iframe.style.width = BASE_W + 'px'; iframe.style.height = screen ? '844px' : '320px';
       iframe.title = `${c.name} / ${s}`;
       board.appendChild(iframe); boards.appendChild(board);
-      queue.push({ iframe, board, src: `${c.html}?story=${encodeURIComponent(s)}` });
+      queue.push({ iframe, board, screen, src: `${c.html}?story=${encodeURIComponent(s)}` });
       total++;
     }
   }
@@ -210,9 +215,9 @@
 
   async function worker() {
     while (queue.length) {
-      const { iframe, board, src } = queue.shift();
+      const { iframe, board, screen, src } = queue.shift();
       await new Promise((r) => { iframe.onload = r; iframe.src = src; });
-      try { await measure(iframe, board); } catch (e) { board.classList.remove('loading'); }
+      try { await measure(iframe, board, screen); } catch (e) { board.classList.remove('loading'); }
       status.textContent = `${++done} / ${total} historias`;
     }
   }
