@@ -17,5 +17,5 @@
 
 ## 4. Documentación y verificación
 
-- [ ] 4.1 [docs] README de la app: desbloqueo biométrico, comportamiento en Expo Go (huella en Android sí; Face ID en iOS requiere development build) y el alcance de seguridad con su seguimiento (MOB-24, MOB-25)
+- [x] 4.1 [docs] README de la app: desbloqueo biométrico, comportamiento en Expo Go (huella en Android sí; Face ID en iOS requiere development build) y el alcance de seguridad con su seguimiento (MOB-24, MOB-25)
 - [ ] 4.2 [docs] Verificación manual en el Android del usuario con Expo Go: activar, cerrar y abrir la app, volver de segundo plano antes y después de 60 segundos, cancelar el diálogo, "Usar mi contraseña" y apagar el interruptor (MOB-24, MOB-25, MOB-26, MOB-27)
