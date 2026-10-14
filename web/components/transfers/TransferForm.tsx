@@ -53,9 +53,19 @@ function defaults(props: TransferFormProps): TransferFormValues {
   };
 }
 
+/** Campos con control en este paso; el destino se eligió en el anterior y aquí no tiene campo. */
+const STEP_FIELDS: ReadonlySet<keyof TransferFormValues> = new Set([
+  'amount',
+  'fromAccountId',
+  'concept',
+  'reference',
+  'when',
+  'scheduledFor',
+]);
+
 /**
- * "Para": el destinatario elegido, con su avatar y su CLABE enmascarada. El destino se eligió en el
- * paso anterior y aquí no tiene campo: un error de la API sobre él se muestra en esta fila (WEB-33).
+ * "Para": el destinatario elegido, con su avatar y su CLABE enmascarada. Un error de la API sobre el
+ * destino se muestra en esta fila como alerta: no hay campo que reciba el foco (WEB-33, WEB-23).
  */
 function RecipientRow({
   accounts,
@@ -93,7 +103,11 @@ function RecipientRow({
               {to.label} · CLABE {maskClabe(to.clabe)}
             </p>
           ) : null}
-          {error ? <p className="text-caption text-danger">{error}</p> : null}
+          {error ? (
+            <p role="alert" className="text-caption text-danger">
+              {error}
+            </p>
+          ) : null}
         </div>
       </div>
     </ListSection>
@@ -123,14 +137,16 @@ export function TransferForm(props: TransferFormProps) {
   const origins = originsFor(accounts, recipient);
   const when = useWatch({ control, name: 'when' });
 
-  // Errores de campo que devolvió la API: junto a su campo, con el foco en el primero (WEB-33).
+  // Errores de campo que devolvió la API: junto a su campo, con el foco en el primero que tiene
+  // control en este paso (WEB-33); el del destino lo anuncia la fila "Para".
   useEffect(() => {
     const entries = Object.entries(serverFieldErrors(problem)) as [
       keyof TransferFormValues,
       string,
     ][];
-    entries.forEach(([field, message], index) => {
-      setError(field, { type: 'server', message }, { shouldFocus: index === 0 });
+    const focused = entries.find(([field]) => STEP_FIELDS.has(field))?.[0];
+    entries.forEach(([field, message]) => {
+      setError(field, { type: 'server', message }, { shouldFocus: field === focused });
     });
   }, [problem, setError]);
   const origin = accounts.find((account) => account.id === fromAccountId);

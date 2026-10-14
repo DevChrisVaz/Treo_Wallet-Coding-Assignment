@@ -312,6 +312,41 @@ describe('TransferForm · programar', () => {
     expect(screen.getByText('Para').parentElement).toHaveTextContent(message);
   });
 
+  it('WEB-33 WEB-23 el error del destino se anuncia como alerta, porque no hay campo que reciba el foco', () => {
+    const message = 'Elige un beneficiario';
+    renderForm({
+      initialValues: SCHEDULED_VALUES,
+      problem: problem('VALIDATION_FAILED', {
+        errors: [{ pointer: '/destination/beneficiaryId', code: 'INVALID_FORMAT', message }],
+      }),
+    });
+    expect(screen.getByRole('alert')).toHaveTextContent(message);
+  });
+
+  it('WEB-33 WEB-23 con un error del destino primero, el foco va al primer error con campo en este paso', () => {
+    const amountMessage =
+      'Una transferencia programada a un tercero no puede superar el límite diario de $50,000.00';
+    renderForm({
+      initialValues: SCHEDULED_VALUES,
+      problem: problem('VALIDATION_FAILED', {
+        errors: [
+          {
+            pointer: '/destination/beneficiaryId',
+            code: 'INVALID_FORMAT',
+            message: 'Elige un beneficiario',
+          },
+          { pointer: '/amount', code: 'TOO_LARGE', message: amountMessage },
+          { pointer: '/scheduledFor', code: 'DATE_OUT_OF_RANGE', message: OUT_OF_RANGE },
+        ],
+      }),
+    });
+    const amount = screen.getByLabelText('Monto');
+    expect(amount).toHaveFocus();
+    expect(amount).toHaveAccessibleDescription(expect.stringContaining(amountMessage));
+    expect(screen.getByLabelText('Fecha de envío')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('alert')).toHaveTextContent('Elige un beneficiario');
+  });
+
   it('WEB-23 con la fecha a la vista no hay problemas de accesibilidad', async () => {
     const { user } = renderForm();
     await fillScheduled(user, '2027-01-13');
