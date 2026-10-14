@@ -1,52 +1,50 @@
-import { useRouter } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import type { Account } from '@devchrisvaz/wallet-contract';
 
-import { Button, InlineAlert, Receipt, StatusBadge } from '@/components/ui';
+import { InlineAlert, Receipt } from '@/components/ui';
 import { errorMessage } from '@/lib/errors';
-import { theme } from '@/theme';
 
-import type { AttemptState, TransferAttempt } from './transfer-attempt';
+import type { AttemptState } from './transfer-attempt';
 
-type OutcomeState = Extract<AttemptState, { status: 'completed' | 'failed' | 'expired' }>;
+export type OutcomeState = Extract<AttemptState, { status: 'completed' | 'failed' | 'expired' }>;
 
-/** Resultado del intento con el estado real que devolvió la API (MOB-13). */
 interface OutcomeViewProps {
-  attempt: TransferAttempt;
   state: OutcomeState;
-  fromAccountName?: string | undefined;
+  /** Cuenta de origen: el comprobante muestra su nombre y su terminación de CLABE. */
+  account: Account | undefined;
 }
 
-export function OutcomeView({ attempt, state, fromAccountName }: OutcomeViewProps) {
-  const router = useRouter();
-  const home = (
-    <Button label="Ir a mis cuentas" variant="secondary" onPress={() => router.replace('/')} />
-  );
-
+/**
+ * Resultado del intento con el estado real que devolvió la API (MOB-13). Una falla o un
+ * vencimiento es el veredicto de la API sobre esa transferencia: el comprobante lo muestra, con el
+ * mensaje de su `code` arriba. Las acciones van en el pie del paso.
+ */
+export function OutcomeView({ state, account }: OutcomeViewProps) {
   if (state.status === 'completed') {
     return (
-      <View style={styles.container}>
+      <>
         {state.replayed ? (
           <InlineAlert
             tone="info"
             message="Tu transferencia ya se había registrado; este es su estado actual."
           />
         ) : null}
-        <Receipt transfer={state.transfer} fromAccountName={fromAccountName} />
-        {home}
-      </View>
+        <Receipt
+          transfer={state.transfer}
+          fromAccountName={account?.name}
+          fromAccountClabe={account?.clabe}
+        />
+      </>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBadge status={state.status === 'expired' ? 'EXPIRED' : 'FAILED'} />
+    <>
       <InlineAlert tone="danger" message={errorMessage(state.error)} />
-      <Button label="Intentar de nuevo" onPress={() => attempt.restart()} />
-      {home}
-    </View>
+      <Receipt
+        transfer={{ ...state.transfer, status: state.status === 'expired' ? 'EXPIRED' : 'FAILED' }}
+        fromAccountName={account?.name}
+        fromAccountClabe={account?.clabe}
+      />
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { gap: theme.spacing[4] },
-});

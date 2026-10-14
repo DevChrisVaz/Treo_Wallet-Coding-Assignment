@@ -17,17 +17,30 @@ export function viewFiles(dir: string = FEATURES): string[] {
   });
 }
 
-/** Vistas del flujo de transferencia que aún usan el router o el intento; la tarea 7.5 las vuelve puras y vacía esta lista. */
-const PENDING_7_5 = ['transfer/otp-view.tsx', 'transfer/outcome-view.tsx'];
-
 describe('vistas de pantalla puras', () => {
   test('MOB-18 MOB-22 ninguna vista importa navegación, consultas, sesión ni módulos nativos', () => {
     const files = viewFiles();
     // Sin vistas encontradas la revisión pasaría sin revisar nada (p. ej., si cambia la carpeta).
     expect(files.length).toBeGreaterThan(0);
-    const offenders = files
-      .filter((file) => !PENDING_7_5.some((pending) => file.endsWith(pending)))
-      .filter((file) => IMPURE.test(readFileSync(file, 'utf8')));
+    const offenders = files.filter((file) => IMPURE.test(readFileSync(file, 'utf8')));
     expect(offenders).toEqual([]);
+  });
+
+  test('MOB-21 cada pantalla tiene su vista pura', () => {
+    expect(
+      viewFiles()
+        .map((file) => file.split('/features/')[1])
+        .sort(),
+    ).toEqual([
+      'accounts/home-view.tsx',
+      'accounts/movements-view.tsx',
+      'auth/login-view.tsx',
+      'transfer/form-view.tsx',
+      'transfer/otp-view.tsx',
+      'transfer/outcome-view.tsx',
+      'transfer/recipient-view.tsx',
+      'transfer/review-view.tsx',
+      'transfer/transfer-flow-view.tsx',
+    ]);
   });
 });

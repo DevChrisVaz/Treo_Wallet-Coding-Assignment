@@ -21,10 +21,10 @@ describe('elegir beneficiario', () => {
     await renderApp({ fake, routes, initialUrl: '/transfer' });
 
     expect(
-      await screen.findByRole('button', { name: 'Luis, Luis Pérez · CLABE •••• 5678' }),
+      await screen.findByRole('button', { name: 'Luis, Luis Pérez, CLABE terminación 5678' }),
     ).toBeOnTheScreen();
     expect(
-      screen.getByRole('button', { name: 'Mamá, María Gómez · CLABE •••• 4321' }),
+      screen.getByRole('button', { name: 'Mamá, María Gómez, CLABE terminación 4321' }),
     ).toBeOnTheScreen();
     expect(screen.queryByText(/646180157000005678/)).toBeNull();
   });
@@ -50,7 +50,7 @@ describe('elegir beneficiario', () => {
     ).toBeOnTheScreen();
     expect(
       screen.queryAllByRole('button').map((button) => button.props.accessibilityLabel),
-    ).toEqual(['Cancelar']);
+    ).toEqual(['Salir de la transferencia']);
     expect(screen.queryByLabelText('CLABE')).toBeNull();
   });
 
@@ -72,5 +72,18 @@ describe('elegir beneficiario', () => {
     const fake = createFakeApi().on('GET', '/beneficiaries', problem(500, 'INTERNAL_ERROR'));
     await renderApp({ fake, routes, initialUrl: '/transfer' });
     expect(await screen.findByRole('alert')).toHaveTextContent(/Folio para soporte/);
+  });
+
+  test('MOB-21 el destinatario es el paso 1 de 5 y lo anuncia', async () => {
+    const fake = createFakeApi().on('GET', '/beneficiaries', json(200, { items: [luis, mama] }));
+    await renderApp({ fake, routes, initialUrl: '/transfer' });
+    expect(await screen.findByLabelText('Paso 1 de 5: Destinatario')).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: '¿A quién le envías?' })).toBeOnTheScreen();
+  });
+
+  test('MOB-21 si la consulta falla, el error dice qué lectura falló', async () => {
+    const fake = createFakeApi().on('GET', '/beneficiaries', 'network-error');
+    await renderApp({ fake, routes, initialUrl: '/transfer' });
+    expect(await screen.findByText('No pudimos cargar tus beneficiarios')).toBeOnTheScreen();
   });
 });

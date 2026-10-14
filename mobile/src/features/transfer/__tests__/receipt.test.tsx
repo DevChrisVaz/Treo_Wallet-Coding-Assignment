@@ -44,7 +44,7 @@ describe('comprobante', () => {
     expect(screen.getByText('Renta de octubre')).toBeOnTheScreen();
     expect(screen.queryByText('Renta')).toBeNull();
     expect(screen.getByText('7')).toBeOnTheScreen();
-    expect(screen.getByText('Principal')).toBeOnTheScreen();
+    expect(screen.getByText('Principal · •••• 9719')).toBeOnTheScreen();
     expect(screen.getByText('Luis · •••• 5678')).toBeOnTheScreen();
     expect(screen.getByText('13 oct 2026, 10:42')).toBeOnTheScreen();
     expect(screen.getByText(fromApi.id)).toBeOnTheScreen();
@@ -68,7 +68,7 @@ describe('comprobante', () => {
     const { user } = await completeTransfer(fake);
 
     await waitFor(() => expect(fake.requestsTo('GET', '/accounts')).toHaveLength(2));
-    await user.press(screen.getByRole('button', { name: 'Ir a mis cuentas' }));
+    await user.press(screen.getByRole('button', { name: 'Ver mis cuentas' }));
 
     expect(await screen.findByText('$23,500.00')).toBeOnTheScreen();
     expect(screen.queryByText('$25,000.00')).toBeNull();

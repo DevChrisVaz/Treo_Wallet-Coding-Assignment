@@ -20,7 +20,7 @@ async function openForm(fake: FakeApi) {
     routes: { 'transfer/send': TransferFlowScreen },
     initialUrl: `/transfer/send?beneficiaryId=${luis.id}`,
   });
-  await screen.findByText('Para Luis · CLABE •••• 5678');
+  await screen.findByText('Luis · CLABE •••• 5678');
   return userEvent.setup();
 }
 

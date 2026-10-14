@@ -77,6 +77,15 @@ describe('Stepper', () => {
     expect(screen.getByLabelText('Paso 4 de 5: Código')).toBeOnTheScreen();
     expect(screen.getByText('Paso 4 de 5 · Código')).toBeOnTheScreen();
   });
+
+  test('MOB-21 anuncia el paso desde el contenedor, una sola vez', async () => {
+    await render(<Stepper current={4} total={5} label="Código" />);
+    expect(screen.getByLabelText('Paso 4 de 5: Código')).toHaveProp(
+      'accessibilityLiveRegion',
+      'polite',
+    );
+    expect(screen.getByText('Paso 4 de 5 · Código')).not.toHaveProp('accessibilityLiveRegion');
+  });
 });
 
 describe('BrandScreen', () => {
