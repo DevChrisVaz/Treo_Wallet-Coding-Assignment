@@ -41,6 +41,17 @@ export const NoBeneficiaries = () => (
   </View>
 );
 
+// Con icono en un avatar grande, como en las pantallas rediseñadas.
+export const WithIcon = () => (
+  <View style={{ ...frame, backgroundColor: theme.colors.surface.canvas }}>
+    <EmptyState
+      icon="beneficiaries"
+      title="Aún no tienes beneficiarios"
+      description="Regístralos en la web de TreoWallet para poder enviarles dinero desde aquí."
+    />
+  </View>
+);
+
 export const InMovementsScreen = () => (
   <View style={{ ...frame, gap: theme.spacing[5] }}>
     <View style={{ gap: theme.spacing[1] }}>

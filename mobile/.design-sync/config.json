@@ -91,6 +91,46 @@
     },
     "Receipt": {
       "cardMode": "column"
+    },
+    "TabBar": {
+      "cardMode": "column"
+    },
+    "AppHeader": {
+      "cardMode": "column"
+    },
+    "FlowHeader": {
+      "cardMode": "column"
+    },
+    "BalanceHero": {
+      "cardMode": "column"
+    },
+    "QuickActions": {
+      "cardMode": "column"
+    },
+    "ListSection": {
+      "cardMode": "column"
+    },
+    "MovementList": {
+      "cardMode": "column"
+    },
+    "Stepper": {
+      "cardMode": "column"
+    },
+    "Avatar": {
+      "cardMode": "column"
+    },
+    "Icon": {
+      "cardMode": "column"
+    },
+    "IconButton": {
+      "cardMode": "column"
+    },
+    "BrandScreen": {
+      "cardMode": "column"
+    },
+    "BottomSheet": {
+      "cardMode": "single",
+      "viewport": "390x520"
     }
   },
   "dtsPropsFor": {
