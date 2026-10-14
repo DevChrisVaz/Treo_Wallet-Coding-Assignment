@@ -16,6 +16,7 @@ import type {
   TransferFormValues,
   TransferRecipient,
 } from '@/lib/client/transfer-flow';
+import { defaultOriginId, originsFor } from '@/lib/client/transfer-steps';
 import { maskClabe } from '@/lib/money';
 
 export interface TransferFormProps {
@@ -32,24 +33,11 @@ export interface TransferFormProps {
   onValuesChange?: ((values: TransferFormValues) => void) | undefined;
 }
 
-/** Cuentas que pueden ser el origen: todas menos la cuenta propia de destino (WEB-16). */
-function originsFor(accounts: Account[], recipient: TransferRecipient): Account[] {
-  return accounts.filter(
-    (account) =>
-      !(recipient.destinationType === 'OWN_ACCOUNT' && account.id === recipient.toAccountId),
-  );
-}
-
 function defaults(props: TransferFormProps): TransferFormValues {
   if (props.initialValues) return props.initialValues;
   const { recipient } = props;
-  const origins = originsFor(props.accounts, recipient);
-  const fromAccountId =
-    origins.find((account) => account.id === props.defaultFromAccountId)?.id ??
-    origins[0]?.id ??
-    '';
   return {
-    fromAccountId,
+    fromAccountId: defaultOriginId(props.accounts, recipient, props.defaultFromAccountId) ?? '',
     destinationType: recipient.destinationType,
     toAccountId: recipient.destinationType === 'OWN_ACCOUNT' ? recipient.toAccountId : '',
     beneficiaryId: recipient.destinationType === 'BENEFICIARY' ? recipient.beneficiaryId : '',

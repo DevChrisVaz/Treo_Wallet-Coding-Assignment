@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react';
 
+/** Cómo van las acciones de un paso: `fixed` abajo en teléfono (flujo), `inline` en páginas con pestañas. */
+export type StepActionsMode = 'fixed' | 'inline';
+
 export interface StepActionsProps {
   children: ReactNode;
   /** Dos botones apilados en teléfono: el espaciador reserva más alto. */

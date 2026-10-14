@@ -84,8 +84,16 @@ export function TransferFlow({
   const beneficiaries = useBeneficiaries();
   // Una relectura que falla con datos en caché no desmonta el intento en curso.
   if (!overview.data || !beneficiaries.data) {
+    // Con un acceso directo a un beneficiario se espera en el paso de monto, donde empezará.
+    const heading = defaultBeneficiaryId
+      ? flowHeading({
+          step: 'form',
+          draft: null,
+          recipient: { destinationType: 'BENEFICIARY', beneficiaryId: defaultBeneficiaryId },
+        })
+      : RECIPIENT;
     return (
-      <FlowFrame heading={RECIPIENT}>
+      <FlowFrame heading={heading}>
         {overview.isError || beneficiaries.isError ? (
           <ErrorState
             title="No pudimos cargar tus cuentas y beneficiarios"

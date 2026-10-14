@@ -6,7 +6,7 @@ import { axe } from 'vitest-axe';
 import { confirmTransfer } from '@/app/actions/transfers';
 import { bffGet } from '@/lib/client/bff';
 import { queryKeys } from '@/lib/client/query-keys';
-import { OVERVIEW, PRINCIPAL, pendingOtpTransfer, transfer } from '@/test/fixtures';
+import { OVERVIEW, PRINCIPAL, pendingOtpTransfer, problem, transfer } from '@/test/fixtures';
 import { setLocation } from '@/test/support/next-navigation';
 import { renderWithClient, testQueryClient } from '@/test/support/render';
 import { ReceiptStep } from './ReceiptStep';
@@ -134,6 +134,40 @@ describe('TransferDetailScreen', () => {
     const receipt = await screen.findByRole('region', { name: 'Comprobante' });
     expect(receipt).toHaveTextContent('$15,000.00');
     expect(within(receipt).getByText('Completada')).toBeVisible();
+  });
+
+  it('WEB-23 al confirmar el código en el detalle, el foco va al título del comprobante', async () => {
+    reads(pendingOtpTransfer());
+    confirmMock.mockResolvedValue({ ok: true, data: transfer({ amount: '15000.00' }) });
+    const user = userEvent.setup();
+    renderWithClient(<TransferDetailScreen transferId={transfer().id} />);
+
+    await user.type(await screen.findByLabelText('Código de 6 dígitos'), '123456');
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+
+    expect(await screen.findByRole('heading', { name: 'Transferencia enviada' })).toHaveFocus();
+  });
+
+  it('WEB-23 al abrir el detalle de una transferencia completada, su título no toma el foco', async () => {
+    reads(transfer());
+    renderWithClient(<TransferDetailScreen transferId={transfer().id} />);
+    expect(await screen.findByRole('heading', { name: 'Transferencia enviada' })).not.toHaveFocus();
+  });
+
+  it('WEB-18 WEB-23 al agotar los intentos en el detalle, el título lo dice, la alerta recibe el foco y el comprobante queda "Fallida"', async () => {
+    reads(pendingOtpTransfer());
+    confirmMock.mockResolvedValue({ ok: false, problem: problem('OTP_ATTEMPTS_EXHAUSTED') });
+    const user = userEvent.setup();
+    renderWithClient(<TransferDetailScreen transferId={transfer().id} />);
+
+    await user.type(await screen.findByLabelText('Código de 6 dígitos'), '000000');
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveFocus();
+    expect(screen.getByRole('heading', { name: 'La transferencia no se realizó' })).toBeVisible();
+    const receipt = screen.getByRole('region', { name: 'Comprobante' });
+    expect(within(receipt).getByText('Fallida')).toBeVisible();
   });
 
   it('WEB-20 si la lectura falla muestra el error con "Reintentar"', async () => {

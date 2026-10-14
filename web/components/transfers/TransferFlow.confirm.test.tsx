@@ -197,4 +197,21 @@ describe('TransferFlow · confirmación', () => {
       problemMessage('SAME_ACCOUNT_TRANSFER'),
     );
   });
+
+  it('WEB-23 el aviso de estado sin confirmar recibe el foco, no el título del paso', async () => {
+    createMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await fillTransfer(user);
+
+    await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+
+    const warning = (
+      await screen.findByText('No pudimos confirmar el estado de tu transferencia')
+    ).closest('[role="status"]');
+    expect(warning).toHaveFocus();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Estado sin confirmar' }),
+    ).not.toHaveFocus();
+  });
 });

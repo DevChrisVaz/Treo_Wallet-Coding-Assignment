@@ -226,4 +226,18 @@ describe('EndedStep', () => {
     expect(receipt).toHaveTextContent('Principal · •••• 9719');
     expect(screen.getByRole('link', { name: 'Ver mis cuentas' })).toHaveAttribute('href', '/');
   });
+
+  it('WEB-18 con TRANSFER_NOT_PENDING el comprobante muestra el estado que da la API', () => {
+    render(
+      <EndedStep
+        problem={problem('TRANSFER_NOT_PENDING', { status: 409, transferStatus: 'REJECTED' })}
+        transfer={pendingOtpTransfer()}
+        accounts={OVERVIEW.accounts}
+        onRestart={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(problemMessage('TRANSFER_NOT_PENDING'));
+    const receipt = screen.getByRole('region', { name: 'Comprobante' });
+    expect(within(receipt).getByText('Rechazada')).toBeVisible();
+  });
 });

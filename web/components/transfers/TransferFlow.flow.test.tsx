@@ -4,9 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { confirmTransfer, createTransfer, resendTransferOtp } from '@/app/actions/transfers';
 import { bffGet } from '@/lib/client/bff';
+import { queryKeys } from '@/lib/client/query-keys';
 import {
   AHORRO,
   BENEFICIARY,
+  OVERVIEW,
   PRINCIPAL,
   pendingOtpTransfer,
   problem,
@@ -242,7 +244,8 @@ describe('TransferFlow · flujo completo', () => {
     const user = userEvent.setup();
     renderWithClient(<TransferFlow defaultBeneficiaryId={BENEFICIARY.id} />);
     expect(await screen.findByRole('heading', { level: 1, name: '¿Cuánto envías?' })).toBeVisible();
-    expect(screen.getByText('Luis · CLABE •••• 9735')).toBeVisible();
+    // El título ya es el del monto mientras carga (fix round 1); el destinatario llega con los datos.
+    expect(await screen.findByText('Luis · CLABE •••• 9735')).toBeVisible();
     await user.type(screen.getByLabelText('Monto'), '10');
   });
 
@@ -274,5 +277,59 @@ describe('TransferFlow · flujo completo', () => {
     expect(updated).toHaveTextContent('Luis · •••• 9735');
     expect(updated).toHaveTextContent('$15,000.00');
     expect(updated).toHaveTextContent('Como el monto es mayor a $10,000.00');
+  });
+
+  it('WEB-20 si la relectura de las cuentas falla después del comprobante, el comprobante sigue a la vista', async () => {
+    createMock.mockResolvedValue({ ok: true, data: { transfer: transfer(), replayed: false } });
+    let accountsRead = 0;
+    bffGetMock.mockImplementation(async (path: string) => {
+      if (path === 'beneficiaries') return { items: [BENEFICIARY] };
+      if (path !== 'accounts') throw new Error(`Lectura inesperada: ${path}`);
+      accountsRead += 1;
+      if (accountsRead > 1) throw new TypeError('Failed to fetch');
+      return OVERVIEW;
+    });
+    const user = userEvent.setup();
+    const { client } = renderWithClient(<TransferFlow />);
+    await fillTransfer(user);
+    await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+    expect(await screen.findByRole('region', { name: 'Comprobante' })).toBeVisible();
+
+    // El comprobante pide releer las cuentas; esa relectura falla.
+    await waitFor(() => expect(client.getQueryState(queryKeys.accounts)?.status).toBe('error'));
+
+    expect(screen.getByRole('region', { name: 'Comprobante' })).toBeVisible();
+    expect(screen.getByRole('heading', { level: 1, name: 'Transferencia enviada' })).toBeVisible();
+    expect(
+      screen.queryByText('No pudimos cargar tus cuentas y beneficiarios'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('WEB-23 al agotar los intentos la alerta recibe el foco, no el título del paso', async () => {
+    createMock.mockResolvedValue({
+      ok: true,
+      data: { transfer: pendingOtpTransfer(), replayed: false },
+    });
+    confirmMock.mockResolvedValue({ ok: false, problem: problem('OTP_ATTEMPTS_EXHAUSTED') });
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await fillTransfer(user, '15,000');
+    await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+    await user.type(await screen.findByLabelText('Código de 6 dígitos'), '000000');
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveFocus();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'La transferencia no se realizó' }),
+    ).not.toHaveFocus();
+  });
+
+  it('WEB-30 con el beneficiario del acceso directo, mientras carga ya indica el paso 2 de 5', () => {
+    bffGetMock.mockImplementation(() => new Promise(() => undefined));
+    renderWithClient(<TransferFlow defaultBeneficiaryId={BENEFICIARY.id} />);
+    expect(screen.getByText('Cargando tus cuentas y beneficiarios')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: '¿Cuánto envías?' })).toBeVisible();
+    expect(screen.getByText('Paso 2 de 5 · Monto')).toBeVisible();
   });
 });

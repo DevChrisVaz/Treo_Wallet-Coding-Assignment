@@ -17,7 +17,7 @@ import { Button, buttonClasses } from '@/components/ui/Button';
 import { InlineAlert } from '@/components/ui/InlineAlert';
 import { OtpField } from '@/components/ui/OtpField';
 import { Receipt } from '@/components/ui/Receipt';
-import { StepActions } from '@/components/ui/StepActions';
+import { StepActions, type StepActionsMode } from '@/components/ui/StepActions';
 import type { ActionProblem } from '@/lib/action-result';
 import { contractResolver } from '@/lib/client/form-resolver';
 import { attempts, describeError, describeProblem } from '@/lib/client/problem-messages';
@@ -40,9 +40,6 @@ const otpForm = z.object({ otp: otpCode });
 interface OtpValues {
   otp: string;
 }
-
-/** `fixed`: abajo en teléfono, en el flujo (WEB-30); `inline`: en una página con pestañas (detalle). */
-export type StepActionsMode = 'fixed' | 'inline';
 
 export interface OtpStepProps {
   transfer: Transfer;
@@ -99,8 +96,8 @@ export function OtpStep({ transfer, onConfirmed, onEnded, actions = 'fixed' }: O
       }
       if (result.problem.code === 'OTP_INVALID') {
         // Los intentos que quedan también se leen junto al código, no solo en la alerta.
-        const left = (result.problem as { attemptsRemaining?: unknown }).attemptsRemaining;
-        if (typeof left === 'number') {
+        const left = result.problem.attemptsRemaining;
+        if (left !== undefined) {
           setChallenge((current) => (current ? { ...current, attemptsRemaining: left } : current));
         }
       }
@@ -196,7 +193,7 @@ export function OtpStep({ transfer, onConfirmed, onEnded, actions = 'fixed' }: O
 }
 
 /** Título de la alerta cuando el código lo dice; el general es el título del paso (FlowHeader). */
-function endedTitle(problem: ActionProblem): string | undefined {
+function endedAlertTitle(problem: ActionProblem): string | undefined {
   if (problem.code === 'DAILY_LIMIT_EXCEEDED') return 'Superaste tu límite diario';
   if (problem.code === 'INSUFFICIENT_FUNDS') return 'Saldo insuficiente';
   return undefined;
@@ -205,7 +202,8 @@ function endedTitle(problem: ActionProblem): string | undefined {
 /**
  * Cómo terminó la transferencia según la respuesta de la API: 422 `OTP_ATTEMPTS_EXHAUSTED` quiere
  * decir que quedó `FAILED`, y así la muestra el comprobante (como la insignia de outcome-view.tsx en la
- * app móvil). Sin un estado conocido no se muestra comprobante.
+ * app móvil). Si el problema trae el estado real (`transferStatus`, en `TRANSFER_NOT_PENDING`), manda
+ * ese. Sin un estado conocido no se muestra comprobante.
  */
 const ENDED_STATUS: Partial<Record<string, Transfer['status']>> = {
   OTP_ATTEMPTS_EXHAUSTED: 'FAILED',
@@ -231,10 +229,10 @@ export function EndedStep({
   onRestart,
   actions = 'fixed',
 }: EndedStepProps) {
-  const status = ENDED_STATUS[problem.code];
+  const status = problem.transferStatus ?? ENDED_STATUS[problem.code];
   return (
     <>
-      <InlineAlert tone="danger" title={endedTitle(problem)} focusOnMount>
+      <InlineAlert tone="danger" title={endedAlertTitle(problem)} focusOnMount>
         {describeProblem(problem)}
       </InlineAlert>
       {transfer && status ? (

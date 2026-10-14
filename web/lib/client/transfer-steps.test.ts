@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AHORRO,
   BENEFICIARY,
   OVERVIEW,
   PRINCIPAL,
@@ -115,5 +116,41 @@ describe('pasos del flujo', () => {
       },
       note: OTP_NOTICE,
     });
+  });
+
+  it('WEB-16 si el destino es la cuenta de origen por omisión, el resumen toma la otra como origen (R38)', () => {
+    const toPrincipal: TransferFlowState = {
+      step: 'form',
+      draft: null,
+      recipient: { destinationType: 'OWN_ACCOUNT', toAccountId: PRINCIPAL.id },
+    };
+    expect(transferSummary(toPrincipal, CTX).rows).toMatchObject({
+      desde: 'Ahorro · •••• 9722',
+      para: 'Principal · •••• 9719',
+    });
+    const cleared = {
+      ...draft('').values,
+      fromAccountId: '',
+      destinationType: 'OWN_ACCOUNT' as const,
+      toAccountId: PRINCIPAL.id,
+      beneficiaryId: '',
+    };
+    expect(transferSummary(toPrincipal, { ...CTX, live: cleared }).rows.desde).toBeUndefined();
+    expect(
+      transferSummary(toPrincipal, { ...CTX, live: { ...cleared, fromAccountId: AHORRO.id } }).rows
+        .desde,
+    ).toBe('Ahorro · •••• 9722');
+  });
+
+  it('WEB-18 si la API da el estado real de una transferencia que ya no está pendiente, el título lo sigue', () => {
+    const notPending = (transferStatus: 'EXPIRED' | 'REJECTED' | 'COMPLETED') =>
+      flowHeading({
+        step: 'ended',
+        problem: problem('TRANSFER_NOT_PENDING', { status: 409, transferStatus }),
+        transfer: null,
+      }).title;
+    expect(notPending('EXPIRED')).toBe('El código venció');
+    expect(notPending('REJECTED')).toBe('La transferencia no se realizó');
+    expect(notPending('COMPLETED')).toBe('Estado de la transferencia');
   });
 });

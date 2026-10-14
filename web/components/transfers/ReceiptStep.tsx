@@ -6,9 +6,8 @@ import Link from 'next/link';
 import { useEffect } from 'react';
 import { Button, buttonClasses } from '@/components/ui/Button';
 import { Receipt } from '@/components/ui/Receipt';
-import { StepActions } from '@/components/ui/StepActions';
+import { StepActions, type StepActionsMode } from '@/components/ui/StepActions';
 import { queryKeys } from '@/lib/client/query-keys';
-import type { StepActionsMode } from './OtpStep';
 
 export interface ReceiptStepProps {
   transfer: Transfer;
