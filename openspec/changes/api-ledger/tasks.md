@@ -56,7 +56,7 @@
 - [x] 6.9 [api] Pruebas de integración de idempotencia: doble envío (una transferencia, 200 con `Idempotent-Replayed`), respuesta perdida y reintento, rechazo reintentado tras fondear (mismo 422), llave con otro monto (422 `IDEMPOTENCY_KEY_REUSED`), `"100.5"` contra `"100.50"` (TRF-03, TRF-04)
 - [x] 6.10 [api] Pruebas de integración IDOR: origen ajeno, `OWN_ACCOUNT` ajena, beneficiario ajeno y Tesorería como destino responden 404 sin cambiar saldos (TRF-06, ACC-16)
 - [x] 6.11 [api] Pruebas de integración del límite: llegar exactamente a 50,000.00, excederlo con `remaining`, cuentas propias sin consumo, cruce de medianoche (23:59 → 00:01 de CDMX con `Clock` controlado), medianoche UTC sin reinicio (17:00 → 18:30 de CDMX) y reintento cuando el día cambia mientras se espera el bloqueo (TRF-11, TRF-12)
-- [ ] 6.12 [api] Pruebas de auditoría: eventos de creación y completado con monto y sin datos personales, y reversión completa si el insert de auditoría falla (TRF-25)
+- [x] 6.12 [api] Pruebas de auditoría: eventos de creación y completado con monto y sin datos personales, y reversión completa si el insert de auditoría falla (TRF-25)
 
 ## 7. Transferencias: OTP
 
