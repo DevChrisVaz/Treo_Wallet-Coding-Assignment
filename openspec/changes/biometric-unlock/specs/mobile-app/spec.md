@@ -38,7 +38,7 @@ Con el desbloqueo activo y un refresh token guardado, la app SHALL pedir la aute
 
 Una ausencia menor a 60 segundos MUST NOT pedirla.
 
-Mientras no se desbloquea, la app MUST mostrar una pantalla de bloqueo con dos botones: "Desbloquear", que vuelve a pedir la biometría, y "Usar mi contraseña". La pantalla MUST NOT mostrar saldos, movimientos ni datos personales. La pantalla de privacidad (MOB-16) MUST mantenerse hasta que la pantalla de bloqueo la sustituya. Si el usuario cancela el diálogo biométrico, la app MUST quedarse en la pantalla de bloqueo sin volver a abrir el diálogo por su cuenta.
+Mientras no se desbloquea, la app MUST mostrar una pantalla de bloqueo con dos botones: "Desbloquear con <tipo>" (por ejemplo, "Desbloquear con huella"), que vuelve a pedir la biometría, y "Usar mi contraseña". La pantalla MUST NOT mostrar saldos, movimientos ni datos personales. La pantalla de privacidad (MOB-16) MUST mantenerse hasta que la pantalla de bloqueo la sustituya. Si el usuario cancela el diálogo biométrico, la app MUST quedarse en la pantalla de bloqueo sin volver a abrir el diálogo por su cuenta.
 
 #### Scenario: Apertura en frío con desbloqueo activo
 - **WHEN** Ana abre la app con el desbloqueo activo y una sesión guardada
@@ -55,7 +55,7 @@ Mientras no se desbloquea, la app MUST mostrar una pantalla de bloqueo con dos b
 
 #### Scenario: Diálogo cancelado
 - **WHEN** Ana cancela el diálogo biométrico
-- **THEN** la app sigue en la pantalla de bloqueo con "Desbloquear" y "Usar mi contraseña", sin mostrar saldos
+- **THEN** la app sigue en la pantalla de bloqueo con "Desbloquear con huella" y "Usar mi contraseña", sin mostrar saldos
 
 #### Scenario: Desbloqueo inactivo
 - **WHEN** Ana abre la app con el desbloqueo inactivo y una sesión guardada
@@ -84,7 +84,7 @@ Amplía MOB-04.
 - **THEN** la pantalla de bloqueo muestra "Demasiados intentos. Intenta más tarde o usa tu contraseña." con ambas opciones
 
 ### Requirement: MOB-27 Desactivación del desbloqueo
-Cerrar sesión (MOB-04) o una sesión revocada (MOB-03) SHALL desactivar el desbloqueo y borrar su preferencia, incluida la respuesta "Ahora no". Así, el siguiente inicio de sesión con contraseña vuelve a ofrecerlo. Desactivar el interruptor MUST borrar la preferencia sin cerrar la sesión.
+Cerrar sesión (MOB-04) o una sesión revocada (MOB-03) SHALL desactivar el desbloqueo y borrar su preferencia, incluida la respuesta "Ahora no". Así, el siguiente inicio de sesión con contraseña vuelve a ofrecerlo. Desactivar el interruptor MUST borrar la preferencia sin cerrar la sesión y MUST NOT volver a mostrar la oferta de MOB-24, que solo aparece después de un inicio de sesión con contraseña.
 
 #### Scenario: Cierre de sesión
 - **WHEN** Ana, con el desbloqueo activo, cierra sesión y vuelve a iniciar sesión con contraseña

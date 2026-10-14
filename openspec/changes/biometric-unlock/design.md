@@ -72,7 +72,7 @@ El resultado de `authenticateAsync` se traduce así:
 | Cualquier otro error | Muestra un mensaje genérico y conserva ambas opciones |
 
 ### D6. Ofrecer y activar
-Después del inicio de sesión exitoso (MOB-01), y solo si la preferencia está vacía y el dispositivo tiene biometría registrada, la pantalla de inicio muestra una tarjeta "Entrar con tu huella", con "Activar" y "Ahora no". Una tarjeta es mejor que un diálogo modal: no interrumpe y es accesible con el lector de pantalla.
+Después del inicio de sesión exitoso con contraseña (MOB-01), y solo si la preferencia está vacía y el dispositivo tiene biometría registrada, la pantalla de inicio muestra una tarjeta "Entrar con tu huella", con "Activar" y "Ahora no". La oferta queda ligada a ese inicio de sesión: la pantalla de inicio de sesión la marca como pendiente y cualquier respuesta, el uso del interruptor o el cierre de sesión la terminan. Así, apagar el interruptor (que borra la preferencia) no la vuelve a mostrar, y restaurar una sesión guardada tampoco. Una tarjeta es mejor que un diálogo modal: no interrumpe y es accesible con el lector de pantalla.
 
 El interruptor "Desbloqueo con <tipo>" en la pantalla de inicio sigue estas reglas:
 - encenderlo pide la biometría;
