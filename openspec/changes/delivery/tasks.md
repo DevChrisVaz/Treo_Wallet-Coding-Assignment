@@ -31,8 +31,8 @@
 
 ## 4. Bitácora de AI y video
 
-- [ ] 4.1 [docs] Completar `docs/ai-log.md` con una entrada por sesión de implementación, las correcciones hechas a la AI (destacando cualquier propuesta insegura o incorrecta con el dinero) y un resumen final del flujo spec-first
-- [ ] 4.2 [docs] Escribir el guion del video en `docs/video-script.md` según D15, incluido el intento con saldo insuficiente, la bandeja de Mailpit y la pérdida de red en móvil (TRF, WEB, MOB)
+- [x] 4.1 [docs] Completar `docs/ai-log.md` con una entrada por sesión de implementación, las correcciones hechas a la AI (destacando cualquier propuesta insegura o incorrecta con el dinero) y un resumen final del flujo spec-first
+- [x] 4.2 [docs] Escribir el guion del video en `docs/video-script.md` según D15, incluido el intento con saldo insuficiente, la bandeja de Mailpit y la pérdida de red en móvil (TRF, WEB, MOB)
 - [ ] 4.3 [docs] Grabar el video (≤ 5 min) siguiendo el guion y enlazarlo en el README
 
 ## 5. Verificación final
