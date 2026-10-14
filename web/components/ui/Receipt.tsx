@@ -1,5 +1,7 @@
 import { formatMXN, type Account, type Transfer } from '@devchrisvaz/wallet-contract';
+import { toneIcon } from '@devchrisvaz/wallet-design-tokens';
 import { useId, type ReactNode } from 'react';
+import { TRANSFER_STATUS } from '@/lib/conventions';
 import { formatDateTime } from '@/lib/format';
 import { maskClabe } from '@/lib/money';
 import { Avatar } from './Avatar';
@@ -32,9 +34,10 @@ function Row({ term, children }: { term: string; children: ReactNode }) {
 
 /**
  * Comprobante (D7 de design-system, WEB-16): estado, monto, origen, destino, concepto, referencia,
- * fecha y folio (`transferId`). El título "Comprobante" nombra la región para lectores de pantalla;
- * a la vista, el paso del flujo ya lo dice y la tarjeta empieza con el icono y el estado, como en la
- * app móvil (WEB-25).
+ * fecha y folio (`transferId`). El icono sigue el tono del estado, como la insignia: éxito, error
+ * (fallida o rechazada), aviso (pendiente) o información (vencida). El título "Comprobante" nombra la
+ * región para lectores de pantalla; a la vista, el paso del flujo ya lo dice y la tarjeta empieza con
+ * el icono y el estado, como en la app móvil (WEB-25).
  */
 export function Receipt({ transfer, fromAccount }: ReceiptProps) {
   const titleId = useId();
@@ -63,7 +66,7 @@ export function Receipt({ transfer, fromAccount }: ReceiptProps) {
       <Avatar
         size="lg"
         tone={transfer.status === 'COMPLETED' ? 'success' : 'neutral'}
-        icon={transfer.status === 'COMPLETED' ? 'success' : 'info'}
+        icon={toneIcon[TRANSFER_STATUS[transfer.status].tone]}
       />
       <StatusBadge status={transfer.status} />
       <p className="text-display text-fg tabular-nums">{formatMXN(transfer.amount)}</p>

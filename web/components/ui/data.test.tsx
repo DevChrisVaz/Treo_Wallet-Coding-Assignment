@@ -178,6 +178,21 @@ describe('Receipt', () => {
     expect(screen.getByText('Luis')).toHaveClass("after:content-['_·']");
   });
 
+  it.each([
+    ['COMPLETED', 'lucide-circle-check'],
+    ['FAILED', 'lucide-circle-alert'],
+    ['REJECTED', 'lucide-circle-alert'],
+    ['PENDING_OTP', 'lucide-triangle-alert'],
+    ['EXPIRED', 'lucide-info'],
+  ] as const)(
+    'WEB-16 el icono del comprobante sigue el tono del estado %s (%s)',
+    (status, icon) => {
+      render(<Receipt transfer={transfer({ status })} fromAccount={PRINCIPAL} />);
+      const avatar = screen.getByRole('region', { name: 'Comprobante' }).querySelector('span');
+      expect(avatar?.querySelector('svg')).toHaveClass(icon);
+    },
+  );
+
   it('WEB-16 sin los datos de la cuenta de origen muestra su identificador', () => {
     render(<Receipt transfer={transfer()} />);
     expect(screen.getByRole('region', { name: 'Comprobante' })).toHaveTextContent(PRINCIPAL.id);
