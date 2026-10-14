@@ -3,3 +3,7 @@ node_modules/
 coverage/
 next-env.d.ts
 package-lock.json
+# design-sync (Claude Design): entradas de la sincronización y salidas locales, no son código de la app
+.design-sync/
+.ds-sync/
+ds-bundle/
