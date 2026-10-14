@@ -103,4 +103,12 @@ describe('RegisterForm', () => {
     const { container } = render(<RegisterForm />);
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it('WEB-31 WEB-25 el botón ocupa todo el ancho y la invitación al inicio de sesión va fuera del formulario', () => {
+    const { container } = render(<RegisterForm />);
+    expect(screen.getByRole('button', { name: 'Crear cuenta' })).toHaveClass('w-full');
+    const invitation = screen.getByRole('link', { name: 'Inicia sesión' });
+    expect(container.querySelector('form')?.contains(invitation)).toBe(false);
+    expect(invitation).toHaveClass('min-h-11');
+  });
 });

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Wordmark } from '@/components/ui/Wordmark';
-import { MAIN_CONTENT_ID, SkipLink } from './PageShell';
+import { MAIN_CONTENT_ID, SkipLink } from './SkipLink';
 
 /**
  * Pantallas públicas sobre la superficie de marca (WEB-31): a pantalla completa en la forma de app

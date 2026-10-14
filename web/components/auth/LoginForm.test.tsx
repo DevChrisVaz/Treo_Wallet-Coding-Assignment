@@ -118,4 +118,12 @@ describe('LoginForm', () => {
     const { container } = render(<LoginForm notice="expired" />);
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it('WEB-31 WEB-25 el botón ocupa todo el ancho y la invitación al registro va fuera del formulario', () => {
+    const { container } = render(<LoginForm />);
+    expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toHaveClass('w-full');
+    const invitation = screen.getByRole('link', { name: 'Regístrate' });
+    expect(container.querySelector('form')?.contains(invitation)).toBe(false);
+    expect(invitation).toHaveClass('min-h-11');
+  });
 });

@@ -4,7 +4,7 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { SideNav } from '@/components/ui/SideNav';
 import { TabBar, type NavItem } from '@/components/ui/TabBar';
 import { TopBar } from '@/components/ui/TopBar';
-import { MAIN_CONTENT_ID, SkipLink } from './PageShell';
+import { MAIN_CONTENT_ID, SkipLink } from './SkipLink';
 
 export const DEFAULT_NAV_ITEMS: readonly NavItem[] = [
   { key: 'home', href: '/' },
