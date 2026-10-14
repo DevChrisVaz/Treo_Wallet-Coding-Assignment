@@ -116,6 +116,34 @@ describe('MovementsScreen', () => {
     );
   });
 
+  it('WEB-14 con "Desde" posterior a "Hasta" marca "Hasta" y no consulta la API hasta corregirlo', async () => {
+    reads(() => PAGE_2);
+    const user = userEvent.setup();
+    renderWithClient(<MovementsScreen accountId={PRINCIPAL.id} />);
+    await screen.findByText('Depósito inicial');
+
+    await user.type(screen.getByLabelText('Hasta'), '2026-10-11');
+    await user.type(screen.getByLabelText('Desde'), '2026-10-12');
+
+    const to = screen.getByLabelText('Hasta');
+    expect(to).toHaveAttribute('aria-invalid', 'true');
+    expect(to).toHaveAccessibleDescription(/Elige una fecha igual o posterior a la de Desde\./);
+    expect(movementCalls().some((params) => params.from === '2026-10-12')).toBe(false);
+    expect(screen.queryByText('No pudimos cargar los movimientos')).not.toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText('Desde'));
+    await user.type(screen.getByLabelText('Desde'), '2026-10-01');
+
+    await waitFor(() =>
+      expect(movementCalls().at(-1)).toMatchObject({
+        from: '2026-10-01',
+        to: '2026-10-11',
+        cursor: undefined,
+      }),
+    );
+    expect(screen.getByLabelText('Hasta')).not.toHaveAttribute('aria-invalid');
+  });
+
   it('WEB-14 ante INVALID_CURSOR vuelve a cargar la primera página con los filtros actuales', async () => {
     let firstPageLoads = 0;
     reads(({ cursor }) => {

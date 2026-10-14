@@ -23,6 +23,14 @@ function hasFilters(filters: MovementFilters): boolean {
   return filters.from !== '' || filters.to !== '' || filters.types.length > 0;
 }
 
+/** Error de "Hasta" cuando el rango está invertido; la API respondería 422 (WEB-14). */
+const INVERTED_RANGE = 'Elige una fecha igual o posterior a la de Desde.';
+
+/** Las fechas son `AAAA-MM-DD`, así que se comparan bien como texto. */
+function isInvertedRange(filters: MovementFilters): boolean {
+  return filters.from !== '' && filters.to !== '' && filters.from > filters.to;
+}
+
 function isInvalidCursor(error: unknown): boolean {
   return error instanceof ProblemError && error.code === 'INVALID_CURSOR';
 }
@@ -38,6 +46,7 @@ export function MovementsScreen({ accountId }: { accountId: string }) {
   const overview = useAccountsOverview();
   const [filters, setFilters] = useState<MovementFilters>(NO_FILTERS);
   const queryKey = useMemo(() => queryKeys.movements(accountId, filters), [accountId, filters]);
+  const invertedRange = isInvertedRange(filters);
 
   const movements = useInfiniteQuery({
     queryKey,
@@ -50,6 +59,7 @@ export function MovementsScreen({ accountId }: { accountId: string }) {
       }),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
+    enabled: !invertedRange,
   });
 
   // Un cursor que ya no corresponde a los filtros: se recarga la primera página (WEB-14).
@@ -99,6 +109,7 @@ export function MovementsScreen({ accountId }: { accountId: string }) {
           type="date"
           value={filters.to}
           min={filters.from || undefined}
+          error={invertedRange ? INVERTED_RANGE : undefined}
           onChange={(event) => setFilters((current) => ({ ...current, to: event.target.value }))}
         />
       </div>
@@ -120,7 +131,7 @@ export function MovementsScreen({ accountId }: { accountId: string }) {
         </div>
       </fieldset>
 
-      {movements.isPending || invalidCursor ? (
+      {invertedRange ? null : movements.isPending || invalidCursor ? (
         <LoadingState label="Cargando movimientos" />
       ) : movements.isError && !movements.isFetchNextPageError ? (
         <ErrorState
