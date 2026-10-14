@@ -1,8 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { BottomSheet, BrandScreen, Stepper } from '..';
+import { BottomSheet, BrandScreen, OptionRow, Stepper } from '..';
 
 const metrics = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -34,6 +34,26 @@ describe('BottomSheet', () => {
     );
     fireEvent.press(screen.getByRole('button', { name: 'Cerrar' }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test('DSG-17 una lista larga hace scroll dentro de una hoja de como máximo 85 %', async () => {
+    const options = Array.from({ length: 30 }, (_, index) => ({
+      value: `a${index}`,
+      label: `Cuenta ${index + 1}`,
+    }));
+    await render(
+      <SafeAreaProvider initialMetrics={metrics}>
+        <BottomSheet open onClose={() => {}} title="Cuenta de origen">
+          {options.map((option) => (
+            <OptionRow key={option.value} option={option} onPress={() => {}} />
+          ))}
+        </BottomSheet>
+      </SafeAreaProvider>,
+    );
+    expect(screen.getByTestId('bottom-sheet')).toHaveStyle({ maxHeight: '85%' });
+    expect(
+      within(screen.getByTestId('bottom-sheet-body')).getByRole('button', { name: 'Cuenta 30' }),
+    ).toBeOnTheScreen();
   });
 });
 

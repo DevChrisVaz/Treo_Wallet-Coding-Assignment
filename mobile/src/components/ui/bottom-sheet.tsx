@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { theme } from '@/theme';
@@ -21,6 +21,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
       testID="bottom-sheet-modal"
       visible={open}
       transparent
+      statusBarTranslucent
       animationType="slide"
       onRequestClose={onClose}
     >
@@ -43,7 +44,14 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
             </Text>
             <IconButton icon="close" label="Cerrar" onPress={onClose} />
           </View>
-          <View style={styles.body}>{children}</View>
+          <ScrollView
+            testID="bottom-sheet-body"
+            bounces={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.body}
+          >
+            {children}
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -63,6 +71,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: theme.radius.lg,
     backgroundColor: theme.colors.surface.default,
     paddingHorizontal: theme.spacing[5],
+    maxHeight: '85%',
     paddingTop: theme.spacing[3],
     ...theme.elevation.sheet,
   },

@@ -39,5 +39,5 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] },
   close: { marginLeft: -theme.spacing[3] },
-  title: { ...theme.typography.h3, color: theme.colors.text.primary },
+  title: { ...theme.typography.h3, flex: 1, color: theme.colors.text.primary },
 });
