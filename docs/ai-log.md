@@ -386,3 +386,31 @@ Un subagente implementó `account-statements` en su worktree: 12 de 13 tareas. L
 **Corrección de la AI principal al revisar.** El subagente reportó que Express responde HEAD con el handler de GET: un HEAD generaba el PDF y registraba `STATEMENT_EXPORTED` sin entregar nada. La AI principal escribió primero la prueba, que falló con 200 en lugar de 405, y luego hizo que la ruta responda 405 con `Allow: GET` antes de generar.
 
 **Pendiente para la verificación 3.1.** Antes de abrir la web hay que correr `npm run db:migrate` en la base de desarrollo. Sin esa migración, cada descarga responde 500, porque la auditoría falla, que es justo lo que pide AUD-07.
+
+### Transferencias programadas en la API
+
+Un subagente implementó el grupo 2 de `scheduled-transfers` (14 de 14 tareas) en su worktree. La AI principal volvió a correr la suite completa antes de integrar: 130 archivos y 989 pruebas contra PostgreSQL y Mailpit, con lint, typecheck y formato limpios. También revisó la paginación del ejecutor. El cursor compara la tupla completa `(scheduled_for, created_at, id)` y no solo el id, así que ningún lote salta ni repite programadas.
+
+**Mutaciones que las pruebas detectan,** cada una revertida desde una copia del archivo:
+- **Quitar la reverificación `status = 'SCHEDULED'` bajo bloqueo:** en tres de tres corridas, un segundo ejecutor volvió a asentar una transferencia y lo detuvo `uq_ledger_entries_transfer_account`. En la carrera con la cancelación, intentó ejecutar una cancelada.
+- **Quitar `SKIP LOCKED`.**
+- **Bloquear la transferencia antes que el contador:** lo detecta una prueba dedicada que retiene el contador y comprueba con `NOWAIT` que la transferencia sigue libre.
+- **Quitar el bloqueo del usuario en el tope de 20:** dos peticiones simultáneas recibieron 201.
+- **Poner siempre la fecha en la huella:** falla contra una huella fijada con el código anterior y verificada aparte en Python.
+- **Enviar el aviso de falla dentro de la transacción.**
+
+Dos mutaciones siguieron en verde y el subagente explicó por qué:
+- **La reverificación de estado no se ve en las pruebas secuenciales,** porque la consulta de candidatas ya filtra por estado.
+- **El orden de bloqueos invertido no produce un deadlock con `SKIP LOCKED`,** solo hace esperar a los demás. Por eso existe la prueba dedicada de `NOWAIT`.
+
+**Desviaciones del diseño, ya registradas en su `design.md`:**
+- **Validación de la fecha después de reclamar la llave.** Así, un reintento que llega después de medianoche devuelve la programada y no un `DATE_OUT_OF_RANGE`.
+- **Un `down` que se niega si alguna fila tiene `scheduled_for`.** Esto mostró que el plan de reversión del diseño no se podía ejecutar tal como estaba escrito.
+- **Paginación por cursor,** para evitar un ciclo infinito si un lote completo falla siempre.
+- **Una primera pasada al arrancar** la API.
+
+**Errores del subagente que él mismo encontró:**
+- **Una aserción que nunca podía fallar.** Filtraba los logs de error por el nivel numérico de pino (`>= 50`), pero el logger escribe la etiqueta `"error"`. Lo descubrió una tarea después. Tras corregirla, esa aserción es la que detecta la doble ejecución una vez que los errores quedan aislados por transferencia.
+- **La prueba de migraciones (PLT-15)** revertía sobre filas que dejó otro archivo. El nuevo `down` protegido se negó, la reversión quedó a medias y tiró los archivos siguientes. La prueba ahora empieza con tablas vacías.
+
+**Riesgo que queda:** con relojes de instancias desfasados unos segundos, confirmar una programada no vuelve a contar el tope, así que podrían quedar 21. Un aviso de falla que no se envía no se reintenta; el outbox queda como seguimiento.
