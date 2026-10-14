@@ -185,7 +185,9 @@ Estructura del README:
 7. **Qué haría con más tiempo** (lista acordada).
 8. Nota de alcance: se aceptó exceder las 10–14 h estimadas, y por qué.
 
-Los comandos y puertos se toman de los README de cada proyecto (no se inventan); el README raíz enlaza a ellos en lugar de duplicar detalles.
+Los comandos y puertos se toman de los README de cada proyecto (no se inventan).
+
+**Cambio por decisión del usuario (2026-10-14):** el README raíz no solo enlaza a los README de cada proyecto, sino que **reúne toda su información** en secciones comunes: instalación de todos los proyectos, configuración, ejecución, pruebas, scripts, cómo funciona cada uno, verificaciones manuales y avisos conocidos. Al final tiene **una sola** sección "¿Qué haría con más tiempo?". Los README de cada proyecto se conservan, porque cada proyecto se separará en su propio repositorio. Su sección "Qué haría con más tiempo" remite a la del README raíz.
 
 Alternativa descartada: generar el README completo con un script (frágil y difícil de leer; solo se genera la matriz de trazabilidad).
 
@@ -234,7 +236,7 @@ Alternativa descartada: un script en Node/TypeScript (necesitaría un `package.j
 
 - [Las decisiones de AWS aún no las revisó el usuario] → Se proponen aquí con alternativas; la tarea de redacción del documento empieza por confirmarlas.
 - [Los objetivos de RPO/RTO y el plazo de retención son supuestos] → Se presentan explícitamente como objetivos a validar con riesgo y cumplimiento, no como hechos.
-- [El README puede desincronizarse de los proyectos] → El README raíz enlaza a los README de cada proyecto y solo resume; la matriz se regenera con `trace.sh`.
+- [El README raíz duplica el contenido de los README de cada proyecto y puede desincronizarse] → Al cambiar el README de un proyecto se actualiza también el raíz, y la verificación final (grupo 5) los compara; la matriz se regenera con `trace.sh`.
 - [`trace.sh` depende de que los commits respeten los trailers] → `--check` en un paso del cierre; los huecos se corrigen o se documentan.
 - [Diferencias entre GNU y BSD en `grep`/`awk`/`sed`] → El script usa solo opciones POSIX y `grep -E`; se prueba en Linux y se documenta el requisito.
 - [Exceder el tiempo del enunciado] → Decisión consciente del usuario, declarada en el README y en el ai-log.
