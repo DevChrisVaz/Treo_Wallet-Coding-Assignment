@@ -19,6 +19,14 @@ import { StepHeading } from './StepHeading';
  * de cada paso van en línea.
  */
 export function TransferDetailScreen({ transferId }: { transferId: string }) {
+  return (
+    <div className="grid gap-5 dashboard:max-w-2xl">
+      <TransferDetailContent transferId={transferId} />
+    </div>
+  );
+}
+
+function TransferDetailContent({ transferId }: { transferId: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const overview = useAccountsOverview();

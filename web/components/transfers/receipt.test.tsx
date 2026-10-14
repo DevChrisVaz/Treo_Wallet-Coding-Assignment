@@ -122,6 +122,21 @@ describe('TransferDetailScreen', () => {
     );
   });
 
+  it('WEB-25 WEB-27 el detalle muestra el comprobante y "Ver mis cuentas" en línea, sin tapar las pestañas', async () => {
+    reads(transfer());
+    renderWithClient(<TransferDetailScreen transferId={transfer().id} />);
+    await screen.findByRole('region', { name: 'Comprobante' });
+    const back = screen.getByRole('link', { name: 'Ver mis cuentas' });
+    expect(back).toHaveAttribute('href', '/');
+    expect(back.closest('.fixed')).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Hacer otra transferencia' }),
+    ).not.toBeInTheDocument();
+    // El h1 es del shell: la pantalla solo aporta h2.
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 2 }).length).toBeGreaterThan(0);
+  });
+
   it('WEB-18 una transferencia pendiente pide el código y al confirmarla muestra el comprobante', async () => {
     reads(pendingOtpTransfer());
     confirmMock.mockResolvedValue({ ok: true, data: transfer({ amount: '15000.00' }) });
