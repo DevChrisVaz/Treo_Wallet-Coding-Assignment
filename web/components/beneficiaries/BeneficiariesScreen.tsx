@@ -14,7 +14,6 @@ export function BeneficiariesScreen() {
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-h1">Beneficiarios</h1>
         <Link href="/beneficiaries/new" className={buttonClasses('primary')}>
           Agregar beneficiario
         </Link>

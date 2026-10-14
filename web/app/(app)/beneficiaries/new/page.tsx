@@ -10,7 +10,6 @@ export default function NewBeneficiaryPage() {
       <Link href="/beneficiaries" className="text-body-sm text-action underline underline-offset-2">
         Volver a beneficiarios
       </Link>
-      <h1 className="text-h1">Agregar beneficiario</h1>
       <NewBeneficiaryForm />
     </div>
   );

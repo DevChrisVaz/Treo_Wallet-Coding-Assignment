@@ -17,13 +17,6 @@ export function AccountsOverviewScreen() {
 
   return (
     <div className="grid gap-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-h1">Tus cuentas</h1>
-        <Link href="/transfers/new" className={buttonClasses('primary')}>
-          Nueva transferencia
-        </Link>
-      </div>
-
       {overview.isPending ? (
         <LoadingState label="Cargando tus cuentas" variant="card" count={2} />
       ) : overview.isError ? (

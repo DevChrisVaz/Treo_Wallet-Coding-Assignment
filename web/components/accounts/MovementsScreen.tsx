@@ -81,8 +81,6 @@ export function MovementsScreen({ accountId }: { accountId: string }) {
 
   return (
     <div className="grid gap-6">
-      <h1 className="text-h1">Movimientos</h1>
-
       <div className="grid gap-4 sm:grid-cols-3">
         {overview.data ? (
           <Select

@@ -4,6 +4,8 @@
  * caracteres de control.
  */
 
+import type { NavDestination } from '@devchrisvaz/wallet-design-tokens';
+
 const INTERNAL_PATH = /^\/(?![/\\])[^\s\\]*$/;
 const PUBLIC_PATHS = ['/login', '/register', '/verify-email'];
 
@@ -31,4 +33,44 @@ export function loginPath(next?: string | null, reason?: 'expired'): string {
   if (reason) params.set('reason', reason);
   const query = params.toString();
   return query ? `/login?${query}` : '/login';
+}
+
+export interface AppSection {
+  current: NavDestination | null;
+  title: string;
+  mode: 'tabs' | 'flow';
+  /** Acción principal de la barra superior del dashboard. */
+  primary: 'transfer' | 'beneficiary';
+}
+
+const MOVEMENTS_PATH = /^\/accounts\/[^/]+\/movements$/;
+
+/** Destino actual, título y forma de cada ruta con sesión (WEB-26, WEB-27). */
+export function appSection(pathname: string): AppSection {
+  if (pathname === '/transfers/new') {
+    return { current: 'transfer', title: 'Transferir', mode: 'flow', primary: 'transfer' };
+  }
+  if (pathname.startsWith('/transfers/')) {
+    return { current: null, title: 'Transferencia', mode: 'tabs', primary: 'transfer' };
+  }
+  if (pathname === '/movements' || MOVEMENTS_PATH.test(pathname)) {
+    return { current: 'movements', title: 'Movimientos', mode: 'tabs', primary: 'transfer' };
+  }
+  if (pathname === '/beneficiaries/new') {
+    return {
+      current: 'beneficiaries',
+      title: 'Agregar beneficiario',
+      mode: 'tabs',
+      primary: 'transfer',
+    };
+  }
+  if (pathname.startsWith('/beneficiaries')) {
+    return {
+      current: 'beneficiaries',
+      title: 'Beneficiarios',
+      mode: 'tabs',
+      primary: 'beneficiary',
+    };
+  }
+  return { current: 'home', title: 'Inicio', mode: 'tabs', primary: 'transfer' };
 }
