@@ -7,12 +7,13 @@ import { PgUserRepository } from '../modules/identity/infrastructure/pg-user-rep
 import { systemClock } from '../platform/clock/system-clock.js';
 import { TypeormTransactionRunner } from '../platform/persistence/transaction.js';
 import type { Clock } from '../shared/clock.js';
+import type { SeedPerson } from './generated-users.js';
 
 /**
  * Usuarios demo, verificados, con credenciales documentadas en el README. CURP y RFC son sintéticos
  * con dígito verificador y fecha válidos; no corresponden a personas reales.
  */
-export const DEMO_USERS = [
+export const DEMO_USERS: readonly SeedPerson[] = [
   {
     email: 'ana@example.com',
     password: 'Ana-demo-2026!',
@@ -29,19 +30,29 @@ export const DEMO_USERS = [
     rfc: 'PELL900722CD2',
     phone: '+525512345002',
   },
-] as const;
+];
 
 export interface SeedOptions {
   readonly clabe: { readonly bankCode: string; readonly plazaCode: string };
   readonly clock?: Clock;
 }
 
-/**
- * Crea los usuarios demo verificados con sus dos cuentas, con el rol dueño del esquema. Es
- * idempotente: un usuario que ya existe (por email) se deja como está. Devuelve los ids por email.
- */
-export async function seedDemoUsers(
+/** Crea a Ana y a Luis (ver `seedUsers`). */
+export function seedDemoUsers(
   migrator: DataSource,
+  options: SeedOptions,
+): Promise<Map<string, string>> {
+  return seedUsers(migrator, DEMO_USERS, options);
+}
+
+/**
+ * Crea usuarios verificados con sus dos cuentas, con el rol dueño del esquema. Es idempotente: un
+ * usuario que ya existe (por email) se deja como está. Cada contraseña distinta se hashea una sola
+ * vez (los usuarios generados comparten la suya). Devuelve los ids por email.
+ */
+export async function seedUsers(
+  migrator: DataSource,
+  people: readonly SeedPerson[],
   options: SeedOptions,
 ): Promise<Map<string, string>> {
   const clock = options.clock ?? systemClock;
@@ -55,8 +66,11 @@ export async function seedDemoUsers(
   const transactions = new TypeormTransactionRunner(migrator);
   const ids = new Map<string, string>();
 
-  for (const demo of DEMO_USERS) {
-    const passwordHash = await hasher.hash(demo.password);
+  const hashes = new Map<string, string>();
+
+  for (const demo of people) {
+    const passwordHash = hashes.get(demo.password) ?? (await hasher.hash(demo.password));
+    hashes.set(demo.password, passwordHash);
     const id = await transactions.run(async (tx) => {
       const existing = await users.findByEmailForUpdate(tx, demo.email);
       if (existing) return existing.id;
