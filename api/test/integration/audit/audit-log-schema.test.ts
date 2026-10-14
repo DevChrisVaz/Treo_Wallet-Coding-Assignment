@@ -45,6 +45,29 @@ describe('AUD-01 tabla de auditoría', () => {
     expect(values.sort()).toEqual([...AUDIT_ACTIONS].sort());
   });
 
+  it.each([['[]'], ['"texto"'], ['42'], ['null'], ['true']])(
+    'AUD-04 rechaza metadata %s que no es un objeto JSON por ck_audit_log_metadata_object',
+    async (metadata) => {
+      const error = await app
+        .query(
+          `INSERT INTO audit_log (actor_type, action, metadata) VALUES ('SYSTEM', 'LOGOUT', $1::jsonb)`,
+          [metadata],
+        )
+        .catch((e: { code: string; constraint: string }) => e);
+      expect(error).toMatchObject({ code: '23514', constraint: 'ck_audit_log_metadata_object' });
+    },
+  );
+
+  it.each([['{}'], ['{"a": {"b": [1, 2]}}']])(
+    'AUD-04 acepta metadata objeto %s',
+    async (metadata) => {
+      await app.query(
+        `INSERT INTO audit_log (actor_type, action, metadata) VALUES ('SYSTEM', 'LOGOUT', $1::jsonb)`,
+        [metadata],
+      );
+    },
+  );
+
   it('AUD-06 la bitácora no tiene llaves foráneas', async () => {
     const { rows } = await app.query(
       `SELECT conname FROM pg_constraint
