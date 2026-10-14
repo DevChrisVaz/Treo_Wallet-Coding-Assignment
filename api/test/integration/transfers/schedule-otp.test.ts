@@ -15,6 +15,7 @@ import {
   resendTransferOtp,
   type LedgerUser,
 } from '../../helpers/ledger-api.js';
+import { signInAgain } from '../../helpers/scheduled.js';
 
 const harness = useIntegrationHarness();
 let t: TestApp;
@@ -198,6 +199,31 @@ describe('TRF-28 programación con OTP', () => {
     expect(
       (await actionsFor(id)).filter((event) => event.action === 'TRANSFER_SCHEDULED'),
     ).toHaveLength(1);
+  });
+
+  it('TRF-28 confirmar una programada cancelada responde 409 TRANSFER_NOT_PENDING con su estado', async () => {
+    const { id, code } = await pendingScheduled();
+    await confirmTransfer(t, ana, id, { otp: code });
+    const cancelled = await authed(t, ana.accessToken).post(`/transfers/${id}/cancel`);
+    expect(cancelled.status).toBe(200);
+    const res = await confirmTransfer(t, ana, id, { otp: wrongCode(code) });
+    expect(res.status).toBe(409);
+    expect(res.body).toMatchObject({ code: 'TRANSFER_NOT_PENDING', transferStatus: 'CANCELLED' });
+    expect((await codeRow(id)).attempts).toBe(0);
+    expect(await transferRow(id)).toMatchObject({ status: 'CANCELLED' });
+  });
+
+  it('TRF-32 confirmar una programada que ya se ejecutó responde 200 COMPLETED sin consumir intentos', async () => {
+    const { id, code } = await pendingScheduled('2026-10-15');
+    await confirmTransfer(t, ana, id, { otp: code });
+    t.clock.set('2026-10-15T06:00:30.000Z');
+    await t.container.scheduler.runner.runOnce();
+    ana = await signInAgain(t, ana);
+    const res = await confirmTransfer(t, ana, id, { otp: wrongCode(code) });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ id, status: 'COMPLETED', scheduledFor: '2026-10-15' });
+    expect((await codeRow(id)).attempts).toBe(0);
+    expect(await balanceOf(harness, ana.principal.id)).toBe('5000.00');
   });
 
   it('TRF-28 un código incorrecto responde OTP_INVALID y el tercero la deja FAILED: nunca se programa', async () => {
