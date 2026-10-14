@@ -62,4 +62,4 @@ Cada tarea agrega o corrige pruebas sin tocar código de producción. Cada prueb
 
 ## 8. Cierre
 
-- [ ] 8.1 [docs] Bitácora de AI, conteo final de escenarios cubiertos y cobertura de `/api` y `/contract`
+- [x] 8.1 [docs] Bitácora de AI, conteo final de escenarios cubiertos y cobertura de `/api` y `/contract`

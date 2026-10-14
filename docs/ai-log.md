@@ -441,3 +441,42 @@ Un subagente implementó el grupo 3 de `scheduled-transfers` (5 de 5 tareas). Po
 - **Al final,** las consultas de conciliación del ledger siguieron en cero.
 
 Con esto, `contract-v1-2`, `account-statements` y `scheduled-transfers` quedan completos. A `biometric-unlock` le falta solo la verificación en mi Android.
+
+## Sesión 5 — 2026-10-14 · Cobertura de las reglas de dominio
+
+### Auditoría de cobertura
+
+Pedí revisar si todas las reglas de dominio tenían pruebas. La AI lanzó siete subagentes de revisión (uno por capability) que cruzaron cada escenario de las specs con las pruebas que lo ejecutan, y midió la cobertura de líneas y ramas con `@vitest/coverage-v8` instalado sin guardarlo en `package.json`. Antes de reportar, la AI comprobó a mano cinco de los hallazgos.
+
+**Resultado:** de 216 escenarios de dominio (IDN, ACC, BEN, TRF, HIS, AUD), 207 tenían una prueba que ejecuta el WHEN y comprueba cada THEN, 8 estaban cubiertos en parte y 1 no tenía prueba (TRF-03, reintento con la misma llave después de confirmar el OTP). Además había reglas que el código aplica y ninguna prueba ejercía: el límite diario en el camino con OTP, la llave de idempotencia por usuario, la reversión ante fallas de auditoría en varios caminos, decenas de constraints de la base y el siglo de la CURP.
+
+### Cierre de las brechas
+
+Pedí cerrar todo con subagentes. La AI escribió y validó el change `domain-test-coverage` (solo pruebas, `skip_specs`) y lo commiteó antes del código. Sus decisiones: cada prueba escrita después del código se demuestra rompiendo la regla y viéndola fallar (D1); cada línea de trabajo usa su propio PostgreSQL y Mailpit en contenedores temporales, porque las pruebas de integración reinician la base y vacían la bandeja (D2); las constraints se disparan con SQL directo (D3); un defecto descubierto se reporta y no se corrige ahí (D4).
+
+**Correcciones a la AI:**
+
+- **Modelo de los subagentes.** Lanzó los siete subagentes sin indicar modelo, así que heredaron Opus. Le pregunté qué modelos corrían y le dije que el costo importa. Los detuvo (todavía instalaban dependencias, no se perdió ningún commit) y los relanzó en Sonnet. Guardó la preferencia para las siguientes sesiones.
+- **Un `.env` cargado con el shell.** Intentó leer `api/.env` con `set -a; . ./.env` en zsh; falló en `SMTP_FROM` (lleva `<`) y el bucle que esperaba los contenedores quedó girando cinco minutos sin que existieran. Lo detuvo y leyó solo las dos contraseñas que necesitaba.
+- **Pausa a mitad del trabajo.** Pedí pausar; la AI detuvo las seis líneas que seguían y reportó en qué estado quedó cada una, incluidas dos mutaciones activas (un archivo de producción modificado en la línea 2 y constraints borradas en la base de la línea 6). Al reanudar, cada línea restauró lo suyo antes de seguir.
+
+**Incidentes de los subagentes:**
+
+- **`pkill -f vitest`.** Un subagente lo corrió para cortar una prueba colgada; podía matar corridas de las otras líneas y de la sesión del rediseño. Lo dijo en su reporte y la AI avisó a las demás. Ninguna corrida se perdió.
+- **Atribución.** Las reglas comunes que escribió la AI pedían el trailer `Co-Authored-By: Claude Opus 5.5`, aunque los subagentes eran Sonnet. Las líneas 7 y 4 lo siguieron (39512bb, 0dcce09, 2f4ff67, befd9dd, c08db61, b347718, ceff508, 61d5af0); las líneas 1, 2, 3, 5 y 6 pusieron `Claude Sonnet 5.5`, que es lo correcto. No se reescribió la historia porque esos commits ya quedaron debajo del merge del rediseño; todas las pruebas de este change las escribió Sonnet.
+
+**Lo que encontraron las pruebas (ningún defecto de comportamiento):**
+
+- **Una prueba que no podía fallar:** la barrera de la carrera del tope de programadas se rendía en silencio. Ahora usa el helper que lanza un error, y retrasar la segunda petición la hace fallar.
+- **Mutaciones que una prueba no detectaba:** el primer escenario del avance del lote del ejecutor no detectaba el cursor roto (las fallidas salen de la cola), así que se agregó un segundo caso que sí lo detecta. En BEN-07, la prueba de integración no falla con la mutación porque el índice único lo impide antes; la prueba unitaria sí falla.
+- **Código inalcanzable o redundante:** el recorte a cero del límite restante no se puede alcanzar porque la base prohíbe usar más que el límite; la revisión de vencimiento de la familia en `refresh-session.ts:56` nunca decide porque cada token ya vence con su familia; `logout.ts` dice que un token vencido "no cambia nada", pero lo revoca y lo audita (la respuesta sigue siendo 204).
+- **Diferencias entre el contrato y el paquete,** reportadas sin fijarlas en pruebas: `FullName` de `openapi.yaml` acepta `"   "` y el paquete la rechaza; `z.uuid()` exige versión y variante y `format: uuid` no.
+- **Una prueba inestable corregida:** el plan de HIS-09 a veces traía un Sort; se agregó `ANALYZE` después del seed.
+
+**Resultado:** los 216 escenarios de dominio tienen ahora una prueba que ejecuta el WHEN y comprueba cada THEN, según los reportes de cada línea (la auditoría independiente no se repitió). La AI revisó cada rama, la integró a `release` con `--no-ff` y volvió a correr todo sobre el resultado:
+
+- **`/api`:** de 130 archivos y 989 pruebas a 136 y 1183; líneas de 96.5 % a 96.9 % y ramas de 86.7 % a 87.9 % (capa de aplicación: 90.6 % a 93.0 %). Lint, typecheck y formato limpios.
+- **`/contract`:** de 302 a 334 pruebas; líneas de 96.8 % a 98.2 % y ramas de 84.0 % a 91.1 %.
+- **Sin cambios en código de producción** (`api/src`, migraciones, `contract/src` y `openapi.yaml` siguen iguales).
+
+**Lo que queda fuera de este change:** la máquina de estados de transferencias no se usa en producción, `deliveryStatus` no se guarda, no hay herramienta para detectar cambios incompatibles del contrato (CTR-02), `passWithNoTests` sigue activo en `/api`, la redacción de logs llega solo a cuatro niveles, y la traducción de la violación de unicidad de beneficiarios a `BENEFICIARY_CONFLICT` en el store solo la alcanza a veces una prueba de carrera.
