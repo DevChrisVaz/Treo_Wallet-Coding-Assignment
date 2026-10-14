@@ -1,8 +1,8 @@
 import type { Movement } from '@devchrisvaz/wallet-contract';
-import { screen, userEvent, within } from '@testing-library/react-native';
+import { act, screen, userEvent, within } from '@testing-library/react-native';
 
 import { createFakeApi, json, problem } from '@/test-utils/fake-api';
-import { me, overview, principal } from '@/test-utils/fixtures';
+import { ahorro, me, overview, principal } from '@/test-utils/fixtures';
 import { renderApp } from '@/test-utils/render-app';
 import { theme } from '@/theme';
 
@@ -107,5 +107,98 @@ describe('últimos 20 movimientos', () => {
       screen.getAllByTestId('skeleton', { includeHiddenElements: true }).length,
     ).toBeGreaterThan(0);
     jest.useRealTimers();
+  });
+});
+
+describe('selector de cuenta y día', () => {
+  test('MOB-20 el selector marca la cuenta actual y al cambiar a Ahorro muestra sus últimos 20', async () => {
+    const fake = createFakeApi()
+      .on('GET', MOVEMENTS_PATH, json(200, page([movement(1)])))
+      .on(
+        'GET',
+        `/accounts/${ahorro.id}/movements`,
+        json(200, page([movement(2, { concept: 'Apartado' })])),
+      );
+    await openMovements(fake);
+    expect(await screen.findByRole('button', { name: 'Principal' })).toBeSelected();
+    await userEvent.press(screen.getByRole('button', { name: 'Ahorro' }));
+    expect(screen.getByRole('button', { name: 'Ahorro' })).toBeSelected();
+    expect(await screen.findByText('Luis · Apartado')).toBeOnTheScreen();
+    expect(fake.requestsTo('GET', `/accounts/${ahorro.id}/movements`)[0]?.path).toBe(
+      `/accounts/${ahorro.id}/movements?limit=20`,
+    );
+  });
+
+  describe('agrupación por día de Ciudad de México', () => {
+    // Solo `Date` es falso: TanStack Query y la API simulada siguen con temporizadores reales.
+    const REAL = [
+      'nextTick',
+      'setImmediate',
+      'clearImmediate',
+      'setInterval',
+      'clearInterval',
+      'setTimeout',
+      'clearTimeout',
+      'queueMicrotask',
+      'requestAnimationFrame',
+      'cancelAnimationFrame',
+      'requestIdleCallback',
+      'cancelIdleCallback',
+      'hrtime',
+      'performance',
+    ] as const;
+    afterEach(() => jest.useRealTimers());
+
+    async function dayHeaders(now: string, times: [string, string]) {
+      jest.useFakeTimers({ now: new Date(now), doNotFake: [...REAL] });
+      const items = times.map((occurredAt, index) => movement(index + 1, { occurredAt }));
+      await openMovements(createFakeApi().on('GET', MOVEMENTS_PATH, json(200, page(items))));
+      await screen.findAllByTestId('movement-row');
+      return screen.getAllByRole('header').map((node) => node.props.children);
+    }
+
+    test('MOB-20 un movimiento de las 05:30 UTC de hoy aparece bajo "Ayer"', async () => {
+      expect(
+        await dayHeaders('2026-10-13T18:00:00Z', ['2026-10-13T16:42:00Z', '2026-10-13T05:30:00Z']),
+      ).toEqual(['Movimientos', 'Hoy', 'Ayer']);
+    });
+
+    test('MOB-20 el 1 de enero, un movimiento de las 23:30 del 31 de diciembre aparece bajo "Ayer"', async () => {
+      expect(
+        await dayHeaders('2026-01-01T18:00:00Z', ['2026-01-01T16:00:00Z', '2026-01-01T05:30:00Z']),
+      ).toEqual(['Movimientos', 'Hoy', 'Ayer']);
+    });
+  });
+
+  test('MOB-20 si la lectura falla, el error dice qué lectura falló y permite reintentar', async () => {
+    const fake = createFakeApi().on('GET', MOVEMENTS_PATH, 'network-error');
+    await openMovements(fake);
+    expect(await screen.findByText('No pudimos cargar los movimientos')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeOnTheScreen();
+  });
+
+  test('MOB-20 si GET /accounts falla, muestra el error de cuentas con reintento', async () => {
+    const fake = createFakeApi()
+      .on('GET', '/me', json(200, me))
+      .on('GET', '/accounts', problem(500, 'INTERNAL_ERROR'), json(200, overview()))
+      .on('GET', MOVEMENTS_PATH, json(200, page([movement(1)])));
+    await renderApp({ fake, routes: { movements: MovementsScreen }, initialUrl: '/movements' });
+    expect(await screen.findByText('No pudimos cargar tus cuentas')).toBeOnTheScreen();
+    expect(fake.requestsTo('GET', MOVEMENTS_PATH)).toHaveLength(0);
+    await userEvent.press(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByText('Luis · Movimiento 1')).toBeOnTheScreen();
+  });
+
+  test('MOB-20 deslizar para actualizar sin cuenta resuelta no pide /accounts//movements', async () => {
+    const fake = createFakeApi()
+      .on('GET', '/me', json(200, me))
+      .on('GET', '/accounts', problem(500, 'INTERNAL_ERROR'));
+    await renderApp({ fake, routes: { movements: MovementsScreen }, initialUrl: '/movements' });
+    await screen.findByText('No pudimos cargar tus cuentas');
+    await act(async () => {
+      await screen.getByTestId('screen-scroll').props.refreshControl.props.onRefresh();
+    });
+    expect(fake.requests.filter((request) => request.path.includes('/accounts//'))).toHaveLength(0);
+    expect(fake.requests.filter((request) => request.path.includes('/movements'))).toHaveLength(0);
   });
 });

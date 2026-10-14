@@ -57,6 +57,10 @@ describe('convenciones de presentación', () => {
     expect(formatDateTime('2026-10-13T16:42:00Z', { withYear: true })).toBe('13 oct 2026, 10:42');
   });
 
+  test('MOB-20 septiembre se abrevia "sep", igual que los encabezados de día', () => {
+    expect(formatDateTime('2026-09-15T16:42:00Z')).toBe('15 sep, 10:42');
+  });
+
   test('MOB-15 el porcentaje usado del límite se calcula en centavos, sin floats', () => {
     expect(limitUsedPercent({ limit: '50000.00', used: '18500.00' })).toBe(37);
     expect(limitUsedPercent({ limit: '50000.00', used: '0.00' })).toBe(0);
