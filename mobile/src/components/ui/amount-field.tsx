@@ -45,6 +45,9 @@ function HeroAmountField({
   ...inputProps
 }: Omit<AmountFieldProps, 'variant'>) {
   const [focused, setFocused] = useState(false);
+  // Ancho del texto medido en un espejo invisible: el campo mide justo lo que escribe y el $ queda
+  // pegado al monto, centrados juntos (en la web el <input> no se ajusta solo a su contenido).
+  const [textWidth, setTextWidth] = useState<number | undefined>(undefined);
   const note = error ?? help;
   const underline = error
     ? theme.colors.status.danger.fg
@@ -76,8 +79,20 @@ function HeroAmountField({
             onBlur?.(event);
           }}
           placeholderTextColor={theme.colors.text.muted}
-          style={styles.input}
+          style={[
+            styles.input,
+            textWidth === undefined ? null : { width: textWidth + theme.spacing[1] },
+          ]}
         />
+        <Text
+          testID="hero-amount-mirror"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          onLayout={(event) => setTextWidth(event.nativeEvent.layout.width)}
+          style={[styles.input, styles.mirror]}
+        >
+          {value || inputProps.placeholder || '0'}
+        </Text>
       </View>
       {note ? (
         <Text
@@ -96,7 +111,7 @@ const styles = StyleSheet.create({
   label: { ...theme.typography.label, color: theme.colors.text.primary },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
     justifyContent: 'center',
     gap: theme.spacing[1],
     borderBottomWidth: 2,
@@ -104,13 +119,15 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   prefix: { ...theme.typography.display, color: theme.colors.text.muted },
+  // Sin flex ni estiramiento: el ancho sale del espejo. Sin relleno lateral (Android trae uno).
   input: {
     ...theme.typography.display,
     ...theme.amount,
     color: theme.colors.text.primary,
     textAlign: 'center',
-    minWidth: theme.spacing[16],
+    paddingHorizontal: 0,
   },
+  mirror: { position: 'absolute', opacity: 0 },
   disabled: { opacity: 0.5 },
   note: { ...theme.typography.caption, color: theme.colors.text.muted, textAlign: 'center' },
   error: { color: theme.colors.status.danger.fg },

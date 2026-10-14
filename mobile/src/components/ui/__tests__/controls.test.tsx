@@ -123,6 +123,18 @@ describe('AmountField hero', () => {
     await fireEvent.changeText(screen.getByLabelText('Monto'), '1,250.50');
     expect(onChangeText).toHaveBeenCalledWith('1250.50');
   });
+
+  test('MOB-08 el campo del monto héroe mide su texto para que el $ quede junto al monto', async () => {
+    await render(
+      <AmountField variant="hero" label="Monto" value="1250.00" onChangeText={() => {}} />,
+    );
+    const mirror = screen.getByTestId('hero-amount-mirror', { includeHiddenElements: true });
+    expect(mirror).toHaveTextContent('1250.00');
+    await fireEvent(mirror, 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 180, height: 48 } },
+    });
+    expect(screen.getByLabelText('Monto')).toHaveStyle({ width: 180 + theme.spacing[1] });
+  });
 });
 
 describe('OtpField', () => {
