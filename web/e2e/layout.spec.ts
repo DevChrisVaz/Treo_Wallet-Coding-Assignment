@@ -1,7 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   PRINCIPAL_ID,
-  SENT_TRANSFER_ID,
+  PRIVATE_PATHS,
+  PUBLIC_PATHS,
   apiRequests,
   hasHorizontalScroll,
   login,
@@ -10,15 +11,8 @@ import {
 } from './support';
 
 const WIDTHS = [320, 390, 768, 1024, 1440, 1920] as const;
-const PUBLIC = ['/login', '/register', '/verify-email?email=ana%40example.com&registered=1'];
-const PRIVATE = [
-  '/',
-  `/accounts/${PRINCIPAL_ID}/movements`,
-  '/beneficiaries',
-  '/beneficiaries/new',
-  '/transfers/new',
-  `/transfers/${SENT_TRANSFER_ID}`,
-];
+/** El indicador de desarrollo de Next tapa la esquina inferior izquierda; no es de la app. */
+const HIDE_DEV_INDICATOR = 'nextjs-portal { display: none !important; }';
 
 test.beforeEach(async ({ page }) => {
   await scenario(page, {});
@@ -34,14 +28,17 @@ for (const width of WIDTHS) {
       await page.waitForLoadState('networkidle');
       expect(await hasHorizontalScroll(page), `${path} a ${width} px`).toBe(false);
       expect(await visibleH1Count(page), `${path} a ${width} px`).toBe(1);
-      await expect(page.getByRole('link', { name: 'Saltar al contenido' })).toHaveCount(1);
+      // Contados en el DOM (no por rol): un segundo enlace oculto también sería un error.
+      const skip = page.locator('a[href="#contenido"]');
+      await expect(skip).toHaveCount(1);
+      await expect(skip).toHaveText('Saltar al contenido');
       // Un solo `main` en el DOM (no solo en el árbol de accesibilidad) y es el destino del salto.
       await expect(page.locator('main')).toHaveCount(1);
       await expect(page.getByRole('main')).toHaveAttribute('id', 'contenido');
     };
-    for (const path of PUBLIC) await check(path);
+    for (const path of PUBLIC_PATHS) await check(path);
     await login(page);
-    for (const path of PRIVATE) await check(path);
+    for (const path of PRIVATE_PATHS) await check(path);
   });
 }
 
@@ -83,13 +80,13 @@ test('WEB-28 Inicio pide los últimos 5 movimientos por el BFF y el `limit=5` ll
   expect(reads.map((request) => request.search)).toEqual(['?limit=5']);
 });
 
-/** Renglones del monto del hero: el texto de cada línea que pinta el navegador. */
-function heroLines(page: Page): Promise<string[]> {
-  return page.getByTestId('hero-amount').evaluate((element) => {
-    const visible = element.querySelector('[aria-hidden="true"]');
-    const walker = document.createTreeWalker(visible ?? element, NodeFilter.SHOW_TEXT);
-    // Un carácter es del renglón cuyo alto contiene su centro (los centavos, más chicos, comparten
-    // renglón con los pesos aunque su caja empiece más abajo).
+/**
+ * Renglones de un texto tal como los pinta el navegador. Un carácter es del renglón cuyo alto
+ * contiene su centro (los centavos, más chicos, comparten renglón con los pesos).
+ */
+function renderedLines(target: Locator): Promise<string[]> {
+  return target.evaluate((element) => {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     const lines: { top: number; bottom: number; text: string }[] = [];
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       const text = node.textContent ?? '';
@@ -108,8 +105,35 @@ function heroLines(page: Page): Promise<string[]> {
   });
 }
 
+/** Cada corte entre renglones cae tras un separador de miles o antes de los centavos. */
+function breaksBetweenGroups(lines: string[]): boolean {
+  return lines.every(
+    (line, index) =>
+      index === lines.length - 1 || line.endsWith(',') || (lines[index + 1] ?? '').startsWith('.'),
+  );
+}
+
+/** Todos los caracteres de `target` se pintan dentro de `box` (ninguno recortado) y de la ventana. */
+function glyphsInside(target: Locator, box: Locator): Promise<boolean> {
+  return box.elementHandle().then((handle) =>
+    target.evaluate((element, container) => {
+      const limit = (container as Element).getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return [...range.getClientRects()].every(
+        (rect) =>
+          rect.left >= limit.left - 0.5 &&
+          rect.right <= limit.right + 0.5 &&
+          rect.top >= limit.top - 0.5 &&
+          rect.bottom <= limit.bottom + 0.5 &&
+          rect.right <= document.documentElement.clientWidth + 0.5,
+      );
+    }, handle),
+  );
+}
+
 for (const width of [320, 390, 1280] as const) {
-  test(`WEB-28 a ${width} px con el texto al 200 % el saldo del hero no se corta ni se recorta con puntos suspensivos`, async ({
+  test(`WEB-28 a ${width} px con el texto al 200 % el saldo del hero y el de la tarjeta no se cortan ni se parten entre dígitos`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 844 });
@@ -117,29 +141,29 @@ for (const width of [320, 390, 1280] as const) {
     await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
     const amount = page.getByTestId('hero-amount');
     await expect(amount).toBeVisible();
-    const fit = await amount.evaluate((element) => {
-      const hero = element.closest('section');
-      const box = element.getBoundingClientRect();
-      const heroBox = hero?.getBoundingClientRect();
-      return {
-        overflowX: element.scrollWidth <= element.clientWidth + 1,
-        overflowY: element.scrollHeight <= element.clientHeight + 1,
-        ellipsis: getComputedStyle(element).textOverflow === 'ellipsis',
-        // El hero tiene `overflow-hidden`: el monto debe quedar entero dentro de él.
-        inside:
-          heroBox !== undefined &&
-          box.left >= heroBox.left - 1 &&
-          box.right <= heroBox.right + 1 &&
-          box.bottom <= heroBox.bottom + 1,
-      };
-    });
-    expect(fit).toEqual({ overflowX: true, overflowY: true, ellipsis: false, inside: true });
+    const hero = page.getByRole('region', { name: 'Saldo total' });
+    const visible = amount.locator('[aria-hidden="true"]');
+    // El hero tiene `overflow-hidden`: cada carácter del monto debe pintarse dentro de él.
+    expect(await glyphsInside(visible, hero)).toBe(true);
+    expect(await amount.evaluate((el) => getComputedStyle(el).textOverflow)).not.toBe('ellipsis');
+    // Los lectores de pantalla leen el monto entero, sin los cortes visuales.
+    await expect(amount.locator('.sr-only')).toHaveText('$35,000.00');
     expect(await hasHorizontalScroll(page)).toBe(false);
-    // Lo que se ve (para el reporte): en qué punto pasa de línea el monto.
-    const lines = await heroLines(page);
-    test.info().annotations.push({ type: 'renglones del hero', description: lines.join(' ⏎ ') });
-    console.log(`hero a ${width} px con texto al 200 %: ${JSON.stringify(lines)}`);
-    expect(lines.join('')).toBe('$35,000.00');
+    const heroLines = await renderedLines(visible);
+    expect(heroLines.join('')).toBe('$35,000.00');
+    expect(breaksBetweenGroups(heroLines), JSON.stringify(heroLines)).toBe(true);
+
+    const card = page.getByRole('article', { name: 'Principal' });
+    const balance = card.getByText('$25,000.00', { exact: true });
+    expect(await glyphsInside(balance, card)).toBe(true);
+    const cardLines = await renderedLines(balance);
+    expect(cardLines.join('')).toBe('$25,000.00');
+    expect(breaksBetweenGroups(cardLines), JSON.stringify(cardLines)).toBe(true);
+
+    // Lo que se ve (para el reporte): en qué punto pasa de línea cada monto.
+    const seen = `hero ${JSON.stringify(heroLines)}, tarjeta ${JSON.stringify(cardLines)}`;
+    test.info().annotations.push({ type: 'renglones de los montos', description: seen });
+    console.log(`montos a ${width} px con texto al 200 %: ${seen}`);
   });
 }
 
@@ -263,3 +287,122 @@ test('WEB-30 a 1280 px el resumen va en su columna a la derecha del paso y sigue
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole('region', { name: 'Resumen' })).toHaveCount(0);
 });
+
+for (const width of [390, 320] as const) {
+  test(`WEB-27 WEB-28 a ${width} px con el texto al 200 % las cuatro pestañas caben, se pueden tocar y no tapan el contenido`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await login(page);
+    await page.addStyleTag({
+      content: `html { font-size: 200% !important; } ${HIDE_DEV_INDICATOR}`,
+    });
+    const nav = page.getByRole('navigation', { name: 'Principal' });
+    const tabs = nav.getByRole('link');
+    await expect(tabs).toHaveCount(4);
+    // La barra crece con el texto y publica su alto real para que el contenido lo reserve.
+    await expect
+      .poll(async () => {
+        const reserved = await page.evaluate(() =>
+          getComputedStyle(document.documentElement).getPropertyValue('--tab-bar-height'),
+        );
+        const list = await nav.getByRole('list').boundingBox();
+        return Math.abs(Number.parseInt(reserved, 10) - Math.round(list?.height ?? 0)) <= 1;
+      })
+      .toBe(true);
+    for (const tab of await tabs.all()) {
+      const name = (await tab.textContent()) ?? '';
+      const state = await tab.evaluate((link) => {
+        const box = link.getBoundingClientRect();
+        const range = document.createRange();
+        range.selectNodeContents(link.lastElementChild ?? link);
+        const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+        const right = document.documentElement.clientWidth;
+        return {
+          onScreen:
+            box.left >= -0.5 &&
+            box.right <= right + 0.5 &&
+            box.top >= -0.5 &&
+            box.bottom <= window.innerHeight + 0.5,
+          labelVisible: [...range.getClientRects()].every(
+            (rect) =>
+              rect.left >= box.left - 1 &&
+              rect.right <= box.right + 1 &&
+              rect.right <= right + 0.5 &&
+              rect.bottom <= window.innerHeight + 0.5,
+          ),
+          tappable: hit !== null && link.contains(hit),
+        };
+      });
+      expect(state, name).toEqual({ onScreen: true, labelVisible: true, tappable: true });
+    }
+    // El contenido reserva al menos el alto real de la barra (no el del token, que se queda corto).
+    const bar = await nav.boundingBox();
+    const reserved = await page
+      .getByRole('main')
+      .evaluate(
+        (main) =>
+          main.getBoundingClientRect().bottom -
+          (main.lastElementChild ?? main).getBoundingClientRect().bottom,
+      );
+    expect(reserved).toBeGreaterThanOrEqual(bar?.height ?? Number.POSITIVE_INFINITY);
+    // Al final de la página, lo último del contenido queda arriba de la barra.
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const barTop = (await nav.boundingBox())?.y ?? 0;
+    expect(await contentBottom(page)).toBeLessThanOrEqual(barTop + 0.5);
+    await nav.getByRole('link', { name: 'Beneficiarios' }).click();
+    await page.waitForURL((url) => url.pathname === '/beneficiaries');
+  });
+}
+
+for (const balances of ['ok', 'large'] as const) {
+  for (const width of [320, 390] as const) {
+    test(`WEB-24 WEB-29 a ${width} px el tipo del movimiento no pasa por debajo del monto, que sigue al lado${balances === 'large' ? ' con saldos de siete cifras' : ''}`, async ({
+      page,
+    }) => {
+      await scenario(page, { movements: balances });
+      await page.setViewportSize({ width, height: 900 });
+      await login(page);
+      await page.goto(`/accounts/${PRINCIPAL_ID}/movements`);
+      const rows = page.getByRole('region', { name: 'Movimientos' }).getByRole('listitem');
+      await expect(rows).toHaveCount(5);
+      if (balances === 'large') await expect(rows.first()).toContainText('Saldo $1,250,000.00');
+      for (const row of await rows.all()) {
+        const layout = await row.evaluate((item) => {
+          const [, text, amount] = [...item.children];
+          if (!text || !amount) return { beside: false, apart: false };
+          const textBox = text.getBoundingClientRect();
+          const amountBox = amount.getBoundingClientRect();
+          // Lo que pinta la columna del texto: el renglón truncado se recorta en su caja; los demás
+          // pueden desbordarla, así que se miden sus caracteres (sin el texto solo para lectores de
+          // pantalla, que `sr-only` recorta a 1 px).
+          const textRight = Math.max(
+            ...[...text.children].map((line) => {
+              if (getComputedStyle(line).overflowX !== 'visible') {
+                return line.getBoundingClientRect().right;
+              }
+              const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+              let right = 0;
+              for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+                if (node.parentElement?.closest('.sr-only')) continue;
+                const range = document.createRange();
+                range.selectNodeContents(node);
+                for (const rect of range.getClientRects()) right = Math.max(right, rect.right);
+              }
+              return right;
+            }),
+          );
+          return {
+            // En la misma línea de la fila: las cajas se cruzan en vertical y el monto va a la derecha.
+            beside:
+              textBox.top < amountBox.bottom &&
+              amountBox.top < textBox.bottom &&
+              amountBox.left >= textBox.right - 0.5,
+            apart: textRight <= amountBox.left + 0.5,
+          };
+        });
+        expect(layout, (await row.textContent()) ?? '').toEqual({ beside: true, apart: true });
+      }
+    });
+  }
+}

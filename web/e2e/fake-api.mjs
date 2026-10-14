@@ -2,12 +2,18 @@
 // API simulada para las pruebas de navegador y la paridad de las pantallas reales (WEB-23, WEB-24,
 // WEB-25): responde lo que la web pide al servidor con los datos canónicos de las historias. Nunca
 // toca la base de datos. `POST /__scenario` cambia los datos (cuentas vacías, beneficiarios vacíos,
-// una lectura que no responde) y reinicia el estado; `GET /__requests` devuelve las peticiones que
-// recibió desde entonces (para comprobar lo que el BFF reenvía, como el `limit=5` de Inicio).
+// una lectura que no responde, saldos de siete cifras en los movimientos) y reinicia el estado;
+// `GET /__requests` devuelve las peticiones que recibió desde entonces (para comprobar lo que el BFF
+// reenvía, como el `limit=5` de Inicio).
 import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 
-const port = Number.parseInt(process.argv[process.argv.indexOf('--port') + 1] || '4999', 10);
+// Puerto de `--port <n>`; sin la bandera (o sin valor), 4999.
+const portFlag = process.argv.indexOf('--port');
+const port = Number.parseInt(
+  (portFlag === -1 ? undefined : process.argv[portFlag + 1]) ?? '4999',
+  10,
+);
 
 const user = {
   id: '6f1c2a8e-1d2b-4c3d-9e4f-5a6b7c8d9e0f',
@@ -146,7 +152,7 @@ const pending = {
   completedAt: null,
 };
 
-const DEFAULTS = { accounts: 'ok', beneficiaries: 'ok' };
+const DEFAULTS = { accounts: 'ok', beneficiaries: 'ok', movements: 'ok' };
 let scenario = { ...DEFAULTS };
 let debited = false; // tras enviar los $1,250.00: Principal en $23,750.00 y el límite en $30,250.00
 /** Peticiones recibidas desde el último `POST /__scenario` (método, ruta y query). */
@@ -252,8 +258,13 @@ createServer(async (req, res) => {
     const filtered = ['from', 'to', 'type', 'cursor'].some((key) => url.searchParams.has(key));
     if (filtered) return send(res, 200, { items: [], nextCursor: null });
     const limit = url.searchParams.get('limit');
+    // `movements: 'large'`: el mismo historial con "Saldo $1,250,000.00" en cada fila.
+    const items =
+      scenario.movements === 'large'
+        ? movements.map((item) => ({ ...item, balanceAfter: '1250000.00' }))
+        : movements;
     return send(res, 200, {
-      items: limit ? movements.slice(0, Number.parseInt(limit, 10)) : movements,
+      items: limit ? items.slice(0, Number.parseInt(limit, 10)) : items,
       nextCursor: limit ? null : 'cursor-2',
     });
   }
