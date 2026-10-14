@@ -8,6 +8,7 @@ export const iconConcepts = [
   'home',
   'movements',
   'transfer',
+  'scheduled',
   'beneficiaries',
   'logout',
   'moneyIn',
@@ -33,6 +34,8 @@ export const iconNames = {
   home: 'House',
   movements: 'ReceiptText',
   transfer: 'Send',
+  /** Transferencias programadas (web: "Programadas"); distinto de "transfer" (R58). */
+  scheduled: 'CalendarClock',
   beneficiaries: 'Users',
   logout: 'LogOut',
   moneyIn: 'ArrowDownLeft',
