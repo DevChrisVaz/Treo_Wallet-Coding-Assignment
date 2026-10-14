@@ -24,6 +24,32 @@ for (const [name, module] of [
   if (typeof module.createApiClient !== 'function') failures.push(`${name}: createApiClient`);
 }
 
+// Crear el cliente y hacer una petición: que la función exista no prueba que funcione.
+for (const [name, module] of [
+  ['ESM', esm],
+  ['CJS', cjs],
+]) {
+  try {
+    const requests = [];
+    const client = module.createApiClient({
+      baseUrl: 'http://api.test',
+      fetch: async (request) => {
+        requests.push(request);
+        return new Response(JSON.stringify({ status: 'ok' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      },
+    });
+    const { data } = await client.GET('/health');
+    if (requests[0]?.url !== 'http://api.test/health') failures.push(`${name}: URL de la petición`);
+    if (!requests[0]?.headers.get('X-Request-Id')) failures.push(`${name}: X-Request-Id`);
+    if (data?.status !== 'ok') failures.push(`${name}: respuesta del cliente`);
+  } catch (error) {
+    failures.push(`${name}: el cliente falla (${error.message})`);
+  }
+}
+
 if (failures.length > 0) {
   console.error(`La prueba de humo falló en Node ${process.version}:\n${failures.join('\n')}`);
   process.exit(1);

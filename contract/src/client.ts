@@ -1,6 +1,19 @@
-import createClient, { type Client, type Middleware } from 'openapi-fetch';
+import * as openapiFetch from 'openapi-fetch';
+import type { Client, Middleware } from 'openapi-fetch';
 import { NetworkError, ProblemError, toProblemError } from './errors';
 import type { paths } from './generated/api';
+
+type CreateClient = typeof openapiFetch.default;
+
+/*
+ * openapi-fetch exporta el cliente como `default`. En la salida CommonJS, esbuild envuelve su
+ * `require` con la semántica de Node (este paquete es "type": "module") y `default` es el objeto
+ * completo del módulo, con el cliente un nivel más abajo (D1 de contract-v1-1).
+ */
+const createClient: CreateClient =
+  typeof openapiFetch.default === 'function'
+    ? openapiFetch.default
+    : (openapiFetch.default as unknown as { default: CreateClient }).default;
 
 export type ApiClient = Client<paths>;
 
