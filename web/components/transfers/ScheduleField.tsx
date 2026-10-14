@@ -29,6 +29,8 @@ export interface ScheduleFieldProps {
   dateField: UseFormRegisterReturn;
   /** Error de la fecha, del formulario o de la API; se muestra junto al campo. */
   error?: string | undefined;
+  /** Fecha de referencia del rango (lienzos con el reloj fijo); por omisión, la actual. */
+  now?: Date | undefined;
 }
 
 /**
@@ -36,8 +38,8 @@ export interface ScheduleFieldProps {
  * programable de la Ciudad de México (`schedulableRange` del contrato, de mañana a 90 días). "Hoy"
  * es el del reloj del navegador al pintar; la API vuelve a validar el rango al recibirla.
  */
-export function ScheduleField({ when, whenField, dateField, error }: ScheduleFieldProps) {
-  const range = schedulableRange(new Date());
+export function ScheduleField({ when, whenField, dateField, error, now }: ScheduleFieldProps) {
+  const range = schedulableRange(now ?? new Date());
   return (
     <div className="grid gap-5">
       {/* Mismo control de elección que los filtros de movimientos: 44 px de alto y acento del sistema. */}

@@ -72,6 +72,30 @@ describe('ScheduleField', () => {
     );
   });
 
+  it('WEB-33 con `now` (lienzos con el reloj fijo) el rango sale de esa fecha y no del reloj', () => {
+    vi.setSystemTime(new Date('2024-05-15T12:00:00.000Z'));
+    const field = (name: string) => ({
+      name,
+      onChange: async () => undefined,
+      onBlur: async () => undefined,
+      ref: () => undefined,
+    });
+    render(
+      <ScheduleField
+        when="SCHEDULED"
+        whenField={field('when')}
+        dateField={field('scheduledFor')}
+        now={new Date('2026-10-13T18:00:00.000Z')}
+      />,
+    );
+    const date = screen.getByLabelText('Fecha de envío');
+    expect(date).toHaveAttribute('min', '2026-10-14');
+    expect(date).toHaveAttribute('max', '2027-01-11');
+    expect(date).toHaveAccessibleDescription(
+      'Entre el 14 de octubre de 2026 y el 11 de enero de 2027.',
+    );
+  });
+
   it('WEB-33 el rango sale del día de la Ciudad de México, no del día UTC', async () => {
     // 23:30 del 14 de octubre en la Ciudad de México; en UTC ya es el 15.
     vi.setSystemTime(new Date('2026-10-15T05:30:00.000Z'));
