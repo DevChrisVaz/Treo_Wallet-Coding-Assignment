@@ -60,17 +60,25 @@ describe('AmountField', () => {
     const onChange = vi.fn();
     render(<AmountField label="Monto" variant="hero" onChange={onChange} />);
     const input = screen.getByLabelText('Monto');
-    expect(input).not.toHaveClass('w-full');
-    expect(input.getAttribute('style')).toContain('calc(1ch + 0.25em)');
+    // El espejo invisible da el ancho y el campo lo cubre (WEB-25: como en la app móvil).
+    const mirror = screen.getByTestId('hero-amount-mirror');
+    expect(mirror).toHaveAttribute('aria-hidden', 'true');
+    expect(input).toHaveClass('absolute', 'inset-0');
+    expect(mirror.textContent).toBe('0');
     await user.type(input, '1,250');
     expect(input).toHaveValue('1,250');
-    expect(input.getAttribute('style')).toContain('calc(5ch + 0.25em)');
+    expect(mirror.textContent).toBe('1,250');
     expect(onChange).toHaveBeenCalledTimes(5);
   });
 
   it('WEB-30 en la variante hero el ancho inicial sale de defaultValue', () => {
     render(<AmountField label="Monto" variant="hero" defaultValue="1,250.00" />);
-    expect(screen.getByLabelText('Monto').getAttribute('style')).toContain('calc(8ch + 0.25em)');
+    expect(screen.getByTestId('hero-amount-mirror').textContent).toBe('1,250.00');
+  });
+
+  it('WEB-30 en la variante hero con valor controlado el espejo sigue a `value`', () => {
+    render(<AmountField label="Monto" variant="hero" value="15000" onChange={vi.fn()} />);
+    expect(screen.getByTestId('hero-amount-mirror').textContent).toBe('15000');
   });
 
   it('WEB-23 no tiene problemas de accesibilidad con error', async () => {
@@ -91,6 +99,13 @@ describe('OtpField', () => {
     expect(input).toHaveAttribute('inputmode', 'numeric');
     expect(input).toHaveAttribute('autocomplete', 'one-time-code');
     expect(input).toHaveClass('tabular-nums');
+  });
+
+  it('WEB-25 ocupa el ancho del formulario con el texto del campo, como en la app móvil', () => {
+    render(<OtpField label="Código de 6 dígitos" />);
+    const input = screen.getByLabelText('Código de 6 dígitos');
+    expect(input).toHaveClass('w-full', 'text-body', 'tracking-[0.5em]');
+    expect(input).not.toHaveClass('max-w-56');
   });
 
   it('DSG-11 acepta pegar el código completo', async () => {
@@ -129,6 +144,16 @@ describe('Select', () => {
     expect(select).toHaveAccessibleDescription('Elige una cuenta');
     await user.selectOptions(select, 'b');
     expect(select).toHaveValue('b');
+  });
+
+  it('WEB-25 lleva el chevron del sistema en lugar de la flecha del navegador', () => {
+    const { container } = render(
+      <Select label="Cuenta">
+        <option value="a">Principal</option>
+      </Select>,
+    );
+    expect(screen.getByLabelText('Cuenta')).toHaveClass('appearance-none');
+    expect(container.querySelector('select + svg[aria-hidden="true"]')).not.toBeNull();
   });
 
   it('WEB-23 no tiene problemas de accesibilidad', async () => {

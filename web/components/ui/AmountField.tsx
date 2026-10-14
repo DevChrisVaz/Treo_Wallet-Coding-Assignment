@@ -23,33 +23,52 @@ export function AmountField({
   ...props
 }: AmountFieldProps) {
   const ids = useFieldIds(id, { label, hint, error });
-  // Largo del texto escrito: en la variante hero el campo mide eso, para que "$" y el monto
-  // queden juntos al centro en lugar de "$" a la izquierda y los dígitos al centro (WEB-30).
-  const [typed, setTyped] = useState(() => String(props.value ?? props.defaultValue ?? '').length);
+  // Texto escrito (sin control) para el espejo de la variante hero.
+  const [typed, setTyped] = useState(() => String(props.value ?? props.defaultValue ?? ''));
   if (variant === 'hero') {
-    const { onChange, style, ...rest } = props;
-    const length = props.value === undefined ? typed : String(props.value).length;
+    const { onChange, ...rest } = props;
+    const text = props.value === undefined ? typed : String(props.value);
     return (
-      <FieldFrame ids={ids} label={label} hint={hint} error={error}>
-        <div className="flex items-baseline justify-center gap-1 border-b-2 border-border-input py-4 focus-within:border-action">
+      <FieldFrame
+        ids={ids}
+        label={label}
+        hint={hint}
+        error={error}
+        className="justify-items-center text-center"
+      >
+        <div className="flex items-baseline justify-center gap-1 justify-self-stretch border-b-2 border-border-input py-2 focus-within:border-action">
           <span aria-hidden="true" className="text-display text-fg-muted">
             $
           </span>
-          <input
-            autoComplete="off"
-            {...rest}
-            onChange={(event: ChangeEvent<HTMLInputElement>) => {
-              setTyped(event.target.value.length);
-              onChange?.(event);
-            }}
-            type="text"
-            inputMode="decimal"
-            id={ids.id}
-            aria-invalid={ids.invalid || undefined}
-            aria-describedby={ids.describedBy}
-            style={{ ...style, width: `calc(${Math.max(length, 1)}ch + 0.25em)` }}
-            className={`min-w-0 max-w-full bg-transparent text-center text-display text-fg tabular-nums outline-none ${className}`.trim()}
-          />
+          {/*
+           * El campo mide lo que su texto: un espejo invisible da el ancho exacto (más 4 px para el
+           * cursor) y el campo lo cubre, así "$" y el monto quedan juntos al centro, como con el
+           * espejo de la app móvil (WEB-25, WEB-30). Medir en `ch` contaba la coma y el punto como
+           * dígitos y dejaba aire alrededor del monto.
+           */}
+          <span className="relative min-w-0">
+            <span
+              aria-hidden="true"
+              data-testid="hero-amount-mirror"
+              className="invisible block pr-1 text-display whitespace-pre tabular-nums"
+            >
+              {text || props.placeholder || '0'}
+            </span>
+            <input
+              autoComplete="off"
+              {...rest}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                setTyped(event.target.value);
+                onChange?.(event);
+              }}
+              type="text"
+              inputMode="decimal"
+              id={ids.id}
+              aria-invalid={ids.invalid || undefined}
+              aria-describedby={ids.describedBy}
+              className={`absolute inset-0 w-full bg-transparent text-center text-display text-fg tabular-nums outline-none ${className}`.trim()}
+            />
+          </span>
         </div>
       </FieldFrame>
     );

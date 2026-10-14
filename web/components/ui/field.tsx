@@ -29,16 +29,20 @@ export function useFieldIds(id: string | undefined, { hint, error }: FieldProps)
   return { id: controlId, describedBy: describedBy || undefined, invalid: Boolean(error) };
 }
 
-/** Etiqueta visible arriba; ayuda y error debajo (D7 de design-system). */
+/**
+ * Etiqueta visible arriba; ayuda y error debajo (D7 de design-system), a 4 px del campo como en el
+ * `TextField` de la app móvil (WEB-25). `className` permite, por ejemplo, centrar el monto hero.
+ */
 export function FieldFrame({
   ids,
   label,
   hint,
   error,
+  className = '',
   children,
-}: FieldProps & { ids: FieldIds; children: ReactNode }) {
+}: FieldProps & { ids: FieldIds; className?: string; children: ReactNode }) {
   return (
-    <div className="grid gap-1.5">
+    <div className={`grid gap-1 ${className}`.trim()}>
       <label htmlFor={ids.id} className="text-label text-fg">
         {label}
       </label>

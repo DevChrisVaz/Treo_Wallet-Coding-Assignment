@@ -4,7 +4,10 @@ import { CONTROL_CLASSES, FieldFrame, useFieldIds, type FieldProps } from './fie
 export type OtpFieldProps = FieldProps &
   Omit<ComponentPropsWithRef<'input'>, 'children' | 'type' | 'inputMode' | 'autoComplete'>;
 
-/** Código de 6 dígitos en un solo campo: acepta pegar y el autocompletado del sistema (D7). */
+/**
+ * Código de 6 dígitos en un solo campo: acepta pegar y el autocompletado del sistema (D7). Ocupa el
+ * ancho del formulario con el texto del campo y 8 px entre dígitos, como en la app móvil (WEB-25).
+ */
 export function OtpField({ label, hint, error, id, className = '', ...props }: OtpFieldProps) {
   const ids = useFieldIds(id, { label, hint, error });
   return (
@@ -17,7 +20,7 @@ export function OtpField({ label, hint, error, id, className = '', ...props }: O
         id={ids.id}
         aria-invalid={ids.invalid || undefined}
         aria-describedby={ids.describedBy}
-        className={`${CONTROL_CLASSES} max-w-56 text-h3 tracking-[0.5em] tabular-nums ${className}`.trim()}
+        className={`${CONTROL_CLASSES} tracking-[0.5em] tabular-nums ${className}`.trim()}
       />
     </FieldFrame>
   );
