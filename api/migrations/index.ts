@@ -10,6 +10,7 @@ import { LedgerZeroSum1760500003000 } from './1760500003000-ledger-zero-sum.js';
 import { LedgerImmutable1760500004000 } from './1760500004000-ledger-immutable.js';
 import { DailyTransferUsage1760500005000 } from './1760500005000-daily-transfer-usage.js';
 import { AuditStatementExported1760600000000 } from './1760600000000-audit-statement-exported.js';
+import { ScheduledTransfers1760700000000 } from './1760700000000-scheduled-transfers.js';
 
 /**
  * Migraciones en orden de aplicación. Se listan explícitamente (sin globs) para que funcionen igual
@@ -27,4 +28,5 @@ export const migrations: (new () => MigrationInterface)[] = [
   LedgerImmutable1760500004000,
   DailyTransferUsage1760500005000,
   AuditStatementExported1760600000000,
+  ScheduledTransfers1760700000000,
 ];
