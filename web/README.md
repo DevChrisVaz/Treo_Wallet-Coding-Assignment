@@ -2,8 +2,8 @@
 
 Panel web de TreoWallet: Next.js (App Router) como BFF (_Backend for Frontend_) de la API. El navegador nunca recibe los tokens: la sesión vive en el servidor de la web y el navegador solo tiene una cookie con un id opaco.
 
-- Especificación: `openspec/changes/web-app/` (capability `web-app`, requisitos WEB-01 a WEB-23), `openspec/changes/account-statements/` (WEB-32, descarga del estado de cuenta) y `openspec/changes/scheduled-transfers/` (WEB-33 y WEB-34, transferencias programadas; decisión D11). Decisiones y alternativas en su `design.md`.
-- Consume `@devchrisvaz/wallet-contract` (cliente tipado, validadores Zod, `formatMXN`) y `@devchrisvaz/wallet-design-tokens` (tokens para Tailwind v4, estados, movimientos y textos de error).
+- Especificación: `openspec/changes/web-app/` (capability `web-app`, requisitos WEB-01 a WEB-23), `openspec/changes/account-statements/` (WEB-32, descarga del estado de cuenta), `openspec/changes/scheduled-transfers/` (WEB-33 y WEB-34, transferencias programadas; decisión D11) y `openspec/changes/redesign/` (rediseño: layout responsivo, navegación, Inicio, Movimientos, flujo por pasos y pantallas de marca, WEB-24 a WEB-31). Decisiones y alternativas en su `design.md`.
+- Consume `@devchrisvaz/wallet-contract` (cliente tipado, validadores Zod, `formatMXN`) y `@devchrisvaz/wallet-design-tokens` (tokens para Tailwind v4, iconos por concepto, destinos de la navegación, agrupación por día, estados, movimientos y textos de error).
 
 ## Cómo funciona
 
@@ -17,7 +17,7 @@ flowchart LR
 
 - **Mutaciones** con Server Actions (`app/actions/`): validan con los esquemas del contrato, exigen la sesión y devuelven `{ ok, data }` o `{ ok: false, problem }`. Next.js rechaza las que llegan de otro `Origin`.
 - **Lecturas** por el proxy `GET /bff/api/[...path]`, con lista blanca de rutas y destino fijo en `API_BASE_URL`. `GET /bff/api/session` responde con el usuario de la sesión sin llamar a la API.
-- **Estado de cuenta** (WEB-32): en la pantalla de movimientos, un selector con el mes en curso ("(en curso)") y los 12 anteriores, con el mes anterior por defecto, y el botón "Descargar PDF". La descarga pasa por el mismo proxy (`accounts/<id>/statements/<AAAA-MM>`, solo GET): para esa ruta el proxy pide `application/pdf`, entrega el cuerpo de la API sin tocar sus bytes y copia `Content-Type`, `Content-Disposition`, `Content-Length` y `Retry-After`. El navegador guarda el archivo con el nombre que propone la API (`estado-de-cuenta-2026-09-0015.pdf`). Mientras descarga, el botón queda ocupado y no acepta otro clic; un error muestra el mensaje de su `code` sin salir de la pantalla (en `RATE_LIMITED`, con la espera). El control es un componente aparte (`components/accounts/StatementDownload.tsx`) para que el rediseño lo reubique sin cambiarlo.
+- **Estado de cuenta** (WEB-32): en la pantalla de movimientos, un selector con el mes en curso ("(en curso)") y los 12 anteriores, con el mes anterior por defecto, y el botón "Descargar PDF". La descarga pasa por el mismo proxy (`accounts/<id>/statements/<AAAA-MM>`, solo GET): para esa ruta el proxy pide `application/pdf`, entrega el cuerpo de la API sin tocar sus bytes y copia `Content-Type`, `Content-Disposition`, `Content-Length` y `Retry-After`. El navegador guarda el archivo con el nombre que propone la API (`estado-de-cuenta-2026-09-0015.pdf`). Mientras descarga, el botón queda ocupado y no acepta otro clic; un error muestra el mensaje de su `code` sin salir de la pantalla (en `RATE_LIMITED`, con la espera). El control es un componente aparte (`components/accounts/StatementDownload.tsx`); el rediseño lo pone en su propia tarjeta, "Estado de cuenta", después del historial.
 - **Sesión** en un `Map` en memoria (en AWS, Redis): expira tras `SESSION_IDLE_MINUTES` sin actividad o al vencer el refresh token; el access token se renueva una sola vez por sesión aunque lleguen peticiones simultáneas.
 - **Transferencias**: la llave de idempotencia se genera en el navegador al pasar a la confirmación y se reutiliza solo al reintentar tras un fallo de red o un `5xx`; el botón se bloquea desde el primer clic.
 - **Transferencias programadas** (WEB-33): el paso de monto del flujo tiene "Cuándo", con "Ahora" (por defecto) o "Programar". "Programar" muestra una fecha limitada al rango de `schedulableRange` del contrato: de mañana a 90 días, en días de la Ciudad de México. El formulario valida con `transferFormAt(ahora)`, así que hoy y las fechas fuera de rango se marcan junto al campo.
@@ -35,14 +35,20 @@ flowchart LR
   - **Ya no se puede cancelar:** un `409 TRANSFER_NOT_CANCELLABLE` (por ejemplo, porque el ejecutor ya la tomó) muestra "Esta transferencia ya no se puede cancelar." y vuelve a cargar la lista. Otros errores se muestran en el diálogo, donde confirmar otra vez es un reintento seguro, porque cancelar es idempotente.
 - **Piezas aparte:** como el control del estado de cuenta, lo programado vive en componentes propios: `components/transfers/ScheduleField.tsx` (el control "Cuándo", la línea de la revisión y la nota del resultado) y `components/transfers/ScheduledTransfersScreen.tsx` (lista y diálogo, con la forma de la hoja inferior del kit). Los pasos del flujo rediseñado solo los conectan.
 - **Interfaz**: componentes cliente con TanStack Query; formularios con react-hook-form y los validadores del contrato; estilos solo con las utilidades de los tokens (la paleta por defecto de Tailwind no existe); mensajes de error de `problemMessage` del paquete de diseño.
+  - **Dos formas** (WEB-24): por debajo de 1024 px, la **forma de app**, igual que la app móvil: barra de pestañas abajo (Inicio, Movimientos, Transferir y Beneficiarios) y, en Inicio, el saludo "Hola, Ana" con el avatar que abre el menú de la cuenta con "Cerrar sesión". Entre 480 y 1023 px se centra en una columna de 480 px. Desde 1024 px, el **dashboard**: navegación lateral (con "Programadas" y, abajo, la persona con "Cerrar sesión"), barra superior con el título de la página y la acción principal ("Nueva transferencia" o, en Beneficiarios, "Agregar beneficiario"), y contenido de hasta 1200 px.
+  - **Estructura:** `components/layout/AppFrame.tsx` monta `AppShell` en las rutas con sesión y le da el destino, el título y la forma de cada ruta (`appSection` en `lib/navigation.ts`). Las páginas públicas (login, registro y verificación) van sobre `BrandShell`, la superficie verde de la marca. Cada página expone un solo `h1`: el del encabezado de la app en teléfono, el de la barra superior en el dashboard o el del paso en el flujo.
+  - **Enlaces internos:** los del kit (pestañas, navegación lateral, acciones rápidas) pasan por `next/link` con `components/ui/RouterLink.tsx`, que AppFrame conecta; así se navega sin recargar y sin perder la caché. Sin ese proveedor (lienzos y pruebas del kit) son `<a>` normales.
+  - **Inicio y Movimientos:** Inicio muestra el saldo total en el _hero_ con lo que queda del límite del día, las tarjetas de cuenta como selector y los últimos 5 movimientos de la elegida, con "Ver todos". La cuenta elegida se comparte con Movimientos (`lib/client/account-selection.tsx`): la pestaña `/movements` abre esa cuenta. Movimientos agrupa por día de la Ciudad de México y abre los filtros en una hoja inferior (en el dashboard, un panel centrado).
+  - **Transferencia por pasos** (WEB-30): Destinatario (cuentas propias y beneficiarios) → Monto → Revisión → Código (si aplica) → Comprobante, con "Paso n de m" y las acciones fijas abajo en teléfono. En el dashboard el paso va en un panel con el resumen al lado, que sigue lo que se escribe. El flujo oculta la barra de pestañas.
 
-| Carpeta       | Contenido                                                                                                      |
-| ------------- | -------------------------------------------------------------------------------------------------------------- |
-| `app/`        | Rutas: `(public)` (login, registro, verificación), `(app)` (protegidas en el layout), `bff/` y `actions/`      |
-| `components/` | `ui/` (inventario del sistema de diseño), pantallas por dominio, estados de carga y error                      |
-| `lib/server/` | Solo servidor (`server-only`): entorno, sesión, cookie, contexto de petición, cliente de API, acciones y proxy |
-| `lib/client/` | Lecturas, TanStack Query, mensajes por `code`, `unwrap`, flujo de transferencia y llave de idempotencia        |
-| `test/`       | Datos de ejemplo del contrato, API simulada con `fetch`, sustitutos de `next/headers` y `next/navigation`      |
+| Carpeta              | Contenido                                                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `app/`               | Rutas: `(public)` (login, registro, verificación), `(app)` (protegidas en el layout), `bff/` y `actions/`                         |
+| `components/`        | `ui/` (inventario del sistema de diseño), pantallas por dominio, estados de carga y error                                         |
+| `components/layout/` | `AppFrame` y `AppShell` (las dos formas, con navegación y título), `BrandShell` (páginas públicas), `SkipLink` y el foco del `h1` |
+| `lib/server/`        | Solo servidor (`server-only`): entorno, sesión, cookie, contexto de petición, cliente de API, acciones y proxy                    |
+| `lib/client/`        | Lecturas, TanStack Query, mensajes por `code`, `unwrap`, flujo de transferencia y llave de idempotencia                           |
+| `test/`              | Datos de ejemplo del contrato, API simulada con `fetch`, sustitutos de `next/headers` y `next/navigation`                         |
 
 ## Requisitos
 
@@ -92,6 +98,7 @@ La sesión vive en la memoria del proceso: reiniciar el servidor cierra todas la
 | `npm run dev`                     | Servidor de desarrollo                                                                         |
 | `npm run build` / `npm start`     | Build de producción y servidor                                                                 |
 | `npm test`                        | Pruebas con Vitest (`npm run test:watch` en modo observación)                                  |
+| `npm run test:e2e`                | Pruebas en navegador con Playwright, contra una API simulada (ver "Pruebas en navegador")      |
 | `npm run typecheck`               | `next typegen` y `tsc --noEmit`                                                                |
 | `npm run lint`                    | ESLint, sin advertencias permitidas; incluye la regla que prohíbe `parseFloat` y `Number(...)` |
 | `npm run format` / `format:check` | Prettier                                                                                       |
@@ -104,13 +111,27 @@ npm test
 
 Ninguna prueba necesita la API: el BFF se prueba con `fetch` simulado (`test/support/fake-api.ts`) y sustitutos de `next/headers`, y las pantallas con el módulo de acciones y las lecturas simulados. Hay dos proyectos de Vitest: `*.test.ts` corre en Node (BFF, configuración y lógica) y `*.test.tsx` en jsdom con Testing Library y `vitest-axe`. El título de cada prueba empieza con el ID del requisito que verifica (`WEB-17 …`, `DSG-09 …`).
 
-El contraste no se puede medir en jsdom; se verificó con Lighthouse (ver abajo).
+El contraste no se puede medir en jsdom; se verificó con Lighthouse (ver abajo) y, desde el rediseño, lo mide axe en las pruebas en navegador.
 
 Las pruebas de transferencias programadas usan un reloj fijo, el 14 de octubre de 2026 a mediodía de la Ciudad de México, con `vi.useFakeTimers({ toFake: ['Date'] })`. Solo se falsea `Date`, así que user-event sigue funcionando. La fecha en palabras se prueba además con `TZ` en husos al oeste y al este de UTC.
 
 Un doble clic con `user.dblClick` no basta para probar el candado del envío. user-event envuelve cada evento en `act`, así que React deshabilita el botón entre los dos clics. Por eso las pruebas del candado ("Enviar" al programar y "Cancelar transferencia") hacen los dos clics dentro de un mismo `act`.
 
 La pantalla de programadas no usa `<dialog>` nativo porque jsdom no implementa `showModal()`. En su lugar, el diálogo sigue el patrón modal de WAI-ARIA, con `role="dialog"`, `aria-modal`, foco atrapado y Escape, y así se puede probar con el teclado en jsdom.
+
+### Pruebas en navegador
+
+```bash
+npm run test:e2e
+```
+
+Lo que jsdom no puede medir (layout, `display: none`, el CSS real) se prueba en Chromium con Playwright 1.61.1 (`e2e/`, `playwright.config.ts`). La configuración levanta dos servidores y los detiene al terminar: `e2e/fake-api.mjs` en `127.0.0.1:4999`, una API simulada con los datos canónicos de las historias del rediseño y las formas del contrato, y `next dev` en `127.0.0.1:3101` apuntando a ella. No usa la API real, PostgreSQL ni los puertos 3000 y 4000. Si falta el navegador, la primera vez corre `npx playwright install chromium`. Si el sistema se queda sin observadores de archivos (inotify), corre `WATCHPACK_POLLING=true npm run test:e2e`.
+
+- **Layout** (`layout.spec.ts`, `scrollbars.spec.ts`): sin desplazamiento horizontal de 320 a 1920 px, también con barras de desplazamiento clásicas; un solo `h1` visible, un solo `main` y un solo "Saltar al contenido" por pantalla; las dos formas; el texto al 200 %; el pie fijo de los pasos y la barra de pestañas a 20 px de lo último, como en la app móvil.
+- **Teclado** (`keyboard.spec.ts`): la transferencia hasta el comprobante solo con el teclado, a 390 y a 1280 px.
+- **Hojas y diálogos** (`overlays.spec.ts`): foco atrapado, Escape, foco de regreso y la página de fondo sin desplazarse.
+- **Accesibilidad** (`a11y.spec.ts`): axe con el CSS real (incluido el contraste) en cada pantalla, en los pasos del flujo y con las hojas abiertas.
+- **Programadas** (`scheduled.spec.ts`): programar, cancelar y el `409` de una que ya no se puede cancelar.
 
 ## Avisos conocidos
 
@@ -126,6 +147,8 @@ Lo que las pruebas automáticas no pueden comprobar en jsdom se verificó en un 
 **Entorno.** Build de producción (`npm run build` y `next start -p 3100`, sin el overlay de desarrollo de Next.js, que captura el foco en `next dev`) con `SESSION_COOKIE_SECURE=false`. La primera vez la API real no estaba disponible: se usó una API simulada en el puerto 4100 con las rutas, los cuerpos y los códigos de `contract/openapi.yaml` (no se versiona). Las dos verificaciones de accesibilidad se repitieron después con la API real (ver "Repetición con la API real"); la de origen no depende de la API.
 
 ### Transferencia solo con teclado (WEB-23)
+
+Desde el rediseño, este recorrido está automatizado en `e2e/keyboard.spec.ts` (`npm run test:e2e`), a 390 y a 1280 px, sobre el flujo por pasos. El guion manual de abajo es el de la primera verificación, con el formulario anterior al rediseño, y sirve para repetirlo con la API real.
 
 Con Tab, Shift+Tab, Enter, Espacio y las flechas, sin ratón:
 

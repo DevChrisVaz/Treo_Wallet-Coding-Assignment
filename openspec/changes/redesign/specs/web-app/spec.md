@@ -48,6 +48,12 @@ En la forma de app, la web SHALL mostrar una barra de pestañas con Inicio, Movi
 - **WHEN** el usuario entra al flujo de transferencia a 390 px
 - **THEN** no se ve la barra de pestañas y el flujo ocupa la pantalla
 
+#### Scenario: Programadas en teléfono
+Precisa WEB-34 (change `scheduled-transfers`), que pide ofrecer "Programadas" en la navegación de la web.
+- **WHEN** el usuario busca sus transferencias programadas a 390 px
+- **THEN** la barra de pestañas conserva sus cuatro pestañas, sin "Programadas", y el paso del destinatario del flujo de transferencia ofrece el enlace "Transferencias programadas" a `/transfers/scheduled`
+- **AND** desde 1024 px la navegación lateral lista "Programadas" con su propio icono y ese enlace del paso no se muestra
+
 ### Requirement: WEB-28 Inicio rediseñado
 Inicio SHALL mostrar un *hero* con el saldo total de las cuentas, lo que queda del límite diario y acciones rápidas (al menos Transferir y Ver movimientos); las cuentas como tarjetas seleccionables; el medidor del límite diario; y los últimos 5 movimientos de la cuenta seleccionada con "Ver todos", que abre Movimientos con esa cuenta. Amplía WEB-13.
 

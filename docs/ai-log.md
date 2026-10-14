@@ -8,6 +8,7 @@ Registro honesto de cómo se usó la AI en esta prueba: qué herramienta, los pr
 |---|---|
 | **Claude Code** (modelo Claude Opus 5.5) | Exploración del alcance, redacción de las especificaciones, implementación y revisión |
 | **OpenSpec 1.8** (schema `spec-driven`) | Modo SPEC: cada parte del sistema es un *change* con `proposal → specs → design → tasks`, que se implementa con `/opsx:apply` y se archiva con `/opsx:archive` |
+| **design-sync** (skill de Claude Code) | Lienzos locales del rediseño: cada pantalla como historia sobre los componentes reales, y la comparación de paridad entre web y móvil (sesión 7). La subida a Claude Design queda pendiente |
 
 **Flujo spec-first:** primero `/opsx:explore` para decidir el alcance y las ambigüedades; después se capturan los seis changes completos (todos especificados antes de escribir código de aplicación); al final se implementa change por change.
 
@@ -497,6 +498,93 @@ Pedí cerrar todo con subagentes. La AI escribió y validó el change `domain-te
 - **Arranque desde un clon limpio (tarea 5.2).** Se clonó el repositorio y se siguieron los pasos del README: `npm ci` y build de `contract` y `design-tokens`, `npm ci` de la API, la web y la app, `docker compose up`, `db:bootstrap`, `db:migrate`, `db:seed` (120,128 asientos en 17.8 s), la API, `/health`, Swagger UI en `/docs` y el contrato en `/openapi.yaml`, el inicio de sesión de Ana por HTTP, la web en `/login` y `npx expo export --platform android`. Todo funcionó y el README no necesitó cambios. Límites de la prueba: se usaron puertos alternos (55433, 51025, 58025, 4010 y 3010) y un proyecto de compose distinto, porque los puertos habituales ya estaban ocupados por el entorno de desarrollo del usuario; no se recorrió la web con el navegador ni la app en un teléfono. Un hallazgo: `db:bootstrap` sin `psql` instalado usa `docker compose exec` en la carpeta de la API y, con el proyecto de compose por defecto, **ejecutó los roles contra el contenedor ya existente del usuario** antes de que se fijara `COMPOSE_PROJECT_NAME`. Fue inocuo (idempotente y con las mismas contraseñas de desarrollo), pero la herramienta no distingue entre dos entornos con el mismo nombre de proyecto.
 - **El diagrama de Mermaid no se renderizó.** El repositorio no incluye ninguna herramienta para validarlo; se revisó la sintaxis a mano (etiquetas con acentos y puntos entre comillas, sin palabras reservadas como identificadores). Falta abrirlo en GitHub para confirmarlo.
 
+## Sesión 7 — 2026-10-14 · Rediseño (`redesign`)
+
+Esta sesión corrió en paralelo con las sesiones 4 a 6, en sus propios worktrees, y se integró a `release` al final. Por eso su entrada va después del cierre de la sesión 6, como anticipaba el resumen de abajo.
+
+### Prompts clave
+
+Textuales, en inglés, como los escribí:
+
+- "I approve the design so when you're done with phase a, proceed with phase b and apply the new styles to the projects. I'll go to bed, I'll review results in the morning. Good luck!" (la aprobación visual de la tarea 5.4, después de revisar los lienzos)
+- "Before the merge, some changes where made and some new features where added, can you apply the new styles to them? I want to see them in the canvas. Work in a worktree once the work in progress is done" (para los bonus que llegaron de otras sesiones)
+- "Can we merge the previous work while this is still in progress?" (el primer merge anticipado)
+- "Also restart the servers so I can see the changes" y, después, "kill 8081"
+- "Apply them the code and merge" (aplicar las notas de la revisión de P2 e integrar)
+
+El prompt con el que empezó el rediseño no quedó registrado textualmente. La bitácora de la sesión sí guardó tres instrucciones que guiaron las decisiones: trabajar "en paralelo donde se pueda", que la web en un teléfono se viera exactamente como la app y "mismo aspecto, funciones propias" para lo que solo existe en una plataforma.
+
+### Proceso
+
+- **Especificación primero.** El change `redesign` (decisiones D1 a D10; requisitos DSG-13 a DSG-17, WEB-24 a WEB-31 y MOB-18 a MOB-22) se escribió y se validó con `--strict` antes del código.
+- **Fase A, el prototipo.** En una rama aparte (`design/redesign`): tokens v2 aditivos, los kits de web y móvil reestilizados con sus componentes nuevos, y todas las pantallas como historias en los lienzos locales de design-sync (la web a 1280 y a 390 px; la app con react-native-web a 390×844). Un lienzo de paridad pone cada pareja lado a lado, con superposición al 50 %, y `parity-check.mjs` mide la proporción de píxeles distintos. Las pantallas reales no se tocaron.
+- **Dos líneas en paralelo.** En cada fase hubo una línea web y una móvil, cada una en su worktree y con sus instalaciones, con un implementador por tarea y un revisor después de cada una. Se integraban con `--no-ff`. La skill de desarrollo con subagentes pide un implementador a la vez; mandó mi instrucción de trabajar en paralelo.
+- **Aprobación.** Revisé los lienzos y aprobé con el mensaje de arriba. Los valores que se cerraron en el prototipo quedaron en `design.md`.
+- **Fase B, la aplicación,** mientras yo dormía. La AI escribió el plan y una revisión previa encontró 8 bloqueos, 6 problemas importantes y 17 menores, que se aplicaron al plan antes de empezar. Después lo ejecutó en dos líneas: web (6.1 a 6.7) y móvil (7.1 a 7.5).
+- **Paridad sobre las pantallas reales (8.1).** La web real corrió con `next dev` contra una API simulada con los datos de las historias, y Playwright la recorrió como una persona. La app no puede correr completa en el navegador, así que el lienzo dibuja sus vistas reales. Se comparó cada pantalla con su historia aprobada y cada pareja web↔móvil.
+- **Los bonus de otras sesiones.** Mientras tanto, otra sesión integró los bonus a la rama principal. El rediseño la trajo dos veces a mitad del trabajo (P0 y P0b) para no chocar al final, y portó la web de las programadas al flujo nuevo (P1). A petición mía, después estilizó con el kit todos los bonus y les hizo historias en los lienzos (P2).
+- **Dos merges anticipados, locales y sin push.** Pedí integrar antes de terminar. El primero (`b3bb8ae`) llevó las fases A y B, la paridad y P1; el segundo (`e3e5554`), P2. Antes de cada uno se corrieron todas las verificaciones; la documentación (8.2) y la resincronización de los lienzos (8.3) quedaron para después.
+
+### Propuestas de la AI que acepté o modifiqué
+
+| Tema | Decisión |
+| ---- | -------- |
+| Tarjeta de cuenta seleccionable | El plan envolvía el título y el saldo en un `<button>`: HTML inválido y sin encabezado. El botón va dentro del `h3`, solo con el nombre, y el saldo afuera. Después, toda la tarjeta selecciona con el pseudo-elemento del botón, y "Mostrar CLABE" queda encima con su propia área de 44 px, sin que las áreas se encimen |
+| Encabezados | En teléfono el saludo era un párrafo y el flujo en escritorio tenía dos `h1`. Quedó un solo `h1` por página en todos los anchos |
+| Monto protagonista | El "$" flotaba a unos 100 px de los dígitos. El primer arreglo medía el campo en `ch`, que lo hacía demasiado ancho porque los dígitos de Work Sans son proporcionales. Ahora un espejo oculto mide el texto, en web y en móvil |
+| "Mostrar CLABE" en Inicio de la web | Lo conservé aunque la app no lo tiene: mismo aspecto, funciones propias |
+| Tamaño del Wordmark | La AI lo agrandó para todos, también en pantallas que la fase A no debía cambiar. Quedó el tamaño anterior, y el grande solo en las pantallas de marca |
+| Indicador de pasos | El total pasa de 5 a 4 cuando el monto no pide código. Se queda: es lo que aprobé |
+| Cuentas propias como destinatario | El plan ofrecía las propias menos el origen por defecto, así que Ahorro → Principal solo se podía desde Inicio. Ahora están todas, y el paso del monto no ofrece como origen la que se eligió |
+| Pantallas móviles | Cada una se partió en contenedor y vista pura, con una prueba que lo vigila, para que el lienzo dibuje el código real |
+| Especificación contra historias | Donde el texto y las historias aprobadas diferían, mandaron las historias: "Agregar beneficiario" en la barra superior, el registro sin pie fijo y los filtros de escritorio en un panel centrado |
+| Bonus en el rediseño | El estado de cuenta, en su propia tarjeta después del historial. "Programadas", en la navegación lateral y, en teléfono, desde el paso del destinatario, porque la barra conserva las pestañas de la app. "Programadas" lleva un icono propio (CalendarClock), que subió el paquete de diseño a 1.3.0. El desbloqueo biométrico, intacto, con su interruptor en el menú de la cuenta |
+
+### Errores de la AI que detectaron las pruebas y las revisiones
+
+**En la fase A:**
+
+- **Una expresión regular que rechazaba el icono `X` de Lucide** (pedía dos caracteres o más).
+- **Formato sin revisar:** las tareas 2.1 a 2.3 dejaron nueve archivos de `/design-tokens` sin formatear, y el CI los habría rechazado. Desde entonces, cada tarea corre `format:check` antes del commit.
+- **Las previews de design-sync rompían Prettier en el CI** desde que se versionaron. Esas carpetas se excluyeron de Prettier y ESLint, porque reformatearlas habría invalidado todas las revisiones visuales.
+- **Reglas de `.gitignore` ancladas a la raíz** que nunca coincidían dentro de `web/` ni de `mobile/`.
+- **React Native 0.86 ya no tiene `StyleSheet.absoluteFillObject`.**
+- **Accesibilidad:** el anillo de foco verde no se veía sobre el *hero* verde (ahora es lima); el botón del avatar medía 40 px (ahora 44); las hojas inferiores perdieron el alto máximo y el desplazamiento, así que las listas largas se cortaban.
+- **La revisión final de la fase A** encontró que `MovementRow` cambiaba de formato sin que nadie lo pidiera y rompía las listas planas vigentes, que la etiqueta accesible del movimiento móvil perdía la referencia, y que `dates.ts` creaba los formateadores de zona horaria al importar, sin respaldo, y tomaba los meses del ICU del motor ("sep" en un motor, "sept" en otro). También quedaban 98 avisos de react-native-web en los lienzos; quedaron en cero.
+
+**En la fase B:**
+
+- **Foco perdido (WEB-23):** al confirmar el código en el detalle de una transferencia, el foco se perdía porque el comprobante no tenía encabezado.
+- **Playwright podía usar la API real.** Con `reuseExistingServer: true` adoptaba cualquier servidor que ya escuchara en el puerto. Ahora siempre levanta los suyos.
+- **Texto al 200 %:** los saldos se partían entre dígitos y la pestaña "Beneficiarios" quedaba fuera de la pantalla (WCAG 1.4.4). A 320 px, el tipo del movimiento se encimaba con el monto.
+- **Bloquear el desplazamiento al abrir una hoja** quitaba la barra clásica y la página se movía su ancho.
+- **Movimientos en el móvil:** si fallaba `GET /accounts`, la pantalla se quedaba en esqueletos para siempre, y deslizar para actualizar pedía `/accounts//movements`, porque `refetch` de TanStack Query 5 ignora `enabled`.
+- **El comprobante móvil de una fallida** fijaba el estado `FAILED` en lugar de leer el de la API, y un error al recargar en segundo plano reemplazaba el comprobante por el error.
+- **La prueba de vistas puras pasaba sin revisar nada** si no encontraba archivos.
+- **La paridad sobre pantallas reales (8.1)** encontró cuatro diferencias de estructura con las historias aprobadas, corregidas con su prueba: el paso del monto móvil separaba sus campos 16 px en lugar de 20; el detalle de la web mostraba un título que la historia no tiene; el paso del código separaba sus bloques 16 px en lugar de 20; y lo último de la página quedaba a 23 px de la barra de pestañas y a 47 px del pie fijo, en lugar de 20. También encontró que Google Fonts entrega otra compilación de Work Sans a cada navegador, con otros anchos de letra: el lienzo y `next/font` no usaban el mismo archivo.
+- **En los bonus:** "Programadas" repetía el icono de "Transferir", el diálogo de cancelar no cabía a 320 px con el texto al 200 %, y el resultado programado se anunciaba dos veces.
+
+**Contradicciones del plan que se resolvieron sin debilitar pruebas:** el plan decía que las pruebas del desbloqueo quedaban sin cambios, pero la navegación nueva obligaba a abrir el menú de la cuenta antes de tocar el interruptor; se reubicaron los pasos y ninguna aserción se debilitó.
+
+### Incidentes de proceso
+
+- **El límite de uso detuvo a los subagentes cuatro veces,** tres de ellas a mitad de una tarea. Se reanudaron con su contexto y revisaron su trabajo sin commit antes de seguir.
+- **Una corrección se escribió antes que su prueba** (la ronda de la tarea 4.5): la prueba existe y pasa, pero no se vio fallar. Un reporte (7.4) llegó sin la evidencia de rojo y verde.
+- **La rama principal cambió debajo del rediseño.** A petición mía, otra sesión renombró `main` a `release`, y después una tercera sesión reescribió su historia. El merge de P2 con la versión vieja habría resucitado un archivo que esa reescritura quitó (`docs/video-script.md`); se rehízo sobre la `release` nueva.
+- **Un `pkill -f vitest` de otra sesión** mató corridas en toda la máquina; se repitieron.
+
+### Verificación
+
+- **Pruebas:** al cerrar la fase A, 266 en `/design-tokens`, 469 en la web y 260 en el móvil. Al integrar el segundo merge: 274 en `/design-tokens`, 731 de Vitest y 50 de Playwright en la web y 395 de Jest en el móvil, con lint, typecheck y formato limpios. Antes de cada merge también pasaron el contrato (334) y las unitarias de la API (520 y 523).
+- **Navegador real** (`npm run test:e2e`): sin desplazamiento horizontal de 320 a 1920 px, un solo `h1` visible, la transferencia solo con teclado, las hojas y axe con el CSS real.
+- **Paridad:** las 15 parejas del prototipo salieron idénticas, con diferencias de suavizado o con diferencias por diseño acordadas. En 8.1, con el mismo archivo de fuente, la web real dio 0.0000 contra sus historias fuera de las zonas acordadas, la vista móvil real dio 0.0000 contra la suya, y cada pareja repitió la medición del prototipo. Las tablas están en `web/.design-sync/NOTES.md`.
+
+### Pendiente
+
+- **Subir los lienzos a Claude Design:** requiere `/design-login`, que no se ha hecho en este entorno.
+- **La lista de Expo Go del rediseño** (`mobile/README.md`): fechas en Hermes, texto agrandado, foco de las hojas, atrás de Android, área segura y el anuncio del paso.
+- **Resincronizar design-sync con la aplicación** (tarea 8.3): fijar el mismo archivo de Work Sans en la web y en el lienzo, y actualizar los mapas de pantallas, las previews anteriores al rediseño y las notas de paridad.
+
 ## Correcciones a la AI, en conjunto
 
 Índice de lo que la AI propuso mal o dejó inseguro, ordenado por lo que importa en un sistema de dinero. Cada punto está explicado en la sesión que se indica.
@@ -519,6 +607,9 @@ Pedí cerrar todo con subagentes. La AI escribió y validó el change `domain-te
 | Una aserción de las programadas filtraba logs por un nivel numérico que pino no escribe, así que nunca podía fallar | 4 | El subagente, una tarea después | Aserción corregida; es la que detecta la doble ejecución |
 | La barrera de la carrera del tope de programadas se rendía en silencio | 5 | La auditoría de cobertura | Usa el helper que lanza error, y retrasar la segunda petición la hace fallar |
 | Una mutación de BEN-07 que la prueba de integración no detectaba (el índice único lo impide antes) | 5 | Mutación deliberada | La prueba unitaria sí falla |
+| La agrupación por día creaba los formateadores de zona horaria al importar, sin respaldo, y tomaba los meses del ICU del motor ("sep" o "sept") | 7 | La revisión final de la fase A | Formateadores al primer uso, UTC−6 fijo si el motor no conoce la zona y una tabla de meses propia |
+| El comprobante móvil de una transferencia fallida fijaba el estado `FAILED` en lugar de leer el de la API | 7 | La revisión de la tarea 7.5 | Usa el estado que devuelve la API |
+| Deslizar para actualizar Movimientos en el móvil pedía `/accounts//movements` sin cuenta (`refetch` de TanStack Query 5 ignora `enabled`) | 7 | Las revisiones de la línea móvil | El `refetch` no corre sin una cuenta elegida, con su prueba |
 
 ### Con la seguridad y la identidad
 
@@ -532,6 +623,7 @@ Pedí cerrar todo con subagentes. La AI escribió y validó el change `domain-te
 | `next dev` registraba la contraseña en los argumentos de la Server Action | 3 | `logging.serverFunctions: false`, con una prueba |
 | Una afirmación sobre Amplify ("deja menos control de `allowedOrigins`") era falsa | 1 | Se verificó contra la documentación; se mantuvo Fargate con los argumentos que sí pesan |
 | El paquete se nombró con el usuario de GitHub que devolvía `gh api user`, sin confirmarlo | 2 | Mi usuario es DevChrisVaz; no se infiere la identidad del entorno |
+| Las pruebas en navegador adoptaban cualquier servidor que ya escuchara en su puerto (`reuseExistingServer: true`), que podía ser la API real | 7 | Playwright siempre levanta su API simulada y su `next dev` |
 
 ### De proceso
 
@@ -539,7 +631,10 @@ Pedí cerrar todo con subagentes. La AI escribió y validó el change `domain-te
 - **`git checkout` para revertir una mutación** descartó ediciones sin commit (sesión 3, en dos ocasiones); desde entonces se respalda el archivo antes.
 - **El contrato 1.2.0 rompió los tres consumidores** porque el diseño supuso que instalarían la versión nueva cuando quisieran (sesión 4).
 - **Los subagentes heredaron Opus** sin que lo pidiera y, en otra ocasión, copiaron una atribución equivocada (sesión 5).
-- **Trailers en un párrafo aparte** (esta sesión).
+- **Trailers en un párrafo aparte** (sesión 6).
+- **Formato sin revisar y previews que rompían Prettier en el CI** (sesión 7): desde entonces cada tarea corre `format:check` antes del commit.
+- **Una corrección escrita antes que su prueba** y un reporte sin la evidencia de rojo y verde (sesión 7).
+- **Dos sesiones sobre el mismo producto a la vez** (sesión 7): la rama principal cambió de nombre y de historia mientras el rediseño trabajaba, y un `pkill -f vitest` de otra sesión mató corridas ajenas.
 
 ## Resumen del flujo spec-first
 
@@ -550,10 +645,11 @@ Pedí cerrar todo con subagentes. La AI escribió y validó el change `domain-te
 - **Escribir el contrato antes que los clientes.** Web, móvil y API se implementaron en paralelo sin integrarse a ciegas, y los tipos generados detectaron los cambios incompatibles en tiempo de compilación.
 - **Las mutaciones para demostrar las pruebas.** Casi todos los errores serios de dinero (locks, orden de bloqueo, vencimiento del OTP, día en UTC) se descubrieron o se fijaron rompiendo la regla a propósito y viendo fallar una prueba.
 - **Dejar que la AI se contradiga por escrito.** Varias de las mejores correcciones (el deadlock de `FOR UPDATE`, el hash del OTP) las hizo la propia AI al bajar el diseño al detalle, antes de escribir código.
+- **Aprobar el diseño en lienzos antes de tocar las pantallas** (sesión 7). El rediseño se revisó como prototipo y se aplicó solo después, y la paridad se midió en píxeles, no a ojo.
 
 **Qué no funcionó o costó caro:**
 - **Specs que se desactualizan.** Hubo textos de escenarios, descripciones de tareas y planes de reversión que el código obligó a corregir; se corrigieron en el mismo commit y se dejó constancia.
 - **Verificar solo el paquete que se cambió** (el contrato 1.2.0) rompió a los consumidores. Un cambio compartido se verifica con todos sus consumidores.
 - **Alcance mayor al estimado:** el trabajo excedió las 10 a 14 horas del enunciado. Fue una decisión mía, consciente, y está declarada en el README.
 
-**Lo que la bitácora todavía no cubre:** la sesión del rediseño (`redesign`) se ejecutó en su propia rama y su entrada se integrará con ella.
+**El rediseño:** la sesión de `redesign` se ejecutó en su propia rama y su entrada, la sesión 7, llegó con ella. Lo que queda pendiente de esa sesión (subir los lienzos a Claude Design y la verificación en Expo Go) está al final de su entrada.
