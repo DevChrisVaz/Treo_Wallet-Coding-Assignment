@@ -34,3 +34,19 @@ export const money = {
   in: { sign: '+', color: 'money.in' },
   out: { sign: '−', color: 'money.out' },
 } as const satisfies Record<Direction, { sign: string; color: string }>;
+
+/**
+ * Tamaño tipográfico del saldo del hero según su largo, para que quepa en una línea a 390 px con
+ * el mismo criterio en web y móvil.
+ */
+export function heroAmountSize(formatted: string): 'displayXl' | 'display' | 'h1' {
+  if (formatted.length <= 11) return 'displayXl';
+  if (formatted.length <= 14) return 'display';
+  return 'h1';
+}
+
+/** Separa `$35,000.00` en `['$35,000', '.00']` para mostrar los centavos en un tamaño menor. */
+export function splitCents(formatted: string): [string, string] {
+  const dot = formatted.lastIndexOf('.');
+  return dot < 0 ? [formatted, ''] : [formatted.slice(0, dot), formatted.slice(dot)];
+}
