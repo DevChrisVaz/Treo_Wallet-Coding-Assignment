@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { AuditWriter } from '../../../src/modules/audit/application/audit-writer.js';
+import { PgAuditWriter } from '../../../src/modules/audit/infrastructure/pg-audit-writer.js';
 import { buildClabe } from '../../../src/modules/accounts/domain/clabe.js';
 import { auditEvents, leakedValues } from '../../helpers/audit.js';
 import { buildTestApp, type TestApp } from '../../helpers/app.js';
@@ -119,5 +121,43 @@ describe('BEN-11 auditoría del alta', () => {
       { actor_type: 'USER', actor_user_id: ana.userId, entity_id: created.body.id },
     ]);
     expect(leakedValues(events, [body.clabe, body.name, body.alias])).toEqual([]);
+  });
+});
+
+describe('BEN-11 el alta se revierte si falla la auditoría', () => {
+  it('BEN-11 si falla BENEFICIARY_CREATED no queda el beneficiario y el alta se puede reintentar', async () => {
+    // Misma transacción: si la escritura del evento falla, el INSERT del beneficiario se deshace.
+    let failing = true;
+    const real = new PgAuditWriter(harness.app, { now: () => t.clock.now() });
+    const audit: AuditWriter = {
+      record: async (tx, event) => {
+        if (failing && event.action === 'BENEFICIARY_CREATED') {
+          throw new Error('falla forzada de auditoría');
+        }
+        return real.record(tx, event);
+      },
+      recordStandalone: (event) => real.recordStandalone(event),
+    };
+    t = await buildTestApp(harness, { overrides: { audit } });
+    const body = { name: 'Luis Pérez', alias: 'Luis', clabe: luis.principal.clabe };
+
+    const failed = await create(ana, body);
+    expect(failed.status).toBe(500);
+    expect(failed.body.code).toBe('INTERNAL_ERROR');
+    const [{ n }] = await harness.migrator.query(
+      'SELECT count(*)::int AS n FROM app.beneficiaries WHERE user_id = $1',
+      [ana.userId],
+    );
+    expect(n).toBe(0);
+    expect(
+      (await auditEvents(harness.migrator)).filter((e) => e.action === 'BENEFICIARY_CREATED'),
+    ).toEqual([]);
+    const list = await authed(t, ana.accessToken).get('/beneficiaries');
+    expect(list.body.items).toEqual([]);
+
+    // Sin la falla, el mismo alta se crea (201), no queda atascada como existente.
+    failing = false;
+    const retry = await create(ana, body);
+    expect(retry.status).toBe(201);
   });
 });
