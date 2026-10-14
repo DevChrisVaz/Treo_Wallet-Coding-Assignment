@@ -39,3 +39,23 @@ describe('pares declarados del tema claro', () => {
     for (const token of required) expect(declaredForeground.has(token)).toBe(true);
   });
 });
+
+describe('pares del hero (DSG-14)', () => {
+  it.each([
+    ['text.onInverse', 'surface.hero'],
+    ['text.onHeroMuted', 'surface.hero'],
+    ['accent.onDark', 'surface.hero'],
+    ['text.primary', 'accent.onDark'],
+  ])('DSG-14 %s sobre %s está declarado y cumple 4.5:1', (fg, bg) => {
+    expect(contrastPairs.some((pair) => pair.fg === fg && pair.bg === bg)).toBe(true);
+    expect(contrastRatio(resolveToken(theme, fg), resolveToken(theme, bg))).toBeGreaterThanOrEqual(
+      4.5,
+    );
+  });
+
+  it('DSG-14 el lima como texto sobre blanco no llega a 4.5:1', () => {
+    expect(contrastRatio(theme.colors.accent.onDark, theme.colors.surface.default)).toBeLessThan(
+      4.5,
+    );
+  });
+});

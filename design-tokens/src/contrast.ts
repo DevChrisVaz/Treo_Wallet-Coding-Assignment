@@ -56,10 +56,11 @@ function ui(fg: string, bg: string): ContrastPair {
 /**
  * Combinaciones permitidas de color sobre superficie. Usar un token de texto sobre una superficie
  * que no aparece aquí no está garantizado. El acento de marca (`accent.brand`) no aparece porque es
- * decorativo: el medidor del límite diario siempre acompaña la barra con texto.
+ * decorativo: el medidor del límite diario siempre acompaña la barra con texto. El lima
+ * (`accent.onDark`) solo aparece sobre el hero.
  */
 export const contrastPairs: readonly ContrastPair[] = [
-  ...['surface.default', 'surface.subtle', 'surface.brand'].flatMap((bg) => [
+  ...['surface.default', 'surface.subtle', 'surface.brand', 'surface.canvas'].flatMap((bg) => [
     text('text.primary', bg),
     text('text.secondary', bg),
     text('action.primary', bg),
@@ -78,5 +79,9 @@ export const contrastPairs: readonly ContrastPair[] = [
     text(`status.${tone}.fg`, `status.${tone}.bg`),
     text(`status.${tone}.fg`, 'surface.default'),
   ]),
+  text('text.onInverse', 'surface.hero'),
+  text('text.onHeroMuted', 'surface.hero'),
+  text('accent.onDark', 'surface.hero'),
+  text('text.primary', 'accent.onDark'),
   ui('action.primary', 'surface.default'),
 ];

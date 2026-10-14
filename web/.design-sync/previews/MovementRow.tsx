@@ -73,26 +73,26 @@ const ownIn = {
 
 export const TransferReceived = () => (
   <ul aria-label="Movimientos" className="max-w-xl">
-    <MovementRow movement={received} />
+    <MovementRow timeOnly movement={received} />
   </ul>
 );
 
 export const TransferSent = () => (
   <ul aria-label="Movimientos" className="max-w-xl">
-    <MovementRow movement={sent} />
+    <MovementRow timeOnly movement={sent} />
   </ul>
 );
 
 export const Deposit = () => (
   <ul aria-label="Movimientos" className="max-w-xl">
-    <MovementRow movement={deposit} />
+    <MovementRow timeOnly movement={deposit} />
   </ul>
 );
 
 export const OwnAccountTransfers = () => (
   <ul aria-label="Traspasos entre tus cuentas" className="max-w-xl">
-    <MovementRow movement={ownOut} />
-    <MovementRow movement={ownIn} />
+    <MovementRow timeOnly movement={ownOut} />
+    <MovementRow timeOnly movement={ownIn} />
   </ul>
 );
 
@@ -100,7 +100,7 @@ export const MovementHistory = () => (
   <section className="grid max-w-3xl gap-4">
     <ul aria-label="Movimientos">
       {[received, sent, ownOut, tuition, deposit].map((item) => (
-        <MovementRow key={item.id} movement={item} />
+        <MovementRow key={item.id} movement={item} timeOnly />
       ))}
     </ul>
     <div>

@@ -8,7 +8,11 @@
   "cssEntry": "dist/styles.css",
   "componentSrcMap": {
     "LoadingState": "../../../components/states/states.tsx",
-    "ErrorState": "../../../components/states/states.tsx"
+    "ErrorState": "../../../components/states/states.tsx",
+    "AppHeader": "../../../components/ui/AppHeader.tsx",
+    "IconButton": "../../../components/ui/Icon.tsx",
+    "AppShell": "../../../components/layout/AppShell.tsx",
+    "BrandShell": "../../../components/layout/BrandShell.tsx"
   },
   "tokensPkg": "@devchrisvaz/wallet-design-tokens",
   "tokensGlob": "generated/tokens.css",
@@ -17,21 +21,34 @@
     "AccountCard": {
       "cardMode": "column"
     },
-    "PageShell": {
-      "cardMode": "column"
-    },
     "Select": {
       "cardMode": "column"
     },
     "LoadingState": {
       "cardMode": "column"
+    },
+    "AppShell": {
+      "cardMode": "single",
+      "primaryStory": "Home"
+    },
+    "BrandShell": {
+      "cardMode": "column"
+    },
+    "BottomSheet": {
+      "cardMode": "single",
+      "primaryStory": "AccountMenu",
+      "viewport": "480x520"
+    },
+    "Icon": {
+      "cardMode": "column"
     }
   },
   "dtsPropsFor": {
-    "MovementRow": "  movement: {\n    id: string;\n    type: \"DEPOSIT\" | \"TRANSFER_IN\" | \"TRANSFER_OUT\" | \"OWN_TRANSFER_IN\" | \"OWN_TRANSFER_OUT\";\n    /** Monto con signo y 2 decimales, como string: \"-1500.00\" (salida), \"25000.00\" (entrada). */\n    amount: string;\n    /** Saldo de la cuenta después del movimiento, \"23500.00\". */\n    balanceAfter: string;\n    concept: string;\n    reference: string;\n    /** null en los DEPOSIT de la Tesorería. */\n    counterparty: { name: string; clabeLast4: string } | null;\n    transferId: string;\n    /** ISO 8601; se muestra en hora de Ciudad de México. */\n    occurredAt: string;\n  };",
+    "MovementRow": "  movement: {\n    id: string;\n    type: \"DEPOSIT\" | \"TRANSFER_IN\" | \"TRANSFER_OUT\" | \"OWN_TRANSFER_IN\" | \"OWN_TRANSFER_OUT\";\n    /** Monto con signo y 2 decimales, como string: \"-1500.00\" (salida), \"25000.00\" (entrada). */\n    amount: string;\n    /** Saldo de la cuenta después del movimiento, \"23500.00\". */\n    balanceAfter: string;\n    concept: string;\n    reference: string;\n    /** null en los DEPOSIT de la Tesorería. */\n    counterparty: { name: string; clabeLast4: string } | null;\n    transferId: string;\n    /** ISO 8601; se muestra en hora de Ciudad de México. */\n    occurredAt: string;\n  };\n  /** Solo la hora a la vista y sin borde, para listas agrupadas por día (MovementList); por omisión, fecha completa y borde. */\n  timeOnly?: boolean;",
     "Receipt": "  /** Transferencia tal como la devolvió la API. */\n  transfer: {\n    id: string;\n    status: \"PENDING_OTP\" | \"COMPLETED\" | \"REJECTED\" | \"FAILED\" | \"EXPIRED\";\n    kind: \"OWN\" | \"THIRD_PARTY\";\n    fromAccountId: string;\n    destination: {\n      type: \"OWN_ACCOUNT\" | \"BENEFICIARY\";\n      accountId: string | null;\n      beneficiaryId: string | null;\n      displayName: string;\n      clabeLast4: string;\n    };\n    /** Monto en pesos como string con 2 decimales, \"5000.00\". */\n    amount: string;\n    concept: string;\n    reference: string;\n    requiresOtp: boolean;\n    otp: {\n      channel: \"EMAIL\";\n      deliveryStatus: \"SENT\" | \"FAILED\";\n      maskedDestination: string;\n      expiresAt: string;\n      attemptsRemaining: number;\n      resendsRemaining: number;\n    } | null;\n    rejectionReason: \"INSUFFICIENT_FUNDS\" | \"DAILY_LIMIT_EXCEEDED\" | null;\n    failureReason: \"INSUFFICIENT_FUNDS\" | \"DAILY_LIMIT_EXCEEDED\" | \"OTP_ATTEMPTS_EXHAUSTED\" | null;\n    createdAt: string;\n    completedAt: string | null;\n  };\n  /** Cuenta de origen, si se conoce, para mostrar su nombre y CLABE enmascarada. */\n  fromAccount?: { name: string; clabe: string };",
-    "AccountCard": "  /** Montos en pesos como string con 2 decimales; CLABE de 18 dígitos (se enmascara). */\n  account: { name: string; clabe: string; balance: string };\n  /** Anillo de selección (ring-action). */\n  selected?: boolean;\n  /** Acciones de la tarjeta (por ejemplo, \"Ver movimientos\"). */\n  children?: React.ReactNode;",
-    "DailyLimitMeter": "  /** Montos en pesos como string con 2 decimales, \"50000.00\". */\n  dailyLimit: { limit: string; used: string; remaining: string; resetsAt: string; timeZone: \"America/Mexico_City\" };"
+    "AccountCard": "  /** Montos en pesos como string con 2 decimales; CLABE de 18 dígitos (se enmascara). */\n  account: { name: string; clabe: string; balance: string };\n  /** Anillo de selección (ring-action). */\n  selected?: boolean;\n  /** Hace del nombre un botón de selección con aria-pressed (el saldo queda fuera del botón). */\n  onSelect?: () => void;\n  /** Acciones de la tarjeta (por ejemplo, \"Ver movimientos\"). */\n  children?: React.ReactNode;",
+    "DailyLimitMeter": "  /** Montos en pesos como string con 2 decimales, \"50000.00\". */\n  dailyLimit: { limit: string; used: string; remaining: string; resetsAt: string; timeZone: \"America/Mexico_City\" };\n  /** Muestra \"Límite diario\" y el límite arriba de la barra; por omisión no (la pantalla de cuentas pone su propio título). */\n  showHeader?: boolean;",
+    "MovementList": "  movements: ReadonlyArray<{\n    id: string;\n    type: \"DEPOSIT\" | \"TRANSFER_IN\" | \"TRANSFER_OUT\" | \"OWN_TRANSFER_IN\" | \"OWN_TRANSFER_OUT\";\n    /** Monto con signo y 2 decimales, como string: \"-1500.00\" (salida), \"25000.00\" (entrada). */\n    amount: string;\n    /** Saldo de la cuenta después del movimiento, \"23500.00\". */\n    balanceAfter: string;\n    concept: string;\n    reference: string;\n    /** null en los DEPOSIT de la Tesorería. */\n    counterparty: { name: string; clabeLast4: string } | null;\n    transferId: string;\n    /** ISO 8601; se muestra en hora de Ciudad de México. */\n    occurredAt: string;\n  }>;\n  /** Fecha de referencia para los encabezados \"Hoy\" y \"Ayer\" (por omisión, la actual). */\n  now?: Date;"
   },
   "readmeHeader": ".design-sync/conventions.md"
 }

@@ -5,3 +5,6 @@ export * from './copy';
 export * from './css';
 export * from './scale';
 export * from './themes';
+export * from './dates';
+export * from './icons';
+export * from './navigation';

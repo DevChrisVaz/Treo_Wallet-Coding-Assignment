@@ -7,6 +7,13 @@ import { Skeleton } from './Skeleton';
 import { StatusBadge } from './StatusBadge';
 
 describe('InlineAlert', () => {
+  it('DSG-15 la alerta de error lleva el icono de error, decorativo', () => {
+    const { container } = render(
+      <InlineAlert tone="danger">No tienes saldo suficiente.</InlineAlert>,
+    );
+    expect(container.querySelector('[role="alert"] svg')).toHaveAttribute('aria-hidden', 'true');
+  });
+
   it('DSG-11 WEB-23 los errores usan role="alert" y el tono de error', () => {
     render(
       <InlineAlert tone="danger" title="Saldo insuficiente">

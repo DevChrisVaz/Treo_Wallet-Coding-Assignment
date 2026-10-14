@@ -1,7 +1,7 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import { act, fireEvent, screen, userEvent, waitFor } from '@testing-library/react-native';
-import { Text } from 'react-native';
 
+import MovementsRoute from '@/app/(app)/(tabs)/movements';
 import { HomeScreen } from '@/features/accounts/home-screen';
 import { REFRESH_TOKEN_KEY } from '@/session/session';
 import { UNLOCK_PREFERENCE_KEY } from '@/session/unlock-preference';
@@ -23,9 +23,10 @@ async function openHome() {
     .on('POST', '/auth/logout', noContent());
   const rendered = await renderApp({
     fake,
-    routes: { index: HomeScreen, 'accounts/[accountId]': () => <Text>Movimientos</Text> },
+    routes: { index: HomeScreen, '(tabs)/movements': MovementsRoute },
   });
   expect(await screen.findByText('$25,000.00')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Menú de la cuenta' }));
   return { ...rendered, fake };
 }
 
@@ -140,6 +141,7 @@ describe('interruptor en el flujo completo', () => {
     const user = await logInWithPassword();
 
     await user.press(await screen.findByRole('button', { name: 'Activar' }));
+    await user.press(screen.getByRole('button', { name: 'Menú de la cuenta' }));
 
     await waitFor(() => expect(screen.getByRole('switch')).toBeChecked());
     expect(screen.getByRole('switch', { name: 'Desbloqueo con huella' })).toBeOnTheScreen();
@@ -149,6 +151,7 @@ describe('interruptor en el flujo completo', () => {
     await renderRoot({ fake: walletApi() });
     const user = await logInWithPassword();
     await user.press(await screen.findByRole('button', { name: 'Activar' }));
+    await user.press(screen.getByRole('button', { name: 'Menú de la cuenta' }));
     await waitFor(() => expect(screen.getByRole('switch')).toBeChecked());
 
     await toggle(false);
@@ -164,6 +167,7 @@ describe('interruptor en el flujo completo', () => {
     await renderRoot({ fake: walletApi() });
     expect(await screen.findByText('$25,000.00')).toBeOnTheScreen();
     expect(LocalAuthentication.authenticateAsync).toHaveBeenCalledTimes(1);
+    await fireEvent.press(screen.getByRole('button', { name: 'Menú de la cuenta' }));
     expect(await unlockSwitch()).toBeChecked();
 
     await toggle(false);

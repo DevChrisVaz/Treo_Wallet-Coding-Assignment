@@ -1,10 +1,4 @@
-import { PageShell } from '@/components/layout/PageShell';
-
-/** Pantallas sin sesión: inicio de sesión, registro y verificación de correo. */
+/** Pantallas sin sesión: cada página trae su BrandShell, con su salto al contenido y su `main`. */
 export default function PublicLayout({ children }: LayoutProps<'/'>) {
-  return (
-    <PageShell>
-      <div className="mx-auto grid w-full max-w-md gap-6">{children}</div>
-    </PageShell>
-  );
+  return children;
 }

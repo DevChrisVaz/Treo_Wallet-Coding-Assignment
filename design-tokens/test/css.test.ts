@@ -79,3 +79,36 @@ describe('archivos generados', () => {
     expect(readFileSync(resolve(__dirname, '..', file), 'utf8')).toBe(expected);
   });
 });
+
+describe('tokens v2 en CSS', () => {
+  it.each([
+    ['--dt-surface-canvas: #F6F5F2;'],
+    ['--dt-surface-hero: #1C4B42;'],
+    ['--dt-fg-on-hero-muted: #BFCDCA;'],
+    ['--dt-accent-on-dark: #B4E717;'],
+    ['--dt-text-display-xl: 3rem;'],
+    ['--dt-text-display-xl-line-height: 3.5rem;'],
+    ['--dt-layout-tab-bar-height: 64px;'],
+    ['--dt-layout-app-column-max: 480px;'],
+    ['--dt-layout-sidebar-width: 248px;'],
+    ['--dt-layout-content-max: 1200px;'],
+    ['--dt-icon-md: 20px;'],
+    ['--dt-avatar-md: 40px;'],
+  ])('DSG-16 tokens.css define %s', (declaration) => {
+    expect(tokensCss).toContain(declaration);
+  });
+
+  it('DSG-16 Tailwind expone los puntos de cambio de la app y del dashboard', () => {
+    expect(tailwindCss).toContain('--breakpoint-app: 30rem;');
+    expect(tailwindCss).toContain('--breakpoint-dashboard: 64rem;');
+  });
+
+  it('DSG-16 Tailwind expone anchos, sombras y el display mayor', () => {
+    expect(tailwindCss).toContain('--container-app: var(--dt-layout-app-column-max);');
+    expect(tailwindCss).toContain('--container-content: var(--dt-layout-content-max);');
+    expect(tailwindCss).toContain('--container-sidebar: var(--dt-layout-sidebar-width);');
+    expect(tailwindCss).toContain('--shadow-raised: var(--dt-shadow-raised);');
+    expect(tailwindCss).toContain('--shadow-sheet: var(--dt-shadow-sheet);');
+    expect(tailwindCss).toContain('--text-display-xl: var(--dt-text-display-xl);');
+  });
+});

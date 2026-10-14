@@ -2,7 +2,7 @@ import { useState, useSyncExternalStore } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useServices } from '@/app-services';
-import { Button } from '@/components/ui';
+import { Button, ListSection } from '@/components/ui';
 import { theme } from '@/theme';
 
 import { requestUnlock, useBiometricSupport } from './biometrics';
@@ -43,27 +43,21 @@ export function UnlockOffer() {
     unlockPreference.save('declined').catch(() => undefined);
   }
 
+  // Tarjeta del kit (DSG-17): su título es el encabezado "Entrar con tu <tipo>".
   return (
-    <View style={styles.card}>
-      <Text style={styles.title} accessibilityRole="header">
-        {`Entrar con tu ${support.kind}`}
-      </Text>
-      <Text style={styles.body}>
-        {`Abre TreoWallet con tu ${support.kind}, sin escribir tu contraseña.`}
-      </Text>
-      <Button label="Activar" onPress={() => void activate()} loading={activating} />
-      <Button label="Ahora no" variant="ghost" onPress={decline} disabled={activating} />
-    </View>
+    <ListSection title={`Entrar con tu ${support.kind}`}>
+      <View style={styles.body}>
+        <Text style={styles.text}>
+          {`Abre TreoWallet con tu ${support.kind}, sin escribir tu contraseña.`}
+        </Text>
+        <Button label="Activar" onPress={() => void activate()} loading={activating} />
+        <Button label="Ahora no" variant="ghost" onPress={decline} disabled={activating} />
+      </View>
+    </ListSection>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: theme.colors.surface.brand,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing[5],
-    gap: theme.spacing[3],
-  },
-  title: { ...theme.typography.h3, color: theme.colors.text.primary },
-  body: { ...theme.typography.body, color: theme.colors.text.secondary },
+  body: { gap: theme.spacing[3] },
+  text: { ...theme.typography.body, color: theme.colors.text.secondary },
 });

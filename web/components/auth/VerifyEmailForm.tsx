@@ -81,8 +81,8 @@ export function VerifyEmailForm({ email = '', registered = false }: VerifyEmailF
   }
 
   return (
-    <form noValidate onSubmit={onSubmit} className="grid gap-5">
-      {notice ? <InlineAlert tone="info">{notice}</InlineAlert> : null}
+    <form noValidate onSubmit={onSubmit} className="grid gap-4">
+      {notice ? <InlineAlert tone="success">{notice}</InlineAlert> : null}
       {error ? (
         <InlineAlert tone="danger" focusOnMount>
           {error}
@@ -101,7 +101,7 @@ export function VerifyEmailForm({ email = '', registered = false }: VerifyEmailF
         error={errors.code?.message}
         {...register('code')}
       />
-      <div className="flex flex-wrap gap-3">
+      <div className="grid gap-3">
         <Button type="submit" loading={isSubmitting} loadingLabel="Verificando…">
           Verificar correo
         </Button>

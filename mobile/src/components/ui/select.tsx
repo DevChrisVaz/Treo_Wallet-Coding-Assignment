@@ -1,9 +1,11 @@
 import { focusRing } from '@devchrisvaz/wallet-design-tokens';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { theme } from '@/theme';
+
+import { BottomSheet } from './bottom-sheet';
+import { Icon } from './icon';
 
 export interface SelectOption {
   value: string;
@@ -63,12 +65,15 @@ export function Select({ label, placeholder, options, value, onChange, error }: 
       >
         <Text style={styles.label}>{label}</Text>
         <View style={[styles.field, error ? styles.fieldError : null]}>
-          <Text style={selected ? styles.value : styles.placeholder}>
-            {selected ? selected.label : placeholder}
-          </Text>
-          {selected?.description ? (
-            <Text style={styles.description}>{selected.description}</Text>
-          ) : null}
+          <View style={styles.text}>
+            <Text style={selected ? styles.value : styles.placeholder}>
+              {selected ? selected.label : placeholder}
+            </Text>
+            {selected?.description ? (
+              <Text style={styles.description}>{selected.description}</Text>
+            ) : null}
+          </View>
+          <Icon name="expand" color={theme.colors.text.secondary} />
         </View>
       </Pressable>
       {error ? (
@@ -77,34 +82,19 @@ export function Select({ label, placeholder, options, value, onChange, error }: 
         </Text>
       ) : null}
 
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <View style={styles.modal}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Cerrar"
-            style={styles.backdrop}
-            onPress={() => setOpen(false)}
+      <BottomSheet open={open} onClose={() => setOpen(false)} title={label}>
+        {options.map((option) => (
+          <OptionRow
+            key={option.value}
+            option={option}
+            selected={option.value === value}
+            onPress={() => {
+              onChange(option.value);
+              setOpen(false);
+            }}
           />
-          <SafeAreaView edges={['bottom']} style={styles.sheet}>
-            <Text style={styles.sheetTitle} accessibilityRole="header">
-              {label}
-            </Text>
-            <ScrollView>
-              {options.map((option) => (
-                <OptionRow
-                  key={option.value}
-                  option={option}
-                  selected={option.value === value}
-                  onPress={() => {
-                    onChange(option.value);
-                    setOpen(false);
-                  }}
-                />
-              ))}
-            </ScrollView>
-          </SafeAreaView>
-        </View>
-      </Modal>
+        ))}
+      </BottomSheet>
     </View>
   );
 }
@@ -113,42 +103,25 @@ const styles = StyleSheet.create({
   container: { gap: theme.spacing[1] },
   wrapper: { gap: theme.spacing[1] },
   label: { ...theme.typography.label, color: theme.colors.text.primary },
+  // Mismo marco que `TextField` (52 px, radio `md`) para que los campos se vean iguales.
   field: {
-    minHeight: theme.touchTarget,
-    justifyContent: 'center',
+    minHeight: theme.spacing[12] + theme.spacing[1],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing[2],
     borderWidth: 1,
     borderColor: theme.colors.border.input,
-    borderRadius: theme.radius.sm,
+    borderRadius: theme.radius.md,
     backgroundColor: theme.colors.surface.default,
-    paddingHorizontal: theme.spacing[3],
+    paddingHorizontal: theme.spacing[4],
     paddingVertical: theme.spacing[2],
   },
   fieldError: { borderColor: theme.colors.status.danger.fg, borderWidth: focusRing.width },
+  text: { flex: 1, gap: theme.spacing[1] },
   value: { ...theme.typography.body, color: theme.colors.text.primary },
   placeholder: { ...theme.typography.body, color: theme.colors.text.muted },
   description: { ...theme.typography.caption, color: theme.colors.text.secondary },
   error: { ...theme.typography.caption, color: theme.colors.status.danger.fg },
-  modal: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: theme.colors.surface.inverse,
-    opacity: 0.6,
-  },
-  sheet: {
-    maxHeight: '70%',
-    backgroundColor: theme.colors.surface.default,
-    borderTopLeftRadius: theme.radius.lg,
-    borderTopRightRadius: theme.radius.lg,
-    paddingTop: theme.spacing[5],
-    paddingHorizontal: theme.spacing[4],
-    paddingBottom: theme.spacing[4],
-    gap: theme.spacing[3],
-  },
-  sheetTitle: { ...theme.typography.h3, color: theme.colors.text.primary },
   option: {
     minHeight: theme.touchTarget,
     justifyContent: 'center',

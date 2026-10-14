@@ -55,3 +55,15 @@ export const TransferAmount = () => (
     <TextField label="Concepto" defaultValue="Renta de octubre" hint="Hasta 40 caracteres." />
   </form>
 );
+
+/** `variant="hero"`: el monto grande y centrado del paso Monto de la transferencia. */
+export const Hero = () => (
+  <div className="max-w-sm">
+    <AmountField
+      variant="hero"
+      label="Monto"
+      defaultValue="1,250.00"
+      hint="Hasta 2 decimales, por ejemplo 1,250.50."
+    />
+  </div>
+);

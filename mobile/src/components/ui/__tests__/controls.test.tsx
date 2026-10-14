@@ -1,5 +1,7 @@
+import { focusRing } from '@devchrisvaz/wallet-design-tokens';
 import { fireEvent, render, screen, userEvent } from '@testing-library/react-native';
 import { useState } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { theme } from '@/theme';
 
@@ -21,13 +23,24 @@ describe('Wordmark', () => {
 });
 
 describe('Button', () => {
+  test('MOB-20 un botón de selector anuncia si está elegido', async () => {
+    await render(
+      <>
+        <Button label="Principal" variant="primary" selected onPress={() => {}} />
+        <Button label="Ahorro" variant="secondary" selected={false} onPress={() => {}} />
+      </>,
+    );
+    expect(screen.getByRole('button', { name: 'Principal' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Ahorro' })).not.toBeSelected();
+  });
+
   test('DSG-02 el botón principal en reposo es verde profundo, con texto blanco y en píldora', async () => {
     await render(<Button label="Enviar" onPress={() => {}} />);
     const button = screen.getByRole('button', { name: 'Enviar' });
     expect(button).toHaveStyle({
       backgroundColor: '#1C4B42',
       borderRadius: theme.radius.pill,
-      minHeight: theme.touchTarget,
+      minHeight: theme.spacing[12],
     });
     expect(screen.getByText('Enviar')).toHaveStyle({ color: '#FFFFFF' });
   });
@@ -62,7 +75,7 @@ describe('Button', () => {
     const button = screen.getByRole('button', { name: 'Enviar' });
     expect(button).toBeDisabled();
     expect(button).toBeBusy();
-    expect(button).toHaveStyle({ minHeight: theme.touchTarget });
+    expect(button).toHaveStyle({ minHeight: theme.spacing[12] });
     expect(screen.getByText('Enviar')).toBeOnTheScreen();
     await fireEvent.press(button);
     expect(onPress).not.toHaveBeenCalled();
@@ -114,6 +127,58 @@ describe('AmountField', () => {
   });
 });
 
+describe('AmountField hero', () => {
+  test('MOB-08 la variante héroe muestra el prefijo $ y limpia el valor pegado igual que la normal', async () => {
+    const onChangeText = jest.fn();
+    await render(<AmountField variant="hero" label="Monto" value="" onChangeText={onChangeText} />);
+    expect(screen.getByText('$')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Monto'), '1,250.50');
+    expect(onChangeText).toHaveBeenCalledWith('1250.50');
+  });
+
+  test('MOB-08 el campo del monto héroe mide su texto para que el $ quede junto al monto', async () => {
+    await render(
+      <AmountField variant="hero" label="Monto" value="1250.00" onChangeText={() => {}} />,
+    );
+    const mirror = screen.getByTestId('hero-amount-mirror', { includeHiddenElements: true });
+    expect(mirror).toHaveTextContent('1250.00');
+    expect(screen.queryByTestId('hero-amount-mirror')).toBeNull(); // oculto a los lectores de pantalla
+    await fireEvent(mirror, 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 180, height: 48 } },
+    });
+    expect(screen.getByLabelText('Monto')).toHaveStyle({ width: 180 + theme.spacing[1] });
+  });
+
+  test('MOB-08 en la variante héroe un monto largo no desborda la fila junto al $', async () => {
+    await render(
+      <AmountField
+        variant="hero"
+        label="Monto"
+        value="123456789012345678.00"
+        onChangeText={() => {}}
+      />,
+    );
+    const mirror = screen.getByTestId('hero-amount-mirror', { includeHiddenElements: true });
+    expect(mirror).toHaveStyle({ maxWidth: '100%' });
+    await fireEvent(mirror, 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 900, height: 48 } },
+    });
+    // El campo puede pedir más ancho que la fila, pero se encoge hasta caber al lado del $.
+    expect(screen.getByLabelText('Monto')).toHaveStyle({
+      width: 900 + theme.spacing[1],
+      flexShrink: 1,
+      minWidth: 0,
+    });
+  });
+
+  test('DSG-06 el subrayado del monto héroe usa el ancho del anillo de foco', async () => {
+    await render(<AmountField variant="hero" label="Monto" value="" onChangeText={() => {}} />);
+    expect(screen.getByTestId('hero-amount-row')).toHaveStyle({
+      borderBottomWidth: focusRing.width,
+    });
+  });
+});
+
 describe('OtpField', () => {
   test('DSG-11 acepta pegar el código, se queda con 6 dígitos y se ofrece al autocompletado', async () => {
     const onChangeText = jest.fn();
@@ -125,6 +190,14 @@ describe('OtpField', () => {
     await fireEvent.changeText(input, '482 913');
     expect(onChangeText).toHaveBeenCalledWith('482913');
   });
+
+  test('DSG-09 los dígitos del código son tabulares y van a 8 px, como en la web', async () => {
+    await render(<OtpField value="482913" onChangeText={() => {}} />);
+    expect(screen.getByLabelText('Código de 6 dígitos')).toHaveStyle({
+      fontVariant: ['tabular-nums'],
+      letterSpacing: theme.spacing[2],
+    });
+  });
 });
 
 describe('Select', () => {
@@ -133,16 +206,23 @@ describe('Select', () => {
     { value: 'a2', label: 'Ahorro', description: '•••• 1234' },
   ];
 
+  const metrics = {
+    frame: { x: 0, y: 0, width: 390, height: 844 },
+    insets: { top: 0, left: 0, right: 0, bottom: 0 },
+  };
+
   function ControlledSelect() {
     const [value, setValue] = useState<string | undefined>(undefined);
     return (
-      <Select
-        label="Cuenta de origen"
-        placeholder="Elige una cuenta"
-        options={options}
-        value={value}
-        onChange={setValue}
-      />
+      <SafeAreaProvider initialMetrics={metrics}>
+        <Select
+          label="Cuenta de origen"
+          placeholder="Elige una cuenta"
+          options={options}
+          value={value}
+          onChange={setValue}
+        />
+      </SafeAreaProvider>
     );
   }
 

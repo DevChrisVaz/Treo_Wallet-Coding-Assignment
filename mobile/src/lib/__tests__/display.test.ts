@@ -1,3 +1,4 @@
+import { dayLabel } from '@devchrisvaz/wallet-design-tokens';
 import { theme } from '@/theme';
 
 import {
@@ -57,11 +58,26 @@ describe('convenciones de presentación', () => {
     expect(formatDateTime('2026-10-13T16:42:00Z', { withYear: true })).toBe('13 oct 2026, 10:42');
   });
 
+  test('MOB-20 septiembre se abrevia "sep", igual que los encabezados de día', () => {
+    expect(formatDateTime('2026-09-15T16:42:00Z')).toBe('15 sep, 10:42');
+  });
+
   test('MOB-15 el porcentaje usado del límite se calcula en centavos, sin floats', () => {
     expect(limitUsedPercent({ limit: '50000.00', used: '18500.00' })).toBe(37);
     expect(limitUsedPercent({ limit: '50000.00', used: '0.00' })).toBe(0);
     expect(limitUsedPercent({ limit: '50000.00', used: '50000.00' })).toBe(100);
     expect(limitUsedPercent({ limit: '0.00', used: '0.00' })).toBe(100);
     expect(limitUsedPercent({ limit: '0.30', used: '0.10' })).toBe(33);
+  });
+});
+
+describe('meses', () => {
+  test('MOB-20 las abreviaturas de display.ts coinciden con las de dayLabel en los 12 meses', () => {
+    const now = new Date('2025-12-31T18:00:00Z');
+    for (let month = 0; month < 12; month += 1) {
+      const iso = new Date(Date.UTC(2025, month, 15, 18)).toISOString();
+      const tokenLabel = dayLabel(iso, now); // "15 sep" en el mismo año
+      expect(formatDateTime(iso)).toBe(`${tokenLabel}, 12:00`);
+    }
   });
 });

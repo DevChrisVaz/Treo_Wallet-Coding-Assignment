@@ -1,6 +1,9 @@
+import { toneIcon } from '@devchrisvaz/wallet-design-tokens';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { theme } from '@/theme';
+
+import { Icon } from './icon';
 
 export type AlertTone = 'success' | 'warning' | 'danger' | 'info';
 
@@ -22,8 +25,13 @@ export function InlineAlert({ tone, message, title }: InlineAlertProps) {
       accessibilityLiveRegion={isError ? 'assertive' : 'polite'}
       style={[styles.alert, { backgroundColor: colors.bg }]}
     >
-      {title ? <Text style={[styles.title, { color: colors.fg }]}>{title}</Text> : null}
-      <Text style={[styles.message, { color: colors.fg }]}>{message}</Text>
+      <View testID="inline-alert-icon">
+        <Icon name={toneIcon[tone]} color={colors.fg} />
+      </View>
+      <View style={styles.body}>
+        {title ? <Text style={[styles.title, { color: colors.fg }]}>{title}</Text> : null}
+        <Text style={[styles.message, { color: colors.fg }]}>{message}</Text>
+      </View>
     </View>
   );
 }
@@ -31,10 +39,11 @@ export function InlineAlert({ tone, message, title }: InlineAlertProps) {
 const styles = StyleSheet.create({
   alert: {
     borderRadius: theme.radius.md,
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[3],
-    gap: theme.spacing[1],
+    flexDirection: 'row',
+    gap: theme.spacing[3],
+    padding: theme.spacing[4],
   },
+  body: { flex: 1, gap: theme.spacing[1] },
   title: { ...theme.typography.label },
   message: { ...theme.typography.bodySm },
 });

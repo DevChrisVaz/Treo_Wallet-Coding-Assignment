@@ -40,6 +40,20 @@ describe('mensajes de error por code', () => {
     );
   });
 
+  test.each([
+    ['TRANSFER_NOT_CANCELLABLE', 409, 'Esta transferencia ya no se puede cancelar.'],
+    [
+      'SCHEDULED_LIMIT_REACHED',
+      422,
+      'Llegaste al máximo de 20 transferencias programadas. Cancela alguna para programar otra.',
+    ],
+  ])(
+    'MOB-14 %s (%s, contrato 1.2.0) usa el mensaje del paquete de diseño',
+    (code, status, text) => {
+      expect(errorMessage(problem(status, code))).toBe(text);
+    },
+  );
+
   test('MOB-14 el mensaje nunca sale de type, title ni detail', () => {
     for (const code of PROBLEM_CODES) {
       const message = errorMessage(problem(422, code));

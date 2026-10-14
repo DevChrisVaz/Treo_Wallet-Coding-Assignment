@@ -17,6 +17,7 @@ export const palette = {
   slate600: '#5F6B63',
   slate400: '#7F8A82', // borde de campos: ≥ 3:1 sobre blanco, arena y verde suave
   slate200: '#DCE2DE',
+  green200: '#BFCDCA', // texto atenuado sobre el hero: 6.00:1 sobre green900
   success700: '#1E7B3A',
   warning700: '#8A5A00',
   warning50: '#FFF8E5',
@@ -38,6 +39,8 @@ export interface ThemeColors {
     subtle: PaletteColor;
     brand: PaletteColor;
     inverse: PaletteColor;
+    canvas: PaletteColor;
+    hero: PaletteColor;
   };
   text: {
     primary: PaletteColor;
@@ -47,10 +50,11 @@ export interface ThemeColors {
     onAction: PaletteColor;
     onActionActive: PaletteColor;
     onInverse: PaletteColor;
+    onHeroMuted: PaletteColor;
   };
   action: { primary: PaletteColor; primaryActive: PaletteColor; disabled: PaletteColor };
   border: { default: PaletteColor; input: PaletteColor; focus: PaletteColor };
-  accent: { brand: PaletteColor };
+  accent: { brand: PaletteColor; onDark: PaletteColor };
   status: {
     success: StatusColors;
     warning: StatusColors;
@@ -67,6 +71,8 @@ export const lightColors = {
     subtle: palette.sand50,
     brand: palette.green50,
     inverse: palette.green900,
+    canvas: palette.sand50,
+    hero: palette.green900,
   },
   text: {
     primary: palette.ink,
@@ -76,6 +82,7 @@ export const lightColors = {
     onAction: palette.white,
     onActionActive: palette.green900,
     onInverse: palette.white,
+    onHeroMuted: palette.green200,
   },
   action: {
     primary: palette.green900,
@@ -87,7 +94,7 @@ export const lightColors = {
     input: palette.slate400,
     focus: palette.green900,
   },
-  accent: { brand: palette.green500 },
+  accent: { brand: palette.green500, onDark: palette.lime400 },
   status: {
     success: { fg: palette.success700, bg: palette.green50 },
     warning: { fg: palette.warning700, bg: palette.warning50 },

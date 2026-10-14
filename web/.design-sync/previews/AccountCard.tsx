@@ -41,6 +41,14 @@ export const Selected = () => (
   </div>
 );
 
+/** Con `onSelect` el nombre es un botón con aria-pressed; la seleccionada lleva el anillo. */
+export const Selectable = () => (
+  <div className="grid max-w-md gap-3">
+    <AccountCard account={principal} selected onSelect={() => undefined} />
+    <AccountCard account={ahorro} onSelect={() => undefined} />
+  </div>
+);
+
 export const AccountsOverview = () => (
   <div className="grid max-w-3xl gap-8">
     <div className="flex flex-wrap items-end justify-between gap-4">

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { AmountField } from './AmountField';
 import { OtpField } from './OtpField';
@@ -26,9 +26,9 @@ describe('TextField', () => {
     expect(screen.getByText('El correo no tiene un formato válido')).toHaveClass('text-danger');
   });
 
-  it('WEB-23 DSG-06 usa el borde de campo del sistema, alto de 44 px y foco visible', () => {
+  it('WEB-23 DSG-06 usa el borde de campo del sistema, alto de 52 px y foco visible', () => {
     render(<TextField label="Nombre" />);
-    expect(screen.getByLabelText('Nombre')).toHaveClass('border-border-input', 'min-h-11');
+    expect(screen.getByLabelText('Nombre')).toHaveClass('border-border-input', 'min-h-13');
   });
 
   it('WEB-23 no tiene problemas de accesibilidad en reposo, error y deshabilitado', async () => {
@@ -55,6 +55,39 @@ describe('AmountField', () => {
     expect(input).toHaveValue('1,250.50');
   });
 
+  it('WEB-30 en la variante hero el campo mide lo que su texto, así "$" y el monto quedan juntos al centro', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<AmountField label="Monto" variant="hero" onChange={onChange} />);
+    const input = screen.getByLabelText('Monto');
+    // El espejo invisible da el ancho y el campo lo cubre (WEB-25: como en la app móvil).
+    const mirror = screen.getByTestId('hero-amount-mirror');
+    expect(mirror).toHaveAttribute('aria-hidden', 'true');
+    expect(input).toHaveClass('absolute', 'inset-0');
+    expect(mirror.textContent).toBe('0');
+    await user.type(input, '1,250');
+    expect(input).toHaveValue('1,250');
+    expect(mirror.textContent).toBe('1,250');
+    expect(onChange).toHaveBeenCalledTimes(5);
+  });
+
+  it('WEB-30 en la variante hero el ancho inicial sale de defaultValue', () => {
+    render(<AmountField label="Monto" variant="hero" defaultValue="1,250.00" />);
+    expect(screen.getByTestId('hero-amount-mirror').textContent).toBe('1,250.00');
+  });
+
+  it('WEB-30 en la variante hero con valor controlado el espejo sigue a `value`', () => {
+    render(<AmountField label="Monto" variant="hero" value="15000" onChange={vi.fn()} />);
+    expect(screen.getByTestId('hero-amount-mirror').textContent).toBe('15000');
+  });
+
+  it('WEB-30 en la variante hero un monto largo no desborda la fila: columna minmax(0,1fr) y espejo recortado', () => {
+    render(<AmountField label="Monto" variant="hero" defaultValue="123456789012345678.00" />);
+    const mirror = screen.getByTestId('hero-amount-mirror');
+    expect(mirror).toHaveClass('max-w-full', 'overflow-x-clip');
+    expect(mirror.closest('.grid')).toHaveClass('grid-cols-1');
+  });
+
   it('WEB-23 no tiene problemas de accesibilidad con error', async () => {
     const { container } = render(
       <AmountField label="Monto" error="El monto admite máximo 2 decimales" />,
@@ -73,6 +106,13 @@ describe('OtpField', () => {
     expect(input).toHaveAttribute('inputmode', 'numeric');
     expect(input).toHaveAttribute('autocomplete', 'one-time-code');
     expect(input).toHaveClass('tabular-nums');
+  });
+
+  it('WEB-25 ocupa el ancho del formulario con el texto del campo, como en la app móvil', () => {
+    render(<OtpField label="Código de 6 dígitos" />);
+    const input = screen.getByLabelText('Código de 6 dígitos');
+    expect(input).toHaveClass('w-full', 'text-body', 'tracking-[0.5em]');
+    expect(input).not.toHaveClass('max-w-56');
   });
 
   it('DSG-11 acepta pegar el código completo', async () => {
@@ -111,6 +151,16 @@ describe('Select', () => {
     expect(select).toHaveAccessibleDescription('Elige una cuenta');
     await user.selectOptions(select, 'b');
     expect(select).toHaveValue('b');
+  });
+
+  it('WEB-25 lleva el chevron del sistema en lugar de la flecha del navegador', () => {
+    const { container } = render(
+      <Select label="Cuenta">
+        <option value="a">Principal</option>
+      </Select>,
+    );
+    expect(screen.getByLabelText('Cuenta')).toHaveClass('appearance-none');
+    expect(container.querySelector('select + svg[aria-hidden="true"]')).not.toBeNull();
   });
 
   it('WEB-23 no tiene problemas de accesibilidad', async () => {

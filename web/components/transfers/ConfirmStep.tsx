@@ -1,15 +1,17 @@
 'use client';
 
 import { formatMXN, type Account, type Beneficiary } from '@devchrisvaz/wallet-contract';
-import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { InlineAlert } from '@/components/ui/InlineAlert';
+import { ListSection } from '@/components/ui/ListSection';
+import { StepActions } from '@/components/ui/StepActions';
 import type { ActionProblem } from '@/lib/action-result';
 import { describeProblem } from '@/lib/client/problem-messages';
 import type { ConfirmStatus, TransferDraft } from '@/lib/client/transfer-flow';
+import { OTP_NOTICE, requiresOtp } from '@/lib/client/transfer-steps';
 import { maskClabe } from '@/lib/money';
 import { scheduledSendText } from './ScheduleField';
-import { StepHeading } from './StepHeading';
+import { AmountBlock, SummaryRow } from './TransferSummary';
 
 export interface ConfirmStepProps {
   draft: TransferDraft;
@@ -21,15 +23,6 @@ export interface ConfirmStepProps {
   onEdit: () => void;
 }
 
-function Row({ term, children }: { term: string; children: ReactNode }) {
-  return (
-    <div className="grid gap-0.5 border-b border-border py-3 sm:grid-cols-3 sm:gap-4">
-      <dt className="text-body-sm text-fg-secondary">{term}</dt>
-      <dd className="text-body text-fg sm:col-span-2">{children}</dd>
-    </div>
-  );
-}
-
 /** Título de la alerta según el rechazo (D17 de web-app). */
 function rejectionTitle(problem: ActionProblem): string | undefined {
   if (problem.code === 'INSUFFICIENT_FUNDS') return 'Saldo insuficiente';
@@ -38,9 +31,10 @@ function rejectionTitle(problem: ActionProblem): string | undefined {
 }
 
 /**
- * Confirmación (WEB-16, WEB-17): resumen del intento y envío con el botón deshabilitado desde el
- * primer clic. Ante un fallo de red o 5xx solo se ofrece reintentar (con la misma llave); editar
- * en ese momento podría duplicar una transferencia que sí se hizo.
+ * Revisión (WEB-16, WEB-17, WEB-30): el monto como protagonista, el resumen del intento (con
+ * "Cuándo" si es programada, WEB-33) y el envío con el botón deshabilitado desde el primer clic.
+ * Ante un fallo de red o 5xx solo se ofrece reintentar (con la misma llave); editar en ese momento
+ * podría duplicar una transferencia que sí se hizo.
  */
 export function ConfirmStep({
   draft,
@@ -68,32 +62,39 @@ export function ConfirmStep({
         )
       : undefined;
   const destinationText = destination
-    ? `${destination.name} ${maskClabe(destination.clabe)}`
+    ? `${destination.name} · ${maskClabe(destination.clabe)}`
     : beneficiary
-      ? `${beneficiary.alias} ${maskClabe(beneficiary.clabe)}`
+      ? `${beneficiary.alias} · ${maskClabe(beneficiary.clabe)}`
       : '';
   const sending = status === 'sending';
 
   return (
-    <section aria-labelledby="confirm-title" className="grid gap-5">
-      <StepHeading id="confirm-title">Confirma la transferencia</StepHeading>
-      <dl className="rounded-lg bg-surface p-6 shadow-card">
-        <Row term="Monto">
-          <span className="text-h3 tabular-nums">{formatMXN(request.amount)}</span>
-        </Row>
-        <Row term="Origen">{origin ? `${origin.name} ${maskClabe(origin.clabe)}` : ''}</Row>
-        <Row term="Destino">{destinationText}</Row>
-        <Row term="Concepto">{request.concept}</Row>
-        <Row term="Referencia">{request.reference}</Row>
-        {request.scheduledFor ? (
-          <Row term="Cuándo">{scheduledSendText(request.scheduledFor)}</Row>
-        ) : null}
-      </dl>
+    <>
+      <AmountBlock amount={formatMXN(request.amount)} />
+      <ListSection>
+        <dl className="divide-y divide-border">
+          <SummaryRow
+            term="Desde"
+            value={origin ? `${origin.name} · ${maskClabe(origin.clabe)}` : ''}
+          />
+          <SummaryRow term="Para" value={destinationText} />
+          <SummaryRow term="Concepto" value={request.concept} />
+          <SummaryRow term="Referencia" value={request.reference} />
+          {request.scheduledFor ? (
+            <SummaryRow term="Cuándo" value={scheduledSendText(request.scheduledFor)} />
+          ) : null}
+        </dl>
+      </ListSection>
+      {requiresOtp(request.amount) ? <InlineAlert tone="info">{OTP_NOTICE}</InlineAlert> : null}
 
       {status === 'uncertain' ? (
-        <InlineAlert tone="danger" title="No sabemos si la transferencia se envió" focusOnMount>
-          Revisa tu conexión y reintenta: usamos el mismo identificador, así que no se enviará dos
-          veces.
+        // Ni éxito ni falla: un aviso, como en la app móvil (R37).
+        <InlineAlert
+          tone="warning"
+          title="No pudimos confirmar el estado de tu transferencia"
+          focusOnMount
+        >
+          Puede que se haya realizado. Reintenta para conocer el resultado: no se enviará dos veces.
         </InlineAlert>
       ) : null}
 
@@ -108,22 +109,26 @@ export function ConfirmStep({
         </InlineAlert>
       ) : null}
 
-      <div className="flex flex-wrap gap-3">
-        {status === 'rejected' ? (
-          <Button onClick={onEdit}>Corregir</Button>
-        ) : status === 'uncertain' ? (
+      {status === 'rejected' ? (
+        <StepActions>
+          <Button variant="secondary" onClick={onEdit}>
+            Corregir
+          </Button>
+        </StepActions>
+      ) : status === 'uncertain' ? (
+        <StepActions>
           <Button onClick={onSend}>Reintentar</Button>
-        ) : (
-          <>
-            <Button loading={sending} loadingLabel="Enviando…" onClick={onSend}>
-              Enviar
-            </Button>
-            <Button variant="secondary" disabled={sending} onClick={onEdit}>
-              Editar
-            </Button>
-          </>
-        )}
-      </div>
-    </section>
+        </StepActions>
+      ) : (
+        <StepActions stacked>
+          <Button loading={sending} loadingLabel="Enviando…" onClick={onSend}>
+            Enviar
+          </Button>
+          <Button variant="ghost" disabled={sending} onClick={onEdit}>
+            Editar
+          </Button>
+        </StepActions>
+      )}
+    </>
   );
 }

@@ -5,10 +5,10 @@ import { axe } from 'vitest-axe';
 import { Button } from './Button';
 
 describe('Button', () => {
-  it('DSG-02 el principal usa la acción en reposo y el lima en hover, en píldora y de 44 px', () => {
+  it('DSG-02 el principal usa la acción en reposo y el lima en hover, en píldora y de 48 px', () => {
     render(<Button>Enviar</Button>);
     const button = screen.getByRole('button', { name: 'Enviar' });
-    expect(button).toHaveClass('bg-action', 'text-fg-on-action', 'rounded-pill', 'min-h-11');
+    expect(button).toHaveClass('bg-action', 'text-fg-on-action', 'rounded-pill', 'min-h-12');
     expect(button).toHaveClass('enabled:hover:bg-action-active');
     expect(button).toHaveClass('enabled:hover:text-fg-on-action-active');
     expect(button).toHaveAttribute('type', 'button');

@@ -1,76 +1,56 @@
 /*
- * Mapa de pantallas de la app móvil: una historia por ruta y por estado de pantalla completa,
- * portadas de `src/features/**` (JSX y StyleSheet) con los datos de `src/test-utils/*fixtures.ts`.
- * Las pantallas reales no se pueden importar (expo-router, TanStack Query, sesión), así que cada
- * historia reproduce lo que renderiza la ruta en ese estado.
+ * Mapa de pantallas rediseñadas de la app móvil (MOB-18 a MOB-22): una historia por pantalla y por
+ * estado, en un marco de 390x844, con los mismos nombres que las historias de `AppShell` en la web
+ * para el lienzo de paridad. Cada historia renderiza la vista real de la pantalla (los `*-view.tsx`
+ * puros de `src/features/**` y `src/navigation/startup-views.tsx`, tarea 8.1) con los datos
+ * canónicos: lo que se ve aquí es el código de presentación de la app, con el mismo tema y
+ * react-native-web. Los contenedores (expo-router, TanStack Query, sesión) no entran en el lienzo;
+ * la barra de pestañas es el `TabBar` del kit que monta el layout de pestañas.
+ * Los datos son el bloque canónico del plan, idéntico en la web.
  */
 import type { ReactNode } from 'react';
 import {
-  AccountCard,
-  AmountField,
-  Button,
-  DailyLimitMeter,
-  EmptyState,
-  InlineAlert,
-  MovementRow,
-  OptionRow,
-  OtpField,
-  Receipt,
-  Screen,
-  Select,
-  Skeleton,
-  StatusBadge,
-  Text,
-  TextField,
+  HomeView,
+  LoginView,
+  MovementsView,
+  ProblemError,
+  RecipientView,
+  StartupLoading as StartupLoadingView,
+  StartupOffline as StartupOfflineView,
+  StyleSheet,
+  TabBar,
+  TransferFlowView,
   View,
-  Wordmark,
-  theme,
-  ActivityIndicator,
 } from 'wallet-mobile-ui';
 
 const noop = () => {};
 
-// `Screen` llena a su contenedor (área segura + desplazamiento): le damos tamaño de teléfono
-// (390x844, el mismo de `initialMetrics` del proveedor y de conventions.md).
-const phone = { width: 390, height: 844 };
+// --- Datos canónicos (plan, "Canonical story data"): los mismos valores en la web ---------------
 
-// --- Datos: src/test-utils/fixtures.ts y transfer-fixtures.ts -------------------------------
+const NOW = new Date('2026-10-13T18:00:00Z'); // 12:00 en Ciudad de México
+const user = { name: 'Ana Gómez Castillo', email: 'ana@example.com' };
+const principal = { id: '0b9a4f8e-1c2d-4e5f-8a9b-0c1d2e3f4a51', name: 'Principal', clabe: '646180157000009719', balance: '25000.00', currency: 'MXN' as const, createdAt: '2026-09-30T15:00:00Z' };
+const ahorro = { id: '0b9a4f8e-1c2d-4e5f-8a9b-0c1d2e3f4a52', name: 'Ahorro', clabe: '646180157000001234', balance: '10000.00', currency: 'MXN' as const, createdAt: '2026-09-30T15:00:00Z' };
+const dailyLimit = { limit: '50000.00', used: '18500.00', remaining: '31500.00', resetsAt: '2026-10-14T06:00:00Z', timeZone: 'America/Mexico_City' as const };
+const luis = { id: '5d1e7c3a-9b2f-4a6e-8c0d-1e2f3a4b5c61', name: 'Luis Pérez Ramírez', alias: 'Luis', clabe: '646180157000005678', createdAt: '2026-10-01T15:00:00Z' };
+const mama = { id: '5d1e7c3a-9b2f-4a6e-8c0d-1e2f3a4b5c62', name: 'María Gómez', alias: 'Mamá', clabe: '646180157000004321', createdAt: '2026-10-01T15:00:00Z' };
+// Últimos movimientos de Principal (más reciente primero). Hoy: 1, ayer: 2, 9 oct: 1, 30 sept: 1.
+const movements = [
+  { id: 'mv-1', type: 'TRANSFER_OUT' as const, amount: '-1250.00', balanceAfter: '25000.00', concept: 'Renta', reference: '1', counterparty: { name: 'Luis', clabeLast4: '5678' }, transferId: '7f1c2a8e-5a0b-4c4e-9a59-8f0e1c2d3b4a', occurredAt: '2026-10-13T16:42:00Z' },
+  { id: 'mv-2', type: 'TRANSFER_IN' as const, amount: '450.00', balanceAfter: '26250.00', concept: 'Pago de la comida', reference: '9', counterparty: { name: 'Andrea Ruiz', clabeLast4: '8842' }, transferId: '3b5d7f9a-1c2e-4b4d-8f6a-0c2e4a6b8d91', occurredAt: '2026-10-12T23:10:00Z' },
+  { id: 'mv-3', type: 'TRANSFER_OUT' as const, amount: '-150.00', balanceAfter: '25800.00', concept: 'Despensa', reference: '1', counterparty: { name: 'Mamá', clabeLast4: '4321' }, transferId: '9b3e4c0a-7c2d-4e6a-8c7b-0a2f3e4d5c6b', occurredAt: '2026-10-12T15:05:00Z' },
+  { id: 'mv-4', type: 'OWN_TRANSFER_OUT' as const, amount: '-3000.00', balanceAfter: '25950.00', concept: 'Ahorro quincenal', reference: '15', counterparty: { name: 'Ahorro', clabeLast4: '1234' }, transferId: '8a2d3b9f-6b1c-4d5f-9b6a-9f1e2d3c4b5a', occurredAt: '2026-10-09T18:20:00Z' },
+  { id: 'mv-5', type: 'DEPOSIT' as const, amount: '28950.00', balanceAfter: '28950.00', concept: 'Depósito inicial', reference: '1', counterparty: null, transferId: '1e2f3a4b-5c6d-4e7f-8a9b-0c1d2e3f4a5b', occurredAt: '2026-09-30T15:05:00Z' },
+];
+// Transferencia del flujo sin código: Principal → Luis, $1,250.00, "Renta", ref. 1.
+// Transferencia del flujo con código: Principal → Luis, $15,000.00, "Renta", ref. 1 (mayor a $10,000.00).
 
-const principal = {
-  id: '0b9a4f8e-1c2d-4e5f-8a9b-0c1d2e3f4a51',
-  name: 'Principal',
-  clabe: '646180157000009719',
-  balance: '25000.00',
-  // formatMXN(balance) del contrato, como lo muestra la descripción del Select.
-  balanceText: '$25,000.00',
-};
+// --- Derivados -----------------------------------------------------------------------------------
 
-const ahorro = {
-  id: '0b9a4f8e-1c2d-4e5f-8a9b-0c1d2e3f4a52',
-  name: 'Ahorro',
-  clabe: '646180157000001234',
-  balance: '10000.00',
-  balanceText: '$10,000.00',
-};
+const TABS = ['home', 'movements', 'transfer'] as const;
+type Tab = (typeof TABS)[number];
 
-// overview(): límite diario de 50,000.00 con 18,500.00 usados.
-const dailyLimit = { limit: '50000.00', used: '18500.00', remaining: '31500.00' };
-
-const luis = {
-  id: '5d1e7c3a-9b2f-4a6e-8c0d-1e2f3a4b5c61',
-  name: 'Luis Pérez',
-  alias: 'Luis',
-  clabe: '646180157000005678',
-};
-
-const mama = {
-  id: '5d1e7c3a-9b2f-4a6e-8c0d-1e2f3a4b5c62',
-  name: 'María Gómez',
-  alias: 'Mamá',
-  clabe: '646180157000004321',
-};
-
-// transfer(): la transferencia COMPLETED que devuelve la API para el borrador (1250, Renta, 1).
+// La transferencia de $1,250.00 tal como la devuelve la API (su movimiento es mv-1).
 const completedTransfer = {
   id: '7f1c2a8e-5a0b-4c4e-9a59-8f0e1c2d3b4a',
   status: 'COMPLETED' as const,
@@ -80,7 +60,7 @@ const completedTransfer = {
     type: 'BENEFICIARY' as const,
     accountId: null,
     beneficiaryId: luis.id,
-    displayName: 'Luis',
+    displayName: luis.alias,
     clabeLast4: '5678',
   },
   amount: '1250.00',
@@ -94,607 +74,303 @@ const completedTransfer = {
   completedAt: '2026-10-13T16:42:00Z',
 };
 
-// pendingOtp(): 15,000.00 (mayor a 10,000.00) pide código por correo.
-const pendingOtp = {
+// La de $15,000.00 tal como quedó al pedir el código (PENDING_OTP). Al agotar los intentos la API
+// responde 422 OTP_ATTEMPTS_EXHAUSTED y la vista la muestra "Fallida" con ese veredicto.
+const failedTransfer = {
   ...completedTransfer,
+  id: '4c8e2f6a-1b3d-4e5f-9a7b-6c8d0e2f4a6b',
   status: 'PENDING_OTP' as const,
   amount: '15000.00',
   requiresOtp: true,
-  completedAt: null,
   otp: {
     channel: 'EMAIL' as const,
     deliveryStatus: 'SENT' as const,
     maskedDestination: 'an***@example.com',
-    expiresAt: '2026-10-13T16:46:00Z',
-    attemptsRemaining: 3,
+    expiresAt: '2026-10-13T17:46:00Z',
+    attemptsRemaining: 0,
     resendsRemaining: 3,
   },
+  createdAt: '2026-10-13T17:41:00Z',
+  completedAt: null,
 };
 
-// Últimos movimientos de Principal (forma de `Movement` del contrato).
-const movements = [
-  {
-    id: 'mv_01JAH0P6Z8F2',
-    type: 'TRANSFER_OUT' as const,
-    amount: '-1250.00',
-    balanceAfter: '21050.00',
-    concept: 'Renta',
-    reference: '1',
-    counterparty: { name: 'Luis', clabeLast4: '5678' },
-    transferId: '9b3e4c0a-7c2d-4e6a-8c7b-0a2f3e4d5c6b',
-    occurredAt: '2026-10-13T16:42:00Z',
-  },
-  {
-    id: 'mv_01JAG7W1K3E8',
-    type: 'TRANSFER_OUT' as const,
-    amount: '-150.00',
-    balanceAfter: '22300.00',
-    concept: 'Despensa',
-    reference: '1',
-    counterparty: { name: 'Mamá', clabeLast4: '4321' },
-    transferId: '7f1c2a8e-5a0b-4c4e-9a59-8f0e1c2d3b4a',
-    occurredAt: '2026-10-13T01:05:00Z',
-  },
-  {
-    id: 'mv_01JAB2T5N9D4',
-    type: 'TRANSFER_IN' as const,
-    amount: '450.00',
-    balanceAfter: '22450.00',
-    concept: 'Pago de la comida',
-    reference: '9',
-    counterparty: { name: 'Andrea Ruiz', clabeLast4: '8842' },
-    transferId: '3b5d7f9a-1c2e-4b4d-8f6a-0c2e4a6b8d91',
-    occurredAt: '2026-10-09T23:10:00Z',
-  },
-  {
-    id: 'mv_01JA4M8R2X6C',
-    type: 'OWN_TRANSFER_OUT' as const,
-    amount: '-3000.00',
-    balanceAfter: '22000.00',
-    concept: 'Ahorro quincenal',
-    reference: '15',
-    counterparty: { name: 'Ahorro', clabeLast4: '1234' },
-    transferId: '8a2d3b9f-6b1c-4d5f-9b6a-9f1e2d3c4b5a',
-    occurredAt: '2026-10-05T18:20:00Z',
-  },
-  {
-    id: 'mv_01J9ZK3A7Q2B',
-    type: 'DEPOSIT' as const,
-    amount: '25000.00',
-    balanceAfter: '25000.00',
-    concept: 'Depósito inicial',
-    reference: '0',
-    counterparty: null,
-    transferId: '2c4e6a8b-0d1f-4a3c-9e5b-7d9f1b3c5e70',
-    occurredAt: '2026-09-30T15:05:00Z',
-  },
-];
-
-// --- Textos: errorMessage() de src/lib/errors.ts con problemMessages del paquete de diseño ----
+// --- Textos: errorMessage() de src/lib/errors.ts con problemMessages del paquete de diseño ------
 
 const NETWORK_ERROR_MESSAGE =
   'No pudimos conectar con TreoWallet. Revisa tu conexión e intenta de nuevo.';
-const UNCERTAIN_TITLE = 'No pudimos confirmar el estado de tu transferencia';
 const RATE_LIMITED = 'Hiciste demasiados intentos. Espera un momento y vuelve a intentar.';
-const OTP_ATTEMPTS_EXHAUSTED = 'Agotaste los intentos. Cancelamos la transferencia.';
-const DAILY_LIMIT_EXCEEDED = 'Esta transferencia supera lo que te queda del límite de hoy.';
 
-// maskClabe() de src/lib/display.ts.
-const mask = (clabe: string) => `•••• ${clabe.slice(-4)}`;
+// --- Estilos (solo `theme`) ------------------------------------------------------------------------
 
-// --- Estilos: StyleSheet de cada pantalla ------------------------------------------------------
+const styles = StyleSheet.create({
+  // Marco de teléfono: el mismo de `initialMetrics` del proveedor.
+  phone: { width: 390, height: 844 },
+  fill: { flex: 1 },
+});
 
-const styles = {
-  // home-screen.tsx / login-screen.tsx / movements-screen.tsx / beneficiary-picker / transfer-flow
-  header: { gap: theme.spacing[2] },
-  headerTight: { gap: theme.spacing[1] },
-  loginHeader: { gap: theme.spacing[2], paddingTop: theme.spacing[8] },
-  title: { ...theme.typography.h1, color: theme.colors.text.primary },
-  overline: { ...theme.typography.label, color: theme.colors.text.secondary },
-  subtitle: { ...theme.typography.body, color: theme.colors.text.secondary },
-  list: { gap: theme.spacing[4] },
-  pickerList: { gap: theme.spacing[2] },
-  hint: {
-    ...theme.typography.caption,
-    color: theme.colors.text.muted,
-    textAlign: 'center' as const,
-  },
-  countdown: { ...theme.typography.bodySm, ...theme.amount, color: theme.colors.text.secondary },
-  // form-view.tsx / outcome-view.tsx / otp-view.tsx
-  stack: { gap: theme.spacing[4] },
-  body: { ...theme.typography.body, color: theme.colors.text.primary },
-  meta: { ...theme.typography.bodySm, ...theme.amount, color: theme.colors.text.secondary },
-  // review-view.tsx
-  amount: { ...theme.typography.display, ...theme.amount, color: theme.colors.text.primary },
-  summary: {
-    gap: theme.spacing[3],
-    padding: theme.spacing[5],
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.surface.subtle,
-  },
-  row: { gap: theme.spacing[1] },
-  rowLabel: { ...theme.typography.caption, color: theme.colors.text.secondary },
-  rowValue: { ...theme.typography.body, color: theme.colors.text.primary },
-  // root-navigator.tsx (StartupOffline)
-  startup: {
-    flex: 1,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    gap: theme.spacing[4],
-    padding: theme.spacing[6],
-    backgroundColor: theme.colors.surface.default,
-  },
-  startupTitle: {
-    ...theme.typography.h3,
-    color: theme.colors.text.primary,
-    textAlign: 'center' as const,
-  },
-  startupBody: {
-    ...theme.typography.body,
-    color: theme.colors.text.secondary,
-    textAlign: 'center' as const,
-  },
+// --- Marcos y datos de las vistas --------------------------------------------------------------------
+
+/** Pestaña con sesión (MOB-18): la vista y, abajo, la barra de pestañas del layout. */
+function TabFrame({ current, children }: { current: Tab; children: ReactNode }) {
+  return (
+    <View style={styles.phone}>
+      <View style={styles.fill}>
+        {children}
+        <TabBar items={TABS} current={current} onSelect={noop} />
+      </View>
+    </View>
+  );
+}
+
+const OVERVIEW = { status: 'success', data: { accounts: [principal, ahorro], dailyLimit } } as const;
+const LATEST = { status: 'success', data: movements } as const;
+const PENDING = { status: 'pending' } as const;
+
+// Lecturas del flujo listas: las dos cuentas y el beneficiario elegido en el paso 1.
+const READY = { status: 'success', data: { accounts: [principal, ahorro], beneficiary: luis } } as const;
+const ACTIONS = {
+  onClose: noop,
+  onReload: noop,
+  onChange: noop,
+  onContinue: noop,
+  onSubmit: noop,
+  onEdit: noop,
+  onRetry: noop,
+  onCodeChange: noop,
+  onConfirm: noop,
+  onResend: noop,
+  onRestart: noop,
+  onHome: noop,
+  onAnother: noop,
+};
+const VALUES = { fromAccountId: principal.id, amount: '1250.00', concept: 'Renta', reference: '1' };
+// Datos congelados del intento al pasar a revisión.
+const FROZEN = {
+  key: 'k',
+  payload: '{}',
+  draft: { fromAccountId: principal.id, beneficiaryId: luis.id, amount: '1250.00', concept: 'Renta', reference: '1' },
 };
 
-// --- Piezas compartidas de las pantallas ------------------------------------------------------
+function Flow({ state, code = '' }: { state: Parameters<typeof TransferFlowView>[0]['state']; code?: string }) {
+  return (
+    <View style={styles.phone}>
+      <TransferFlowView state={state} data={READY} values={VALUES} errors={{}} code={code} actions={ACTIONS} />
+    </View>
+  );
+}
 
-/** Pie de la pantalla de inicio (home-screen.tsx). */
-const homeFooter = (
-  <>
-    <Button label="Transferir" onPress={noop} />
-    <Button label="Cerrar sesión" variant="ghost" onPress={noop} />
-  </>
+// --- Arranque: navigation/startup-views.tsx (sin Screen, como en la app) ------------------------
+
+export const StartupLoading = () => (
+  <View style={styles.phone}>
+    <StartupLoadingView />
+  </View>
 );
 
-/** Pie del selector de beneficiario y del flujo de transferencia. */
-const cancelFooter = <Button label="Cancelar" variant="ghost" onPress={noop} />;
-
-function HomeHeader() {
-  return (
-    <View style={styles.header}>
-      <Wordmark variant="compact" />
-      <Text style={styles.title} accessibilityRole="header">
-        Tus cuentas
-      </Text>
-    </View>
-  );
-}
-
-function MovementsHeader() {
-  return (
-    <View style={styles.headerTight}>
-      <Text style={styles.overline}>Últimos movimientos</Text>
-      <Text style={styles.title} accessibilityRole="header">
-        {principal.name}
-      </Text>
-    </View>
-  );
-}
-
-function LoginHeader() {
-  return (
-    <View style={styles.loginHeader}>
-      <Wordmark />
-      <Text style={styles.title} accessibilityRole="header">
-        Inicia sesión
-      </Text>
-      <Text style={styles.subtitle}>Usa el correo y la contraseña de tu cuenta TreoWallet.</Text>
-    </View>
-  );
-}
-
-const loginNote = (
-  <Text style={styles.hint}>
-    ¿Aún no tienes cuenta? El registro y la verificación del correo se hacen en la web de
-    TreoWallet.
-  </Text>
+export const StartupOffline = () => (
+  <View style={styles.phone}>
+    <StartupOfflineView onRetry={noop} />
+  </View>
 );
 
-/** Encabezado de transfer-flow-screen.tsx: el título sale de TITLES[state.status]. */
-function TransferHeader({ title }: { title: string }) {
-  return (
-    <View style={styles.headerTight}>
-      <Text style={styles.overline}>Transferir</Text>
-      <Text style={styles.title} accessibilityRole="header">
-        {title}
-      </Text>
-      <Text style={styles.subtitle}>{`Para ${luis.alias} · CLABE ${mask(luis.clabe)}`}</Text>
-    </View>
-  );
-}
+// --- Inicio de sesión (MOB-22): features/auth/login-view.tsx sobre la superficie de marca ---------
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{value}</Text>
-    </View>
-  );
-}
-
-/** review-view.tsx: monto, resumen y aviso de código; `children` son las AttemptActions. */
-function ReviewSummary({
-  amountText,
-  concept,
-  reference,
-  requiresOtp = false,
-  children,
-}: {
-  amountText: string;
-  concept: string;
-  reference: string;
-  requiresOtp?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <View style={styles.stack}>
-      <Text style={styles.amount}>{amountText}</Text>
-      <View style={styles.summary}>
-        <SummaryRow label="Desde" value={`${principal.name} · ${mask(principal.clabe)}`} />
-        <SummaryRow label="Para" value={`${luis.alias} · ${mask(luis.clabe)}`} />
-        <SummaryRow label="Concepto" value={concept} />
-        <SummaryRow label="Referencia" value={reference} />
-      </View>
-      {requiresOtp ? (
-        <InlineAlert
-          tone="info"
-          message="Como el monto es mayor a $10,000.00, te enviaremos un código de confirmación a tu correo."
-        />
-      ) : null}
-      {children}
-    </View>
-  );
-}
-
-// --- Inicio de sesión: src/app/login.tsx -> features/auth/login-screen.tsx -------------------
-
-export const LoginScreen = () => (
-  <View style={phone}>
-    <Screen>
-      <LoginHeader />
-      <TextField label="Correo" variant="email" value="" onChangeText={noop} returnKeyType="next" />
-      <TextField
-        label="Contraseña"
-        variant="password"
-        value=""
-        onChangeText={noop}
-        returnKeyType="go"
-      />
-      <Button label="Iniciar sesión" onPress={noop} />
-      {loginNote}
-    </Screen>
+export const Login = () => (
+  <View style={styles.phone}>
+    <LoginView
+      email=""
+      password=""
+      fieldErrors={{}}
+      alert={null}
+      lockRemaining={0}
+      submitting={false}
+      onChangeEmail={noop}
+      onChangePassword={noop}
+      onSubmit={noop}
+    />
   </View>
 );
 
 // 429 con Retry-After: aviso, cuenta regresiva y botón deshabilitado (la contraseña se conserva).
 export const LoginRateLimited = () => (
-  <View style={phone}>
-    <Screen>
-      <LoginHeader />
-      <InlineAlert tone="warning" message={RATE_LIMITED} />
-      <TextField
-        label="Correo"
-        variant="email"
-        value="ana@example.com"
-        onChangeText={noop}
-        returnKeyType="next"
-      />
-      <TextField
-        label="Contraseña"
-        variant="password"
-        value="contraseña-segura"
-        onChangeText={noop}
-        returnKeyType="go"
-      />
-      <Text style={styles.countdown}>Podrás intentar de nuevo en 42 s.</Text>
-      <Button label="Iniciar sesión" onPress={noop} disabled />
-      {loginNote}
-    </Screen>
+  <View style={styles.phone}>
+    <LoginView
+      email={user.email}
+      password="contraseña-segura"
+      fieldErrors={{}}
+      alert={{ tone: 'warning', message: RATE_LIMITED }}
+      lockRemaining={42}
+      submitting={false}
+      onChangeEmail={noop}
+      onChangePassword={noop}
+      onSubmit={noop}
+    />
   </View>
 );
 
-// --- Arranque: navigation/root-navigator.tsx (StartupLoading y StartupOffline, sin Screen) -----
+// --- Inicio (MOB-19): features/accounts/home-view.tsx ----------------------------------------------
 
-export const StartupLoading = () => (
-  <View style={phone}>
-    <View style={styles.startup} accessibilityLabel="Cargando">
-      <Wordmark />
-      <ActivityIndicator color={theme.colors.action.primary} />
-    </View>
-  </View>
+const homeProps = {
+  user,
+  onLogout: noop,
+  selectedId: principal.id,
+  latest: LATEST,
+  now: NOW,
+  onSelect: noop,
+  onRetryOverview: noop,
+  onRetryLatest: noop,
+  onTransfer: noop,
+  onSeeAll: noop,
+};
+
+export const Home = () => (
+  <TabFrame current="home">
+    <HomeView {...homeProps} overview={OVERVIEW} />
+  </TabFrame>
 );
 
-
-export const StartupOffline = () => (
-  <View style={phone}>
-    <View style={styles.startup}>
-      <Wordmark />
-      <Text style={styles.startupTitle} accessibilityRole="header">
-        No pudimos conectar con TreoWallet
-      </Text>
-      <Text style={styles.startupBody}>Revisa tu conexión e intenta de nuevo.</Text>
-      <Button label="Reintentar" onPress={noop} />
-    </View>
-  </View>
-);
-
-// --- Tus cuentas: src/app/(app)/index.tsx -> features/accounts/home-screen.tsx ---------------
-
-export const HomeScreen = () => (
-  <View style={phone}>
-    <Screen footer={homeFooter}>
-      <HomeHeader />
-      <View style={styles.list}>
-        <DailyLimitMeter dailyLimit={dailyLimit} />
-        {[principal, ahorro].map((account) => (
-          <AccountCard
-            key={account.id}
-            name={account.name}
-            clabe={account.clabe}
-            balance={account.balance}
-            onPress={noop}
-          />
-        ))}
-        <Text style={styles.hint}>Toca una cuenta para ver sus últimos movimientos.</Text>
-      </View>
-    </Screen>
-  </View>
-);
-
+// Sin cuentas: el total es cero y no se ha usado nada del límite.
 export const HomeEmpty = () => (
-  <View style={phone}>
-    <Screen footer={homeFooter}>
-      <HomeHeader />
-      <EmptyState
-        title="Aún no tienes cuentas"
-        description="Cuando tu cuenta esté lista, aquí verás su saldo."
-      />
-    </Screen>
-  </View>
+  <TabFrame current="home">
+    <HomeView
+      {...homeProps}
+      overview={{
+        status: 'success',
+        data: { accounts: [], dailyLimit: { ...dailyLimit, used: '0.00', remaining: dailyLimit.limit } },
+      }}
+      selectedId={undefined}
+      latest={PENDING}
+    />
+  </TabFrame>
 );
 
+// Cargando: el encabezado ya saluda a Ana (la sesión trae a la persona).
 export const HomeLoading = () => (
-  <View style={phone}>
-    <Screen footer={homeFooter}>
-      <HomeHeader />
-      <View style={styles.list}>
-        <Skeleton variant="line" />
-        <Skeleton variant="card" />
-        <Skeleton variant="card" />
-      </View>
-    </Screen>
-  </View>
+  <TabFrame current="home">
+    <HomeView {...homeProps} overview={PENDING} latest={PENDING} />
+  </TabFrame>
 );
 
 // La consulta falló (sin red): no se muestran saldos anteriores, solo el error y Reintentar.
 export const HomeError = () => (
-  <View style={phone}>
-    <Screen footer={homeFooter}>
-      <HomeHeader />
-      <View style={styles.list}>
-        <InlineAlert tone="danger" message={NETWORK_ERROR_MESSAGE} />
-        <Button label="Reintentar" variant="secondary" onPress={noop} />
-      </View>
-    </Screen>
-  </View>
+  <TabFrame current="home">
+    <HomeView
+      {...homeProps}
+      overview={{ status: 'error', message: NETWORK_ERROR_MESSAGE }}
+      latest={PENDING}
+    />
+  </TabFrame>
 );
 
-// --- Movimientos: src/app/(app)/accounts/[accountId].tsx -> features/accounts/movements-screen
+// --- Movimientos (MOB-20): features/accounts/movements-view.tsx ------------------------------------
 
-export const MovementsScreen = () => (
-  <View style={phone}>
-    <Screen footer={<Button label="Volver" variant="ghost" onPress={noop} />}>
-      <MovementsHeader />
-      <View>
-        {movements.map((movement) => (
-          <MovementRow key={movement.id} movement={movement} />
-        ))}
-      </View>
-    </Screen>
-  </View>
+const movementsProps = {
+  user,
+  onLogout: noop,
+  overview: OVERVIEW,
+  selectedId: principal.id,
+  now: NOW,
+  onSelect: noop,
+  onRetryAccounts: noop,
+  onRetryMovements: noop,
+};
+
+export const Movements = () => (
+  <TabFrame current="movements">
+    <MovementsView {...movementsProps} movements={LATEST} />
+  </TabFrame>
 );
 
 export const MovementsEmpty = () => (
-  <View style={phone}>
-    <Screen footer={<Button label="Volver" variant="ghost" onPress={noop} />}>
-      <MovementsHeader />
-      <EmptyState
-        title="Aún no hay movimientos"
-        description="Aquí verás los depósitos y las transferencias de esta cuenta."
-      />
-    </Screen>
-  </View>
+  <TabFrame current="movements">
+    <MovementsView {...movementsProps} movements={{ status: 'success', data: [] }} />
+  </TabFrame>
 );
 
-// --- Beneficiario: src/app/(app)/transfer/index.tsx -> features/transfer/beneficiary-picker ---
+// --- Transferir (MOB-21): Destinatario → Monto → Revisión → Código (si aplica) → Comprobante -----
 
-function PickerHeader() {
-  return (
-    <View style={styles.headerTight}>
-      <Text style={styles.overline}>Transferir</Text>
-      <Text style={styles.title} accessibilityRole="header">
-        ¿A quién le envías?
-      </Text>
-    </View>
-  );
-}
-
-export const BeneficiaryPickerScreen = () => (
-  <View style={phone}>
-    <Screen footer={cancelFooter}>
-      <PickerHeader />
-      <View style={styles.pickerList}>
-        {[luis, mama].map((beneficiary) => (
-          <OptionRow
-            key={beneficiary.id}
-            option={{
-              value: beneficiary.id,
-              label: beneficiary.alias,
-              description: `${beneficiary.name} · CLABE ${mask(beneficiary.clabe)}`,
-            }}
-            onPress={noop}
-          />
-        ))}
-      </View>
-    </Screen>
+// features/transfer/recipient-view.tsx
+export const TransferRecipient = () => (
+  <View style={styles.phone}>
+    <RecipientView
+      beneficiaries={{ status: 'success', data: { items: [luis, mama] } }}
+      onPick={noop}
+      onRetry={noop}
+      onClose={noop}
+    />
   </View>
 );
 
 // La app no da de alta beneficiarios: sin ninguno, indica registrarlos en la web.
-export const BeneficiaryPickerEmpty = () => (
-  <View style={phone}>
-    <Screen footer={cancelFooter}>
-      <PickerHeader />
-      <EmptyState
-        title="Aún no tienes beneficiarios"
-        description="Regístralos en la web de TreoWallet para poder enviarles dinero desde aquí."
-      />
-    </Screen>
+export const TransferRecipientEmpty = () => (
+  <View style={styles.phone}>
+    <RecipientView
+      beneficiaries={{ status: 'success', data: { items: [] } }}
+      onPick={noop}
+      onRetry={noop}
+      onClose={noop}
+    />
   </View>
 );
 
-// --- Transferencia: src/app/(app)/transfer/send.tsx -> features/transfer/transfer-flow-screen
+// features/transfer/transfer-flow-view.tsx, un estado del intento por historia.
+export const TransferAmount = () => <Flow state={{ status: 'editing' }} />;
 
-// editing -> form-view.tsx (la cuenta de origen arranca en la primera cuenta).
-export const TransferFormScreen = () => (
-  <View style={phone}>
-    <Screen footer={cancelFooter}>
-      <TransferHeader title="¿Cuánto envías?" />
-      <View style={styles.stack}>
-        <Select
-          label="Cuenta de origen"
-          placeholder="Elige una cuenta"
-          options={[principal, ahorro].map((account) => ({
-            value: account.id,
-            label: account.name,
-            description: `CLABE ${mask(account.clabe)} · ${account.balanceText}`,
-          }))}
-          value={principal.id}
-          onChange={noop}
-        />
-        <AmountField
-          label="Monto"
-          value=""
-          onChangeText={noop}
-          help="Hasta 2 decimales, sin comas."
-        />
-        <TextField label="Concepto" value="" onChangeText={noop} help="De 1 a 40 caracteres." />
-        <TextField
-          label="Referencia"
-          value=""
-          onChangeText={noop}
-          help="De 1 a 7 dígitos."
-          keyboardType="number-pad"
-          inputMode="numeric"
-        />
-        <Button label="Continuar" onPress={noop} />
-      </View>
-    </Screen>
-  </View>
+// Sin código: el flujo tiene 4 pasos.
+export const TransferReview = () => <Flow state={{ status: 'reviewing', ...FROZEN }} />;
+
+// Se perdió la red: la misma operación, con Enviar ocupado (MOB-10).
+export const TransferRetrying = () => (
+  <Flow state={{ status: 'waitingRetry', retry: 1, delayMs: 1000, ...FROZEN }} />
 );
 
-// reviewing -> review-view.tsx + attempt-actions (Enviar / Editar).
-export const TransferReviewScreen = () => (
-  <View style={phone}>
-    <Screen footer={cancelFooter}>
-      <TransferHeader title="Revisa tu transferencia" />
-      <ReviewSummary amountText="$1,250.00" concept="Renta" reference="1">
-        <Button label="Enviar" onPress={noop} />
-        <Button label="Editar" variant="ghost" onPress={noop} />
-      </ReviewSummary>
-    </Screen>
-  </View>
+// Reintentos agotados: ni éxito ni falla, solo Reintentar con la misma llave.
+export const TransferUncertain = () => <Flow state={{ status: 'uncertain', ...FROZEN }} />;
+
+// 422 INSUFFICIENT_FUNDS al crearla: $30,000.00 supera los $25,000.00 de Principal. Es mayor a
+// $10,000.00, así que la revisión avisa del código y el flujo tiene 5 pasos.
+export const TransferRejected = () => (
+  <Flow
+    state={{
+      status: 'rejected',
+      ...FROZEN,
+      draft: { ...FROZEN.draft, amount: '30000.00' },
+      error: new ProblemError(422, { code: 'INSUFFICIENT_FUNDS', title: 'Saldo insuficiente', status: 422 }),
+    }}
+  />
 );
 
-// waitingRetry -> se perdió la red: misma operación, Enviar ocupado (caso borde del enunciado).
-export const TransferRetryingScreen = () => (
-  <View style={phone}>
-    <Screen footer={cancelFooter}>
-      <TransferHeader title="Enviando tu transferencia" />
-      <ReviewSummary amountText="$1,250.00" concept="Renta" reference="1">
-        <InlineAlert
-          tone="warning"
-          message="Perdimos la conexión. Reintentaremos la misma operación (1 de 5)."
-        />
-        <Button label="Enviar" onPress={noop} loading />
-      </ReviewSummary>
-    </Screen>
-  </View>
+// Código para $15,000.00 (3 intentos), ya escrito y con Confirmar habilitado, como en la web. El
+// vencimiento es relativo al render: la cuenta regresiva arranca en 4:32.
+export const TransferOtp = () => (
+  <Flow
+    state={{
+      status: 'pendingOtp',
+      transfer: {
+        ...failedTransfer,
+        otp: {
+          ...failedTransfer.otp,
+          attemptsRemaining: 3,
+          expiresAt: new Date(Date.now() + 272_000).toISOString(),
+        },
+      },
+    }}
+    code="482913"
+  />
 );
 
-// uncertain -> reintentos agotados: ni éxito ni falla, solo Reintentar con la misma llave.
-export const TransferUncertainScreen = () => (
-  <View style={phone}>
-    <Screen footer={cancelFooter}>
-      <TransferHeader title="Estado sin confirmar" />
-      <ReviewSummary amountText="$1,250.00" concept="Renta" reference="1">
-        <InlineAlert
-          tone="warning"
-          title={UNCERTAIN_TITLE}
-          message="Puede que se haya realizado. Reintenta para conocer el resultado: no se enviará dos veces."
-        />
-        <Button label="Reintentar" onPress={noop} />
-      </ReviewSummary>
-    </Screen>
-  </View>
+// El comprobante con lo que devolvió la API (MOB-13).
+export const TransferCompleted = () => (
+  <Flow state={{ status: 'completed', transfer: completedTransfer, replayed: false }} />
 );
 
-// rejected -> 422 DAILY_LIMIT_EXCEEDED (datos de sending-states.test): mensaje y Corregir.
-export const TransferRejectedScreen = () => (
-  <View style={phone}>
-    <Screen footer={cancelFooter}>
-      <TransferHeader title="Transferencia rechazada" />
-      <ReviewSummary amountText="$6,000.00" concept="Renta" reference="1">
-        <InlineAlert tone="danger" message={`${DAILY_LIMIT_EXCEEDED} Hoy te quedan $5,000.00.`} />
-        <Button label="Corregir" variant="secondary" onPress={noop} />
-      </ReviewSummary>
-    </Screen>
-  </View>
-);
-
-// pendingOtp -> otp-view.tsx con pendingOtp() (correo enviado, 3 intentos, 3 reenvíos).
-export const TransferOtpScreen = () => (
-  <View style={phone}>
-    <Screen footer={cancelFooter}>
-      <TransferHeader title="Confirma con tu código" />
-      <View style={styles.stack}>
-        <Text style={styles.body}>
-          {`Te enviamos un código de 6 dígitos a ${pendingOtp.otp.maskedDestination}.`}
-        </Text>
-        <Text style={styles.meta}>El código vence en 4:32.</Text>
-        <Text style={styles.meta}>{`Te quedan ${pendingOtp.otp.attemptsRemaining} intentos.`}</Text>
-        <OtpField value="" onChangeText={noop} />
-        <Button label="Confirmar" onPress={noop} disabled />
-        <Button label="Reenviar código" variant="ghost" onPress={noop} />
-      </View>
-    </Screen>
-  </View>
-);
-
-// completed -> outcome-view.tsx: comprobante con lo que devolvió la API.
-export const TransferCompletedScreen = () => (
-  <View style={phone}>
-    <Screen footer={cancelFooter}>
-      <TransferHeader title="Transferencia enviada" />
-      <View style={styles.stack}>
-        <Receipt transfer={completedTransfer} fromAccountName={principal.name} />
-        <Button label="Ir a mis cuentas" variant="secondary" onPress={noop} />
-      </View>
-    </Screen>
-  </View>
-);
-
-// failed -> outcome-view.tsx: 422 OTP_ATTEMPTS_EXHAUSTED tras el código (otp-screen.test).
-export const TransferFailedScreen = () => (
-  <View style={phone}>
-    <Screen footer={cancelFooter}>
-      <TransferHeader title="La transferencia no se realizó" />
-      <View style={styles.stack}>
-        <StatusBadge status="FAILED" />
-        <InlineAlert tone="danger" message={OTP_ATTEMPTS_EXHAUSTED} />
-        <Button label="Intentar de nuevo" onPress={noop} />
-        <Button label="Ir a mis cuentas" variant="secondary" onPress={noop} />
-      </View>
-    </Screen>
-  </View>
+// 422 OTP_ATTEMPTS_EXHAUSTED al confirmar el código.
+export const TransferFailed = () => (
+  <Flow
+    state={{
+      status: 'failed',
+      transfer: failedTransfer,
+      error: new ProblemError(422, { code: 'OTP_ATTEMPTS_EXHAUSTED', title: 'Intentos agotados', status: 422 }),
+    }}
+  />
 );

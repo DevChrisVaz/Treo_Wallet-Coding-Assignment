@@ -1,11 +1,13 @@
 import type { Movement, Transfer } from '@devchrisvaz/wallet-contract';
 import { act, render, screen } from '@testing-library/react-native';
-import { AccessibilityInfo, Animated } from 'react-native';
+import { AccessibilityInfo, Animated, View } from 'react-native';
+import type { ReactTestRendererJSON } from 'react-test-renderer';
 
 import { theme } from '@/theme';
 
 import {
   AccountCard,
+  Avatar,
   DailyLimitMeter,
   EmptyState,
   InlineAlert,
@@ -32,7 +34,7 @@ describe('AccountCard', () => {
   test('DSG-09 muestra nombre, CLABE enmascarada y saldo con formatMXN y dígitos tabulares', async () => {
     await render(<AccountCard name="Principal" clabe="646180157000009719" balance="25000.00" />);
     expect(screen.getByText('Principal')).toBeOnTheScreen();
-    expect(screen.getByText('CLABE •••• 9719')).toBeOnTheScreen();
+    expect(screen.getByText('CLABE •••• 9719')).toHaveStyle({ fontVariant: ['tabular-nums'] });
     expect(screen.queryByText(/646180157000009719/)).toBeNull();
     expect(screen.getByText('$25,000.00')).toHaveStyle({ fontVariant: ['tabular-nums'] });
   });
@@ -48,7 +50,32 @@ describe('MovementRow', () => {
       fontVariant: ['tabular-nums'],
     });
     expect(screen.getByText('Saldo $24,850.00')).toBeOnTheScreen();
-    expect(screen.getByText('12 oct, 19:05')).toBeOnTheScreen();
+  });
+
+  test.each([false, true])(
+    'MOB-06 los lectores de pantalla oyen la fecha completa y la referencia (timeOnly: %s)',
+    async (timeOnly) => {
+      await render(<MovementRow movement={movement({})} timeOnly={timeOnly} />);
+      expect(screen.getByLabelText('12 oct, 19:05 · Ref. 1')).toBeOnTheScreen();
+      expect(screen.queryByLabelText('12 oct, 19:05')).toBeNull();
+    },
+  );
+
+  test('MOB-06 por omisión muestra la fecha completa y la referencia, con borde inferior', async () => {
+    await render(<MovementRow movement={movement({})} />);
+    expect(screen.getByText('12 oct, 19:05 · Ref. 1')).toBeOnTheScreen();
+    expect(screen.getByTestId('movement-row')).toHaveStyle({
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border.default,
+    });
+  });
+
+  test('MOB-20 con timeOnly muestra hora, referencia y saldo, con avatar por tipo y sin borde', async () => {
+    await render(<MovementRow movement={movement({})} timeOnly />);
+    expect(screen.getByText('19:05 · Ref. 1')).toBeOnTheScreen();
+    expect(screen.getByText('Saldo $24,850.00')).toBeOnTheScreen();
+    expect(screen.getByTestId('movement-avatar', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByTestId('movement-row')).not.toHaveStyle({ borderBottomWidth: 1 });
   });
 
   test('DSG-10 un depósito de la Tesorería (sin contraparte) muestra +$ en verde', async () => {
@@ -92,6 +119,11 @@ describe('InlineAlert', () => {
     });
   });
 
+  test('DSG-15 la alerta de error lleva su icono, decorativo', async () => {
+    await render(<InlineAlert tone="danger" message="No tienes saldo suficiente." />);
+    expect(screen.getByTestId('inline-alert-icon', { includeHiddenElements: true })).toBeTruthy();
+  });
+
   test('DSG-11 un aviso informativo se anuncia sin interrumpir', async () => {
     await render(<InlineAlert tone="info" message="Te enviamos un código." />);
     expect(screen.queryByRole('alert')).toBeNull();
@@ -120,10 +152,8 @@ describe('Skeleton', () => {
     const loop = jest.spyOn(Animated, 'loop');
     await render(<Skeleton variant="card" />);
     await act(async () => {});
-    expect(screen.getByTestId('skeleton', { includeHiddenElements: true })).toHaveProp(
-      'importantForAccessibility',
-      'no-hide-descendants',
-    );
+    expect(screen.queryByTestId('skeleton')).toBeNull();
+    expect(screen.getByTestId('skeleton', { includeHiddenElements: true })).toBeOnTheScreen();
     expect(loop).toHaveBeenCalled();
   });
 
@@ -192,4 +222,42 @@ describe('Receipt', () => {
     expect(screen.getByText('13 oct 2026, 10:42')).toBeOnTheScreen();
     expect(screen.getByText(transfer.id)).toBeOnTheScreen();
   });
+
+  test('MOB-13 con la CLABE de origen, el origen lleva su terminación como en la revisión', async () => {
+    await render(
+      <Receipt
+        transfer={transfer}
+        fromAccountName="Principal"
+        fromAccountClabe="646180157000009719"
+      />,
+    );
+    expect(screen.getByText('Principal · •••• 9719')).toBeOnTheScreen();
+    expect(screen.queryByText('Principal')).toBeNull();
+  });
+
+  test.each([
+    ['COMPLETED', 'success', 'success'],
+    ['FAILED', 'neutral', 'error'],
+    ['REJECTED', 'neutral', 'error'],
+    ['PENDING_OTP', 'neutral', 'warning'],
+    ['EXPIRED', 'neutral', 'info'],
+  ] as const)(
+    'MOB-13 el icono del comprobante sigue el tono del estado %s (avatar %s, icono %s)',
+    async (status, tone, icon) => {
+      // El avatar renderizado debe ser idéntico al de la tabla: mismo tono e icono.
+      await render(<Receipt transfer={{ ...transfer, status }} />);
+      const actual = JSON.stringify(
+        (screen.toJSON() as ReactTestRendererJSON).children
+          ?.filter((child): child is ReactTestRendererJSON => typeof child !== 'string')
+          .find((child) => child.props.testID === 'receipt-avatar'),
+      );
+      await screen.unmount();
+      await render(
+        <View testID="receipt-avatar">
+          <Avatar size="lg" tone={tone} icon={icon} />
+        </View>,
+      );
+      expect(actual).toBe(JSON.stringify(screen.toJSON()));
+    },
+  );
 });

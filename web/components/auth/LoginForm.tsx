@@ -57,40 +57,45 @@ export function LoginForm({ redirectTo = '/', notice }: LoginFormProps) {
   });
 
   return (
-    <form noValidate onSubmit={onSubmit} className="grid gap-5">
-      {notice === 'expired' ? (
-        <InlineAlert tone="info" title="Tu sesión expiró">
-          Inicia sesión de nuevo para continuar.
-        </InlineAlert>
-      ) : null}
-      {error ? (
-        <InlineAlert tone="danger" focusOnMount>
-          {error}
-        </InlineAlert>
-      ) : null}
-      <TextField
-        label="Correo"
-        type="email"
-        autoComplete="email"
-        error={errors.email?.message}
-        {...register('email')}
-      />
-      <TextField
-        label="Contraseña"
-        type="password"
-        autoComplete="current-password"
-        error={errors.password?.message}
-        {...register('password')}
-      />
-      <Button type="submit" loading={isSubmitting} loadingLabel="Entrando…">
-        Iniciar sesión
-      </Button>
-      <p className="text-body-sm text-fg-secondary">
+    <>
+      <form noValidate onSubmit={onSubmit} className="grid gap-4">
+        {notice === 'expired' ? (
+          <InlineAlert tone="info" title="Tu sesión expiró">
+            Inicia sesión de nuevo para continuar.
+          </InlineAlert>
+        ) : null}
+        {error ? (
+          <InlineAlert tone="danger" focusOnMount>
+            {error}
+          </InlineAlert>
+        ) : null}
+        <TextField
+          label="Correo"
+          type="email"
+          autoComplete="email"
+          error={errors.email?.message}
+          {...register('email')}
+        />
+        <TextField
+          label="Contraseña"
+          type="password"
+          autoComplete="current-password"
+          error={errors.password?.message}
+          {...register('password')}
+        />
+        <Button type="submit" loading={isSubmitting} loadingLabel="Entrando…" className="w-full">
+          Iniciar sesión
+        </Button>
+      </form>
+      <p className="text-center text-body-sm text-fg-secondary">
         ¿No tienes cuenta?{' '}
-        <Link href="/register" className="text-action underline underline-offset-2">
+        <Link
+          href="/register"
+          className="inline-flex min-h-11 items-center font-medium text-action underline underline-offset-2"
+        >
           Regístrate
         </Link>
       </p>
-    </form>
+    </>
   );
 }

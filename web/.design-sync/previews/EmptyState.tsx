@@ -62,3 +62,15 @@ export const BeneficiariesPage = () => (
     />
   </div>
 );
+
+/** Con `icon`: el avatar grande sobre el título. */
+export const WithIcon = () => (
+  <div className="max-w-2xl">
+    <EmptyState
+      icon="movements"
+      title="No hay movimientos en este periodo"
+      description="Prueba con otras fechas u otros tipos de movimiento."
+      action={<Button variant="secondary">Limpiar filtros</Button>}
+    />
+  </div>
+);

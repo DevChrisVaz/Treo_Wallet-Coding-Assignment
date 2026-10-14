@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Work_Sans } from 'next/font/google';
-import { SkipLink } from '@/components/layout/PageShell';
 import { QueryProvider } from '@/components/providers/QueryProvider';
 import './globals.css';
 
@@ -22,7 +21,6 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="es-MX" className={workSans.variable}>
       <body className="min-h-dvh bg-surface font-sans text-body text-fg antialiased">
-        <SkipLink />
         <QueryProvider>{children}</QueryProvider>
       </body>
     </html>

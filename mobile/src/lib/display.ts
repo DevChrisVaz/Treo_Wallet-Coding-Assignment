@@ -5,6 +5,7 @@
  * contrato rompe la compilación hasta que el paquete de diseño lo agregue.
  */
 import {
+  centsToDecimalString,
   formatMXN,
   toCents,
   type DailyLimit,
@@ -60,20 +61,8 @@ export function maskClabe(clabeOrLast4: string): string {
 }
 
 const BUSINESS_TIME_ZONE = 'America/Mexico_City';
-const MONTHS = [
-  'ene',
-  'feb',
-  'mar',
-  'abr',
-  'may',
-  'jun',
-  'jul',
-  'ago',
-  'sept',
-  'oct',
-  'nov',
-  'dic',
-];
+// Misma tabla que los encabezados de día de los tokens (`dayLabel`): "sep", no "sept" (MOB-20).
+const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
 function partsInBusinessTimeZone(date: Date) {
   try {
@@ -113,6 +102,17 @@ export function formatDateTime(iso: string, options: { withYear?: boolean } = {}
   const { day, month, year, hour, minute } = partsInBusinessTimeZone(new Date(iso));
   const date = `${day} ${MONTHS[month - 1] ?? ''}${options.withYear ? ` ${year}` : ''}`;
   return `${date}, ${hour}:${minute}`;
+}
+
+/** Hora en America/Mexico_City, como "10:52". */
+export function formatTime(iso: string): string {
+  const { hour, minute } = partsInBusinessTimeZone(new Date(iso));
+  return `${hour}:${minute}`;
+}
+
+/** Suma de montos en centavos con BigInt (MOB-19, MOB-15). */
+export function sumAmounts(amounts: readonly string[]): string {
+  return centsToDecimalString(amounts.reduce((total, amount) => total + toCents(amount), 0n));
 }
 
 /** Porcentaje entero usado del límite diario, con aritmética de centavos (sin floats). */

@@ -16,16 +16,28 @@ interface ScreenProps {
   /** Deslizar hacia abajo para actualizar. */
   refresh?: { refreshing: boolean; onRefresh: () => void };
   footer?: ReactNode;
+  /** Encabezado fijo sobre el contenido desplazable. */
+  header?: ReactNode;
+  /**
+   * Pantalla de una pestaña: la barra va debajo (no encima) y pone el área segura inferior, así que
+   * la pantalla solo reserva la de arriba.
+   */
+  tabBar?: boolean;
 }
 
 /** Contenedor de pantalla: área segura, desplazamiento, teclado y margen del sistema. */
-export function Screen({ children, refresh, footer }: ScreenProps) {
+export function Screen({ children, refresh, footer, header, tabBar = false }: ScreenProps) {
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+    <SafeAreaView
+      testID="screen-safe-area"
+      style={styles.safe}
+      edges={tabBar ? ['top'] : ['top', 'bottom']}
+    >
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        {header}
         <ScrollView
           testID="screen-scroll"
           contentContainerStyle={styles.content}
@@ -50,7 +62,7 @@ export function Screen({ children, refresh, footer }: ScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: theme.colors.surface.default },
+  safe: { flex: 1, backgroundColor: theme.colors.surface.canvas },
   flex: { flex: 1 },
   content: { padding: theme.spacing[5], gap: theme.spacing[5], flexGrow: 1 },
   footer: {

@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 import { TextField } from '@/components/ui/TextField';
 import { scheduledTransfersKey } from '@/lib/client/scheduled-transfers';
+import { SCHEDULED_TRANSFERS_PATH } from '@/lib/navigation';
 import { formatScheduledDate } from '@/lib/scheduled-date';
 
 /*
@@ -38,15 +39,16 @@ export function ScheduleField({ when, whenField, dateField, error }: ScheduleFie
   const range = schedulableRange(new Date());
   return (
     <div className="grid gap-5">
-      <fieldset className="grid gap-2">
-        <legend className="text-label text-fg">Cuándo</legend>
+      {/* Mismo control de elección que los filtros de movimientos: 44 px de alto y acento del sistema. */}
+      <fieldset className="grid">
+        <legend className="pb-1 text-label text-fg">Cuándo</legend>
         <div className="flex flex-wrap gap-x-6">
-          <label className="inline-flex min-h-11 items-center gap-2 text-body">
-            <input type="radio" value="NOW" className="size-4 accent-action" {...whenField} />
+          <label className="flex min-h-11 items-center gap-3 text-body text-fg">
+            <input type="radio" value="NOW" className="size-5 accent-action" {...whenField} />
             Ahora
           </label>
-          <label className="inline-flex min-h-11 items-center gap-2 text-body">
-            <input type="radio" value="SCHEDULED" className="size-4 accent-action" {...whenField} />
+          <label className="flex min-h-11 items-center gap-3 text-body text-fg">
+            <input type="radio" value="SCHEDULED" className="size-5 accent-action" {...whenField} />
             Programar
           </label>
         </div>
@@ -83,7 +85,7 @@ export function ScheduledOutcome({ scheduledFor }: { scheduledFor: string }) {
   return (
     <p className="text-body text-fg-secondary">
       {scheduledSendText(scheduledFor)}. Puedes cancelarla antes de esa fecha en{' '}
-      <Link href="/transfers/scheduled" className="text-action underline underline-offset-2">
+      <Link href={SCHEDULED_TRANSFERS_PATH} className="text-action underline underline-offset-2">
         tus transferencias programadas
       </Link>
       .

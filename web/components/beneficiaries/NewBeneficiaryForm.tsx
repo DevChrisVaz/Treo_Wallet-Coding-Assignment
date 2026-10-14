@@ -2,11 +2,12 @@
 
 import { beneficiaryForm, type BeneficiaryList } from '@devchrisvaz/wallet-contract';
 import { useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { createBeneficiary } from '@/app/actions/beneficiaries';
-import { Button } from '@/components/ui/Button';
+import { Button, buttonClasses } from '@/components/ui/Button';
 import { InlineAlert } from '@/components/ui/InlineAlert';
 import { TextField } from '@/components/ui/TextField';
 import { applyServerFieldErrors } from '@/lib/client/form-errors';
@@ -80,7 +81,11 @@ export function NewBeneficiaryForm() {
   });
 
   return (
-    <form noValidate onSubmit={onSubmit} className="grid gap-5">
+    <form
+      noValidate
+      onSubmit={onSubmit}
+      className="grid gap-5 dashboard:max-w-xl dashboard:rounded-lg dashboard:bg-surface dashboard:p-8 dashboard:shadow-card"
+    >
       {error ? (
         <InlineAlert tone="danger" focusOnMount>
           {error}
@@ -108,9 +113,14 @@ export function NewBeneficiaryForm() {
         error={errors.clabe?.message}
         {...register('clabe')}
       />
-      <Button type="submit" loading={isSubmitting} loadingLabel="Agregando…">
-        Agregar beneficiario
-      </Button>
+      <div className="grid gap-3 pt-1">
+        <Button type="submit" loading={isSubmitting} loadingLabel="Agregando…">
+          Agregar beneficiario
+        </Button>
+        <Link href="/beneficiaries" className={buttonClasses('ghost')}>
+          Cancelar
+        </Link>
+      </div>
     </form>
   );
 }

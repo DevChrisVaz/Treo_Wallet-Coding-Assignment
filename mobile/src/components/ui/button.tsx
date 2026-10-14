@@ -1,6 +1,9 @@
+import type { IconConcept } from '@devchrisvaz/wallet-design-tokens';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { theme } from '@/theme';
+
+import { Icon } from './icon';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 
@@ -64,6 +67,10 @@ interface ButtonProps {
   /** Enviando: deshabilitado, mismo tamaño, con indicador y `busy` para lectores de pantalla. */
   loading?: boolean;
   accessibilityHint?: string;
+  /** Icono decorativo antes de la etiqueta. */
+  icon?: IconConcept;
+  /** Botón de un selector: anuncia si es la opción elegida. */
+  selected?: boolean;
 }
 
 export function Button({
@@ -73,6 +80,8 @@ export function Button({
   disabled = false,
   loading = false,
   accessibilityHint,
+  icon,
+  selected,
 }: ButtonProps) {
   const inactive = disabled || loading;
   return (
@@ -80,7 +89,7 @@ export function Button({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: inactive, busy: loading }}
+      accessibilityState={{ disabled: inactive, busy: loading, selected }}
       disabled={inactive}
       onPress={onPress}
       style={({ pressed }) => {
@@ -93,6 +102,7 @@ export function Button({
         return (
           <View style={styles.content}>
             {loading ? <ActivityIndicator size="small" color={palette.text} /> : null}
+            {icon && !loading ? <Icon name={icon} color={palette.text} /> : null}
             <Text style={[styles.label, { color: palette.text }]}>{label}</Text>
           </View>
         );
@@ -103,7 +113,7 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: theme.touchTarget,
+    minHeight: theme.spacing[12],
     borderRadius: theme.radius.pill,
     borderWidth: 1,
     paddingHorizontal: theme.spacing[6],

@@ -22,6 +22,6 @@ const styles = StyleSheet.create({
     left: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.surface.inverse,
+    backgroundColor: theme.colors.surface.hero,
   },
 });

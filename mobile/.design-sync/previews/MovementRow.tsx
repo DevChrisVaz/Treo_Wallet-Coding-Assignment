@@ -77,26 +77,26 @@ const ownTransferIn = {
 
 export const TransferSent = () => (
   <View style={frame}>
-    <MovementRow movement={transferOut} />
+    <MovementRow timeOnly movement={transferOut} />
   </View>
 );
 
 export const TransferReceived = () => (
   <View style={frame}>
-    <MovementRow movement={transferIn} />
+    <MovementRow timeOnly movement={transferIn} />
   </View>
 );
 
 export const Deposit = () => (
   <View style={frame}>
-    <MovementRow movement={deposit} />
+    <MovementRow timeOnly movement={deposit} />
   </View>
 );
 
 export const OwnAccountTransfers = () => (
   <View style={frame}>
-    <MovementRow movement={ownTransferOut} />
-    <MovementRow movement={ownTransferIn} />
+    <MovementRow timeOnly movement={ownTransferOut} />
+    <MovementRow timeOnly movement={ownTransferIn} />
   </View>
 );
 
@@ -110,7 +110,7 @@ export const RecentMovementsList = () => (
     </View>
     <View>
       {[rent, transferOut, transferIn, ownTransferOut, deposit].map((movement) => (
-        <MovementRow key={movement.id} movement={movement} />
+        <MovementRow key={movement.id} movement={movement} timeOnly />
       ))}
     </View>
   </View>

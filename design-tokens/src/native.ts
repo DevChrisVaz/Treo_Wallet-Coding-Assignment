@@ -5,7 +5,10 @@
  */
 import { themes } from './themes';
 import {
+  avatarSize,
   elevation,
+  iconSize,
+  layout,
   motion,
   nativeFontFamily,
   radius,
@@ -45,7 +48,14 @@ export const theme = {
   amount: { fontVariant: ['tabular-nums'] as ['tabular-nums'] },
   spacing,
   radius,
-  elevation: { card: elevation.card.native },
+  elevation: {
+    card: elevation.card.native,
+    raised: elevation.raised.native,
+    sheet: elevation.sheet.native,
+  },
+  iconSize,
+  avatarSize,
+  layout,
   motion: { fast: motion.fast, base: motion.base },
   touchTarget,
 } as const;

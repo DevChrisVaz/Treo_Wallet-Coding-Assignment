@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Paridad web / móvil</title>
+<style>
+  body { margin: 0; font: 13px/1.4 system-ui; background: #eceeea; color: #1d2420; }
+  header { position: sticky; top: 0; z-index: 2; display: flex; gap: 16px; align-items: center; padding: 12px 24px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+  main { display: grid; gap: 64px; padding: 32px 24px 96px; }
+  h2 { font: 600 22px system-ui; margin: 0 0 12px; }
+  .row { display: flex; gap: 32px; align-items: flex-start; }
+  .frame { display: grid; gap: 6px; } .frame span { color: #68716b; }
+  iframe { border: 0; background: #fff; border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.08); }
+  .stack { position: relative; width: 390px; height: 844px; }
+  .stack iframe { position: absolute; inset: 0; }
+  .stack .top { opacity: 0; pointer-events: none; }
+  body.overlay .stack .top { opacity: .5; }
+</style></head>
+<body>
+<header><strong>Paridad web / móvil</strong><label><input id="overlay" type="checkbox"> Superponer web sobre móvil (50 %)</label><span id="count"></span></header>
+<main id="pairs"></main>
+<script>
+(async () => {
+  const header = async (app) => JSON.parse(/@ds-bundle: (\{.*?\}) \*\//.exec(await (await fetch(`/${app}/_ds_bundle.js`)).text())[1]);
+  const path = (h, name) => h.components.find((c) => c.name === name).sourcePath.replace(/\.jsx$/, '.html');
+  const cells = async (app, html) => {
+    const probe = Object.assign(document.createElement('iframe'), { src: `/${app}/${html}?story=__probe__`, style: 'position:fixed;left:-9999px;width:10px;height:10px' });
+    document.body.append(probe);
+    await new Promise((r) => (probe.onload = r));
+    for (let i = 0; i < 100 && !probe.contentWindow.__dsCells; i += 1) await new Promise((r) => setTimeout(r, 50));
+    const list = probe.contentWindow.__dsCells || [];
+    probe.remove();
+    return list;
+  };
+  const [web, mobile] = await Promise.all([header('web'), header('mobile')]);
+  const webHtml = path(web, 'AppShell'), mobileHtml = path(mobile, 'Screen');
+  const [webStories, mobileStories] = await Promise.all([cells('web', webHtml), cells('mobile', mobileHtml)]);
+  // Sin el margen de la tarjeta y sin el transform de `.ds-single`, para que lo `fixed` quede abajo del marco.
+  const flush = (iframe) => iframe.addEventListener('load', () => { const d = iframe.contentDocument; d.head.append(Object.assign(d.createElement('style'), { textContent: 'body{padding:0 !important}.ds-single{transform:none !important}' })); });
+  const frame = (app, html, story, w, h, cls = '') => {
+    const f = Object.assign(document.createElement('iframe'), { src: `/${app}/${html}?story=${story}`, width: w, height: h, className: cls });
+    flush(f);
+    return f;
+  };
+  const list = document.getElementById('pairs');
+  const all = [...new Set([...webStories, ...mobileStories])];
+  document.getElementById('count').textContent = `${all.filter((s) => webStories.includes(s) && mobileStories.includes(s)).length} parejas`;
+  for (const story of all) {
+    const section = document.createElement('section');
+    section.innerHTML = `<h2>${story}</h2><div class="row"></div>`;
+    const row = section.querySelector('.row');
+    const add = (label, node) => { const d = document.createElement('div'); d.className = 'frame'; d.append(Object.assign(document.createElement('span'), { textContent: label }), node); row.append(d); };
+    if (webStories.includes(story)) add('Web · 1280×800', frame('web', webHtml, story, 1280, 800));
+    const stack = document.createElement('div'); stack.className = 'stack';
+    if (mobileStories.includes(story)) stack.append(frame('mobile', mobileHtml, story, 390, 844));
+    if (webStories.includes(story)) stack.append(frame('web', webHtml, story, 390, 844, mobileStories.includes(story) ? 'top' : ''));
+    add(mobileStories.includes(story) ? (webStories.includes(story) ? 'Móvil · 390×844 (+ web superpuesta)' : 'Móvil · 390×844') : 'Web · 390×844', stack);
+    if (webStories.includes(story) && mobileStories.includes(story)) add('Web · 390×844', frame('web', webHtml, story, 390, 844));
+    list.append(section);
+  }
+  document.getElementById('overlay').addEventListener('change', (e) => document.body.classList.toggle('overlay', e.target.checked));
+})();
+</script>
+</body></html>

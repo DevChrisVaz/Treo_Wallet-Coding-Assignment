@@ -14,6 +14,14 @@ export const Variants = () => (
   </View>
 );
 
+// Icono decorativo antes de la etiqueta (menú de la cuenta).
+export const WithIcon = () => (
+  <View style={frame}>
+    <Button label="Cerrar sesión" icon="logout" variant="secondary" onPress={noop} />
+    <Button label="Transferir" icon="transfer" onPress={noop} />
+  </View>
+);
+
 export const Loading = () => (
   <View style={frame}>
     <Button label="Enviando…" loading onPress={noop} />

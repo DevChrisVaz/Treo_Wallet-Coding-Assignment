@@ -43,7 +43,7 @@ export function AccountCard({ name, clabe, balance, selected = false, onPress }:
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.surface.brand,
+    backgroundColor: theme.colors.surface.default,
     borderRadius: theme.radius.md,
     padding: theme.spacing[5],
     gap: theme.spacing[1],
@@ -53,6 +53,7 @@ const styles = StyleSheet.create({
   },
   selected: { borderColor: theme.colors.border.focus },
   name: { ...theme.typography.label, color: theme.colors.text.primary },
-  clabe: { ...theme.typography.caption, color: theme.colors.text.secondary },
-  balance: { ...theme.typography.display, ...theme.amount, color: theme.colors.text.primary },
+  // Dígitos tabulares en la terminación de la CLABE, como en la web (DSG-09).
+  clabe: { ...theme.typography.caption, ...theme.amount, color: theme.colors.text.secondary },
+  balance: { ...theme.typography.h2, ...theme.amount, color: theme.colors.text.primary },
 });

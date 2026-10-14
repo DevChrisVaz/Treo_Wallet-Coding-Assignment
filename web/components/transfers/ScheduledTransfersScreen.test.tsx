@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { cancelTransfer } from '@/app/actions/scheduled-transfers';
+import { AppShell } from '@/components/layout/AppShell';
 import { bffGet } from '@/lib/client/bff';
 import { queryKeys } from '@/lib/client/query-keys';
 import { AHORRO, problem, transfer } from '@/test/fixtures';
@@ -52,6 +53,34 @@ const LUZ = scheduled({
 });
 
 const CANCEL_RENTA = /^Cancelar la transferencia de \$1,000\.00 a Luis/;
+const USER = { name: 'Ana Gómez Castillo', email: 'ana@example.com' };
+
+/**
+ * Simula la forma visible (jsdom no aplica CSS ni tiene `checkVisibility`): en el dashboard se ocultan
+ * los elementos `dashboard:hidden` (AppHeader); en teléfono, los `hidden` (TopBar).
+ */
+function showForm(form: 'app' | 'dashboard') {
+  const hiddenBy = form === 'dashboard' ? '[class~="dashboard:hidden"]' : '[class~="hidden"]';
+  Object.defineProperty(HTMLElement.prototype, 'checkVisibility', {
+    configurable: true,
+    value(this: HTMLElement) {
+      return this.closest(hiddenBy) === null;
+    },
+  });
+}
+
+afterEach(() => {
+  delete (HTMLElement.prototype as { checkVisibility?: unknown }).checkVisibility;
+});
+
+/** La pantalla dentro de AppShell, como en `/transfers/scheduled`: el shell da el h1 y el `main`. */
+function renderInShell() {
+  return renderWithClient(
+    <AppShell current="scheduled" title="Transferencias programadas" user={USER}>
+      <ScheduledTransfersScreen />
+    </AppShell>,
+  );
+}
 
 /** Respuestas sucesivas de `transfers/scheduled`; la última se repite. */
 function listReads(...lists: Transfer[][]) {
@@ -124,6 +153,8 @@ describe('ScheduledTransfersScreen · lista', () => {
       'href',
       '/transfers/new',
     );
+    // El icono decorativo es el de "Programadas" (concepto `scheduled`, R58).
+    expect(document.querySelector('svg.lucide-calendar-clock')).toBeInTheDocument();
   });
 
   it('WEB-20 mientras carga muestra el estado de carga', () => {
@@ -144,9 +175,36 @@ describe('ScheduledTransfersScreen · lista', () => {
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('No pudimos cargar tus transferencias programadas');
-    await user.click(within(alert).getByRole('button', { name: 'Reintentar' }));
+    // En el ErrorState del kit, "Reintentar" va debajo de la alerta, a todo lo ancho (WEB-25).
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
 
     expect(await screen.findByRole('button', { name: CANCEL_RENTA })).toBeVisible();
+  });
+
+  it('WEB-23 no tiene h1 propio: el título de la página es de AppShell', async () => {
+    listReads([RENTA]);
+    renderWithClient(<ScheduledTransfersScreen />);
+    await screen.findByRole('list', { name: 'Transferencias programadas' });
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+  });
+
+  it('WEB-23 dentro de AppShell el h1 es "Transferencias programadas", uno por forma', async () => {
+    listReads([RENTA]);
+    renderInShell();
+    await screen.findByRole('list', { name: 'Transferencias programadas' });
+    // App y dashboard; el CSS muestra solo uno (lo cubre e2e/a11y.spec.ts).
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(2);
+    for (const heading of screen.getAllByRole('heading', { level: 1 })) {
+      expect(heading).toHaveTextContent('Transferencias programadas');
+    }
+  });
+
+  it('WEB-34 WEB-26 en teléfono ofrece "Nueva transferencia" sobre la lista; en el dashboard la da la barra superior', async () => {
+    listReads([RENTA]);
+    renderWithClient(<ScheduledTransfersScreen />);
+    const link = await screen.findByRole('link', { name: 'Nueva transferencia' });
+    expect(link).toHaveAttribute('href', '/transfers/new');
+    expect(link).toHaveClass('dashboard:hidden');
   });
 
   it('WEB-23 la lista no tiene problemas de accesibilidad', async () => {
@@ -180,14 +238,36 @@ describe('ScheduledTransfersScreen · cancelar', () => {
     expect(cancelMock).not.toHaveBeenCalled();
   });
 
+  it('WEB-28 DSG-17 como la hoja del kit, el diálogo mide hasta 85 % del alto y su contenido se desplaza bajo el título', async () => {
+    listReads([RENTA, LUZ]);
+    const user = userEvent.setup();
+    renderWithClient(<ScheduledTransfersScreen />);
+
+    const dialog = await openCancelDialog(user);
+
+    expect(dialog).toHaveClass('flex', 'flex-col', 'max-h-[85dvh]');
+    const title = within(dialog).getByRole('heading', {
+      name: '¿Cancelar la transferencia programada?',
+    });
+    expect(title).toHaveClass('shrink-0');
+    const body = within(dialog).getByText(/^Transferencia de \$1,000\.00/).parentElement;
+    expect(body).toHaveClass('min-h-0', 'overflow-y-auto');
+    // Con el texto agrandado, las acciones quedan en la parte que se desplaza: siempre se alcanzan.
+    expect(body).toContainElement(within(dialog).getByRole('button', { name: 'Volver' }));
+    expect(body).toContainElement(
+      within(dialog).getByRole('button', { name: 'Cancelar transferencia' }),
+    );
+  });
+
   it('WEB-34 al confirmar llama a cancelTransfer una sola vez, la quita de la lista y anuncia "Transferencia cancelada"', async () => {
     listReads([RENTA, LUZ], [LUZ]);
     cancelMock.mockResolvedValue({
       ok: true,
       data: { ...RENTA, status: 'CANCELLED', cancelledAt: '2026-10-14T18:00:00.000Z' },
     });
+    showForm('dashboard');
     const user = userEvent.setup();
-    const { client } = renderWithClient(<ScheduledTransfersScreen />);
+    const { client } = renderInShell();
 
     const dialog = await openCancelDialog(user);
     await user.click(within(dialog).getByRole('button', { name: 'Cancelar transferencia' }));
@@ -198,10 +278,36 @@ describe('ScheduledTransfersScreen · cancelar', () => {
     expect(screen.queryByRole('button', { name: CANCEL_RENTA })).not.toBeInTheDocument();
     expect(rowsText()).toHaveLength(1);
     expect(screen.getByRole('status')).toHaveTextContent('Transferencia cancelada');
-    expect(screen.getByRole('heading', { name: 'Transferencias programadas' })).toHaveFocus();
+    // El botón que abrió el diálogo ya no existe: el foco va al título visible de la página, el h1
+    // del shell (en el dashboard, el de TopBar), y no se pierde en <body>.
+    const title = document.activeElement as HTMLElement;
+    expect(title.tagName).toBe('H1');
+    expect(title).toHaveTextContent('Transferencias programadas');
+    expect(title.closest('header')).toHaveClass('dashboard:flex');
     // La lista se vuelve a consultar y el comprobante en caché queda como cancelado.
     await waitFor(() => expect(listReadCount()).toBe(2));
     expect(client.getQueryData<Transfer>(queryKeys.transfer(RENTA.id))?.status).toBe('CANCELLED');
+  });
+
+  it('WEB-34 WEB-23 en teléfono, tras cancelar, el foco va al h1 visible de AppHeader y se anuncia la cancelación', async () => {
+    listReads([RENTA, LUZ], [LUZ]);
+    cancelMock.mockResolvedValue({ ok: true, data: { ...RENTA, status: 'CANCELLED' } });
+    showForm('app');
+    const user = userEvent.setup();
+    renderInShell();
+
+    const dialog = await openCancelDialog(user);
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar transferencia' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    const title = document.activeElement as HTMLElement;
+    expect(title.tagName).toBe('H1');
+    expect(title).toHaveTextContent('Transferencias programadas');
+    expect(title.closest('header')).toHaveClass('dashboard:hidden');
+    // El anuncio sigue en la región polite, aparte del foco.
+    const status = screen.getByRole('status');
+    expect(status).toHaveAttribute('aria-live', 'polite');
+    expect(status).toHaveTextContent('Transferencia cancelada');
   });
 
   it('WEB-34 con doble clic en la confirmación llama a cancelTransfer una sola vez', async () => {

@@ -1,47 +1,50 @@
 'use client';
 
 import { formatMXN, type Account, type Beneficiary } from '@devchrisvaz/wallet-contract';
-import Link from 'next/link';
 import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { AmountField } from '@/components/ui/AmountField';
+import { Avatar, initials } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { ListSection } from '@/components/ui/ListSection';
 import { Select } from '@/components/ui/Select';
+import { StepActions } from '@/components/ui/StepActions';
 import { TextField } from '@/components/ui/TextField';
 import type { ActionProblem } from '@/lib/action-result';
+import type {
+  TransferDraft,
+  TransferFormValues,
+  TransferRecipient,
+} from '@/lib/client/transfer-flow';
 import { serverFieldErrors, transferResolver } from '@/lib/client/transfer-form';
-import type { TransferDraft, TransferFormValues } from '@/lib/client/transfer-flow';
+import { defaultOriginId, originsFor } from '@/lib/client/transfer-steps';
 import { maskClabe } from '@/lib/money';
 import { ScheduleField } from './ScheduleField';
 
 export interface TransferFormProps {
   accounts: Account[];
   beneficiaries: Beneficiary[];
+  /** A quién se envía, elegido en el paso anterior (WEB-30). */
+  recipient: TransferRecipient;
   /** Lo que se había escrito, al volver de la confirmación para editar. */
   initialValues?: TransferFormValues | undefined;
-  /** Accesos directos desde una cuenta (`?from=`) o un beneficiario (`?beneficiary=`). */
+  /** Acceso directo desde una cuenta (`?from=`): el origen, salvo que sea el destino (R38). */
   defaultFromAccountId?: string | undefined;
-  defaultBeneficiaryId?: string | undefined;
   /** Rechazo de validación de la API: sus errores se muestran junto a cada campo (WEB-33). */
   problem?: ActionProblem | undefined;
   onSubmit: (draft: TransferDraft) => void;
+  /** Lo que se va escribiendo, para el resumen del dashboard. */
+  onValuesChange?: ((values: TransferFormValues) => void) | undefined;
 }
 
 function defaults(props: TransferFormProps): TransferFormValues {
   if (props.initialValues) return props.initialValues;
-  const fromAccountId = props.accounts.some((a) => a.id === props.defaultFromAccountId)
-    ? (props.defaultFromAccountId ?? '')
-    : props.accounts.length === 1
-      ? (props.accounts[0]?.id ?? '')
-      : '';
-  const beneficiaryId = props.beneficiaries.some((b) => b.id === props.defaultBeneficiaryId)
-    ? (props.defaultBeneficiaryId ?? '')
-    : '';
+  const { recipient } = props;
   return {
-    fromAccountId,
-    destinationType: props.beneficiaries.length > 0 ? 'BENEFICIARY' : 'OWN_ACCOUNT',
-    toAccountId: '',
-    beneficiaryId,
+    fromAccountId: defaultOriginId(props.accounts, recipient, props.defaultFromAccountId) ?? '',
+    destinationType: recipient.destinationType,
+    toAccountId: recipient.destinationType === 'OWN_ACCOUNT' ? recipient.toAccountId : '',
+    beneficiaryId: recipient.destinationType === 'BENEFICIARY' ? recipient.beneficiaryId : '',
     amount: '',
     concept: '',
     reference: '',
@@ -50,136 +53,143 @@ function defaults(props: TransferFormProps): TransferFormValues {
   };
 }
 
+/** Campos con control en este paso; el destino se eligió en el anterior y aquí no tiene campo. */
+const STEP_FIELDS: ReadonlySet<keyof TransferFormValues> = new Set([
+  'amount',
+  'fromAccountId',
+  'concept',
+  'reference',
+  'when',
+  'scheduledFor',
+]);
+
 /**
- * Formulario de transferencia (WEB-16): cuenta de origen, destino propio (sin la cuenta de origen) o
- * beneficiario, monto como texto, concepto y referencia. La validación es la del contrato.
+ * "Para": el destinatario elegido, con su avatar y su CLABE enmascarada. Un error de la API sobre el
+ * destino se muestra en esta fila como alerta: no hay campo que reciba el foco (WEB-33, WEB-23).
+ */
+function RecipientRow({
+  accounts,
+  beneficiaries,
+  recipient,
+  error,
+}: Pick<TransferFormProps, 'accounts' | 'beneficiaries' | 'recipient'> & {
+  error?: string | undefined;
+}) {
+  const account =
+    recipient.destinationType === 'OWN_ACCOUNT'
+      ? accounts.find((item) => item.id === recipient.toAccountId)
+      : undefined;
+  const beneficiary =
+    recipient.destinationType === 'BENEFICIARY'
+      ? beneficiaries.find((item) => item.id === recipient.beneficiaryId)
+      : undefined;
+  const to = account
+    ? { label: account.name, clabe: account.clabe }
+    : beneficiary
+      ? { label: beneficiary.alias, clabe: beneficiary.clabe }
+      : undefined;
+  return (
+    <ListSection>
+      <div className="flex min-h-11 items-center gap-3 py-3">
+        {beneficiary ? (
+          <Avatar initials={initials(beneficiary.name)} />
+        ) : (
+          <Avatar icon="ownTransfer" />
+        )}
+        <div className="grid min-w-0 flex-1 gap-1">
+          <p className="text-caption text-fg-secondary">Para</p>
+          {to ? (
+            <p className="truncate text-label text-fg">
+              {to.label} · CLABE {maskClabe(to.clabe)}
+            </p>
+          ) : null}
+          {error ? (
+            <p role="alert" className="text-caption text-danger">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </ListSection>
+  );
+}
+
+/**
+ * Paso de monto (WEB-30, WEB-16): a quién se envía, el monto como protagonista, la cuenta de origen
+ * (sin la cuenta propia de destino), el concepto, la referencia y cuándo (ahora o en una fecha,
+ * WEB-33). La validación es la del contrato; los errores de campo de la API vuelven aquí.
  */
 export function TransferForm(props: TransferFormProps) {
-  const { accounts, beneficiaries, problem, onSubmit } = props;
+  const { accounts, beneficiaries, recipient, problem, onSubmit, onValuesChange } = props;
+  const initial = defaults(props);
   const {
     register,
     handleSubmit,
     control,
-    setValue,
-    getValues,
     setError,
     formState: { errors },
   } = useForm<TransferFormValues, unknown, TransferDraft>({
     resolver: transferResolver,
-    defaultValues: defaults(props),
+    defaultValues: initial,
   });
 
   const fromAccountId = useWatch({ control, name: 'fromAccountId' });
-  const destinationType = useWatch({ control, name: 'destinationType' });
+  const origins = originsFor(accounts, recipient);
   const when = useWatch({ control, name: 'when' });
 
-  // Errores de campo que devolvió la API: junto a su campo, con el foco en el primero (WEB-33).
+  // Errores de campo que devolvió la API: junto a su campo, con el foco en el primero que tiene
+  // control en este paso (WEB-33); el del destino lo anuncia la fila "Para".
   useEffect(() => {
     const entries = Object.entries(serverFieldErrors(problem)) as [
       keyof TransferFormValues,
       string,
     ][];
-    entries.forEach(([field, message], index) => {
-      setError(field, { type: 'server', message }, { shouldFocus: index === 0 });
+    const focused = entries.find(([field]) => STEP_FIELDS.has(field))?.[0];
+    entries.forEach(([field, message]) => {
+      setError(field, { type: 'server', message }, { shouldFocus: field === focused });
     });
   }, [problem, setError]);
   const origin = accounts.find((account) => account.id === fromAccountId);
-  const ownDestinations = accounts.filter((account) => account.id !== fromAccountId);
 
-  const fromField = register('fromAccountId', {
-    // Si el nuevo origen era el destino elegido, el destino deja de ser válido (WEB-16).
-    onChange: (event: { target: { value: string } }) => {
-      if (getValues('toAccountId') === event.target.value) setValue('toAccountId', '');
-    },
-  });
+  // Lo escrito, para el resumen del dashboard; `useWatch` da los valores por omisión al inicio.
+  const live = useWatch({ control });
+  useEffect(() => {
+    onValuesChange?.(live as TransferFormValues);
+  }, [live, onValuesChange]);
 
   return (
-    <form noValidate onSubmit={handleSubmit(onSubmit)} className="grid gap-5">
+    <form noValidate onSubmit={handleSubmit(onSubmit)} className="grid content-start gap-5">
+      <RecipientRow
+        accounts={accounts}
+        beneficiaries={beneficiaries}
+        recipient={recipient}
+        error={errors.beneficiaryId?.message ?? errors.toAccountId?.message}
+      />
+      <AmountField
+        variant="hero"
+        label="Monto"
+        hint="Hasta 2 decimales, por ejemplo 1,250.50."
+        // El espejo del monto grande mide lo escrito al volver a editar (el valor lo pone el formulario).
+        defaultValue={initial.amount}
+        error={errors.amount?.message}
+        {...register('amount')}
+      />
       <Select
         label="Cuenta de origen"
         hint={origin ? `Saldo disponible: ${formatMXN(origin.balance)}` : undefined}
         error={errors.fromAccountId?.message}
-        {...fromField}
+        {...register('fromAccountId')}
       >
         <option value="">Elige una cuenta</option>
-        {accounts.map((account) => (
+        {origins.map((account) => (
           <option key={account.id} value={account.id}>
             {account.name} · {formatMXN(account.balance)}
           </option>
         ))}
       </Select>
-
-      <fieldset className="grid gap-2">
-        <legend className="text-label text-fg">Destino</legend>
-        <div className="flex flex-wrap gap-x-6">
-          <label className="inline-flex min-h-11 items-center gap-2 text-body">
-            <input
-              type="radio"
-              value="OWN_ACCOUNT"
-              className="size-4 accent-action"
-              {...register('destinationType')}
-            />
-            Mis cuentas
-          </label>
-          <label className="inline-flex min-h-11 items-center gap-2 text-body">
-            <input
-              type="radio"
-              value="BENEFICIARY"
-              className="size-4 accent-action"
-              {...register('destinationType')}
-            />
-            Un beneficiario
-          </label>
-        </div>
-      </fieldset>
-
-      {destinationType === 'OWN_ACCOUNT' ? (
-        <Select
-          label="Cuenta de destino"
-          error={errors.toAccountId?.message}
-          {...register('toAccountId')}
-        >
-          <option value="">Elige una cuenta</option>
-          {ownDestinations.map((account) => (
-            <option key={account.id} value={account.id}>
-              {account.name} {maskClabe(account.clabe)}
-            </option>
-          ))}
-        </Select>
-      ) : (
-        <div className="grid gap-2">
-          <Select
-            label="Beneficiario"
-            error={errors.beneficiaryId?.message}
-            {...register('beneficiaryId')}
-          >
-            <option value="">Elige un beneficiario</option>
-            {beneficiaries.map((beneficiary) => (
-              <option key={beneficiary.id} value={beneficiary.id}>
-                {beneficiary.alias} ({beneficiary.name}) {maskClabe(beneficiary.clabe)}
-              </option>
-            ))}
-          </Select>
-          {beneficiaries.length === 0 ? (
-            <p className="text-body-sm text-fg-secondary">
-              Aún no tienes beneficiarios.{' '}
-              <Link href="/beneficiaries/new" className="text-action underline underline-offset-2">
-                Agregar beneficiario
-              </Link>
-            </p>
-          ) : null}
-        </div>
-      )}
-
-      <AmountField
-        label="Monto"
-        hint="Hasta 2 decimales, por ejemplo 1,250.50."
-        error={errors.amount?.message}
-        {...register('amount')}
-      />
       <TextField
         label="Concepto"
-        hint="Hasta 40 caracteres."
+        hint="De 1 a 40 caracteres."
         autoComplete="off"
         error={errors.concept?.message}
         {...register('concept')}
@@ -187,7 +197,7 @@ export function TransferForm(props: TransferFormProps) {
       <TextField
         label="Referencia"
         inputMode="numeric"
-        hint="Hasta 7 dígitos."
+        hint="De 1 a 7 dígitos."
         autoComplete="off"
         error={errors.reference?.message}
         {...register('reference')}
@@ -198,7 +208,9 @@ export function TransferForm(props: TransferFormProps) {
         dateField={register('scheduledFor')}
         error={errors.scheduledFor?.message}
       />
-      <Button type="submit">Continuar</Button>
+      <StepActions>
+        <Button type="submit">Continuar</Button>
+      </StepActions>
     </form>
   );
 }

@@ -19,3 +19,11 @@ export const CompactHeader = () => (
     </div>
   </header>
 );
+
+/** `tone="inverse"` sobre superficies oscuras (navegación lateral y pantallas de marca). */
+export const Inverse = () => (
+  <div className="flex max-w-md flex-wrap items-baseline gap-8 rounded-lg bg-surface-hero p-6">
+    <Wordmark tone="inverse" />
+    <Wordmark variant="compact" tone="inverse" />
+  </div>
+);

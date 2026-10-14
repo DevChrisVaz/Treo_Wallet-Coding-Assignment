@@ -50,3 +50,31 @@ describe('tokens semánticos', () => {
     expect(theme).toBe(themes.light);
   });
 });
+
+describe('lenguaje visual v2', () => {
+  it('DSG-13 el lienzo de la app es la arena de Treo y el hero es verde profundo', () => {
+    expect(theme.colors.surface.canvas).toBe('#F6F5F2');
+    expect(theme.colors.surface.hero).toBe('#1C4B42');
+  });
+
+  it('DSG-14 el lima solo existe como acento sobre oscuro', () => {
+    expect(theme.colors.accent.onDark).toBe('#B4E717');
+    expect(theme.colors.text.onHeroMuted).toBe('#BFCDCA');
+  });
+
+  it('DSG-16 los tokens vigentes conservan su valor', () => {
+    expect(theme.colors.surface.default).toBe('#FFFFFF');
+    expect(theme.colors.surface.subtle).toBe('#F6F5F2');
+    expect(theme.colors.surface.inverse).toBe('#1C4B42');
+    expect(theme.colors.accent.brand).toBe('#31C454');
+  });
+
+  it('DSG-14 ningún token de texto, estado o dinero es lima', () => {
+    const textColors = [
+      ...leaves(theme.colors.text),
+      ...Object.values(theme.colors.status).map((tone) => tone.fg),
+      ...leaves(theme.colors.money),
+    ];
+    expect(textColors).not.toContain('#B4E717');
+  });
+});

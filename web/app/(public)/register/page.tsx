@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
 import { RegisterForm } from '@/components/auth/RegisterForm';
+import { BrandShell } from '@/components/layout/BrandShell';
 
 export const metadata: Metadata = { title: 'Crear cuenta · TreoWallet' };
 
 export default function RegisterPage() {
   return (
-    <>
-      <h1 className="text-h1">Crea tu cuenta</h1>
+    <BrandShell title="Crea tu cuenta">
       <RegisterForm />
-    </>
+    </BrandShell>
   );
 }

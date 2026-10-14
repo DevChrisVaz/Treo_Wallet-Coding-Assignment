@@ -176,4 +176,17 @@ describe('inicio de sesión', () => {
       screen.getByText('Cerramos tu sesión por seguridad. Inicia sesión de nuevo.'),
     ).toBeOnTheScreen();
   });
+
+  test('MOB-22 se ve la superficie de marca con el Wordmark y el formulario en una hoja blanca con los campos de MOB-01', async () => {
+    await renderLogin(createFakeApi());
+    expect(screen.getByText('Tu billetera digital en pesos mexicanos.')).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: 'Inicia sesión' })).toBeOnTheScreen();
+    expect(screen.getByLabelText('Correo')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Contraseña')).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        /El registro y la verificación del correo se hacen en la web de TreoWallet\./,
+      ),
+    ).toBeOnTheScreen();
+  });
 });

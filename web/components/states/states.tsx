@@ -26,7 +26,10 @@ export function LoadingState({
   );
 }
 
-/** Estado de error (WEB-20): mensaje por `code` y "Reintentar" que repite la lectura. */
+/**
+ * Estado de error (WEB-20): mensaje por `code` y "Reintentar" que repite la lectura. El botón va
+ * debajo de la alerta, a todo lo ancho, como en las pantallas de la app móvil (WEB-25).
+ */
 export function ErrorState({
   title,
   error,
@@ -39,14 +42,14 @@ export function ErrorState({
   children?: ReactNode;
 }) {
   return (
-    <InlineAlert tone="danger" title={title}>
-      <p>{describeError(error)}</p>
-      {children}
-      <div className="pt-3">
-        <Button variant="secondary" onClick={onRetry}>
-          Reintentar
-        </Button>
-      </div>
-    </InlineAlert>
+    <div className="grid gap-4">
+      <InlineAlert tone="danger" title={title}>
+        <p>{describeError(error)}</p>
+        {children}
+      </InlineAlert>
+      <Button variant="secondary" onClick={onRetry}>
+        Reintentar
+      </Button>
+    </div>
   );
 }

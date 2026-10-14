@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { Button, InlineAlert, Wordmark, type AlertTone } from '@/components/ui';
+import { BrandScreen, Button, InlineAlert, type AlertTone } from '@/components/ui';
 import { theme } from '@/theme';
 
 import { requestUnlock, useBiometricSupport, type UnlockResult } from './biometrics';
@@ -82,11 +82,7 @@ export function LockScreen({ onUnlock, onSignOut }: LockScreenProps) {
   }
 
   return (
-    <View style={styles.container}>
-      <Wordmark />
-      <Text style={styles.title} accessibilityRole="header">
-        TreoWallet está bloqueada
-      </Text>
+    <BrandScreen title="TreoWallet está bloqueada">
       {notice ? <InlineAlert tone={notice.tone} message={notice.message} /> : null}
       <View style={styles.actions}>
         <Button
@@ -96,19 +92,10 @@ export function LockScreen({ onUnlock, onSignOut }: LockScreenProps) {
         />
         <Button label="Usar mi contraseña" variant="ghost" onPress={onSignOut} />
       </View>
-    </View>
+    </BrandScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing[4],
-    padding: theme.spacing[6],
-    backgroundColor: theme.colors.surface.default,
-  },
-  title: { ...theme.typography.h3, color: theme.colors.text.primary, textAlign: 'center' },
-  actions: { alignSelf: 'stretch', gap: theme.spacing[3] },
+  actions: { gap: theme.spacing[3] },
 });

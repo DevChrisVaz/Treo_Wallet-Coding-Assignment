@@ -15,6 +15,8 @@
   --dt-surface-subtle: #F6F5F2;
   --dt-surface-brand: #EDF7ED;
   --dt-surface-inverse: #1C4B42;
+  --dt-surface-canvas: #F6F5F2;
+  --dt-surface-hero: #1C4B42;
   --dt-fg: #001A05;
   --dt-fg-secondary: #4B5A50;
   --dt-fg-muted: #5F6B63;
@@ -22,6 +24,7 @@
   --dt-fg-on-action: #FFFFFF;
   --dt-fg-on-action-active: #1C4B42;
   --dt-fg-on-inverse: #FFFFFF;
+  --dt-fg-on-hero-muted: #BFCDCA;
   --dt-action: #1C4B42;
   --dt-action-active: #B4E717;
   --dt-action-disabled: #DCE2DE;
@@ -29,6 +32,7 @@
   --dt-border-input: #7F8A82;
   --dt-focus: #1C4B42;
   --dt-accent: #31C454;
+  --dt-accent-on-dark: #B4E717;
   --dt-success: #1E7B3A;
   --dt-success-soft: #EDF7ED;
   --dt-warning: #8A5A00;
@@ -42,6 +46,10 @@
   --dt-money-in: #1E7B3A;
   --dt-money-out: #001A05;
   --dt-font-sans: "Work Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --dt-text-display-xl: 3rem;
+  --dt-text-display-xl-line-height: 3.5rem;
+  --dt-text-display-xl-letter-spacing: -0.5px;
+  --dt-text-display-xl-font-weight: 600;
   --dt-text-display: 2.5rem;
   --dt-text-display-line-height: 3rem;
   --dt-text-display-letter-spacing: -0.5px;
@@ -79,6 +87,18 @@
   --dt-radius-lg: 16px;
   --dt-radius-pill: 9999px;
   --dt-shadow-card: 0 1px 2px rgb(0 26 5 / 0.06), 0 1px 3px rgb(0 26 5 / 0.1);
+  --dt-shadow-raised: 0 4px 12px rgb(0 26 5 / 0.08), 0 1px 3px rgb(0 26 5 / 0.1);
+  --dt-shadow-sheet: 0 -8px 24px rgb(0 26 5 / 0.12);
+  --dt-layout-tab-bar-height: 64px;
+  --dt-layout-app-column-max: 480px;
+  --dt-layout-sidebar-width: 248px;
+  --dt-layout-content-max: 1200px;
+  --dt-icon-sm: 16px;
+  --dt-icon-md: 20px;
+  --dt-icon-lg: 24px;
+  --dt-avatar-sm: 32px;
+  --dt-avatar-md: 40px;
+  --dt-avatar-lg: 56px;
   --dt-focus-width: 2px;
   --dt-focus-offset: 2px;
   --dt-motion-fast: 150ms;
@@ -185,6 +205,16 @@ th { font-weight: 500; color: var(--dt-fg-secondary); }
           <span class="chip" style="background: var(--dt-surface-inverse)"></span>
           <code>--dt-surface-inverse</code>
           <span class="meta">surface.inverse · #1C4B42</span>
+        </li>
+        <li class="swatch">
+          <span class="chip" style="background: var(--dt-surface-canvas)"></span>
+          <code>--dt-surface-canvas</code>
+          <span class="meta">surface.canvas · #F6F5F2</span>
+        </li>
+        <li class="swatch">
+          <span class="chip" style="background: var(--dt-surface-hero)"></span>
+          <code>--dt-surface-hero</code>
+          <span class="meta">surface.hero · #1C4B42</span>
         </li></ul></section><section class="group"><h3>Texto</h3><ul class="swatches">
         <li class="swatch">
           <span class="chip" style="background: var(--dt-fg)"></span>
@@ -220,6 +250,11 @@ th { font-weight: 500; color: var(--dt-fg-secondary); }
           <span class="chip" style="background: var(--dt-fg-on-inverse)"></span>
           <code>--dt-fg-on-inverse</code>
           <span class="meta">text.onInverse · #FFFFFF</span>
+        </li>
+        <li class="swatch">
+          <span class="chip" style="background: var(--dt-fg-on-hero-muted)"></span>
+          <code>--dt-fg-on-hero-muted</code>
+          <span class="meta">text.onHeroMuted · #BFCDCA</span>
         </li></ul></section><section class="group"><h3>Acción</h3><ul class="swatches">
         <li class="swatch">
           <span class="chip" style="background: var(--dt-action)"></span>
@@ -255,6 +290,11 @@ th { font-weight: 500; color: var(--dt-fg-secondary); }
           <span class="chip" style="background: var(--dt-accent)"></span>
           <code>--dt-accent</code>
           <span class="meta">accent.brand · #31C454</span>
+        </li>
+        <li class="swatch">
+          <span class="chip" style="background: var(--dt-accent-on-dark)"></span>
+          <code>--dt-accent-on-dark</code>
+          <span class="meta">accent.onDark · #B4E717</span>
         </li></ul></section><section class="group"><h3>Estados</h3><ul class="swatches">
         <li class="swatch">
           <span class="chip" style="background: var(--dt-success)"></span>
@@ -471,6 +511,55 @@ th { font-weight: 500; color: var(--dt-fg-secondary); }
         <td class="num">3.26</td>
         <td>Interfaz ≥ 3</td>
       </tr>
+      <tr data-pair="text.primary|surface.canvas">
+        <td><span class="sample" style="color: #001A05; background: #F6F5F2">Aa $1,250.00</span></td>
+        <td><code>text.primary</code></td>
+        <td><code>surface.canvas</code></td>
+        <td class="num">16.75</td>
+        <td>Texto ≥ 4.5</td>
+      </tr>
+      <tr data-pair="text.secondary|surface.canvas">
+        <td><span class="sample" style="color: #4B5A50; background: #F6F5F2">Aa $1,250.00</span></td>
+        <td><code>text.secondary</code></td>
+        <td><code>surface.canvas</code></td>
+        <td class="num">6.69</td>
+        <td>Texto ≥ 4.5</td>
+      </tr>
+      <tr data-pair="action.primary|surface.canvas">
+        <td><span class="sample" style="color: #1C4B42; background: #F6F5F2">Aa $1,250.00</span></td>
+        <td><code>action.primary</code></td>
+        <td><code>surface.canvas</code></td>
+        <td class="num">9.02</td>
+        <td>Texto ≥ 4.5</td>
+      </tr>
+      <tr data-pair="money.in|surface.canvas">
+        <td><span class="sample" style="color: #1E7B3A; background: #F6F5F2">Aa $1,250.00</span></td>
+        <td><code>money.in</code></td>
+        <td><code>surface.canvas</code></td>
+        <td class="num">4.88</td>
+        <td>Texto ≥ 4.5</td>
+      </tr>
+      <tr data-pair="money.out|surface.canvas">
+        <td><span class="sample" style="color: #001A05; background: #F6F5F2">Aa $1,250.00</span></td>
+        <td><code>money.out</code></td>
+        <td><code>surface.canvas</code></td>
+        <td class="num">16.75</td>
+        <td>Texto ≥ 4.5</td>
+      </tr>
+      <tr data-pair="border.focus|surface.canvas">
+        <td><span class="sample" style="color: #1C4B42; background: #F6F5F2">Aa $1,250.00</span></td>
+        <td><code>border.focus</code></td>
+        <td><code>surface.canvas</code></td>
+        <td class="num">9.02</td>
+        <td>Interfaz ≥ 3</td>
+      </tr>
+      <tr data-pair="border.input|surface.canvas">
+        <td><span class="sample" style="color: #7F8A82; background: #F6F5F2">Aa $1,250.00</span></td>
+        <td><code>border.input</code></td>
+        <td><code>surface.canvas</code></td>
+        <td class="num">3.29</td>
+        <td>Interfaz ≥ 3</td>
+      </tr>
       <tr data-pair="text.muted|surface.default">
         <td><span class="sample" style="color: #5F6B63; background: #FFFFFF">Aa $1,250.00</span></td>
         <td><code>text.muted</code></td>
@@ -583,6 +672,34 @@ th { font-weight: 500; color: var(--dt-fg-secondary); }
         <td class="num">7.30</td>
         <td>Texto ≥ 4.5</td>
       </tr>
+      <tr data-pair="text.onInverse|surface.hero">
+        <td><span class="sample" style="color: #FFFFFF; background: #1C4B42">Aa $1,250.00</span></td>
+        <td><code>text.onInverse</code></td>
+        <td><code>surface.hero</code></td>
+        <td class="num">9.84</td>
+        <td>Texto ≥ 4.5</td>
+      </tr>
+      <tr data-pair="text.onHeroMuted|surface.hero">
+        <td><span class="sample" style="color: #BFCDCA; background: #1C4B42">Aa $1,250.00</span></td>
+        <td><code>text.onHeroMuted</code></td>
+        <td><code>surface.hero</code></td>
+        <td class="num">6.00</td>
+        <td>Texto ≥ 4.5</td>
+      </tr>
+      <tr data-pair="accent.onDark|surface.hero">
+        <td><span class="sample" style="color: #B4E717; background: #1C4B42">Aa $1,250.00</span></td>
+        <td><code>accent.onDark</code></td>
+        <td><code>surface.hero</code></td>
+        <td class="num">6.74</td>
+        <td>Texto ≥ 4.5</td>
+      </tr>
+      <tr data-pair="text.primary|accent.onDark">
+        <td><span class="sample" style="color: #001A05; background: #B4E717">Aa $1,250.00</span></td>
+        <td><code>text.primary</code></td>
+        <td><code>accent.onDark</code></td>
+        <td class="num">12.51</td>
+        <td>Texto ≥ 4.5</td>
+      </tr>
       <tr data-pair="action.primary|surface.default">
         <td><span class="sample" style="color: #1C4B42; background: #FFFFFF">Aa $1,250.00</span></td>
         <td><code>action.primary</code></td>
@@ -597,6 +714,10 @@ th { font-weight: 500; color: var(--dt-fg-secondary); }
   <section class="section">
     <h2>Tipografía · Work Sans</h2>
     <div>
+      <div class="type-row">
+        <span class="meta">displayXl · 48/56 · 600</span>
+        <span style="font-size: 48px; line-height: 56px; font-weight: 600; letter-spacing: -0.5px">Envía dinero a quien quieras</span>
+      </div>
       <div class="type-row">
         <span class="meta">display · 40/48 · 600</span>
         <span style="font-size: 40px; line-height: 48px; font-weight: 600; letter-spacing: -0.5px">Envía dinero a quien quieras</span>

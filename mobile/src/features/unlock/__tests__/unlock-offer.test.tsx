@@ -1,5 +1,5 @@
 import * as LocalAuthentication from 'expo-local-authentication';
-import { act, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { act, screen, userEvent, waitFor, within } from '@testing-library/react-native';
 
 import { REFRESH_TOKEN_KEY } from '@/session/session';
 import { UNLOCK_PREFERENCE_KEY } from '@/session/unlock-preference';
@@ -139,7 +139,10 @@ describe('oferta del desbloqueo biométrico', () => {
     expect(await screen.findByText('$25,000.00')).toBeOnTheScreen();
     expect(offer()).toBeNull();
 
-    await userEvent.press(screen.getByRole('button', { name: 'Cerrar sesión' }));
+    await userEvent.press(screen.getByRole('button', { name: 'Menú de la cuenta' }));
+    await userEvent.press(
+      within(screen.getByTestId('bottom-sheet')).getByRole('button', { name: 'Cerrar sesión' }),
+    );
     await logInWithPassword();
 
     expect(await screen.findByRole('header', { name: 'Entrar con tu huella' })).toBeOnTheScreen();

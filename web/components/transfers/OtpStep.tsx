@@ -1,20 +1,29 @@
 'use client';
 
-import { otpCode, type OtpChallenge, type Transfer } from '@devchrisvaz/wallet-contract';
+import {
+  formatMXN,
+  otpCode,
+  type Account,
+  type OtpChallenge,
+  type Transfer,
+} from '@devchrisvaz/wallet-contract';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { confirmTransfer, resendTransferOtp } from '@/app/actions/transfers';
-import { Button } from '@/components/ui/Button';
+import { Button, buttonClasses } from '@/components/ui/Button';
 import { InlineAlert } from '@/components/ui/InlineAlert';
 import { OtpField } from '@/components/ui/OtpField';
+import { Receipt } from '@/components/ui/Receipt';
+import { StepActions, type StepActionsMode } from '@/components/ui/StepActions';
 import type { ActionProblem } from '@/lib/action-result';
 import { contractResolver } from '@/lib/client/form-resolver';
-import { describeError, describeProblem } from '@/lib/client/problem-messages';
+import { attempts, describeError, describeProblem } from '@/lib/client/problem-messages';
 import { formatTime } from '@/lib/format';
 import { loginPath } from '@/lib/navigation';
-import { StepHeading } from './StepHeading';
+import { AmountBlock } from './TransferSummary';
 
 /** Respuestas de la confirmación que terminan el intento: hay que empezar uno nuevo (WEB-18). */
 const ENDING_CODES = new Set([
@@ -36,13 +45,15 @@ export interface OtpStepProps {
   transfer: Transfer;
   onConfirmed: (transfer: Transfer) => void;
   onEnded: (problem: ActionProblem) => void;
+  actions?: StepActionsMode | undefined;
 }
 
 /**
- * Confirmación con el código de 6 dígitos (WEB-18): intentos restantes, reenvío mientras queden,
- * aviso si el correo no salió (`deliveryStatus: FAILED`) y fin del intento cuando la API lo indica.
+ * Confirmación con el código de 6 dígitos (WEB-18, WEB-30): el monto como protagonista, intentos
+ * restantes, reenvío mientras queden, aviso si el correo no salió (`deliveryStatus: FAILED`) y fin del
+ * intento cuando la API lo indica.
  */
-export function OtpStep({ transfer, onConfirmed, onEnded }: OtpStepProps) {
+export function OtpStep({ transfer, onConfirmed, onEnded, actions = 'fixed' }: OtpStepProps) {
   const router = useRouter();
   const [challenge, setChallenge] = useState<OtpChallenge | null>(transfer.otp);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +94,13 @@ export function OtpStep({ transfer, onConfirmed, onEnded }: OtpStepProps) {
         onEnded(result.problem);
         return;
       }
+      if (result.problem.code === 'OTP_INVALID') {
+        // Los intentos que quedan también se leen junto al código, no solo en la alerta.
+        const left = result.problem.attemptsRemaining;
+        if (left !== undefined) {
+          setChallenge((current) => (current ? { ...current, attemptsRemaining: left } : current));
+        }
+      }
       setError(describeProblem(result.problem));
     } catch (caught) {
       // La confirmación es idempotente por estado: reintentar con el mismo código es seguro.
@@ -120,14 +138,11 @@ export function OtpStep({ transfer, onConfirmed, onEnded }: OtpStepProps) {
   }
 
   return (
-    <section aria-labelledby="otp-title" className="grid gap-5">
-      <StepHeading id="otp-title">Ingresa el código</StepHeading>
-      {challenge ? (
-        <p className="text-body text-fg-secondary">
-          Te enviamos un código a {challenge.maskedDestination}. Vence a las{' '}
-          {formatTime(challenge.expiresAt)}.
-        </p>
-      ) : null}
+    <>
+      <AmountBlock
+        amount={formatMXN(transfer.amount)}
+        caption={`Para ${transfer.destination.displayName} · CLABE •••• ${transfer.destination.clabeLast4}`}
+      />
       {challenge?.deliveryStatus === 'FAILED' && !notice ? (
         <InlineAlert tone="warning" title="No pudimos enviarte el código">
           Pide uno nuevo con &quot;Reenviar código&quot;.
@@ -144,8 +159,22 @@ export function OtpStep({ transfer, onConfirmed, onEnded }: OtpStepProps) {
         onSubmit={(event) => void handleSubmit(confirm)(event)}
         className="grid gap-5"
       >
-        <OtpField label="Código de 6 dígitos" error={errors.otp?.message} {...register('otp')} />
-        <div className="flex flex-wrap gap-3">
+        {/* Como la historia: el aviso, los datos y el campo en su pila; las acciones, a la distancia del paso. */}
+        <div className="grid gap-4">
+          {challenge ? (
+            <>
+              <p className="text-body text-fg">
+                Te enviamos un código de 6 dígitos a {challenge.maskedDestination}.
+              </p>
+              <div className="grid gap-1 text-body-sm text-fg-secondary tabular-nums">
+                <p>Vence a las {formatTime(challenge.expiresAt)}.</p>
+                <p>{attempts(challenge.attemptsRemaining)}</p>
+              </div>
+            </>
+          ) : null}
+          <OtpField label="Código de 6 dígitos" error={errors.otp?.message} {...register('otp')} />
+        </div>
+        <StepActions stacked={canResend} fixed={actions === 'fixed'}>
           <Button type="submit" loading={confirming} loadingLabel="Confirmando…">
             Confirmar
           </Button>
@@ -160,35 +189,67 @@ export function OtpStep({ transfer, onConfirmed, onEnded }: OtpStepProps) {
               Reenviar código
             </Button>
           ) : null}
-        </div>
+        </StepActions>
       </form>
-    </section>
+    </>
   );
 }
 
-function endedTitle(problem: ActionProblem): string {
+/** Título de la alerta cuando el código lo dice; el general es el título del paso (FlowHeader). */
+function endedAlertTitle(problem: ActionProblem): string | undefined {
   if (problem.code === 'DAILY_LIMIT_EXCEEDED') return 'Superaste tu límite diario';
   if (problem.code === 'INSUFFICIENT_FUNDS') return 'Saldo insuficiente';
-  return 'La transferencia no se realizó';
+  return undefined;
 }
 
-/** Fin de un intento que no se completó: explica por qué y ofrece empezar otro (WEB-18). */
+/**
+ * Cómo terminó la transferencia según la respuesta de la API: 422 `OTP_ATTEMPTS_EXHAUSTED` quiere
+ * decir que quedó `FAILED`, y así la muestra el comprobante (como la insignia de outcome-view.tsx en la
+ * app móvil). Si el problema trae el estado real (`transferStatus`, en `TRANSFER_NOT_PENDING`), manda
+ * ese. Sin un estado conocido no se muestra comprobante.
+ */
+const ENDED_STATUS: Partial<Record<string, Transfer['status']>> = {
+  OTP_ATTEMPTS_EXHAUSTED: 'FAILED',
+  DAILY_LIMIT_EXCEEDED: 'FAILED',
+  INSUFFICIENT_FUNDS: 'FAILED',
+  TRANSFER_EXPIRED: 'EXPIRED',
+};
+
+export interface EndedStepProps {
+  problem: ActionProblem;
+  /** La transferencia que se intentó confirmar, si se conoce, para su comprobante. */
+  transfer: Transfer | null;
+  accounts: Account[];
+  onRestart: () => void;
+  actions?: StepActionsMode | undefined;
+}
+
+/** Fin de un intento que no se completó: explica por qué y ofrece intentar de nuevo (WEB-18, WEB-30). */
 export function EndedStep({
   problem,
+  transfer,
+  accounts,
   onRestart,
-}: {
-  problem: ActionProblem;
-  onRestart: () => void;
-}) {
+  actions = 'fixed',
+}: EndedStepProps) {
+  const status = problem.transferStatus ?? ENDED_STATUS[problem.code];
   return (
-    <section aria-labelledby="ended-title" className="grid gap-5">
-      <StepHeading id="ended-title">La transferencia no se realizó</StepHeading>
-      <InlineAlert tone="danger" title={endedTitle(problem)}>
+    <>
+      <InlineAlert tone="danger" title={endedAlertTitle(problem)} focusOnMount>
         {describeProblem(problem)}
       </InlineAlert>
-      <div>
-        <Button onClick={onRestart}>Iniciar una nueva transferencia</Button>
-      </div>
-    </section>
+      {transfer && status ? (
+        <Receipt
+          transfer={{ ...transfer, status }}
+          fromAccount={accounts.find((account) => account.id === transfer.fromAccountId)}
+        />
+      ) : null}
+      <StepActions stacked fixed={actions === 'fixed'}>
+        <Button onClick={onRestart}>Intentar de nuevo</Button>
+        <Link href="/" className={buttonClasses('secondary')}>
+          Ver mis cuentas
+        </Link>
+      </StepActions>
+    </>
   );
 }

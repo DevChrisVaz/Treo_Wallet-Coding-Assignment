@@ -23,3 +23,12 @@ export {
   TextInput,
   View,
 } from 'react-native';
+
+// Vistas reales de las pantallas (8.1): las historias de `Screen` las usan con los datos canónicos.
+export { HomeView } from '@/features/accounts/home-view';
+export { MovementsView } from '@/features/accounts/movements-view';
+export { LoginView } from '@/features/auth/login-view';
+export { RecipientView } from '@/features/transfer/recipient-view';
+export { TransferFlowView } from '@/features/transfer/transfer-flow-view';
+export { StartupLoading, StartupOffline } from '@/navigation/startup-views';
+export { ProblemError } from '@devchrisvaz/wallet-contract';

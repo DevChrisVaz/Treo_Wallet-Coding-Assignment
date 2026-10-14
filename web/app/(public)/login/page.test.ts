@@ -13,11 +13,13 @@ async function loginFormProps(searchParams: Record<string, string>): Promise<Log
   const page = (await LoginPage({
     searchParams: Promise.resolve(searchParams),
     params: Promise.resolve({}),
-  } as never)) as ReactElement<{ children: unknown[] }>;
-  const form = page.props.children.find(
-    (child): child is ReactElement<LoginFormProps> =>
-      isValidElement(child) && child.type === LoginForm,
-  );
+  } as never)) as ReactElement<{ children: unknown }>;
+  const form = [page.props.children]
+    .flat()
+    .find(
+      (child): child is ReactElement<LoginFormProps> =>
+        isValidElement(child) && child.type === LoginForm,
+    );
   if (!form) throw new Error('La página no muestra el formulario');
   return form.props;
 }
