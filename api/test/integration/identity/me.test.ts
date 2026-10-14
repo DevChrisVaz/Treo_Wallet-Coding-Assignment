@@ -1,10 +1,11 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { auditEvents } from '../../helpers/audit.js';
-import { buildTestApp, type TestApp } from '../../helpers/app.js';
+import { JoseAccessTokens } from '../../../src/modules/identity/infrastructure/jose-access-tokens.js';
+import { buildTestApp, testConfig, type TestApp } from '../../helpers/app.js';
 import { expectToMatchContract } from '../../helpers/contract.js';
 import { useIntegrationHarness } from '../../helpers/harness.js';
-import { verifiedUser } from '../../helpers/identity.js';
+import { registerPerson, verifiedUser } from '../../helpers/identity.js';
 
 const harness = useIntegrationHarness();
 let t: TestApp;
@@ -37,6 +38,30 @@ describe('IDN-14 datos del usuario autenticado', () => {
 
   it('IDN-10 GET /me sin header Authorization responde 401 UNAUTHENTICATED', async () => {
     const res = await request(t.app).get('/me');
+    expectToMatchContract(res, 'getCurrentUser');
+    expect(res.status).toBe(401);
+    expect(res.body.code).toBe('UNAUTHENTICATED');
+  });
+
+  it('IDN-10 un token válido de un usuario que ya no existe responde 401 UNAUTHENTICATED', async () => {
+    const { person } = await registerPerson(t);
+    const [{ id }] = await harness.migrator.query('SELECT id FROM app.users WHERE email = $1', [
+      person.email,
+    ]);
+    const config = testConfig();
+    const { token } = await new JoseAccessTokens({
+      secret: config.jwtSecret,
+      issuer: config.jwtIssuer,
+      audience: config.jwtAudience,
+    }).issue(id, t.clock.now());
+    const before = await request(t.app).get('/me').set('Authorization', `Bearer ${token}`);
+    expect(before.status).toBe(200);
+
+    // El usuario sin verificar no tiene cuentas ni sesiones: solo su desafío cuelga de él.
+    await harness.migrator.query('DELETE FROM app.one_time_codes WHERE subject_id = $1', [id]);
+    await harness.migrator.query('DELETE FROM app.users WHERE id = $1', [id]);
+
+    const res = await request(t.app).get('/me').set('Authorization', `Bearer ${token}`);
     expectToMatchContract(res, 'getCurrentUser');
     expect(res.status).toBe(401);
     expect(res.body.code).toBe('UNAUTHENTICATED');

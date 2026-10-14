@@ -26,7 +26,7 @@ Cada tarea agrega o corrige pruebas sin tocar código de producción. Cada prueb
 - [x] 3.1 [api] Después del reenvío por `/auth/register`, el código anterior deja de servir y el nuevo correo trae un código válido (IDN-01, IDN-05)
 - [x] 3.2 [api] El reuso fuera de la ventana revoca también los tokens ya usados de la familia; el reuso cuando el sucesor ya se usó responde `SESSION_REVOKED` y audita `REFRESH_TOKEN_REUSE_DETECTED` (IDN-12, AUD-01)
 - [x] 3.3 [api] Ventana de gracia: exactamente 30 s todavía es reintento y se mide desde el primer uso; un sucesor ya revocado dentro de la ventana es reuso (IDN-12)
-- [ ] 3.4 [api] Un token válido de un usuario que ya no existe responde 401 `UNAUTHENTICATED`; el logout con un refresh token vencido responde 204 (IDN-10, IDN-13)
+- [x] 3.4 [api] Un token válido de un usuario que ya no existe responde 401 `UNAUTHENTICATED`; el logout con un refresh token vencido responde 204 (IDN-10, IDN-13)
 - [ ] 3.5 [api] Registrar un email sin verificar después del límite de reenvíos no envía correo; dos registros simultáneos con el mismo email nuevo dejan un solo usuario (IDN-01, IDN-03, IDN-07)
 - [ ] 3.6 [api] Un email ya verificado recibe exactamente la misma respuesta que un código incorrecto; se auditan `OTP_ATTEMPTS_EXHAUSTED` de la verificación de email y `LOGIN_FAILED` con `EMAIL_NOT_VERIFIED` (IDN-06, IDN-08, AUD-01)
 - [ ] 3.7 [api] Vector de CURP con fecha 00-02-29 que distingue 1900 de 2000; el código vence exactamente a los 15 minutos (IDN-02, IDN-05)
