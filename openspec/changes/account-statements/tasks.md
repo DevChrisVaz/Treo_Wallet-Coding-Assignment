@@ -14,7 +14,7 @@ Requiere `contract-v1-2` (paquete 1.2.0) y la tarea 1.1 de `scheduled-transfers`
 
 ## 2. Web
 
-- [ ] 2.1 [web] Instalar el contrato 1.2.0; el proxy de lecturas agrega la ruta del estado de cuenta a la lista blanca y entrega el cuerpo binario con `Content-Type`, `Content-Disposition` y `Content-Length`; pruebas de bytes idénticos, segmento extra con 404 y método distinto de GET (WEB-32, WEB-09)
+- [x] 2.1 [web] Instalar el contrato 1.2.0; el proxy de lecturas agrega la ruta del estado de cuenta a la lista blanca y entrega el cuerpo binario con `Content-Type`, `Content-Disposition` y `Content-Length`; pruebas de bytes idénticos, segmento extra con 404 y método distinto de GET (WEB-32, WEB-09)
 - [ ] 2.2 [web] Componente `StatementDownload` con el selector de mes (reloj fijo en las pruebas), estado ocupado, una sola petición ante doble clic, nombre de archivo de `Content-Disposition` y mensaje por código con la espera; prueba de `axe` (WEB-32)
 - [ ] 2.3 [web] `StatementDownload` en la pantalla de movimientos; las pruebas de WEB-14 siguen pasando; README de la web con la descarga (WEB-32, WEB-14)
 
