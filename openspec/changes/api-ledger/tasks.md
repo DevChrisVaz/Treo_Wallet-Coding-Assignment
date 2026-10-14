@@ -80,7 +80,7 @@
 - [x] 9.1 [api] Esquema Zod de los filtros (`from`, `to`, `type` múltiple, `limit` 1 a 100 con 20 por defecto) con 422 si `from` es posterior a `to` (HIS-04, HIS-06, HIS-07)
 - [x] 9.2 [api] Cursor opaco `base64url` con `{t, id, f}` firmado con HMAC-SHA256 y verificación de firma y hash de filtros (400 `INVALID_CURSOR`), con pruebas unitarias de cursor alterado y filtros distintos (HIS-05)
 - [x] 9.3 [api] Consulta keyset con comparación de filas, `LIMIT + 1`, rango UTC de fechas de CDMX, filtro de tipos y resolución de la contraparte según el tipo (HIS-01, HIS-02, HIS-03, HIS-04, HIS-06, HIS-07)
-- [ ] 9.4 [api] Endpoint `GET /accounts/{accountId}/movements` (`listAccountMovements`) con 404 para cuentas ajenas (HIS-01, HIS-08)
+- [x] 9.4 [api] Endpoint `GET /accounts/{accountId}/movements` (`listAccountMovements`) con 404 para cuentas ajenas (HIS-01, HIS-08)
 - [ ] 9.5 [api] Pruebas de integración del historial: cuenta ajena, rechazadas y pendientes ausentes, salida a beneficiario con `balanceAfter`, traspaso propio en ambas cuentas, depósito con contraparte nula, 45 movimientos en 3 páginas sin repetidos, movimiento nuevo durante la paginación, `limit` 101, movimiento de las 23:30 de CDMX dentro de su día, rango invertido, filtro de dos tipos y últimos 20 (HIS-01, HIS-02, HIS-03, HIS-04, HIS-06, HIS-07, HIS-08)
 
 ## 10. Concurrencia

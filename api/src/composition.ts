@@ -46,6 +46,10 @@ import { PgErrorTranslator } from './platform/persistence/pg-errors.js';
 import { registerLedgerTranslations } from './modules/transfers/infrastructure/error-translations.js';
 import { FundAccount } from './modules/transfers/application/fund-account.js';
 import { TransferDestinationResolver } from './modules/transfers/application/destination-resolver.js';
+import { MovementCursor } from './modules/movements/application/cursor.js';
+import { ListMovements } from './modules/movements/application/list-movements.js';
+import { movementRoutes } from './modules/movements/infrastructure/http/routes.js';
+import { PgMovementReader } from './modules/movements/infrastructure/pg-movement-reader.js';
 import { ConfirmTransfer } from './modules/transfers/application/confirm-transfer.js';
 import { CreateTransfer } from './modules/transfers/application/create-transfer.js';
 import { GetTransfer } from './modules/transfers/application/get-transfer.js';
@@ -100,6 +104,9 @@ export interface Container {
   readonly accounts: {
     readonly listAccounts: ListAccounts;
     readonly getAccount: GetAccount;
+  };
+  readonly movements: {
+    readonly listMovements: ListMovements;
   };
   readonly beneficiaries: {
     readonly createBeneficiary: CreateBeneficiary;
@@ -222,6 +229,13 @@ export async function createContainer(
       }),
       getAccount: new GetAccount(accounts),
     },
+    movements: {
+      listMovements: new ListMovements({
+        accounts,
+        reader: new PgMovementReader(dataSource),
+        cursors: new MovementCursor(config.cursorSigningSecret),
+      }),
+    },
     beneficiaries: {
       beneficiaries: beneficiaryStore,
       createBeneficiary: new CreateBeneficiary({
@@ -299,6 +313,7 @@ export function createApp(container: Container): Express {
   const tables = [
     identityRoutes(container.identity, authenticateRequest, container.clock),
     accountRoutes(container.accounts, authenticateRequest),
+    movementRoutes(container.movements, authenticateRequest),
     beneficiaryRoutes(container.beneficiaries, authenticateRequest, container.clock),
     transferRoutes(container.transfers, authenticateRequest),
   ];
