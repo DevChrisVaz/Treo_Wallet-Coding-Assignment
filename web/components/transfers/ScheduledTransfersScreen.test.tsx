@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { cancelTransfer } from '@/app/actions/scheduled-transfers';
+import { AppShell } from '@/components/layout/AppShell';
 import { bffGet } from '@/lib/client/bff';
 import { queryKeys } from '@/lib/client/query-keys';
 import { AHORRO, problem, transfer } from '@/test/fixtures';
@@ -52,6 +53,16 @@ const LUZ = scheduled({
 });
 
 const CANCEL_RENTA = /^Cancelar la transferencia de \$1,000\.00 a Luis/;
+const USER = { name: 'Ana Gómez Castillo', email: 'ana@example.com' };
+
+/** La pantalla dentro de AppShell, como en `/transfers/scheduled`: el shell da el h1 y el `main`. */
+function renderInShell() {
+  return renderWithClient(
+    <AppShell current="scheduled" title="Transferencias programadas" user={USER}>
+      <ScheduledTransfersScreen />
+    </AppShell>,
+  );
+}
 
 /** Respuestas sucesivas de `transfers/scheduled`; la última se repite. */
 function listReads(...lists: Transfer[][]) {
@@ -150,6 +161,32 @@ describe('ScheduledTransfersScreen · lista', () => {
     expect(await screen.findByRole('button', { name: CANCEL_RENTA })).toBeVisible();
   });
 
+  it('WEB-23 no tiene h1 propio: el título de la página es de AppShell', async () => {
+    listReads([RENTA]);
+    renderWithClient(<ScheduledTransfersScreen />);
+    await screen.findByRole('list', { name: 'Transferencias programadas' });
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+  });
+
+  it('WEB-23 dentro de AppShell el h1 es "Transferencias programadas", uno por forma', async () => {
+    listReads([RENTA]);
+    renderInShell();
+    await screen.findByRole('list', { name: 'Transferencias programadas' });
+    // App y dashboard; el CSS muestra solo uno (lo cubre e2e/a11y.spec.ts).
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(2);
+    for (const heading of screen.getAllByRole('heading', { level: 1 })) {
+      expect(heading).toHaveTextContent('Transferencias programadas');
+    }
+  });
+
+  it('WEB-34 WEB-26 en teléfono ofrece "Nueva transferencia" sobre la lista; en el dashboard la da la barra superior', async () => {
+    listReads([RENTA]);
+    renderWithClient(<ScheduledTransfersScreen />);
+    const link = await screen.findByRole('link', { name: 'Nueva transferencia' });
+    expect(link).toHaveAttribute('href', '/transfers/new');
+    expect(link).toHaveClass('dashboard:hidden');
+  });
+
   it('WEB-23 la lista no tiene problemas de accesibilidad', async () => {
     listReads([RENTA, AHORRO_MES, LUZ]);
     const { container } = renderWithClient(<ScheduledTransfersScreen />);
@@ -188,7 +225,7 @@ describe('ScheduledTransfersScreen · cancelar', () => {
       data: { ...RENTA, status: 'CANCELLED', cancelledAt: '2026-10-14T18:00:00.000Z' },
     });
     const user = userEvent.setup();
-    const { client } = renderWithClient(<ScheduledTransfersScreen />);
+    const { client } = renderInShell();
 
     const dialog = await openCancelDialog(user);
     await user.click(within(dialog).getByRole('button', { name: 'Cancelar transferencia' }));
@@ -199,7 +236,12 @@ describe('ScheduledTransfersScreen · cancelar', () => {
     expect(screen.queryByRole('button', { name: CANCEL_RENTA })).not.toBeInTheDocument();
     expect(rowsText()).toHaveLength(1);
     expect(screen.getByRole('status')).toHaveTextContent('Transferencia cancelada');
-    expect(screen.getByRole('heading', { name: 'Transferencias programadas' })).toHaveFocus();
+    // El botón que abrió el diálogo ya no existe: el foco va al contenido (el `main` de AppShell),
+    // bajo el h1 "Transferencias programadas" del shell; no se pierde en <body>.
+    expect(screen.getByRole('main')).toHaveFocus();
+    expect(screen.getByRole('main')).toContainElement(
+      screen.getByRole('list', { name: 'Transferencias programadas' }),
+    );
     // La lista se vuelve a consultar y el comprobante en caché queda como cancelado.
     await waitFor(() => expect(listReadCount()).toBe(2));
     expect(client.getQueryData<Transfer>(queryKeys.transfer(RENTA.id))?.status).toBe('CANCELLED');

@@ -6,24 +6,27 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { cancelTransfer } from '@/app/actions/scheduled-transfers';
+import { MAIN_CONTENT_ID } from '@/components/layout/SkipLink';
 import { ErrorState, LoadingState } from '@/components/states/states';
 import { Button, buttonClasses } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { InlineAlert } from '@/components/ui/InlineAlert';
+import { ListSection } from '@/components/ui/ListSection';
 import { TONE_CLASSES } from '@/lib/conventions';
 import { describeError, describeProblem } from '@/lib/client/problem-messages';
 import { queryKeys } from '@/lib/client/query-keys';
 import { scheduledTransfersKey, useScheduledTransfers } from '@/lib/client/scheduled-transfers';
-import { loginPath } from '@/lib/navigation';
+import { SCHEDULED_TRANSFERS_PATH, loginPath } from '@/lib/navigation';
 import { formatScheduledDate } from '@/lib/scheduled-date';
 
 /*
  * Página "Programadas" (WEB-34, D11 de scheduled-transfers): lista de `listScheduledTransfers` por
- * el proxy de lecturas y cancelación con confirmación en un diálogo accesible. Es una pantalla
- * aparte para que el rediseño la incorpore sin cambiarla.
+ * el proxy de lecturas y cancelación con confirmación en un diálogo accesible. Va dentro de AppShell,
+ * que da el h1 "Transferencias programadas" y, en el dashboard, la acción "Nueva transferencia"
+ * (`appSection`); la pantalla no repite el título (un h1 por página, WEB-23).
  */
 
-const PATH = '/transfers/scheduled';
+const PATH = SCHEDULED_TRANSFERS_PATH;
 const CANCELLED_MESSAGE = 'Transferencia cancelada';
 /** Respuestas que significan que la transferencia ya no está en la lista: se vuelve a cargar. */
 const GONE_CODES = new Set(['TRANSFER_NOT_CANCELLABLE', 'NOT_FOUND']);
@@ -56,6 +59,8 @@ interface CancelDialogProps {
 /**
  * Confirmación de la cancelación (patrón de diálogo modal de WAI-ARIA): el foco entra en "Volver",
  * Tab y Shift+Tab no salen del diálogo, Escape lo cierra y quien lo abrió devuelve el foco al botón.
+ * Tiene la forma de la hoja inferior del kit (BottomSheet: abajo en teléfono, centrada en el
+ * dashboard), pero no la usa: necesita la descripción, `aria-busy` y el foco inicial en "Volver".
  */
 function CancelDialog({ transfer, cancelling, error, onConfirm, onClose }: CancelDialogProps) {
   const titleId = useId();
@@ -95,7 +100,7 @@ function CancelDialog({ transfer, cancelling, error, onConfirm, onClose }: Cance
   }
 
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-surface-inverse/60 p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-surface-hero/60 dashboard:items-center">
       <div
         ref={dialogRef}
         role="dialog"
@@ -105,7 +110,7 @@ function CancelDialog({ transfer, cancelling, error, onConfirm, onClose }: Cance
         aria-busy={cancelling || undefined}
         tabIndex={-1}
         onKeyDown={onKeyDown}
-        className="grid w-full max-w-md gap-5 rounded-lg bg-surface p-6 shadow-card focus-visible:outline-none"
+        className="grid w-full max-w-app gap-5 rounded-t-lg bg-surface px-5 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-sheet focus-visible:outline-none dashboard:max-w-md dashboard:rounded-lg dashboard:p-6"
       >
         <h2 id={titleId} className="text-h3 text-fg">
           ¿Cancelar la transferencia programada?
@@ -119,7 +124,7 @@ function CancelDialog({ transfer, cancelling, error, onConfirm, onClose }: Cance
             {error}
           </InlineAlert>
         ) : null}
-        <div className="flex flex-wrap gap-3">
+        <div className="grid gap-3 dashboard:flex dashboard:flex-wrap">
           <Button
             variant="destructive"
             loading={cancelling}
@@ -150,7 +155,6 @@ export function ScheduledTransfersScreen() {
   // Candado síncrono: un segundo clic llega antes de que React vuelva a pintar el botón.
   const inFlight = useRef(false);
   const opener = useRef<HTMLButtonElement | null>(null);
-  const headingRef = useRef<HTMLHeadingElement>(null);
 
   function openDialog(transfer: Transfer, event: MouseEvent<HTMLButtonElement>) {
     opener.current = event.currentTarget;
@@ -182,8 +186,9 @@ export function ScheduledTransfersScreen() {
         void queryClient.invalidateQueries({ queryKey: scheduledTransfersKey });
         setTarget(null);
         setAnnouncement(CANCELLED_MESSAGE);
-        // El botón que abrió el diálogo ya no existe: el foco va al título de la página.
-        headingRef.current?.focus();
+        // El botón que abrió el diálogo ya no existe: el foco va al contenido de la página (el `main`
+        // de AppShell, destino de "Saltar al contenido"), justo bajo su título.
+        document.getElementById(MAIN_CONTENT_ID)?.focus();
         return;
       }
       const { problem } = result;
@@ -209,21 +214,11 @@ export function ScheduledTransfersScreen() {
   }
 
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 ref={headingRef} tabIndex={-1} className="text-h1 focus-visible:outline-none">
-          Transferencias programadas
-        </h1>
-        <Link href="/transfers/new" className={buttonClasses('primary')}>
-          Nueva transferencia
-        </Link>
-      </div>
-
-      <div role="status" aria-live="polite">
+    <>
+      {/* La región de anuncio existe siempre (WEB-23); vacía queda fuera del flujo y no suma espacio. */}
+      <div role="status" aria-live="polite" className={announcement ? undefined : 'sr-only'}>
         {announcement ? (
-          <p className={`rounded-md px-4 py-3 text-body-sm ${TONE_CLASSES.success}`}>
-            {announcement}
-          </p>
+          <p className={`rounded-md p-4 text-body-sm ${TONE_CLASSES.success}`}>{announcement}</p>
         ) : null}
       </div>
       {pageError ? (
@@ -242,6 +237,7 @@ export function ScheduledTransfersScreen() {
         />
       ) : scheduled.data.items.length === 0 ? (
         <EmptyState
+          icon="transfer"
           title="No tienes transferencias programadas"
           description='Al hacer una transferencia, elige "Programar" en "Cuándo" para enviarla en otra fecha.'
           action={
@@ -251,32 +247,40 @@ export function ScheduledTransfersScreen() {
           }
         />
       ) : (
-        <ul aria-label="Transferencias programadas" className="grid gap-3">
-          {scheduled.data.items.map((transfer) => (
-            <li
-              key={transfer.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-surface-subtle p-4"
-            >
-              <div className="grid gap-0.5">
-                <p className="text-label text-fg">
-                  {transfer.scheduledFor ? (
-                    <time dateTime={transfer.scheduledFor}>{dateOf(transfer)}</time>
-                  ) : null}
-                </p>
-                <p className="text-h3 text-fg tabular-nums">{formatMXN(transfer.amount)}</p>
-                <p className="text-body-sm text-fg-secondary">{destinationOf(transfer)}</p>
-                <p className="text-caption text-fg-muted">{transfer.concept}</p>
-              </div>
-              <Button
-                variant="secondary"
-                aria-label={`Cancelar la transferencia de ${formatMXN(transfer.amount)} a ${transfer.destination.displayName} del ${dateOf(transfer)}`}
-                onClick={(event) => openDialog(transfer, event)}
-              >
-                Cancelar
-              </Button>
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* En escritorio la acción vive en la barra superior (WEB-26). */}
+          <Link href="/transfers/new" className={buttonClasses('primary', 'dashboard:hidden')}>
+            Nueva transferencia
+          </Link>
+          <ListSection>
+            <ul aria-label="Transferencias programadas" className="divide-y divide-border">
+              {scheduled.data.items.map((transfer) => (
+                <li
+                  key={transfer.id}
+                  className="flex flex-wrap items-center justify-between gap-3 py-3"
+                >
+                  <div className="grid min-w-0 gap-1">
+                    <p className="text-label text-fg">
+                      {transfer.scheduledFor ? (
+                        <time dateTime={transfer.scheduledFor}>{dateOf(transfer)}</time>
+                      ) : null}
+                    </p>
+                    <p className="text-h3 text-fg tabular-nums">{formatMXN(transfer.amount)}</p>
+                    <p className="text-body-sm text-fg-secondary">{destinationOf(transfer)}</p>
+                    <p className="text-caption text-fg-muted">{transfer.concept}</p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    aria-label={`Cancelar la transferencia de ${formatMXN(transfer.amount)} a ${transfer.destination.displayName} del ${dateOf(transfer)}`}
+                    onClick={(event) => openDialog(transfer, event)}
+                  >
+                    Cancelar
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </ListSection>
+        </>
       )}
 
       {target ? (
@@ -288,6 +292,6 @@ export function ScheduledTransfersScreen() {
           onClose={closeDialog}
         />
       ) : null}
-    </div>
+    </>
   );
 }

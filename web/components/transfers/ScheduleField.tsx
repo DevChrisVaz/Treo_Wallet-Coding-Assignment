@@ -38,15 +38,16 @@ export function ScheduleField({ when, whenField, dateField, error }: ScheduleFie
   const range = schedulableRange(new Date());
   return (
     <div className="grid gap-5">
-      <fieldset className="grid gap-2">
-        <legend className="text-label text-fg">Cuándo</legend>
+      {/* Mismo control de elección que los filtros de movimientos: 44 px de alto y acento del sistema. */}
+      <fieldset className="grid">
+        <legend className="pb-1 text-label text-fg">Cuándo</legend>
         <div className="flex flex-wrap gap-x-6">
-          <label className="inline-flex min-h-11 items-center gap-2 text-body">
-            <input type="radio" value="NOW" className="size-4 accent-action" {...whenField} />
+          <label className="flex min-h-11 items-center gap-3 text-body text-fg">
+            <input type="radio" value="NOW" className="size-5 accent-action" {...whenField} />
             Ahora
           </label>
-          <label className="inline-flex min-h-11 items-center gap-2 text-body">
-            <input type="radio" value="SCHEDULED" className="size-4 accent-action" {...whenField} />
+          <label className="flex min-h-11 items-center gap-3 text-body text-fg">
+            <input type="radio" value="SCHEDULED" className="size-5 accent-action" {...whenField} />
             Programar
           </label>
         </div>
