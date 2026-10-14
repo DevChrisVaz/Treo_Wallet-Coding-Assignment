@@ -1,8 +1,9 @@
 import type { Transaction } from '../../../shared/transaction.js';
 import type { LockedAccount, TransferKind } from '../domain/ledger.js';
+import type { DeclineReason } from '../domain/settlement.js';
 import type { StoredTransferStatus } from '../domain/transfer-status.js';
 
-export type RejectionReason = 'INSUFFICIENT_FUNDS' | 'DAILY_LIMIT_EXCEEDED';
+export type RejectionReason = DeclineReason;
 export type FailureReason = RejectionReason | 'OTP_ATTEMPTS_EXHAUSTED';
 
 export interface TransferRow {
@@ -24,6 +25,10 @@ export interface TransferRow {
   readonly otpExpiresAt: Date | null;
   readonly createdAt: Date;
   readonly completedAt: Date | null;
+  /** Fecha de ejecución (`YYYY-MM-DD`, día de CDMX) de una programada; nula en las inmediatas. */
+  readonly scheduledFor: string | null;
+  /** Momento de la cancelación; solo en `CANCELLED`. */
+  readonly cancelledAt: Date | null;
 }
 
 /** Persistencia de transferencias. */
@@ -36,10 +41,68 @@ export interface TransferStore {
   reject(tx: Transaction, transferId: string, reason: RejectionReason): Promise<void>;
   /** Deja la transferencia en PENDING_OTP con la vigencia de su código (sin asientos). */
   awaitOtp(tx: Transaction, transferId: string, otpExpiresAt: Date): Promise<void>;
+  /** Deja una programada en SCHEDULED, esperando su fecha (sin asientos, TRF-27, TRF-28). */
+  schedule(tx: Transaction, transferId: string): Promise<void>;
+  /** Cancela una SCHEDULED con el momento de la cancelación (sin asientos, TRF-32). */
+  cancel(tx: Transaction, transferId: string, at: Date): Promise<void>;
   /** Bloquea (`FOR UPDATE`) la transferencia si es del usuario; `null` si no existe o es ajena. */
   lockOwned(tx: Transaction, transferId: string, userId: string): Promise<TransferRow | null>;
+  /**
+   * Bloquea con `FOR NO KEY UPDATE` la transferencia del usuario para cambiar su estado sin mover
+   * dinero (confirmar o cancelar una programada, D5 y D7); `null` si no existe o es ajena. Choca con
+   * el bloqueo del ejecutor, así que espera si el ejecutor la tiene.
+   */
+  lockOwnedForStatus(
+    tx: Transaction,
+    transferId: string,
+    userId: string,
+  ): Promise<TransferRow | null>;
   /** Marca una transferencia pendiente como FAILED con su motivo (sin asientos). */
   fail(tx: Transaction, transferId: string, reason: FailureReason): Promise<void>;
+}
+
+/**
+ * Tope de programadas activas por usuario (TRF-29, D8). Las programaciones de un mismo usuario se
+ * serializan con la fila de `users`: la segunda cuenta a la primera ya confirmada.
+ */
+export interface ScheduledCap {
+  /**
+   * Bloquea la fila del usuario con `FOR NO KEY UPDATE`, que no choca con el `FOR KEY SHARE` que
+   * toman las llaves foráneas de `transfers.user_id`. Solo lo toma la programación.
+   */
+  lockOwner(tx: Transaction, userId: string): Promise<void>;
+  /**
+   * Programadas activas del usuario a `now`: las SCHEDULED y las programadas en PENDING_OTP con su
+   * código vigente, sin contar `exceptTransferId` (la recién reclamada).
+   */
+  countActive(
+    tx: Transaction,
+    userId: string,
+    now: Date,
+    exceptTransferId: string,
+  ): Promise<number>;
+}
+
+/** Programada vencida, leída sin bloqueo: lo inmutable que se necesita para bloquear en orden. */
+export interface DueTransfer {
+  readonly id: string;
+  readonly userId: string;
+  readonly kind: Exclude<TransferKind, 'FUNDING'>;
+}
+
+/** Cola de programadas vencidas del ejecutor (TRF-30, TRF-31, D6). */
+export interface ScheduledQueue {
+  /**
+   * Candidatas sin bloqueo: SCHEDULED con `scheduled_for <= day`, en orden de ejecución
+   * (`scheduled_for`, creación, id), a partir de la siguiente de `after` (la última del lote
+   * anterior de la misma pasada) y hasta `limit`.
+   */
+  due(day: string, limit: number, after: string | null): Promise<DueTransfer[]>;
+  /**
+   * Bloquea la transferencia solo si sigue SCHEDULED, con `FOR NO KEY UPDATE SKIP LOCKED`: `null`
+   * si otra instancia (o una cancelación) la tiene bloqueada o si ya cambió de estado.
+   */
+  lockDue(tx: Transaction, transferId: string): Promise<TransferRow | null>;
 }
 
 /** Bloqueo y resolución de cuentas para mover dinero. */

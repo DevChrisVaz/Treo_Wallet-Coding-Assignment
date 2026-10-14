@@ -386,3 +386,58 @@ Un subagente implementó `account-statements` en su worktree: 12 de 13 tareas. L
 **Corrección de la AI principal al revisar.** El subagente reportó que Express responde HEAD con el handler de GET: un HEAD generaba el PDF y registraba `STATEMENT_EXPORTED` sin entregar nada. La AI principal escribió primero la prueba, que falló con 200 en lugar de 405, y luego hizo que la ruta responda 405 con `Allow: GET` antes de generar.
 
 **Pendiente para la verificación 3.1.** Antes de abrir la web hay que correr `npm run db:migrate` en la base de desarrollo. Sin esa migración, cada descarga responde 500, porque la auditoría falla, que es justo lo que pide AUD-07.
+
+### Transferencias programadas en la API
+
+Un subagente implementó el grupo 2 de `scheduled-transfers` (14 de 14 tareas) en su worktree. La AI principal volvió a correr la suite completa antes de integrar: 130 archivos y 989 pruebas contra PostgreSQL y Mailpit, con lint, typecheck y formato limpios. También revisó la paginación del ejecutor. El cursor compara la tupla completa `(scheduled_for, created_at, id)` y no solo el id, así que ningún lote salta ni repite programadas.
+
+**Mutaciones que las pruebas detectan,** cada una revertida desde una copia del archivo:
+- **Quitar la reverificación `status = 'SCHEDULED'` bajo bloqueo:** en tres de tres corridas, un segundo ejecutor volvió a asentar una transferencia y lo detuvo `uq_ledger_entries_transfer_account`. En la carrera con la cancelación, intentó ejecutar una cancelada.
+- **Quitar `SKIP LOCKED`.**
+- **Bloquear la transferencia antes que el contador:** lo detecta una prueba dedicada que retiene el contador y comprueba con `NOWAIT` que la transferencia sigue libre.
+- **Quitar el bloqueo del usuario en el tope de 20:** dos peticiones simultáneas recibieron 201.
+- **Poner siempre la fecha en la huella:** falla contra una huella fijada con el código anterior y verificada aparte en Python.
+- **Enviar el aviso de falla dentro de la transacción.**
+
+Dos mutaciones siguieron en verde y el subagente explicó por qué:
+- **La reverificación de estado no se ve en las pruebas secuenciales,** porque la consulta de candidatas ya filtra por estado.
+- **El orden de bloqueos invertido no produce un deadlock con `SKIP LOCKED`,** solo hace esperar a los demás. Por eso existe la prueba dedicada de `NOWAIT`.
+
+**Desviaciones del diseño, ya registradas en su `design.md`:**
+- **Validación de la fecha después de reclamar la llave.** Así, un reintento que llega después de medianoche devuelve la programada y no un `DATE_OUT_OF_RANGE`.
+- **Un `down` que se niega si alguna fila tiene `scheduled_for`.** Esto mostró que el plan de reversión del diseño no se podía ejecutar tal como estaba escrito.
+- **Paginación por cursor,** para evitar un ciclo infinito si un lote completo falla siempre.
+- **Una primera pasada al arrancar** la API.
+
+**Errores del subagente que él mismo encontró:**
+- **Una aserción que nunca podía fallar.** Filtraba los logs de error por el nivel numérico de pino (`>= 50`), pero el logger escribe la etiqueta `"error"`. Lo descubrió una tarea después. Tras corregirla, esa aserción es la que detecta la doble ejecución una vez que los errores quedan aislados por transferencia.
+- **La prueba de migraciones (PLT-15)** revertía sobre filas que dejó otro archivo. El nuevo `down` protegido se negó, la reversión quedó a medias y tiró los archivos siguientes. La prueba ahora empieza con tablas vacías.
+
+**Riesgo que queda:** con relojes de instancias desfasados unos segundos, confirmar una programada no vuelve a contar el tope, así que podrían quedar 21. Un aviso de falla que no se envía no se reintenta; el outbox queda como seguimiento.
+
+### Transferencias programadas en la web y verificación contra la API real
+
+Un subagente implementó el grupo 3 de `scheduled-transfers` (5 de 5 tareas). Por acuerdo con la sesión del rediseño, los componentes nuevos van en archivos propios, y las ediciones a pantallas existentes quedaron en commits de "cableado" aparte. Así, quien integre segundo puede portarlas sin conflictos. La AI principal volvió a correr la suite (52 archivos y 499 pruebas, con lint, typecheck y formato limpios) antes del merge `--no-ff`.
+
+**Lo que el subagente encontró:**
+- **La prueba de doble clic no probaba el candado.** `user.dblClick` de Testing Library envuelve cada clic en `act`, así que React vuelve a renderizar y deshabilita el botón entre los dos clics. La prueba de WEB-17, vigente desde `web-app`, seguía en verde sin el candado `inFlight`. Agregó pruebas con dos clics dentro de un mismo `act`, que sí fallan sin el candado, tanto para "Enviar" como para "Cancelar transferencia".
+- **Una fuga en su propio diálogo.** Revisando su trabajo, encontró que el foco salía del diálogo de cancelación con Shift+Tab desde la alerta de error. Escribió la prueba primero y lo corrigió.
+- **Mismo error de proceso de siempre.** Corrió una verificación con `| tail`, que oculta el código de salida, y lo notó por la salida.
+- **Decisión que protege la idempotencia.** La Server Action valida solo el formato de la fecha, no el rango. La API valida el rango después de reclamar la llave (corrección de D4), así que un reintento después de medianoche sigue devolviendo la transferencia. Una prueba lo fija.
+
+**Verificación manual (con mi autorización para levantar los servidores).** La AI principal aplicó las tres migraciones a la base de desarrollo y levantó la API con el ejecutor cada 5 s y la web en build de producción. Luego recorrió los tres bonus desde el navegador y con curl:
+- **Estado de cuenta de septiembre de Ana:** 160 páginas y 4,933 renglones. El resumen es igual al ledger al centavo: 10,239,766.66 + 1,565,410.80 − 616,462.90 = 11,188,714.56.
+- **Estado de cuenta de octubre:** sale como parcial y termina en el saldo vigente.
+- **Auditoría y límite de descargas:** `STATEMENT_EXPORTED` lleva solo el periodo. La descarga 11 en un minuto recibe 429, y la pantalla muestra la espera.
+- **Programar desde la web:**
+  - el selector de fecha va de mañana a 90 días;
+  - la revisión dice "Se enviará el 20 de octubre de 2026" y el resultado "Transferencia programada";
+  - con OTP, el correo trae la fecha;
+  - más de 50,000.00 a un tercero regresa al formulario con el error en "Monto".
+- **Tope:** la programada 21 recibe `SCHEDULED_LIMIT_REACHED`.
+- **Ejecución:** al mover la fecha de una programada a hoy, el ejecutor la completó en menos de 5 s, con dos asientos, auditoría `SYSTEM` y consumo del límite del día.
+- **Falla sin saldo:** quedó `FAILED` y el dueño recibió el correo con el motivo.
+- **Página "Programadas":** el diálogo funciona solo con teclado. Con el diálogo abierto, el ejecutor ganó la carrera y la cancelación respondió "Esta transferencia ya no se puede cancelar." mientras la lista se recargaba.
+- **Al final,** las consultas de conciliación del ledger siguieron en cero.
+
+Con esto, `contract-v1-2`, `account-statements` y `scheduled-transfers` quedan completos. A `biometric-unlock` le falta solo la verificación en mi Android.

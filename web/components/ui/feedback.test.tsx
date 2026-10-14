@@ -93,6 +93,15 @@ describe('StatusBadge', () => {
     expect(badge).toHaveClass(`bg-${tone}-soft`, `text-${tone}`, 'rounded-pill');
   });
 
+  it.each([
+    ['SCHEDULED', 'Programada', 'info'],
+    ['CANCELLED', 'Cancelada', 'neutral'],
+  ] as const)('WEB-34 DSG-18 %s muestra "%s" con el tono %s', (status, label, tone) => {
+    render(<StatusBadge status={status} />);
+    const badge = screen.getByText(label);
+    expect(badge).toHaveClass(`bg-${tone}-soft`, `text-${tone}`, 'rounded-pill');
+  });
+
   it('WEB-23 no tiene problemas de accesibilidad', async () => {
     const { container } = render(<StatusBadge status="COMPLETED" />);
     expect(await axe(container)).toHaveNoViolations();

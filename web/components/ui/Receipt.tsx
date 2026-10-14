@@ -4,6 +4,7 @@ import { useId, type ReactNode } from 'react';
 import { TRANSFER_STATUS } from '@/lib/conventions';
 import { formatDateTime } from '@/lib/format';
 import { maskClabe } from '@/lib/money';
+import { formatScheduledDate } from '@/lib/scheduled-date';
 import { Avatar } from './Avatar';
 import { StatusBadge } from './StatusBadge';
 
@@ -42,10 +43,11 @@ function Row({ term, children }: { term: string; children: ReactNode }) {
 
 /**
  * Comprobante (D7 de design-system, WEB-16): estado, monto, origen, destino, concepto, referencia,
- * fecha y folio (`transferId`). El icono sigue el tono del estado, como la insignia: éxito, error
- * (fallida o rechazada), aviso (pendiente) o información (vencida). El título "Comprobante" nombra la
- * región para lectores de pantalla; a la vista, el paso del flujo ya lo dice y la tarjeta empieza con
- * el icono y el estado, como en la app móvil (WEB-25).
+ * fecha programada si la tiene (WEB-34), fecha y folio (`transferId`). El icono sigue el tono del
+ * estado, como la insignia: éxito, error (fallida o rechazada), aviso (pendiente) o información
+ * (vencida, programada o cancelada). El título "Comprobante" nombra la región para lectores de
+ * pantalla; a la vista, el paso del flujo ya lo dice y la tarjeta empieza con el icono y el estado,
+ * como en la app móvil (WEB-25).
  */
 export function Receipt({ transfer, fromAccount }: ReceiptProps) {
   const titleId = useId();
@@ -86,6 +88,13 @@ export function Receipt({ transfer, fromAccount }: ReceiptProps) {
         <Row term="Destino">{destination}</Row>
         <Row term="Concepto">{transfer.concept}</Row>
         <Row term="Referencia">{transfer.reference}</Row>
+        {transfer.scheduledFor ? (
+          <Row term="Programada para">
+            <time dateTime={transfer.scheduledFor}>
+              {formatScheduledDate(transfer.scheduledFor)}
+            </time>
+          </Row>
+        ) : null}
         <Row term="Fecha">
           <time dateTime={transfer.completedAt ?? transfer.createdAt}>
             {formatDateTime(transfer.completedAt ?? transfer.createdAt)}

@@ -1,6 +1,7 @@
-import { toFieldErrors, transferForm } from '@devchrisvaz/wallet-contract';
+import { toFieldErrors, transferFormAt } from '@devchrisvaz/wallet-contract';
 import { problemMessage } from '@devchrisvaz/wallet-design-tokens';
 import type { FieldErrors, Resolver } from 'react-hook-form';
+import type { ActionProblem } from '@/lib/action-result';
 import { normalizeAmountInput } from '@/lib/money';
 import type { TransferDraft, TransferFormValues } from './transfer-flow';
 
@@ -15,6 +16,8 @@ export function buildTransferRequest(values: TransferFormValues): unknown {
     amount: normalizeAmountInput(values.amount),
     concept: values.concept,
     reference: values.reference,
+    // Con "Ahora" no se envía fecha, aunque se haya escrito una antes (WEB-33).
+    ...(values.when === 'SCHEDULED' ? { scheduledFor: values.scheduledFor } : {}),
   };
 }
 
@@ -25,7 +28,20 @@ const FIELD_BY_POINTER: Record<string, keyof TransferFormValues> = {
   '/amount': 'amount',
   '/concept': 'concept',
   '/reference': 'reference',
+  '/scheduledFor': 'scheduledFor',
 };
+
+/** Errores de campo de un `VALIDATION_FAILED` de la API, por campo del formulario (WEB-33). */
+export function serverFieldErrors(
+  problem: ActionProblem | undefined,
+): Partial<Record<keyof TransferFormValues, string>> {
+  const fields: Partial<Record<keyof TransferFormValues, string>> = {};
+  for (const error of problem?.errors ?? []) {
+    const field = FIELD_BY_POINTER[error.pointer];
+    if (field && !fields[field]) fields[field] = error.message;
+  }
+  return fields;
+}
 
 /** Los ids vienen de un selector: si falta uno, se pide elegir en lugar de "identificador". */
 const CHOOSE_MESSAGES: Partial<Record<keyof TransferFormValues, string>> = {
@@ -35,13 +51,13 @@ const CHOOSE_MESSAGES: Partial<Record<keyof TransferFormValues, string>> = {
 };
 
 /**
- * Resolver del formulario de transferencia: valida la petición armada con `transferForm` del
- * contrato, el mismo esquema que usa la Server Action (WEB-07, WEB-21). Un monto con más de 2
- * decimales se rechaza; nunca se redondea.
+ * Resolver del formulario de transferencia: valida la petición armada con `transferFormAt` del
+ * contrato, el esquema de la Server Action más el rango programable de hoy (WEB-07, WEB-21, WEB-33).
+ * Un monto con más de 2 decimales se rechaza; nunca se redondea.
  */
 export const transferResolver: Resolver<TransferFormValues, unknown, TransferDraft> = (values) => {
   const errors: FieldErrors<TransferFormValues> = {};
-  const parsed = transferForm.safeParse(buildTransferRequest(values));
+  const parsed = transferFormAt(new Date()).safeParse(buildTransferRequest(values));
   if (!parsed.success) {
     for (const error of toFieldErrors(parsed.error)) {
       const field = FIELD_BY_POINTER[error.pointer];

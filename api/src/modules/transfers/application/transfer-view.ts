@@ -23,6 +23,11 @@ export interface TransferDetailsReader {
   find(transferId: string): Promise<TransferDetails | null>;
 }
 
+/** Programadas pendientes de un usuario, en orden de ejecución (TRF-33). */
+export interface ScheduledTransfersReader {
+  listScheduled(userId: string): Promise<TransferDetails[]>;
+}
+
 export function otpChallenge(
   details: TransferDetails,
   policy: OtpPolicy,
@@ -69,10 +74,9 @@ export function toTransferView(
     otp: status === 'PENDING_OTP' ? otpChallenge(details, policy, deliveryStatus) : null,
     rejectionReason: details.rejectionReason,
     failureReason: details.failureReason,
-    // Campos del contrato 1.2.0: mientras la API no programe transferencias (change
-    // scheduled-transfers), todas son inmediatas y ninguna se cancela.
-    scheduledFor: null,
-    cancelledAt: null,
+    // En toda programada, sin importar su estado; nula en las inmediatas (TRF-34).
+    scheduledFor: details.scheduledFor,
+    cancelledAt: details.cancelledAt?.toISOString() ?? null,
     createdAt: details.createdAt.toISOString(),
     completedAt: details.completedAt?.toISOString() ?? null,
   };

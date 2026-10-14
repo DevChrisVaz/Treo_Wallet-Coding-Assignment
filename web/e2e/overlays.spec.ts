@@ -115,3 +115,32 @@ test('DSG-17 WEB-27 el menú de la cuenta se cierra con Escape y devuelve el foc
   await expect(page.getByRole('dialog', { name: 'Tu cuenta' })).toBeHidden();
   await expect(avatar).toBeFocused();
 });
+
+test('WEB-28 DSG-17 a 320 px con el texto al 200 % el diálogo de cancelar una programada cabe en la pantalla y sus botones se alcanzan', async ({
+  page,
+}) => {
+  const height = 568;
+  await page.setViewportSize({ width: 320, height });
+  await page.goto('/transfers/scheduled');
+  await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+  const opener = page.getByRole('button', { name: /^Cancelar la transferencia de/ });
+  await opener.click();
+  const dialog = page.getByRole('dialog', { name: '¿Cancelar la transferencia programada?' });
+  await expect(dialog).toBeVisible();
+  // Como la hoja del kit: hasta 85 % del alto, dentro de la pantalla; lo que no cabe se desplaza.
+  const box = await dialog.boundingBox();
+  expect(box).toBeTruthy();
+  if (!box) return;
+  expect(box.y).toBeGreaterThanOrEqual(-0.5);
+  expect(box.y + box.height).toBeLessThanOrEqual(height + 0.5);
+  expect(box.height).toBeLessThanOrEqual(height * 0.85 + 1);
+  for (const name of ['Cancelar transferencia', 'Volver']) {
+    const button = dialog.getByRole('button', { name, exact: true });
+    await button.scrollIntoViewIfNeeded();
+    await expect(button).toBeInViewport();
+  }
+  await dialog.getByRole('button', { name: 'Volver', exact: true }).focus();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(opener).toBeFocused();
+});

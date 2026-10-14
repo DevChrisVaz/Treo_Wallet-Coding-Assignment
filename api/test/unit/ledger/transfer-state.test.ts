@@ -16,7 +16,7 @@ const valid: [StoredTransferStatus | null, TransferEvent, StoredTransferStatus][
   ['PENDING_OTP', 'EXHAUST_OTP', 'FAILED'],
 ];
 
-const finals: StoredTransferStatus[] = ['COMPLETED', 'REJECTED', 'FAILED'];
+const finals: StoredTransferStatus[] = ['COMPLETED', 'REJECTED', 'FAILED', 'CANCELLED'];
 const events: TransferEvent[] = [
   'COMPLETE_IMMEDIATELY',
   'REJECT',
@@ -24,6 +24,19 @@ const events: TransferEvent[] = [
   'CONFIRM',
   'FAIL_REVALIDATION',
   'EXHAUST_OTP',
+  'SCHEDULE',
+  'EXECUTE_OK',
+  'EXECUTE_FAIL',
+  'CANCEL',
+];
+
+/** Transiciones de las programadas (D2 de scheduled-transfers). */
+const scheduledValid: [StoredTransferStatus | null, TransferEvent, StoredTransferStatus][] = [
+  [null, 'SCHEDULE', 'SCHEDULED'],
+  ['PENDING_OTP', 'SCHEDULE', 'SCHEDULED'],
+  ['SCHEDULED', 'EXECUTE_OK', 'COMPLETED'],
+  ['SCHEDULED', 'EXECUTE_FAIL', 'FAILED'],
+  ['SCHEDULED', 'CANCEL', 'CANCELLED'],
 ];
 
 describe('TRF-14 máquina de estados de la transferencia', () => {
@@ -53,6 +66,42 @@ describe('TRF-14 máquina de estados de la transferencia', () => {
   );
 });
 
+describe('TRF-34 máquina de estados de las programadas', () => {
+  it.each(scheduledValid)('TRF-34 %s + %s → %s', (from, event, to) => {
+    expect(transition(from, event)).toBe(to);
+  });
+
+  it.each([null, 'PENDING_OTP', 'COMPLETED', 'REJECTED', 'FAILED', 'CANCELLED'] as const)(
+    'TRF-32 solo una SCHEDULED se cancela: %s + CANCEL es inválida',
+    (from) => {
+      expect(() => transition(from, 'CANCEL')).toThrow(InvalidTransferTransition);
+    },
+  );
+
+  it.each(
+    (['EXECUTE_OK', 'EXECUTE_FAIL'] as const).flatMap((event) =>
+      ([null, 'PENDING_OTP'] as const).map((from) => [from, event] as const),
+    ),
+  )('TRF-30 solo se ejecuta una SCHEDULED: %s + %s es inválida', (from, event) => {
+    expect(() => transition(from, event)).toThrow(InvalidTransferTransition);
+  });
+
+  it.each(
+    events
+      .filter((event) => !['EXECUTE_OK', 'EXECUTE_FAIL', 'CANCEL'].includes(event))
+      .map((event) => [event] as const),
+  )('TRF-30 una SCHEDULED no admite %s: solo se ejecuta o se cancela', (event) => {
+    expect(() => transition('SCHEDULED', event)).toThrow(InvalidTransferTransition);
+  });
+
+  it.each(['CONFIRM', 'FAIL_REVALIDATION'] as const)(
+    'TRF-28 una programada confirmada no mueve dinero: una SCHEDULED no admite %s',
+    (event) => {
+      expect(() => transition('SCHEDULED', event)).toThrow(InvalidTransferTransition);
+    },
+  );
+});
+
 describe('TRF-19 vencimiento calculado', () => {
   const otpExpiresAt = new Date('2026-10-13T18:05:00.000Z');
 
@@ -63,9 +112,12 @@ describe('TRF-19 vencimiento calculado', () => {
     expect(effectiveStatus(pending, new Date('2026-10-13T18:06:00.000Z'))).toBe('EXPIRED');
   });
 
-  it.each(finals)('TRF-19 un estado final (%s) nunca se informa como vencido', (status) => {
-    expect(effectiveStatus({ status, otpExpiresAt }, new Date('2027-01-01T00:00:00Z'))).toBe(
-      status,
-    );
-  });
+  it.each([...finals, 'SCHEDULED'] as const)(
+    'TRF-19 un estado final o SCHEDULED (%s) nunca se informa como vencido',
+    (status) => {
+      expect(effectiveStatus({ status, otpExpiresAt }, new Date('2027-01-01T00:00:00Z'))).toBe(
+        status,
+      );
+    },
+  );
 });

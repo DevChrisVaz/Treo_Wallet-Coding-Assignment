@@ -43,6 +43,8 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
       otpMaxResends: 3,
     },
     cursorSigningSecret: Buffer.alloc(32, 17),
+    // Las pruebas llaman a `runOnce()` directamente (D6).
+    scheduler: { enabled: false, intervalMs: 60_000, batchSize: 100 },
     ...overrides,
   };
 }

@@ -81,6 +81,21 @@ describe('AppShell encabezados', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Hola, Ana' })).toBeInTheDocument();
   });
 
+  it('WEB-23 los dos h1 (app y dashboard) reciben el foco por programa sin entrar al orden de Tab', () => {
+    render(
+      <AppShell current="scheduled" title="Transferencias programadas" user={USER}>
+        <p>Contenido</p>
+      </AppShell>,
+    );
+    const titles = screen.getAllByRole('heading', { level: 1, name: 'Transferencias programadas' });
+    expect(titles).toHaveLength(2);
+    for (const title of titles) {
+      expect(title).toHaveAttribute('tabindex', '-1');
+      title.focus();
+      expect(title).toHaveFocus();
+    }
+  });
+
   it('WEB-27 en el flujo no hay encabezado de la app ni TopBar con h1', () => {
     render(
       <AppShell current="transfer" title="Transferir" user={USER} mode="flow">

@@ -15,7 +15,10 @@ export interface AppHeaderProps {
   className?: string;
 }
 
-/** Encabezado de la forma de app (WEB-27): saludo o título y el menú de la cuenta. */
+/**
+ * Encabezado de la forma de app (WEB-27): saludo o título y el menú de la cuenta. El h1 acepta el foco
+ * por programa (tabIndex -1, fuera del orden de Tab), como el de TopBar (WEB-23).
+ */
 export function AppHeader({
   user,
   title,
@@ -30,9 +33,11 @@ export function AppHeader({
       className={`flex items-center justify-between gap-4 px-5 pt-6 pb-4 ${className}`.trim()}
     >
       {title ? (
-        <h1 className="text-h2 text-fg">{title}</h1>
+        <h1 tabIndex={-1} className="text-h2 text-fg focus-visible:outline-none">
+          {title}
+        </h1>
       ) : (
-        <h1 className="grid">
+        <h1 tabIndex={-1} className="grid focus-visible:outline-none">
           <span className="text-body-sm text-fg-secondary">Hola,</span>{' '}
           <span className="text-h2 text-fg">{firstName}</span>
         </h1>

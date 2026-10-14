@@ -39,6 +39,8 @@ const ALLOWED_READS: readonly AllowedRead[] = [
     binary: true,
   },
   { matches: (s) => s.length === 1 && s[0] === 'beneficiaries' },
+  // Programadas (`listScheduledTransfers`, WEB-34): exactamente `transfers/scheduled`.
+  { matches: (s) => s.length === 2 && s[0] === 'transfers' && s[1] === 'scheduled' },
   { matches: (s) => s.length === 2 && s[0] === 'transfers' && UUID.test(s[1] ?? '') },
 ];
 

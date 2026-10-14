@@ -20,4 +20,4 @@ Requiere `contract-v1-2` (paquete 1.2.0) y la tarea 1.1 de `scheduled-transfers`
 
 ## 3. Verificación
 
-- [ ] 3.1 [docs] Verificación manual contra la API real: descargar desde la web el estado de septiembre de 2026 de la "Principal" de Ana y el del mes en curso, abrirlos y comprobar el resumen contra la base con las consultas de conciliación del README de la API (HIS-11, HIS-12, WEB-32)
+- [x] 3.1 [docs] Verificación manual contra la API real: descargar desde la web el estado de septiembre de 2026 de la "Principal" de Ana y el del mes en curso, abrirlos y comprobar el resumen contra la base con las consultas de conciliación del README de la API (HIS-11, HIS-12, WEB-32)

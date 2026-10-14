@@ -1,5 +1,6 @@
 import { ListSection } from '@/components/ui/ListSection';
 import type { SummaryRows } from '@/lib/client/transfer-steps';
+import { scheduledSendText } from './ScheduleField';
 
 /** Fila etiqueta / valor del resumen (revisión y panel lateral). */
 export function SummaryRow({ term, value }: { term: string; value: string | undefined }) {
@@ -24,7 +25,10 @@ export function AmountBlock({ amount, caption }: { amount: string; caption?: str
   );
 }
 
-/** Resumen lateral del dashboard (WEB-30): lo que lleva capturado la transferencia. */
+/**
+ * Resumen lateral del dashboard (WEB-30): lo que lleva capturado la transferencia y, si es
+ * programada, cuándo se enviará (WEB-33).
+ */
 export function TransferSummary({ rows, note }: { rows: SummaryRows; note: string }) {
   return (
     <ListSection title="Resumen" className="hidden self-start dashboard:block">
@@ -34,6 +38,9 @@ export function TransferSummary({ rows, note }: { rows: SummaryRows; note: strin
         <SummaryRow term="Monto" value={rows.monto} />
         <SummaryRow term="Concepto" value={rows.concepto} />
         <SummaryRow term="Referencia" value={rows.referencia} />
+        {rows.programada ? (
+          <SummaryRow term="Cuándo" value={scheduledSendText(rows.programada)} />
+        ) : null}
       </dl>
       <p className="border-t border-border pt-3 text-caption text-fg-muted">{note}</p>
     </ListSection>

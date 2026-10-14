@@ -58,6 +58,7 @@ for (const width of [390, 1280] as const) {
       '/beneficiaries',
       '/beneficiaries/new',
       '/transfers/new',
+      '/transfers/scheduled',
       `/transfers/${SENT_TRANSFER_ID}`,
     ]) {
       await page.goto(path);
@@ -85,6 +86,14 @@ for (const width of [390, 1280] as const) {
       expect(await axe(page), 'menú de la cuenta').toEqual([]);
       await page.keyboard.press('Escape');
     }
+
+    await page.goto('/transfers/scheduled');
+    await page.getByRole('button', { name: /^Cancelar la transferencia de/ }).click();
+    await expect(
+      page.getByRole('dialog', { name: '¿Cancelar la transferencia programada?' }),
+    ).toBeVisible();
+    expect(await axe(page), 'diálogo de cancelar una programada').toEqual([]);
+    await page.keyboard.press('Escape');
 
     await page.goto('/transfers/new');
     await page.getByRole('button', { name: /^Luis/ }).click();

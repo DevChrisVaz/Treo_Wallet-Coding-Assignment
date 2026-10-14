@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sessionStore } from '@/lib/server/session-store';
 import { BENEFICIARY, PRINCIPAL, pendingOtpTransfer, transfer } from '@/test/fixtures';
 import { fakeApi, jsonResponse, problemResponse } from '@/test/support/fake-api';
@@ -106,6 +106,114 @@ describe('createTransfer', () => {
       problem: { code: 'UNAUTHENTICATED' },
     });
     expect(api.calls).toHaveLength(0);
+  });
+});
+
+describe('createTransfer · programar', () => {
+  const SCHEDULED_INPUT = { ...INPUT, amount: '1000.00', scheduledFor: '2026-10-20' };
+  const scheduled = () =>
+    transfer({ status: 'SCHEDULED', amount: '1000.00', scheduledFor: '2026-10-20' });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('WEB-33 WEB-10 envía scheduledFor con la Idempotency-Key del navegador', async () => {
+    const api = fakeApi().on('POST', '/transfers', () => jsonResponse(201, scheduled()));
+
+    const result = await createTransfer(SCHEDULED_INPUT, KEY);
+
+    expect(result).toEqual({ ok: true, data: { transfer: scheduled(), replayed: false } });
+    expect(api.calls).toHaveLength(1);
+    expect(api.calls[0]?.body).toEqual(SCHEDULED_INPUT);
+    expect(api.calls[0]?.headers.get('idempotency-key')).toBe(KEY);
+  });
+
+  it('WEB-33 WEB-17 dos envíos de la misma programación llevan la misma llave y la API devuelve la misma programada', async () => {
+    let created = 0;
+    const api = fakeApi().on('POST', '/transfers', () =>
+      created++ === 0
+        ? jsonResponse(201, scheduled())
+        : jsonResponse(200, scheduled(), { 'Idempotent-Replayed': 'true' }),
+    );
+
+    const [first, second] = await Promise.all([
+      createTransfer(SCHEDULED_INPUT, KEY),
+      createTransfer(SCHEDULED_INPUT, KEY),
+    ]);
+
+    expect(api.calls.map((call) => call.headers.get('idempotency-key'))).toEqual([KEY, KEY]);
+    expect(first.ok && first.data.transfer.id).toBe(scheduled().id);
+    expect(second.ok && second.data.transfer.id).toBe(scheduled().id);
+  });
+
+  it('WEB-33 WEB-07 una fecha que no existe responde VALIDATION_FAILED en /scheduledFor sin llamar a la API', async () => {
+    const api = fakeApi();
+    const result = await createTransfer({ ...SCHEDULED_INPUT, scheduledFor: '2026-02-30' }, KEY);
+    expect(result).toMatchObject({ ok: false, problem: { code: 'VALIDATION_FAILED' } });
+    expect(!result.ok && result.problem.errors).toEqual([
+      expect.objectContaining({ pointer: '/scheduledFor', code: 'INVALID_DATE' }),
+    ]);
+    expect(api.calls).toHaveLength(0);
+  });
+
+  it('WEB-33 WEB-17 el rango lo decide la API: un reintento después de medianoche llega a la API', async () => {
+    // 00:30 del 20 de octubre en la Ciudad de México: la fecha ya es "hoy", pero la programación
+    // pudo crearse ayer con esta llave; la API responde su estado actual (D4 de scheduled-transfers).
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-20T06:30:00.000Z'));
+    // La sesión vigente a esa hora, para que el reloj fijo no la dé por expirada.
+    await sessionStore().set(SESSION_ID, sessionData());
+    const api = fakeApi().on('POST', '/transfers', () =>
+      jsonResponse(200, scheduled(), { 'Idempotent-Replayed': 'true' }),
+    );
+
+    const result = await createTransfer(SCHEDULED_INPUT, KEY);
+
+    expect(result).toEqual({ ok: true, data: { transfer: scheduled(), replayed: true } });
+    expect(api.calls).toHaveLength(1);
+  });
+
+  it('WEB-33 WEB-08 devuelve DATE_OUT_OF_RANGE de la API con su campo', async () => {
+    const errors = [
+      {
+        pointer: '/scheduledFor',
+        code: 'DATE_OUT_OF_RANGE',
+        message: 'Elige una fecha entre mañana y 90 días después de hoy',
+      },
+    ];
+    fakeApi().on('POST', '/transfers', () =>
+      problemResponse(422, { code: 'VALIDATION_FAILED', errors, requestId: 'api-1' }),
+    );
+    expect(await createTransfer(SCHEDULED_INPUT, KEY)).toMatchObject({
+      ok: false,
+      problem: { code: 'VALIDATION_FAILED', errors },
+    });
+  });
+
+  it('WEB-33 WEB-08 devuelve SCHEDULED_LIMIT_REACHED de la API', async () => {
+    fakeApi().on('POST', '/transfers', () =>
+      problemResponse(422, { code: 'SCHEDULED_LIMIT_REACHED', requestId: 'api-1' }),
+    );
+    expect(await createTransfer(SCHEDULED_INPUT, KEY)).toMatchObject({
+      ok: false,
+      problem: { code: 'SCHEDULED_LIMIT_REACHED', requestId: 'api-1' },
+    });
+  });
+});
+
+describe('confirmTransfer · programada', () => {
+  it('WEB-33 WEB-18 la confirmación de una programada devuelve su estado SCHEDULED', async () => {
+    const scheduled = transfer({
+      status: 'SCHEDULED',
+      amount: '15000.00',
+      scheduledFor: '2026-10-20',
+    });
+    fakeApi().on('POST', `/transfers/${TRANSFER_ID}/confirm`, () => jsonResponse(200, scheduled));
+    expect(await confirmTransfer({ transferId: TRANSFER_ID, otp: '123456' })).toEqual({
+      ok: true,
+      data: scheduled,
+    });
   });
 });
 

@@ -2,7 +2,7 @@
 
 Panel web de TreoWallet: Next.js (App Router) como BFF (_Backend for Frontend_) de la API. El navegador nunca recibe los tokens: la sesión vive en el servidor de la web y el navegador solo tiene una cookie con un id opaco.
 
-- Especificación: `openspec/changes/web-app/` (capability `web-app`, requisitos WEB-01 a WEB-23) y `openspec/changes/account-statements/` (WEB-32, descarga del estado de cuenta). Decisiones y alternativas en su `design.md`.
+- Especificación: `openspec/changes/web-app/` (capability `web-app`, requisitos WEB-01 a WEB-23), `openspec/changes/account-statements/` (WEB-32, descarga del estado de cuenta) y `openspec/changes/scheduled-transfers/` (WEB-33 y WEB-34, transferencias programadas; decisión D11). Decisiones y alternativas en su `design.md`.
 - Consume `@devchrisvaz/wallet-contract` (cliente tipado, validadores Zod, `formatMXN`) y `@devchrisvaz/wallet-design-tokens` (tokens para Tailwind v4, estados, movimientos y textos de error).
 
 ## Cómo funciona
@@ -20,6 +20,20 @@ flowchart LR
 - **Estado de cuenta** (WEB-32): en la pantalla de movimientos, un selector con el mes en curso ("(en curso)") y los 12 anteriores, con el mes anterior por defecto, y el botón "Descargar PDF". La descarga pasa por el mismo proxy (`accounts/<id>/statements/<AAAA-MM>`, solo GET): para esa ruta el proxy pide `application/pdf`, entrega el cuerpo de la API sin tocar sus bytes y copia `Content-Type`, `Content-Disposition`, `Content-Length` y `Retry-After`. El navegador guarda el archivo con el nombre que propone la API (`estado-de-cuenta-2026-09-0015.pdf`). Mientras descarga, el botón queda ocupado y no acepta otro clic; un error muestra el mensaje de su `code` sin salir de la pantalla (en `RATE_LIMITED`, con la espera). El control es un componente aparte (`components/accounts/StatementDownload.tsx`) para que el rediseño lo reubique sin cambiarlo.
 - **Sesión** en un `Map` en memoria (en AWS, Redis): expira tras `SESSION_IDLE_MINUTES` sin actividad o al vencer el refresh token; el access token se renueva una sola vez por sesión aunque lleguen peticiones simultáneas.
 - **Transferencias**: la llave de idempotencia se genera en el navegador al pasar a la confirmación y se reutiliza solo al reintentar tras un fallo de red o un `5xx`; el botón se bloquea desde el primer clic.
+- **Transferencias programadas** (WEB-33): el paso de monto del flujo tiene "Cuándo", con "Ahora" (por defecto) o "Programar". "Programar" muestra una fecha limitada al rango de `schedulableRange` del contrato: de mañana a 90 días, en días de la Ciudad de México. El formulario valida con `transferFormAt(ahora)`, así que hoy y las fechas fuera de rango se marcan junto al campo.
+  - **Revisión:** la fila "Cuándo" dice "Se enviará el 20 de octubre de 2026"; en el dashboard, también el resumen lateral.
+  - **Envío:** la petición lleva `scheduledFor` con la misma llave por intento.
+  - **Resultado:** si queda `SCHEDULED` (directo o después del código, arriba de $10,000.00), el título del paso (y el del detalle) es "Transferencia programada", con la fecha y un enlace a "Programadas". El comprobante muestra "Programada para" con la fecha.
+  - **Errores:** `SCHEDULED_LIMIT_REACHED` muestra el texto del paquete de diseño. Un `VALIDATION_FAILED` de la API en un campo (`DATE_OUT_OF_RANGE` en `/scheduledFor`, `TOO_LARGE` en `/amount`) regresa al paso de monto con el mensaje junto al campo y el foco en él; el siguiente envío usa una llave nueva.
+  - **Fechas en palabras:** se escriben con `Intl.DateTimeFormat('es-MX', { dateStyle: 'long', timeZone: 'UTC' })` sobre la fecha calendario (`lib/scheduled-date.ts`), para que el huso del navegador no las recorra un día.
+  - **Rango en la Server Action:** `createTransfer` valida el formato y el calendario de la fecha, no el rango. El rango lo decide la API después de reclamar la llave, para que un reintento después de medianoche reciba la transferencia que ya existe en lugar de `DATE_OUT_OF_RANGE`.
+- **Página "Programadas"** (WEB-34): `/transfers/scheduled` lista `listScheduledTransfers` por el proxy (`transfers/scheduled`, solo GET), en el orden de la API.
+  - **Cómo se llega:** en el dashboard, "Programadas" está en la navegación lateral, después de "Transferir", con su propio icono: el concepto `scheduled` (CalendarClock) del paquete de diseño 1.3.0. Entra por `DEFAULT_NAV_ITEMS` con `sideOnly`. En teléfono la barra de pestañas sigue con sus cuatro destinos: se llega con "Transferencias programadas", al pie del primer paso del flujo de transferencia. El h1 "Transferencias programadas" y, en el dashboard, la acción "Nueva transferencia" son de AppShell (`appSection`).
+  - **Contenido:** cada programada muestra su fecha, el destino con los últimos 4 dígitos de la CLABE, el monto y el concepto. Sin programadas, la página dice "No tienes transferencias programadas".
+  - **Cancelar:** abre un diálogo modal con el monto, el destino y la fecha. El foco empieza en "Volver" y Tab no sale del diálogo. Escape o "Volver" lo cierran sin llamar a la API y devuelven el foco al botón "Cancelar".
+  - **Confirmar:** llama una sola vez a la Server Action `cancelTransfer` (`app/actions/scheduled-transfers.ts`). Si funciona, la transferencia sale de la lista, se anuncia "Transferencia cancelada" en una región `aria-live` y el foco pasa al h1 visible de la página (el de AppShell: AppHeader en teléfono, TopBar en el dashboard).
+  - **Ya no se puede cancelar:** un `409 TRANSFER_NOT_CANCELLABLE` (por ejemplo, porque el ejecutor ya la tomó) muestra "Esta transferencia ya no se puede cancelar." y vuelve a cargar la lista. Otros errores se muestran en el diálogo, donde confirmar otra vez es un reintento seguro, porque cancelar es idempotente.
+- **Piezas aparte:** como el control del estado de cuenta, lo programado vive en componentes propios: `components/transfers/ScheduleField.tsx` (el control "Cuándo", la línea de la revisión y la nota del resultado) y `components/transfers/ScheduledTransfersScreen.tsx` (lista y diálogo, con la forma de la hoja inferior del kit). Los pasos del flujo rediseñado solo los conectan.
 - **Interfaz**: componentes cliente con TanStack Query; formularios con react-hook-form y los validadores del contrato; estilos solo con las utilidades de los tokens (la paleta por defecto de Tailwind no existe); mensajes de error de `problemMessage` del paquete de diseño.
 
 | Carpeta       | Contenido                                                                                                      |
@@ -65,6 +79,7 @@ El build (`next build`) no necesita `API_BASE_URL`: el servidor la lee en cada p
 2. `npm run dev` y abre `http://localhost:3000`. Si el puerto 3000 está ocupado: `npm run dev -- -p 3100`.
 3. Regístrate en `/register`; el código de verificación llega a Mailpit (`http://localhost:8025`). Al verificar el correo se abren las cuentas Principal y Ahorro en $0.00; para tener saldo, usa el fondeo de la API (`db:fund`).
 4. Las transferencias de más de $10,000.00 piden un código que también llega a Mailpit.
+5. Para programar una transferencia, elige "Programar" en "Cuándo" y una fecha. Aparece en "Programadas" hasta que se ejecuta o la cancelas. Para verla ejecutarse sin esperar a la medianoche, sigue "Verlas ejecutarse en local" del README de `/api`, que adelanta su fecha en la base. Al ejecutarse, sale de "Programadas" y aparece en el historial; si falla, el aviso llega a Mailpit.
 
 Para probar el build de producción por `http` en local: `npm run build` y luego `API_BASE_URL=http://localhost:4000 SESSION_COOKIE_SECURE=false npm start`.
 
@@ -90,6 +105,12 @@ npm test
 Ninguna prueba necesita la API: el BFF se prueba con `fetch` simulado (`test/support/fake-api.ts`) y sustitutos de `next/headers`, y las pantallas con el módulo de acciones y las lecturas simulados. Hay dos proyectos de Vitest: `*.test.ts` corre en Node (BFF, configuración y lógica) y `*.test.tsx` en jsdom con Testing Library y `vitest-axe`. El título de cada prueba empieza con el ID del requisito que verifica (`WEB-17 …`, `DSG-09 …`).
 
 El contraste no se puede medir en jsdom; se verificó con Lighthouse (ver abajo).
+
+Las pruebas de transferencias programadas usan un reloj fijo, el 14 de octubre de 2026 a mediodía de la Ciudad de México, con `vi.useFakeTimers({ toFake: ['Date'] })`. Solo se falsea `Date`, así que user-event sigue funcionando. La fecha en palabras se prueba además con `TZ` en husos al oeste y al este de UTC.
+
+Un doble clic con `user.dblClick` no basta para probar el candado del envío. user-event envuelve cada evento en `act`, así que React deshabilita el botón entre los dos clics. Por eso las pruebas del candado ("Enviar" al programar y "Cancelar transferencia") hacen los dos clics dentro de un mismo `act`.
+
+La pantalla de programadas no usa `<dialog>` nativo porque jsdom no implementa `showModal()`. En su lugar, el diálogo sigue el patrón modal de WAI-ARIA, con `role="dialog"`, `aria-modal`, foco atrapado y Escape, y así se puede probar con el teclado en jsdom.
 
 ## Avisos conocidos
 

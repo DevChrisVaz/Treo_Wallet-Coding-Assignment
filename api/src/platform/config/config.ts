@@ -40,6 +40,15 @@ export interface AppConfig {
   };
   /** Firma HMAC de los cursores de paginación (HIS-05). */
   readonly cursorSigningSecret: Buffer;
+  /** Ejecutor de transferencias programadas (TRF-30, D6). */
+  readonly scheduler: {
+    /** `false` en pruebas, que llaman a `runOnce()` directamente. */
+    readonly enabled: boolean;
+    /** Cada cuánto corre una pasada (una a la vez por instancia). */
+    readonly intervalMs: number;
+    /** Candidatas por lote; si el lote viene lleno, la pasada pide el siguiente. */
+    readonly batchSize: number;
+  };
 }
 
 /** Error de arranque: nombra las variables inválidas, nunca sus valores. */
@@ -170,6 +179,12 @@ const envSchema = z.object({
   OTP_MAX_ATTEMPTS: boundedInt('OTP_MAX_ATTEMPTS', 3, 1, 3),
   OTP_MAX_RESENDS: boundedInt('OTP_MAX_RESENDS', 3, 0, 3),
   CURSOR_SIGNING_SECRET: secret('CURSOR_SIGNING_SECRET'),
+  SCHEDULER_ENABLED: z
+    .enum(['true', 'false'], { error: 'SCHEDULER_ENABLED debe ser true o false' })
+    .default('true')
+    .transform((value) => value === 'true'),
+  SCHEDULER_INTERVAL_MS: boundedInt('SCHEDULER_INTERVAL_MS', 60_000, 1_000, 3_600_000),
+  SCHEDULER_BATCH_SIZE: boundedInt('SCHEDULER_BATCH_SIZE', 100, 1, 1_000),
   LOG_LEVEL: z
     .enum(LOG_LEVELS, { error: `LOG_LEVEL debe ser uno de ${LOG_LEVELS.join(', ')}` })
     .default('info'),
@@ -218,5 +233,10 @@ export function loadConfig(env: Record<string, string | undefined>): AppConfig {
       otpMaxResends: e.OTP_MAX_RESENDS,
     },
     cursorSigningSecret: e.CURSOR_SIGNING_SECRET,
+    scheduler: {
+      enabled: e.SCHEDULER_ENABLED,
+      intervalMs: e.SCHEDULER_INTERVAL_MS,
+      batchSize: e.SCHEDULER_BATCH_SIZE,
+    },
   };
 }

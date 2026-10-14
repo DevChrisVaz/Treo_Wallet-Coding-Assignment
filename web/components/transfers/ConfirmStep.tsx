@@ -10,6 +10,7 @@ import { describeProblem } from '@/lib/client/problem-messages';
 import type { ConfirmStatus, TransferDraft } from '@/lib/client/transfer-flow';
 import { OTP_NOTICE, requiresOtp } from '@/lib/client/transfer-steps';
 import { maskClabe } from '@/lib/money';
+import { scheduledSendText } from './ScheduleField';
 import { AmountBlock, SummaryRow } from './TransferSummary';
 
 export interface ConfirmStepProps {
@@ -30,9 +31,10 @@ function rejectionTitle(problem: ActionProblem): string | undefined {
 }
 
 /**
- * Revisión (WEB-16, WEB-17, WEB-30): el monto como protagonista, el resumen del intento y el envío con
- * el botón deshabilitado desde el primer clic. Ante un fallo de red o 5xx solo se ofrece reintentar
- * (con la misma llave); editar en ese momento podría duplicar una transferencia que sí se hizo.
+ * Revisión (WEB-16, WEB-17, WEB-30): el monto como protagonista, el resumen del intento (con
+ * "Cuándo" si es programada, WEB-33) y el envío con el botón deshabilitado desde el primer clic.
+ * Ante un fallo de red o 5xx solo se ofrece reintentar (con la misma llave); editar en ese momento
+ * podría duplicar una transferencia que sí se hizo.
  */
 export function ConfirmStep({
   draft,
@@ -78,6 +80,9 @@ export function ConfirmStep({
           <SummaryRow term="Para" value={destinationText} />
           <SummaryRow term="Concepto" value={request.concept} />
           <SummaryRow term="Referencia" value={request.reference} />
+          {request.scheduledFor ? (
+            <SummaryRow term="Cuándo" value={scheduledSendText(request.scheduledFor)} />
+          ) : null}
         </dl>
       </ListSection>
       {requiresOtp(request.amount) ? <InlineAlert tone="info">{OTP_NOTICE}</InlineAlert> : null}
