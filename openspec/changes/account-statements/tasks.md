@@ -2,7 +2,7 @@ Requiere `contract-v1-2` (paquete 1.2.0) y la tarea 1.1 de `scheduled-transfers`
 
 ## 1. API
 
-- [ ] 1.1 [api] Instalar el contrato 1.2.0 y `@devchrisvaz/wallet-design-tokens` con `file:` e `install-links=true`; el CI de la API construye ambos paquetes y se dispara con cambios en `design-tokens/**`; las pruebas vigentes siguen pasando (HIS-11)
+- [x] 1.1 [api] Instalar el contrato 1.2.0 y `@devchrisvaz/wallet-design-tokens` con `file:` e `install-links=true`; el CI de la API construye ambos paquetes y se dispara con cambios en `design-tokens/**`; las pruebas vigentes siguen pasando (HIS-11)
 - [ ] 1.2 [api] Dominio: `StatementPeriod` (patrón, mes futuro, mes en curso parcial, inicio y fin en la Ciudad de México con la base IANA) con pruebas unitarias (HIS-11, HIS-12)
 - [ ] 1.3 [api] Dominio: `StatementSummary` con `BigInt` (abonos, cargos, saldo final y verificación de conciliación) con pruebas del mes vacío y del descuadre (HIS-12)
 - [ ] 1.4 [api] Proyección de asiento a movimiento compartida con el historial; las pruebas de HIS-03 siguen pasando sin cambios (HIS-12)

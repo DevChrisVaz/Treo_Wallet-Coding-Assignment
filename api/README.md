@@ -13,8 +13,9 @@ El contrato es [`contract/openapi.yaml`](../contract/openapi.yaml) (paquete `@de
 ## Puesta en marcha
 
 ```bash
-# 0. El paquete del contrato se instala como copia (file:../contract + install-links=true):
+# 0. El contrato y el paquete de diseño se instalan como copia (file:../ + install-links=true):
 (cd ../contract && npm ci && npm run build)
+(cd ../design-tokens && npm ci && npm run build)
 
 # 1. Dependencias y configuración
 npm ci
