@@ -52,7 +52,7 @@ Si Redis falla, el error sube: `currentSession` lo lanza, el layout protegido re
 - **`ioredis`.** Es igual de capaz, pero el proyecto de Redis recomienda node-redis para código nuevo.
 
 ### D6. Pruebas contra Redis real
-La suite de WEB-03 se convierte en una suite común (`test/support/session-store-contract.ts`) que reciben las dos implementaciones: la de memoria con reloj falso y la de Redis con tiempo real y un plazo de inactividad de 1 s. La de Redis agrega las pruebas propias (TTL, `touch` concurrente con `set` y con `delete`, reinicio, Redis caído). Corre cuando existe `TEST_REDIS_URL`, que debe apuntar a una base distinta de la 0 (las pruebas vacían esa base); en CI la prueba falla si falta la variable, para que no se salte en silencio.
+La suite de WEB-03 se convierte en una suite común (`test/support/session-store-contract.ts`) que reciben las dos implementaciones: la de memoria con reloj falso y la de Redis con tiempo real y un plazo de inactividad de 1 s. La de Redis agrega las pruebas propias (TTL, `touch` concurrente con `set` y con `delete`, reinicio, Redis caído). Corre cuando existe `TEST_REDIS_URL`, que debe apuntar a una base distinta de la 0, la de las sesiones de desarrollo; en CI la prueba falla si falta la variable, para que no se salte en silencio. Cada archivo borra solo sus propias llaves, nunca la base completa: los archivos corren en paralelo y un `FLUSHDB` de uno borraba la sesión que otro estaba esperando (visto con `MONITOR` al correr la suite completa).
 
 *Alternativa descartada:* un Redis simulado en memoria. No ejecuta Lua ni los TTL reales, que es justo lo que hay que probar.
 

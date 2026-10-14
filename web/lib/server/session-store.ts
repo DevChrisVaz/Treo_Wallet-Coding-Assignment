@@ -1,6 +1,7 @@
 import 'server-only';
 import type { User } from '@devchrisvaz/wallet-contract';
 import { serverEnv } from './env';
+import { createRedisSessionStore, redisClient } from './redis-session-store';
 
 /** Lo que el servidor guarda de cada sesión. Nada de esto llega al navegador (WEB-01). */
 export interface SessionData {
@@ -16,8 +17,8 @@ export interface SessionData {
 }
 
 /**
- * Puerto de almacenamiento de sesiones (D2 de web-app). En local es un `Map` en memoria; en AWS,
- * Redis con TTL renovado en cada acceso.
+ * Puerto de almacenamiento de sesiones (D2 de web-app): un `Map` en memoria o Redis con TTL
+ * renovado en cada acceso (`redis-session-store.ts`), en local con `REDIS_URL` y en AWS.
  */
 export interface SessionStore {
   /** Devuelve la sesión o `null`; la descarta si venció por inactividad o por su vigencia absoluta. */
@@ -76,10 +77,15 @@ function sessionsMap(): Map<string, SessionData> {
   return globalSessions.__treoWalletSessions;
 }
 
-/** Almacén de sesiones del proceso, con el plazo de `SESSION_IDLE_MINUTES`. */
+/**
+ * Almacén de sesiones con el plazo de `SESSION_IDLE_MINUTES`: Redis si hay `REDIS_URL` (las
+ * sesiones sobreviven al reinicio del servidor, WEB-37); si no, el Map del proceso.
+ */
 export function sessionStore(): SessionStore {
-  return createMemorySessionStore({
-    idleMs: serverEnv().sessionIdleMinutes * 60_000,
-    map: sessionsMap(),
-  });
+  const { redisUrl, sessionIdleMinutes } = serverEnv();
+  const idleMs = sessionIdleMinutes * 60_000;
+  if (redisUrl) {
+    return createRedisSessionStore({ connection: () => redisClient(redisUrl), idleMs });
+  }
+  return createMemorySessionStore({ idleMs, map: sessionsMap() });
 }

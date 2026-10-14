@@ -1,5 +1,6 @@
 import { createClient } from 'redis';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DOWN_REDIS_URL, TEST_REDIS_URL } from '@/test/support/redis';
 import { sessionData, tokenPair } from '@/test/support/session';
 import { describeSessionStoreContract } from '@/test/support/session-store-contract';
 import {
@@ -11,27 +12,6 @@ import {
 } from './redis-session-store';
 
 const MINUTE = 60_000;
-const TEST_REDIS_URL = testRedisUrl();
-/** Un puerto donde nada escucha: la conexión se rechaza de inmediato. */
-const DOWN_REDIS_URL = 'redis://127.0.0.1:1';
-
-/** `TEST_REDIS_URL` apunta a una base que las pruebas vacían; en CI es obligatoria (D6). */
-function testRedisUrl(): string | undefined {
-  const url = process.env.TEST_REDIS_URL?.trim();
-  if (!url) {
-    if (process.env.CI) {
-      throw new Error('TEST_REDIS_URL es obligatoria en CI: las pruebas de Redis no se saltan ahí');
-    }
-    return undefined;
-  }
-  if (['', '/', '/0'].includes(new URL(url).pathname)) {
-    throw new Error(
-      'TEST_REDIS_URL debe apuntar a una base distinta de la 0, porque las pruebas la vacían; ' +
-        'por ejemplo redis://localhost:6379/15',
-    );
-  }
-  return url;
-}
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -68,8 +48,9 @@ describe.skipIf(!TEST_REDIS_URL)('createRedisSessionStore', () => {
     await client.connect();
   });
 
+  // Solo sus llaves: los archivos de prueba corren en paralelo sobre la misma base.
   beforeEach(async () => {
-    await client.flushDb();
+    await client.del([`${SESSION_KEY_PREFIX}sid-1`, `${SESSION_KEY_PREFIX}no-existe`]);
   });
 
   afterAll(async () => {

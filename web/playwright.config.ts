@@ -28,7 +28,12 @@ export default defineConfig({
       url: 'http://127.0.0.1:3101/login',
       reuseExistingServer: false,
       timeout: 180_000,
-      env: { API_BASE_URL: 'http://127.0.0.1:4999', SESSION_COOKIE_SECURE: 'false' },
+      // REDIS_URL vacía gana sobre la de .env.local: el e2e usa sesiones en memoria, sin Docker.
+      env: {
+        API_BASE_URL: 'http://127.0.0.1:4999',
+        SESSION_COOKIE_SECURE: 'false',
+        REDIS_URL: '',
+      },
     },
   ],
 });
