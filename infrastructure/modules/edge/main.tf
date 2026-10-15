@@ -28,7 +28,7 @@ resource "aws_wafv2_web_acl" "this" {
     allow {}
   }
 
-  # Primera barrera del rate limiting de login (la API cuenta además por IP y correo, IDN).
+  # Primera barrera del rate limiting de login y registro (la API cuenta además por IP y correo).
   rule {
     name     = "auth-rate-limit"
     priority = 0
@@ -61,6 +61,22 @@ resource "aws_wafv2_web_acl" "this" {
             statement {
               byte_match_statement {
                 search_string         = "/login"
+                positional_constraint = "STARTS_WITH"
+                field_to_match {
+                  uri_path {}
+                }
+                text_transformation {
+                  priority = 0
+                  type     = "LOWERCASE"
+                }
+              }
+            }
+            # El registro responde qué dato de identidad ya tiene cuenta (D14 de ux-fixes): el límite
+            # por IP es la mitigación de esa enumeración. La Server Action del BFF entra por aquí; la
+            # llamada del BFF a /auth/register va por el ALB interno y WAF no la ve.
+            statement {
+              byte_match_statement {
+                search_string         = "/register"
                 positional_constraint = "STARTS_WITH"
                 field_to_match {
                   uri_path {}

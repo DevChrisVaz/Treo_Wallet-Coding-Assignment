@@ -46,7 +46,7 @@ variable "origin_read_timeout_seconds" {
 }
 
 variable "auth_rate_limit_per_5_minutes" {
-  description = "Peticiones por IP en 5 minutos a /auth/* y /login antes de bloquear."
+  description = "Peticiones por IP en 5 minutos a /auth/*, /login y /register antes de bloquear."
   type        = number
   default     = 100
 }
