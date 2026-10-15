@@ -153,7 +153,7 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | PLT-11 | Documentación navegable del contrato | api-foundation | 1: api-foundation#3.9 | 1: 6857381 | api 5 |
 | PLT-12 | Conformidad de las respuestas con el contrato | api-foundation | 1: api-foundation#3.10 | 1: e853997 | api 6 |
 | PLT-13 | Entorno local reproducible | api-foundation, ux-fixes | 6: api-foundation#1.1 api-foundation#1.4 api-foundation#3.12 (+3) | 10: b211155 7663863 b79fd1e (+7) | api 13 |
-| PLT-14 | Roles de base de datos de privilegio mínimo | api-foundation, tooling-fixes | 4: api-foundation#2.1 api-foundation#2.9 tooling-fixes#1.1 (+1) | 6: c9eb57f 1ccf5bb ee6eef4 (+3) | api 25 |
+| PLT-14 | Roles de base de datos de privilegio mínimo | api-foundation, tooling-fixes | 4: api-foundation#2.1 api-foundation#2.9 tooling-fixes#1.1 (+1) | 8: 197606e 06c1f9f c9eb57f (+5) | api 25 |
 | PLT-15 | Esquema gestionado solo por migraciones reversibles | api-foundation | 3: api-foundation#2.2 api-foundation#2.9 api-foundation#9.1 | 4: a8230bd 3c1128f 2a0ebd5 (+1) | api 17 |
 | PLT-16 | Entrega de correo transaccional | api-foundation, security-hardening | 4: api-foundation#5.1 api-foundation#5.2 security-hardening#3.2 (+1) | 12: d8accf3 b2eb142 4ecc6b1 (+9) | api 31 |
 | PLT-17 | Integración continua del proyecto | api-foundation | 2: api-foundation#9.1 api-foundation#9.2 | 3: 2bdbcc7 baa7583 a8230bd | — |
@@ -235,10 +235,10 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | WEB-35 | Recibir dinero | ux-fixes | 1: ux-fixes#7.1 | 2: 64d86f3 b79fd1e | web 8 |
 | WEB-36 | Búsqueda de beneficiarios | ux-fixes | 1: ux-fixes#8.2 | 2: 64d86f3 b79fd1e | web 14 |
 | WEB-37 | Sesión que sobrevive al reinicio del servidor web | web-redis-sessions | 7: web-redis-sessions#1.1 web-redis-sessions#1.2 web-redis-sessions#2.2 (+4) | 17: c8268c5 3c08507 0a23acf (+14) | web 15 |
-| WEB-38 | Headers de seguridad en toda respuesta | security-hardening | 5: security-hardening#4.3 security-hardening#4.5 tooling-fixes#2.1 (+2) | 13: c9eb57f 6f63631 498573d (+10) | web 12 |
-| WEB-39 | Content-Security-Policy con nonce | security-hardening | 6: security-hardening#4.4 security-hardening#4.5 security-hardening#4.6 (+3) | 14: c9eb57f 6f63631 498573d (+11) | web 17 |
+| WEB-38 | Headers de seguridad en toda respuesta | security-hardening | 5: security-hardening#4.3 security-hardening#4.5 tooling-fixes#2.1 (+2) | 15: 197606e 06c1f9f c9eb57f (+12) | web 12 |
+| WEB-39 | Content-Security-Policy con nonce | security-hardening | 6: security-hardening#4.4 security-hardening#4.5 security-hardening#4.6 (+3) | 16: 197606e 06c1f9f c9eb57f (+13) | web 17 |
 | WEB-40 | Un 429 no cierra la sesión ni se reintenta | security-hardening | 1: security-hardening#4.2 | 6: d8accf3 b2eb142 4ecc6b1 (+3) | web 7 |
-| WEB-41 | Icono de la aplicación | tooling-fixes | 2: tooling-fixes#2.2 tooling-fixes#3.1 | 3: c9eb57f 6f63631 ee6eef4 | web 1 |
+| WEB-41 | Icono de la aplicación | tooling-fixes | 2: tooling-fixes#2.2 tooling-fixes#3.1 | 5: 197606e 06c1f9f c9eb57f (+2) | web 1 |
 
 ## Huecos
 
