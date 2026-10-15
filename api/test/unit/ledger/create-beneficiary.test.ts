@@ -8,6 +8,9 @@ import {
   type BeneficiaryStore,
 } from '../../../src/modules/beneficiaries/application/create-beneficiary.js';
 import type { BeneficiaryClabeResolver } from '../../../src/modules/beneficiaries/application/clabe-resolver.js';
+import type { UserRepository } from '../../../src/modules/identity/application/users.js';
+import { NoticeDispatcher } from '../../../src/platform/mail/notice-dispatcher.js';
+import { captureLogger } from '../../helpers/logs.js';
 import type { Transaction, TransactionRunner } from '../../../src/shared/transaction.js';
 import { DomainError } from '../../../src/shared/errors.js';
 import { FakeClock } from '../../helpers/fake-clock.js';
@@ -58,6 +61,8 @@ function setup() {
     store,
     resolver,
     audit,
+    users: { findById: async () => ({ email: 'ana@example.com' }) } as unknown as UserRepository,
+    notices: new NoticeDispatcher({ send: async () => undefined }, captureLogger().logger),
     clock: new FakeClock('2026-10-13T18:00:00.000Z'),
   });
   return { store, events, useCase };

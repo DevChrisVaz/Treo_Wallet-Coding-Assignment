@@ -293,6 +293,8 @@ export async function createContainer(
         store: beneficiaryStore,
         resolver: new BeneficiaryClabeResolver(beneficiaryStore, config.clabe.bankCode),
         audit,
+        users,
+        notices,
         clock,
       }),
     },
