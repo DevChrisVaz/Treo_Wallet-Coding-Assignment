@@ -71,9 +71,10 @@ resource "aws_wafv2_web_acl" "this" {
                 }
               }
             }
-            # El registro responde qué dato de identidad ya tiene cuenta (D14 de ux-fixes): el límite
-            # por IP es la mitigación de esa enumeración. La Server Action del BFF entra por aquí; la
-            # llamada del BFF a /auth/register va por el ALB interno y WAF no la ve.
+            # El aviso del registro revela a quien controla el correo que su CURP, RFC o teléfono ya
+            # tienen cuenta (IDN-03): el límite por IP encarece esa enumeración. La Server Action del
+            # BFF entra por aquí; la llamada del BFF a /auth/register va por el ALB interno y WAF no
+            # la ve.
             statement {
               byte_match_statement {
                 search_string         = "/register"

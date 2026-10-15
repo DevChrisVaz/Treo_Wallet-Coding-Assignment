@@ -641,6 +641,19 @@ El prompt con el que empezó el rediseño no quedó registrado textualmente. La 
 
 **Pendiente:** el *single-flight* de la renovación sigue siendo por proceso (aceptado en D2 de `web-app`), y el rate limiting de la API sigue en memoria.
 
+## Sesión 10 — 2026-10-14 · Se revierte D14 de `ux-fixes`
+
+**Prompt clave:** "undo d14", tras una revisión automática de seguridad que marcó la enumeración de datos de identidad en el registro.
+
+**Quién:** Claude Code con Claude Opus 5.5, en una rama aparte (`dev/undo-d14`) mientras otra sesión terminaba `registration-birth-data` sobre los mismos archivos del registro; se coordinaron por mensajes y la rama se rebasó dos veces sobre sus commits.
+
+**Qué se hizo:** el registro vuelve a la respuesta uniforme de IDN-01 e IDN-03 de `api-foundation`: `202` en todos los casos y el aviso "No pudimos completar tu registro" cuando la CURP, el RFC o el teléfono ya son de otra cuenta. `ALREADY_REGISTERED` sale del contrato (en la 1.4.0, sin publicar), de la API y de la web. D14 queda en `design.md` como decisión revertida, con las tareas 2.7 a 2.9.
+
+**Hallazgos de esta sesión:**
+- **Revertir no cierra la enumeración.** La segunda revisión de seguridad lo señaló: quien controla el correo recibe el aviso en lugar de un código, así que sabe que el dato ya tiene cuenta. La AI había descrito la reversión como "avisar al dueño de la cuenta"; el código original avisa al correo que se escribe en el formulario. Se corrigió la descripción y se le planteó al usuario cómo seguir: mitigaciones (avisar al dueño real, límite por dato) o registro en revisión.
+- **La rama no compilaba por un trabajo a medias de otra sesión.** El contrato 1.4.0 ya estaba en `release` sin el código de la API y de la web que lo usa. Antes de culpar a la reversión, se comprobó que las pruebas que fallaban eran las de esos campos y se esperó a que la otra sesión terminara.
+- **Pruebas sin tocar el entorno del usuario.** PostgreSQL y Mailpit corrieron en un proyecto de compose propio (`treo-undo-d14`) con otros puertos, y `db:bootstrap` con `COMPOSE_PROJECT_NAME` fijado: el hallazgo de la sesión 6.
+
 ## Correcciones a la AI, en conjunto
 
 Índice de lo que la AI propuso mal o dejó inseguro, ordenado por lo que importa en un sistema de dinero. Cada punto está explicado en la sesión que se indica.
