@@ -8,7 +8,6 @@ import type { TransactionRunner } from '../../../shared/transaction.js';
 import type { AuditWriter } from '../../audit/application/audit-writer.js';
 import {
   registrationAttemptEmail,
-  registrationNotCompletedEmail,
   verificationCodeEmail,
   type EmailContent,
 } from './email-templates.js';
@@ -48,17 +47,16 @@ export interface RegisterUserDeps {
 type Outcome =
   | { readonly kind: 'CODE'; readonly fullName: string; readonly code: string }
   | { readonly kind: 'ALREADY_VERIFIED' }
-  | { readonly kind: 'IDENTITY_CONFLICT' }
   | { readonly kind: 'NOTHING' };
 
 /**
  * `POST /auth/register` (IDN-01, IDN-02, IDN-03). Responde igual en todas las ramas; el caso de
  * uso solo decide qué hacer y qué correo enviar:
- * - email nuevo con datos únicos: crea el usuario sin verificar, emite el código y audita;
+ * - email nuevo: crea el usuario sin verificar, emite el código y audita. Si su CURP, RFC o
+ *   teléfono ya son de otro usuario activo (pre-chequeo o índice único), lo crea en revisión, con
+ *   el mismo código y el mismo correo: nada distingue el caso hasta la verificación (IDN-06);
  * - email verificado: no cambia nada y avisa al dueño;
- * - email sin verificar: conserva los datos y reenvía un código (si quedan reenvíos);
- * - CURP, RFC o teléfono de otro usuario (pre-chequeo o constraint única): no crea nada y envía un
- *   aviso genérico.
+ * - email sin verificar: conserva los datos y reenvía un código (si quedan reenvíos).
  */
 export class RegisterUser {
   constructor(private readonly deps: RegisterUserDeps) {}
@@ -68,18 +66,24 @@ export class RegisterUser {
     const passwordHash = await this.deps.hasher.hash(input.password);
     let outcome: Outcome;
     try {
-      outcome = await this.attempt(input, passwordHash);
+      outcome = await this.attempt(input, passwordHash, false);
     } catch (error) {
-      if (error instanceof IdentityAlreadyTaken) outcome = { kind: 'IDENTITY_CONFLICT' };
+      // Otro registro activo con la misma CURP, RFC o teléfono ganó la carrera: este queda en revisión.
+      if (error instanceof IdentityAlreadyTaken)
+        outcome = await this.attempt(input, passwordHash, true);
       // Otro registro con el mismo email ganó la carrera: se repite y cae en la rama que toque.
       else if (error instanceof EmailAlreadyTaken)
-        outcome = await this.attempt(input, passwordHash);
+        outcome = await this.attempt(input, passwordHash, false);
       else throw error;
     }
     await this.notify(input.email, outcome);
   }
 
-  private attempt(input: RegisterUserInput, passwordHash: string): Promise<Outcome> {
+  private attempt(
+    input: RegisterUserInput,
+    passwordHash: string,
+    identityTaken: boolean,
+  ): Promise<Outcome> {
     const { transactions, users, codes, audit, clock } = this.deps;
     return transactions.run(async (tx): Promise<Outcome> => {
       const existing = await users.findByEmailForUpdate(tx, input.email);
@@ -100,7 +104,7 @@ export class RegisterUser {
         });
         return { kind: 'CODE', fullName: existing.fullName, code: issued.code };
       }
-      if (await users.identityInUse(tx, input)) return { kind: 'IDENTITY_CONFLICT' };
+      const identityConflict = identityTaken || (await users.identityInUse(tx, input));
 
       const id = randomUUID();
       const fullName = composeFullName(input);
@@ -118,12 +122,14 @@ export class RegisterUser {
         rfc: input.rfc,
         phone: input.phone,
         createdAt: clock.now(),
+        identityConflict,
       });
       const issued = await codes.issue(tx, 'EMAIL_VERIFICATION', id, EMAIL_VERIFICATION_POLICY);
       await audit.record(tx, {
         action: 'USER_REGISTERED',
         actor: { type: 'ANONYMOUS' },
         entity: { type: 'user', id },
+        ...(identityConflict ? { metadata: { inReview: true } } : {}),
       });
       return { kind: 'CODE', fullName, code: issued.code };
     });
@@ -142,9 +148,7 @@ export class RegisterUser {
           ]
         : outcome.kind === 'ALREADY_VERIFIED'
           ? [registrationAttemptEmail(), 'registration-attempt']
-          : outcome.kind === 'IDENTITY_CONFLICT'
-            ? [registrationNotCompletedEmail(), 'registration-not-completed']
-            : undefined;
+          : undefined;
     if (!content) return undefined;
     const [mail, template] = content;
     return deliverAfterCommit(this.deps.mailer, this.deps.logger, { to: email, ...mail }, template);

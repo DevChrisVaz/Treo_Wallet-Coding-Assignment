@@ -18,9 +18,17 @@ export interface UserRecord {
   readonly phone: string;
   readonly emailVerifiedAt: Date | null;
   readonly createdAt: Date;
+  /**
+   * Registro en revisión (IDN-03): al registrarse, su CURP, RFC o teléfono ya eran de otro usuario.
+   * No abre cuentas ni inicia sesión.
+   */
+  readonly identityConflict: boolean;
 }
 
-export type NewUser = Omit<UserRecord, 'emailVerifiedAt'>;
+/** Usuario por crear; sin `identityConflict`, no está en revisión. */
+export type NewUser = Omit<UserRecord, 'emailVerifiedAt' | 'identityConflict'> & {
+  readonly identityConflict?: boolean;
+};
 
 /** El email ya existe (carrera entre dos registros con el mismo email). */
 export class EmailAlreadyTaken extends Error {
@@ -30,7 +38,7 @@ export class EmailAlreadyTaken extends Error {
   }
 }
 
-/** La CURP, el RFC o el teléfono ya pertenecen a otro usuario (IDN-03). */
+/** La CURP, el RFC o el teléfono ya pertenecen a otro usuario que no está en revisión (IDN-03). */
 export class IdentityAlreadyTaken extends Error {
   constructor() {
     super('Los datos de identidad ya pertenecen a otro usuario');
@@ -44,7 +52,7 @@ export interface UserRepository {
   findById(id: string): Promise<UserRecord | null>;
   /** Busca por email y bloquea la fila, para serializar operaciones sobre el mismo usuario. */
   findByEmailForUpdate(tx: Transaction, email: string): Promise<UserRecord | null>;
-  /** ¿Alguna de la CURP, el RFC o el teléfono pertenece ya a otro usuario? */
+  /** ¿Alguna de la CURP, el RFC o el teléfono pertenece ya a otro usuario que no está en revisión? */
   identityInUse(
     tx: Transaction,
     identity: { readonly curp: string; readonly rfc: string; readonly phone: string },

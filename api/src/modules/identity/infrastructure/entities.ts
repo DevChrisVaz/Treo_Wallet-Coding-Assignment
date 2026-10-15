@@ -16,6 +16,7 @@ export interface UserRow {
   phone: string;
   emailVerifiedAt: Date | null;
   createdAt: Date;
+  identityConflict: boolean;
 }
 
 export const UserEntity = new EntitySchema<UserRow>({
@@ -36,5 +37,6 @@ export const UserEntity = new EntitySchema<UserRow>({
     phone: { type: 'text' },
     emailVerifiedAt: { type: 'timestamptz', name: 'email_verified_at', nullable: true },
     createdAt: { type: 'timestamptz', name: 'created_at' },
+    identityConflict: { type: 'boolean', name: 'identity_conflict' },
   },
 });
