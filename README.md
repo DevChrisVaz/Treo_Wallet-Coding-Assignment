@@ -73,7 +73,7 @@ Son cinco proyectos independientes en un solo repositorio. **No es un monorepo:*
 
 - **Sin carpeta `/specs`:** la especificación vive en `openspec/` con su estructura nativa. Ver [Especificación y bitácora de AI](#especificación-y-bitácora-de-ai).
 - **Sin monorepo:** cada proyecto se puede construir, probar y desplegar por su cuenta, y se separará en su propio repositorio.
-- **La web no es un sitio estático:** es un BFF que guarda la sesión en el servidor, ejecuta Server Actions y llama a la API con el access token. Por eso en AWS no aplica S3 + CloudFront, que sugiere el enunciado. Se planea Next.js en ECS Fargate detrás de CloudFront (`openspec/changes/delivery/design.md`, D3).
+- **La web no es un sitio estático:** es un BFF que guarda la sesión en el servidor, ejecuta Server Actions y llama a la API con el access token. Por eso en AWS no aplica S3 + CloudFront, que sugiere el enunciado. Se planea Next.js en ECS Fargate detrás de CloudFront (`openspec/changes/archive/2026-10-15-delivery/design.md`, D3).
 
 ## Arquitectura
 
@@ -1087,7 +1087,9 @@ Así se rastrea cada requisito en el código:
 | `redesign`                                                | design-tokens, web, mobile      | DSG-13 a DSG-17, WEB-24 a WEB-31, MOB-18 a MOB-22       | Aplicado e integrado en `release`; faltan la verificación en Expo Go y subir los lienzos a Claude Design |
 | `ux-fixes`                                                | contract, api, web, mobile, docs | Cambios a CTR-11 a CTR-13, CTR-18, IDN-02, TRF-09, TRF-27 a TRF-30, HIS-11, WEB-11 a WEB-34 y MOB-06 a MOB-23; nuevos CTR-20, WEB-35, WEB-36, MOB-28 y MOB-29 | Completo                                                    |
 | `web-redis-sessions`                                      | web                             | WEB-37                                                  | Completo                                                    |
-| `delivery`                                                | docs                            | Sin requisitos nuevos                                   | Pendiente: video y CIs en verde en `main` |
+| `registration-review`                                     | contract, design-tokens, api, web, mobile | IDN-16, MOB-30 y cambios a IDN-03, IDN-06, IDN-08, AUD-01, DSG-12, WEB-11 y WEB-12| Completo                                                    |
+| `security-hardening`                                      | contract, api, web, mobile, docs | PLT-19, PLT-20, IDN-17 a IDN-19, BEN-12, TRF-37, TRF-38, CTR-22, WEB-38 a WEB-40, MOB-31 y MOB-32; cambios a PLT-16, TRF-15 y WEB-10 | Completo; falta ver llegar el `User-Agent` de la app desde un teléfono |
+| `delivery`                                                | docs                            | Sin requisitos nuevos                                   | Completo                                  |
 
 ### Mapa de la especificación
 
@@ -1145,8 +1147,9 @@ Cada change tiene un `design.md` con las decisiones y las alternativas descartad
 | [`redesign`](openspec/changes/archive/2026-10-14-redesign/design.md) | Prototipo en una rama con aprobación visual antes de aplicar; paridad web y móvil; tokens v2 aditivos |
 | [`domain-test-coverage`](openspec/changes/archive/2026-10-14-domain-test-coverage/design.md) | Cada prueba escrita después del código se demuestra rompiendo la regla; una base de datos por línea de trabajo |
 | [`web-redis-sessions`](openspec/changes/archive/2026-10-14-web-redis-sessions/design.md) | Sesiones en Redis con `REDIS_URL` y en un `Map` sin ella; un hash por sesión con TTL; renovación del plazo atómica en Lua; conexión que falla rápido; la misma suite de pruebas para las dos implementaciones |
+| [`registration-review`](openspec/changes/archive/2026-10-15-registration-review/design.md) | Un registro con datos de otra cuenta sigue el mismo camino hasta verificar el correo y queda en revisión, sin cuentas; el dueño de los datos recibe un aviso; la resolución la hace soporte |
 | [`security-hardening`](openspec/changes/security-hardening/design.md) | Solo el tope de cada límite es configurable y los de transferencias son por usuario; `no-store` en toda la API; CSP con nonce en `proxy.ts` y `Referrer-Policy` que no rompe el `Origin` de las Server Actions; avisos que no hacen esperar la respuesta, con un `drain()` de 5 s al apagar; el `User-Agent` descrito sin dependencias |
-| [`delivery`](openspec/changes/delivery/design.md) | Propuesta de AWS ([`docs/aws-deploy.md`](docs/aws-deploy.md)), trazabilidad generada, guion del video |
+| [`delivery`](openspec/changes/archive/2026-10-15-delivery/design.md) | Propuesta de AWS ([`docs/aws-deploy.md`](docs/aws-deploy.md)), trazabilidad generada, guion del video |
 
 La [bitácora de AI](docs/ai-log.md) registra qué propuso la AI, qué acepté, qué rechacé o cambié, y dónde se equivocó y se corrigió.
 
@@ -1163,9 +1166,9 @@ Dónde está cada punto de la lista de entregables y su estado.
 | Esqueleto de infraestructura como código (bonus) | [`infrastructure/`](infrastructure/README.md), en Terraform | Escrito y probado con proveedores simulados en cada ambiente. **No se ha aplicado** en una cuenta de AWS y faltan los `Dockerfile` |
 | Documentación OpenAPI navegable en local | Swagger UI en `http://localhost:4000/docs` y el contrato en `/openapi.yaml` ([Ejecución en local](#ejecución-en-local)) | Cumple. Verificado desde un clon limpio |
 | Instrucciones para correr la app móvil | [App móvil](#3-app-móvil) y [Configuración](#app-móvil-mobileenv) (Expo Go o simulador apuntando a la API local) | Cumple. El bundle compila (`npx expo export`); falta el recorrido en un teléfono ([Verificaciones manuales](#verificaciones-manuales)) |
-| Video de 5 minutos como máximo, con un intento de transferencia con saldo insuficiente | No grabado ni enlazado. El guion (`docs/video-script.md`) se retiró del historial del repositorio | **Pendiente** |
+| Video de 5 minutos como máximo, con un intento de transferencia con saldo insuficiente | [Video de la demostración](https://drive.google.com/file/d/1uF4yFn2P0kxhP6OgfimsCGjsEd12WqLq/view?usp=sharing) | Cumple |
 | `README.md` con cómo correr en local, cómo correr pruebas y "qué haría con más tiempo" | Este archivo: [Ejecución en local](#ejecución-en-local), [Pruebas](#pruebas), [¿Qué haría con más tiempo?](#qué-haría-con-más-tiempo) | Cumple |
-| Pipeline de CI con lint y pruebas, en verde en la rama principal | Un workflow por proyecto en [`.github/workflows/`](.github/workflows/) (`api`, `web`, `mobile`, `contract`, `design-tokens`, `infrastructure`), con sus insignias arriba | **Pendiente de comprobar:** los workflows corren en `release`, la rama principal de este repositorio, y no existe una rama `main`. No se ha verificado con `gh run list` que estén en verde |
+| Pipeline de CI con lint y pruebas, en verde en la rama principal | Un workflow por proyecto en [`.github/workflows/`](.github/workflows/) (`api`, `web`, `mobile`, `contract`, `design-tokens`, `infrastructure`), con sus insignias arriba | Cumple. Los workflows corren en `release`, la rama principal de este repositorio (no existe una rama `main`). Verificado con `gh run list --branch release`: los seis en verde sobre el commit `29ff901` |
 
 ## Avisos conocidos
 
