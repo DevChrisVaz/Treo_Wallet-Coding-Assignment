@@ -10,7 +10,8 @@ import { PRIVATE_PATHS, PUBLIC_PATHS, login, scenario } from './support';
  * El indicador y el visor de errores de `next dev` (`next-devtools`) inyectan `<style>` sin nonce. No
  * existen en la compilación de producción, donde la misma prueba no tiene excepciones.
  */
-const DEV_TOOLS = /next-devtools/;
+const PRODUCTION = process.env.E2E_PROD === '1';
+const DEV_TOOLS = PRODUCTION ? /^(?!)/ : /next-devtools/;
 
 const CSP_MESSAGE = /Content[- ]Security[- ]Policy|Refused to|violates the following/i;
 
@@ -152,6 +153,15 @@ test('WEB-38 las páginas, las rutas del BFF y los archivos de _next llevan los 
   const asset = await page.request.get(scriptSrc ?? '');
   expect(asset.ok()).toBe(true);
   check(asset.headers(), scriptSrc ?? '_next');
+});
+
+test('WEB-39 unsafe-eval solo aparece en desarrollo', async ({ page }) => {
+  const response = await page.goto('/login');
+  const policy = (await response?.headerValue('content-security-policy')) ?? '';
+  const scriptSrc = policy.split('; ').find((directive) => directive.startsWith('script-src'));
+  if (PRODUCTION) expect(scriptSrc).not.toContain('unsafe-eval');
+  else expect(scriptSrc).toContain("'unsafe-eval'");
+  expect(scriptSrc).not.toContain('unsafe-inline');
 });
 
 test('WEB-38 WEB-06 con el Referrer-Policy vigente el inicio de sesión (Server Action) funciona', async ({
