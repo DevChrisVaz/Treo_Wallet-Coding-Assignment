@@ -110,6 +110,16 @@ describe('TextField', () => {
     expect(screen.getByLabelText('Contraseña')).toHaveProp('secureTextEntry', true);
   });
 
+  test('la variante de contraseña tiene un botón que muestra y oculta el texto', async () => {
+    await render(
+      <TextField label="Contraseña" variant="password" value="x" onChangeText={() => {}} />,
+    );
+    await fireEvent.press(screen.getByLabelText('Mostrar contraseña'));
+    expect(screen.getByLabelText('Contraseña')).toHaveProp('secureTextEntry', false);
+    await fireEvent.press(screen.getByLabelText('Ocultar contraseña'));
+    expect(screen.getByLabelText('Contraseña')).toHaveProp('secureTextEntry', true);
+  });
+
   test('MOB-29 la variante de búsqueda lleva lupa, teclado de búsqueda y sin etiqueta visible', async () => {
     await render(
       <TextField

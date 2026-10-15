@@ -10,6 +10,8 @@ import {
   CircleAlert,
   CircleCheck,
   Copy,
+  Eye,
+  EyeOff,
   House,
   Info,
   Landmark,
@@ -56,7 +58,7 @@ export const ICONS = {
 
 /**
  * Glifos propios de la app que aún no están en el mapa compartido de `design-tokens`: buscar
- * (`search`), recibir dinero (flecha entrante, `receive`), copiar (`copy`) y compartir (`share`).
+ * (`search`), recibir dinero (flecha entrante, `receive`), copiar (`copy`) y compartir (`share`), y mostrar u ocultar la contraseña (`eye`, `eyeOff`).
  * Nombres iguales a los que usa la web para la misma función (MOB-28, MOB-29).
  */
 export const EXTRA_ICONS = {
@@ -64,6 +66,8 @@ export const EXTRA_ICONS = {
   receive: ArrowDownToLine,
   copy: Copy,
   share: Share2,
+  eye: Eye,
+  eyeOff: EyeOff,
 } as const satisfies Record<string, LucideIcon>;
 
 export type ExtraIconConcept = keyof typeof EXTRA_ICONS;
