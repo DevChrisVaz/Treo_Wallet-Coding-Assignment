@@ -32,18 +32,20 @@ export function transferRoutes(
   handlers: TransferHandlers,
   authenticateRequest: RequestHandler,
   clock: Clock,
-  limits: Pick<AppConfig['rateLimits'], 'transferCreateMax'>,
+  limits: Pick<
+    AppConfig['rateLimits'],
+    'transferCreateMax' | 'transferConfirmMax' | 'transferResendMax' | 'transferCancelMax'
+  >,
 ) {
   const routes = routeTable(authenticateRequest);
   // Por usuario (TRF-37): después de autenticar y antes de validar. Una repetición de la misma
   // llave de idempotencia también cuenta; el margen está en los topes, no en una excepción.
-  const createLimit = rateLimit({
-    name: 'transfer-create',
-    windowMs: 10 * MINUTE,
-    limit: limits.transferCreateMax,
-    key: byUser,
-    clock,
-  });
+  const perUser = (name: string, windowMinutes: number, limit: number) =>
+    rateLimit({ name, windowMs: windowMinutes * MINUTE, limit, key: byUser, clock });
+  const createLimit = perUser('transfer-create', 10, limits.transferCreateMax);
+  const confirmLimit = perUser('transfer-confirm', 15, limits.transferConfirmMax);
+  const resendLimit = perUser('transfer-resend', 15, limits.transferResendMax);
+  const cancelLimit = perUser('transfer-cancel', 10, limits.transferCancelMax);
 
   routes.post('/transfers', createLimit, async (req, res) => {
     // La llave se valida antes que el cuerpo; ninguna de las dos validaciones la consume (TRF-02).
@@ -78,7 +80,7 @@ export function transferRoutes(
     res.status(200).json(transfer);
   });
 
-  routes.post('/transfers/:transferId/confirm', async (req, res) => {
+  routes.post('/transfers/:transferId/confirm', confirmLimit, async (req, res) => {
     const input = parseBody(confirmTransferRequestSchema, req.body);
     const transfer = await handlers.confirmTransfer.execute(
       res.locals.userId as string,
@@ -88,7 +90,7 @@ export function transferRoutes(
     res.status(200).json(transfer);
   });
 
-  routes.post('/transfers/:transferId/otp/resend', async (req, res) => {
+  routes.post('/transfers/:transferId/otp/resend', resendLimit, async (req, res) => {
     const challenge = await handlers.resendTransferOtp.execute(
       res.locals.userId as string,
       String(req.params.transferId),
@@ -96,7 +98,7 @@ export function transferRoutes(
     res.status(202).json(challenge);
   });
 
-  routes.post('/transfers/:transferId/cancel', async (req, res) => {
+  routes.post('/transfers/:transferId/cancel', cancelLimit, async (req, res) => {
     const transfer = await handlers.cancelTransfer.execute(
       res.locals.userId as string,
       String(req.params.transferId),
