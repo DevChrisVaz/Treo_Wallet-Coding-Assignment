@@ -5,7 +5,7 @@
 ## 2. Web: CI e icono
 
 - [x] 2.1 [web] Paso `npm run test:e2e:prod` en `.github/workflows/web.yml` después de las pruebas en navegador, con su nombre que cita WEB-38 y WEB-39; el YAML validado y la corrida local de `test:e2e:prod` en verde (WEB-38, WEB-39)
-- [ ] 2.2 [web] `app/icon.svg` (monograma "T" con el color `action.primary`) y `app/favicon.ico` (16, 32 y 48 px) generado desde el SVG; `icon.svg` fuera del `matcher` del proxy; la prueba e2e de las pantallas falla ante cualquier recurso del mismo origen que responda ≥ 400 o error de consola, y comprueba que `/favicon.ico` e `/icon.svg` responden `200` con los headers de WEB-38 y sin violaciones de la política; prueba del `matcher` actualizada (WEB-41, WEB-09, WEB-38, WEB-39)
+- [x] 2.2 [web] `app/icon.svg` (monograma "T" con el color `action.primary`) y `app/favicon.ico` (16, 32 y 48 px) generado desde el SVG; `icon.svg` fuera del `matcher` del proxy; la prueba e2e de las pantallas falla ante cualquier recurso del mismo origen que responda ≥ 400 o error de consola, y comprueba que `/favicon.ico` e `/icon.svg` responden `200` con los headers de WEB-38 y sin violaciones de la política; prueba del `matcher` actualizada (WEB-41, WEB-09, WEB-38, WEB-39)
 
 ## 3. Documentación
 

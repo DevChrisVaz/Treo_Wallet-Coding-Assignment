@@ -24,7 +24,7 @@ describe('proxy', () => {
   });
 
   it('WEB-09 no corre en el BFF ni en los archivos estáticos', () => {
-    expect(config.matcher).toEqual(['/((?!bff/|_next/|favicon.ico).*)']);
+    expect(config.matcher).toEqual(['/((?!bff/|_next/|favicon.ico|icon.svg).*)']);
   });
 });
 

@@ -71,9 +71,14 @@ El paso lleva el nombre `Pruebas de la compilación de producción (headers y po
 - **Headers estáticos.** `headers()` de `next.config.ts` usa `source: '/:path*'`; se comprueba con una petición real que `/favicon.ico` e `/icon.svg` llevan los headers de WEB-38.
 
 ### D7. Que las pruebas e2e noten un 404 de recurso
-Hoy `security-headers.spec.ts` filtra los mensajes de consola por CSP y Permissions-Policy, y no registra "Failed to load resource" (el 404 de `/favicon.ico` nunca la habría hecho fallar). La prueba que recorre las pantallas pasa a registrar también los mensajes `error` de la consola y las respuestas con estado ≥ 400 de recursos del mismo origen (`page.on('response')`), y falla ante cualquiera, sin excepción para el icono. Se comprobó que sin el icono la prueba falla (404) y con él pasa. Cada pantalla se visita como antes, así que no cambian el tiempo ni los puertos.
+Hoy `security-headers.spec.ts` filtra los mensajes de consola por CSP y Permissions-Policy, y no registra "Failed to load resource": el 404 de `/favicon.ico` nunca la habría hecho fallar. Dos cambios:
+- Las pruebas que recorren las pantallas registran también los mensajes `error` de la consola y las respuestas de recursos del mismo origen con estado ≥ 400 (`page.on('response')`), y fallan ante cualquiera, sin excepción para el icono.
+- Una prueba nueva (WEB-41) pide el icono explícitamente: el `<head>` declara el SVG y el `favicon.ico`, ambas URL declaradas (con su huella) y `/favicon.ico` a secas responden `200` con el tipo de imagen y los headers de WEB-38, y el SVG carga como imagen bajo la política.
 
-- _Alternativa descartada:_ agregar una prueba aparte solo para el icono. Dejaría otras fallas de carga sin detectar; la causa raíz era que la prueba no miraba errores de carga.
+Lo segundo es necesario y no un refuerzo: el Chromium sin interfaz de Playwright **no pide el favicon por su cuenta**. Se comprobó: sin el icono, la prueba de las pantallas con el registro de errores nuevo seguía en verde, y solo la prueba explícita de WEB-41 falla. Por eso la consola limpia de la prueba de pantallas protege contra otros recursos rotos, y el 404 del icono lo protege la prueba que lo pide.
+
+- _Alternativa descartada:_ ejecutar Chromium con interfaz o el canal `chrome` para que pida el favicon. Cambia el navegador de toda la suite, no funciona en el CI sin pantalla y el comportamiento depende de la versión.
+- _Alternativa descartada:_ confiar solo en el registro de errores de consola. Se comprobó que no basta.
 
 ## Risks / Trade-offs
 

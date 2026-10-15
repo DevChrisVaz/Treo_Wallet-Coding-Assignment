@@ -19,13 +19,22 @@ const PERMISSIONS_MESSAGE = /Permissions-Policy|Unrecognized feature/i;
 
 interface Collected {
   messages: string[];
+  /** Recursos del mismo origen que respondieron ≥ 400 y mensajes `error` de la consola (WEB-41). */
+  failures: string[];
   violations: () => Promise<string[]>;
 }
 
 /** Registra los mensajes de consola de CSP y los eventos `securitypolicyviolation` de la página. */
 async function collectViolations(page: Page): Promise<Collected> {
   const messages: string[] = [];
+  const failures: string[] = [];
+  page.on('response', (response) => {
+    if (response.status() >= 400 && new URL(response.url()).origin === new URL(page.url()).origin) {
+      failures.push(`${response.status()} ${response.url()}`);
+    }
+  });
   page.on('console', (message) => {
+    if (message.type() === 'error') failures.push(`${message.text()} (${message.location().url})`);
     if (CSP_MESSAGE.test(message.text()) || PERMISSIONS_MESSAGE.test(message.text())) {
       messages.push(`${message.text()} (${message.location().url})`);
     }
@@ -45,6 +54,9 @@ async function collectViolations(page: Page): Promise<Collected> {
   return {
     get messages() {
       return messages.filter((text) => !DEV_TOOLS.test(text));
+    },
+    get failures() {
+      return failures.filter((text) => !DEV_TOOLS.test(text));
     },
     violations: async () =>
       (
@@ -68,6 +80,7 @@ test('WEB-39 las pantallas públicas y las autenticadas cargan sin violaciones d
     await page.waitForLoadState('networkidle');
     expect(await collected.violations(), `eventos en ${path}`).toEqual([]);
     expect(collected.messages, `consola en ${path}`).toEqual([]);
+    expect(collected.failures, `recursos y errores de consola en ${path}`).toEqual([]);
   };
 
   for (const path of PUBLIC_PATHS) await visit(path);
@@ -86,6 +99,7 @@ test('WEB-39 el flujo de transferir (revisión y formulario) corre sin violacion
   await page.waitForLoadState('networkidle');
   expect(await collected.violations()).toEqual([]);
   expect(collected.messages).toEqual([]);
+  expect(collected.failures).toEqual([]);
 });
 
 test('WEB-39 cada página lleva una política con nonce distinto y los scripts de Next.js lo usan', async ({
@@ -189,4 +203,50 @@ test('WEB-38 la web no se puede incrustar en un iframe', async ({ page }) => {
   const embedded = page.frames().find((frame) => frame !== page.mainFrame());
   // Un marco bloqueado queda en la página de error del navegador, sin el formulario.
   expect(embedded?.url() ?? 'chrome-error://').toMatch(/^chrome-error:|^about:blank$/);
+});
+
+test('WEB-41 el favicon y el icono de la página responden 200 sin sesión y con los headers de seguridad', async ({
+  page,
+}) => {
+  const collected = await collectViolations(page);
+  // Chromium sin interfaz no pide el icono por su cuenta: se piden las URL que una persona vería.
+  const document = await page.goto('/login');
+  await page.waitForLoadState('networkidle');
+  const declared = await page
+    .locator('link[rel~="icon"]')
+    .evaluateAll((links) => links.map((link) => (link as HTMLLinkElement).getAttribute('href')));
+  expect(declared.some((href) => href?.startsWith('/icon.svg'))).toBe(true);
+  expect(declared.some((href) => href?.startsWith('/favicon.ico'))).toBe(true);
+  expect(document?.status()).toBe(200);
+
+  const types: Record<string, RegExp> = {
+    '/favicon.ico': /^image\/(x-icon|vnd\.microsoft\.icon)/,
+    '/icon.svg': /^image\/svg\+xml/,
+  };
+  // Las URL declaradas llevan una huella (`/icon.svg?icon.abc.svg`); el navegador también pide `/favicon.ico` a secas.
+  const paths = [...Object.keys(types), ...declared.filter((href): href is string => !!href)];
+  for (const path of paths) {
+    const type = types[path.split('?')[0] ?? ''] as RegExp;
+    const response = await page.request.get(path);
+    expect(response.status(), path).toBe(200);
+    expect(response.headers()['content-type'], path).toMatch(type);
+    expect(response.headers()['x-content-type-options'], path).toBe('nosniff');
+    expect(response.headers()['x-frame-options'], path).toBe('DENY');
+    expect((await response.body()).byteLength, path).toBeGreaterThan(0);
+  }
+
+  // El SVG declarado se carga como imagen bajo la política (img-src 'self').
+  const loaded = await page.evaluate(
+    (href) =>
+      new Promise<boolean>((resolve) => {
+        const image = new Image();
+        image.onload = () => resolve(image.naturalWidth > 0);
+        image.onerror = () => resolve(false);
+        image.src = href;
+      }),
+    declared.find((href) => href?.startsWith('/icon.svg')) ?? '/icon.svg',
+  );
+  expect(loaded).toBe(true);
+  expect(await collected.violations()).toEqual([]);
+  expect(collected.failures).toEqual([]);
 });
