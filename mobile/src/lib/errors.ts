@@ -41,6 +41,7 @@ function problemText(error: ProblemError): string {
     case 'INVALID_CREDENTIALS':
     case 'SESSION_REVOKED':
     case 'EMAIL_NOT_VERIFIED':
+    case 'REGISTRATION_IN_REVIEW':
     case 'NOT_FOUND':
     case 'BENEFICIARY_CONFLICT':
     case 'TRANSFER_NOT_PENDING':

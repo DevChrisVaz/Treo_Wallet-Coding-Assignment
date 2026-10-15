@@ -221,6 +221,8 @@ export async function createContainer(
         sessions,
         accessTokens,
         audit,
+        mailer,
+        logger,
         clock,
       }),
       resendVerification: new ResendVerification({

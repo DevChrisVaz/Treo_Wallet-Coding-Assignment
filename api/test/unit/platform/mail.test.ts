@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  identityUseAttemptEmail,
   registrationAttemptEmail,
-  registrationNotCompletedEmail,
   verificationCodeEmail,
 } from '../../../src/modules/identity/application/email-templates.js';
 import { deliverAfterCommit } from '../../../src/platform/mail/deliver.js';
@@ -34,17 +34,18 @@ describe('PLT-16 plantillas de correo en español', () => {
     expect(mail.html).toContain('&lt;script&gt;');
   });
 
+  it('IDN-16 el aviso al dueño de los datos no dice qué dato se usó ni trae código', () => {
+    const mail = identityUseAttemptEmail();
+    expect(mail.subject).toBe('Alguien intentó registrarse con tus datos');
+    for (const part of [mail.subject, mail.text, mail.html]) {
+      expect(part).not.toMatch(/CURP|RFC|tel[eé]fono|[0-9]{6}/i);
+    }
+  });
+
   it('IDN-01 el aviso de intento de registro no crea nada ni trae código', () => {
     const mail = registrationAttemptEmail();
     expect(mail.subject).toMatch(/registr/i);
     expect(mail.text).not.toMatch(/[0-9]{6}/);
-  });
-
-  it('IDN-03 el aviso de registro no completado no dice qué dato chocó', () => {
-    const mail = registrationNotCompletedEmail();
-    for (const part of [mail.subject, mail.text, mail.html]) {
-      expect(part).not.toMatch(/CURP|RFC|tel[eé]fono/i);
-    }
   });
 });
 

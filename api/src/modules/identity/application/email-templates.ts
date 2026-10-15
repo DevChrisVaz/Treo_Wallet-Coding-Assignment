@@ -30,13 +30,16 @@ export function verificationCodeEmail(input: {
   };
 }
 
-/** Aviso al dueño de un email ya verificado: alguien intentó registrarse con él (IDN-01). */
-export function registrationAttemptEmail(): EmailContent {
-  const subject = 'Alguien intentó registrarse con tu correo';
+/**
+ * Aviso al dueño de una CURP, un RFC o un teléfono cuando un registro en revisión verifica su
+ * correo con esos datos (IDN-16). No dice cuál dato ni el correo de quien lo intentó.
+ */
+export function identityUseAttemptEmail(): EmailContent {
+  const subject = 'Alguien intentó registrarse con tus datos';
   const lines = [
-    'Recibimos una solicitud de registro con este correo, que ya tiene una cuenta verificada.',
-    'No se creó ni modificó nada. Si fuiste tú, inicia sesión con tu contraseña.',
-    'Si no fuiste tú, puedes ignorar este mensaje.',
+    'Alguien intentó abrir una cuenta en TreoWallet con datos de identidad que ya están en tu cuenta.',
+    'No tuvo acceso a tu cuenta ni a tu dinero, y su registro quedó en revisión.',
+    'Si fuiste tú, no tienes que hacer nada. Si no fuiste tú, responde este correo para que lo revisemos contigo.',
   ];
   return {
     subject,
@@ -45,15 +48,13 @@ export function registrationAttemptEmail(): EmailContent {
   };
 }
 
-/**
- * Aviso genérico cuando un registro choca con datos de identidad de otra persona (IDN-03). No dice
- * qué dato chocó, para no confirmar a quien controla el email que ese dato existe.
- */
-export function registrationNotCompletedEmail(): EmailContent {
-  const subject = 'No pudimos completar tu registro';
+/** Aviso al dueño de un email ya verificado: alguien intentó registrarse con él (IDN-01). */
+export function registrationAttemptEmail(): EmailContent {
+  const subject = 'Alguien intentó registrarse con tu correo';
   const lines = [
-    'Recibimos una solicitud de registro con este correo, pero no pudimos completarla.',
-    'Revisa tus datos y vuelve a intentarlo, o contacta a soporte si el problema continúa.',
+    'Recibimos una solicitud de registro con este correo, que ya tiene una cuenta verificada.',
+    'No se creó ni modificó nada. Si fuiste tú, inicia sesión con tu contraseña.',
+    'Si no fuiste tú, puedes ignorar este mensaje.',
   ];
   return {
     subject,

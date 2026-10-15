@@ -304,25 +304,76 @@ describe('IDN-02 datos obligatorios del registro', () => {
   });
 });
 
+/** ¿El usuario de ese email está en revisión? `undefined` si no existe. */
+async function inReview(email: string): Promise<boolean | undefined> {
+  const [row] = (await harness.migrator.query(
+    `SELECT identity_conflict FROM app.users WHERE email = $1`,
+    [email],
+  )) as { identity_conflict: boolean }[];
+  return row?.identity_conflict;
+}
+
+/** El correo sin lo que cambia por persona (código y nombre), para comparar plantillas. */
+function template(person: Registration): string {
+  const mail = t.mailer.to(person.email).at(-1);
+  const fullName = `${person.firstNames} ${person.paternalSurname} ${person.maternalSurname}`;
+  return `${mail?.subject}\n${mail?.text}`
+    .replace(/[0-9]{6}/g, 'CODE')
+    .replaceAll(fullName, 'NAME');
+}
+
 describe('IDN-03 unicidad de los datos de identidad', () => {
   it.each(['curp', 'rfc', 'phone'] as const)(
-    'IDN-03 un email nuevo con el %s de otro usuario no se crea y recibe un aviso genérico',
+    'IDN-03 un email nuevo con el %s de otro usuario queda en revisión y recibe el mismo correo con código que un registro nuevo',
     async (field) => {
       const existing = newRegistration();
       await register(existing);
+      const control = newRegistration();
+      const controlRes = await register(control);
       const intruder = newRegistration(sharing(field, existing));
       const res = await register(intruder);
+
       expect(res.status).toBe(202);
-      expect(await usersWith('email', intruder.email)).toEqual([]);
-      const [notice] = t.mailer.to(intruder.email);
-      expect(notice?.subject).toBe('No pudimos completar tu registro');
-      expect(`${notice?.subject} ${notice?.text}`).not.toMatch(/CURP|RFC|tel[eé]fono/i);
+      expect(res.body).toEqual(controlRes.body);
+      expect(await inReview(intruder.email)).toBe(true);
+      expect(await inReview(control.email)).toBe(false);
+      expect(t.mailer.lastCode(intruder.email)).toMatch(/^[0-9]{6}$/);
+      expect(template(intruder)).toBe(template(control));
+      // El dueño de los datos no recibe nada al registrar (IDN-16): solo su propio código.
+      expect(t.mailer.to(existing.email)).toHaveLength(1);
     },
   );
 
-  it('IDN-03 dos registros simultáneos con el mismo RFC crean a lo sumo un usuario', async () => {
+  it('IDN-03 el registro en revisión queda en la bitácora sin datos personales', async () => {
+    const existing = newRegistration();
+    await register(existing);
+    const intruder = newRegistration(sharing('curp', existing));
+    await register(intruder);
+    const [user] = await usersWith('email', intruder.email);
+    const events = await auditEvents(harness.migrator);
+    expect(events.at(-1)).toMatchObject({
+      action: 'USER_REGISTERED',
+      entity_id: user.id,
+      metadata: { inReview: true },
+    });
+    expect(leakedValues(events, [intruder.email, intruder.curp, intruder.rfc])).toEqual([]);
+  });
+
+  it('IDN-03 chocar solo con un registro en revisión no deja al nuevo en revisión', async () => {
+    const existing = newRegistration();
+    await register(existing);
+    const pending = newRegistration(sharing('phone', existing));
+    await register(pending);
+    expect(await inReview(pending.email)).toBe(true);
+
+    const third = newRegistration(sharing('curp', pending));
+    await register(third);
+    expect(await inReview(third.email)).toBe(false);
+  });
+
+  it('IDN-03 dos registros simultáneos con el mismo RFC dejan uno activo y el otro en revisión', async () => {
     // Barrera: ninguno sigue después del pre-chequeo hasta que ambos lo pasaron, así los dos
-    // intentan el INSERT y la constraint única de la base es la que decide.
+    // intentan el INSERT y el índice único de la base es el que decide.
     const real = new PgUserRepository(harness.app);
     let arrived = 0;
     let release!: () => void;
@@ -343,11 +394,14 @@ describe('IDN-03 unicidad de los datos de identidad', () => {
     const responses = await Promise.all([register(first), register(second)]);
     expect(arrived).toBe(2);
     expect(responses.map((res) => res.status)).toEqual([202, 202]);
-    expect(await usersWith('rfc', first.rfc)).toHaveLength(1);
-    const notified = [first, second].filter((p: Registration) =>
-      t.mailer.to(p.email).some((mail) => mail.subject === 'No pudimos completar tu registro'),
-    );
-    expect(notified).toHaveLength(1);
+    const rows = (await harness.migrator.query(
+      `SELECT identity_conflict FROM app.users WHERE rfc = $1 ORDER BY identity_conflict`,
+      [first.rfc],
+    )) as { identity_conflict: boolean }[];
+    expect(rows.map((row) => row.identity_conflict)).toEqual([false, true]);
+    for (const person of [first, second]) {
+      expect(t.mailer.lastCode(person.email)).toMatch(/^[0-9]{6}$/);
+    }
   });
 });
 

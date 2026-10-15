@@ -103,6 +103,21 @@ describe('inicio de sesión', () => {
     expect(services.session.getSnapshot().status).not.toBe('signedIn');
   });
 
+  test('MOB-30 un registro en revisión ve el mensaje del paquete de diseño y no guarda tokens', async () => {
+    const fake = createFakeApi().on('POST', '/auth/login', problem(403, 'REGISTRATION_IN_REVIEW'));
+    await renderLogin(fake);
+    const user = userEvent.setup();
+
+    await fillAndSubmit(user);
+
+    expect(
+      await screen.findByText(
+        'Tu registro está en revisión. Te escribiremos a tu correo cuando terminemos.',
+      ),
+    ).toBeOnTheScreen();
+    expect(secureStoreMock.entries()).toEqual({});
+  });
+
   test('MOB-01 con el correo sin verificar indica completar la verificación en la web y no guarda tokens', async () => {
     const fake = createFakeApi().on('POST', '/auth/login', problem(403, 'EMAIL_NOT_VERIFIED'));
     await renderLogin(fake);

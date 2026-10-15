@@ -66,6 +66,16 @@ export class Login {
       });
       throw new DomainError('EMAIL_NOT_VERIFIED', 'Verifica tu correo antes de iniciar sesión');
     }
+    // Registro en revisión (IDN-03): solo lo sabe quien conoce la contraseña.
+    if (user.identityConflict) {
+      await audit.recordStandalone({
+        action: 'LOGIN_FAILED',
+        actor: { type: 'ANONYMOUS' },
+        entity: { type: 'user', id: user.id },
+        metadata: { reason: 'REGISTRATION_IN_REVIEW' },
+      });
+      throw new DomainError('REGISTRATION_IN_REVIEW', 'Tu registro está en revisión');
+    }
 
     const session = await transactions.run(async (tx) => {
       const started = await sessions.start(tx, user.id);

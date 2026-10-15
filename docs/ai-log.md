@@ -654,6 +654,21 @@ El prompt con el que empezó el rediseño no quedó registrado textualmente. La 
 - **La rama no compilaba por un trabajo a medias de otra sesión.** El contrato 1.4.0 ya estaba en `release` sin el código de la API y de la web que lo usa. Antes de culpar a la reversión, se comprobó que las pruebas que fallaban eran las de esos campos y se esperó a que la otra sesión terminara.
 - **Pruebas sin tocar el entorno del usuario.** PostgreSQL y Mailpit corrieron en un proyecto de compose propio (`treo-undo-d14`) con otros puertos, y `db:bootstrap` con `COMPOSE_PROJECT_NAME` fijado: el hallazgo de la sesión 6.
 
+## Sesión 11 — 2026-10-14 · Registros en revisión (`registration-review`)
+
+**Prompt clave:** "option 3", y entre sus dos variantes, "Review only for conflicts".
+
+**Quién:** Claude Code con Claude Opus 5.5, en una rama aparte (`dev/registration-review`), avisando a la otra sesión activa antes de tocar los archivos del registro.
+
+**Corrección de la AI antes de empezar:** al ofrecer la opción 3 la había descrito como "la única que no revela nada". Eso solo es cierto si todos los registros pasan por revisión; si los demás abren sus cuentas al verificar, quien probó con datos ajenos nota la diferencia. Se le planteó al usuario la elección entre revisión para todos o solo para los choques, y eligió la segunda, sabiendo lo que queda.
+
+**Qué se hizo:** el change `registration-review` (propuesta, diseño D1 a D7, deltas de IDN-03, IDN-06, IDN-08, AUD-01, DSG-12, WEB-11 y WEB-12, y los nuevos IDN-16 y MOB-30). Un registro con datos de otra cuenta responde el mismo `202` y recibe el mismo correo con código; al verificar queda en revisión (`403 REGISTRATION_IN_REVIEW`, sin cuentas ni sesión), se audita con los datos que chocaron y el dueño de esos datos recibe un aviso. Contrato 1.5.0, paquete de diseño 1.4.0, migración con índices únicos parciales, web y app.
+
+**Hallazgos de esta sesión:**
+- **Un paquete nuevo rompe a sus consumidores en el orden equivocado.** La web y la app comprueban al compilar que el paquete de diseño tiene un mensaje por cada código del contrato. Reinstalar el contrato 1.5.0 antes que el paquete de diseño 1.4.0 las habría dejado sin compilar, así que cada consumidor reinstala los dos en su primera tarea y cada commit queda en verde.
+- **`npm install` no actualiza la versión de un paquete `file:` en el lockfile.** Instaló 1.5.0 pero dejó 1.4.0 registrado; se corrigió a mano, como en el cambio a 1.4.0, y `npm ci` confirmó que el lockfile es coherente. El de la app todavía registraba 1.3.0.
+- **La unicidad por nombre se conserva.** Los índices únicos parciales llevan los nombres de las constraints que reemplazan, así que la traducción de errores de PostgreSQL y las pruebas de esquema no cambian. La prueba de ida y vuelta de las migraciones ejercitó el `down`.
+
 ## Correcciones a la AI, en conjunto
 
 Índice de lo que la AI propuso mal o dejó inseguro, ordenado por lo que importa en un sistema de dinero. Cada punto está explicado en la sesión que se indica.

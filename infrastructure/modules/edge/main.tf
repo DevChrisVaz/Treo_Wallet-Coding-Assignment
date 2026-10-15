@@ -71,10 +71,10 @@ resource "aws_wafv2_web_acl" "this" {
                 }
               }
             }
-            # El aviso del registro revela a quien controla el correo que su CURP, RFC o teléfono ya
-            # tienen cuenta (IDN-03): el límite por IP encarece esa enumeración. La Server Action del
-            # BFF entra por aquí; la llamada del BFF a /auth/register va por el ALB interno y WAF no
-            # la ve.
+            # Un registro con la CURP, el RFC o el teléfono de otra cuenta queda en revisión, y quien
+            # verifica el correo lo ve (IDN-03): el límite por IP encarece esa enumeración. La Server
+            # Action del BFF entra por aquí; la llamada del BFF a /auth/register va por el ALB
+            # interno y WAF no la ve.
             statement {
               byte_match_statement {
                 search_string         = "/register"

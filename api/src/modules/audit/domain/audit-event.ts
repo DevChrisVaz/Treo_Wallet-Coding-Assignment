@@ -7,6 +7,8 @@ export const AUDIT_ACTIONS = [
   'USER_REGISTERED',
   'EMAIL_VERIFIED',
   'EMAIL_VERIFICATION_RESENT',
+  // Registro cuya CURP, RFC o teléfono ya eran de otra cuenta, al verificar el correo (IDN-06)
+  'REGISTRATION_IN_REVIEW',
   'LOGIN_SUCCEEDED',
   'LOGIN_FAILED',
   'LOGOUT',

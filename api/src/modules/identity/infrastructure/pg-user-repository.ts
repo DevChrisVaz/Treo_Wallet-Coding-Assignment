@@ -9,6 +9,8 @@ import type { Transaction } from '../../../shared/transaction.js';
 import {
   EmailAlreadyTaken,
   IdentityAlreadyTaken,
+  type IdentityField,
+  type IdentityOwner,
   type NewUser,
   type UserRecord,
   type UserRepository,
@@ -30,6 +32,7 @@ interface RawUser {
   phone: string;
   email_verified_at: Date | null;
   created_at: Date;
+  identity_conflict: boolean;
 }
 
 function fromRaw(row: RawUser): UserRecord {
@@ -48,6 +51,7 @@ function fromRaw(row: RawUser): UserRecord {
     phone: row.phone,
     emailVerifiedAt: row.email_verified_at,
     createdAt: row.created_at,
+    identityConflict: row.identity_conflict,
   };
 }
 
@@ -67,7 +71,8 @@ export class PgUserRepository implements UserRepository {
     const [row] = await queryForUpdate<RawUser>(
       tx,
       `SELECT id, email, password_hash, full_name, first_names, paternal_surname, maternal_surname,
-              birth_date::text AS birth_date, birth_state, curp, rfc, phone, email_verified_at, created_at
+              birth_date::text AS birth_date, birth_state, curp, rfc, phone, email_verified_at, created_at,
+              identity_conflict
          FROM users WHERE email = $1 FOR UPDATE`,
       [email],
     );
@@ -80,14 +85,35 @@ export class PgUserRepository implements UserRepository {
   ): Promise<boolean> {
     const rows = await queryIn(
       tx,
-      `SELECT 1 FROM users WHERE curp = $1 OR rfc = $2 OR phone = $3 LIMIT 1`,
+      `SELECT 1 FROM users
+        WHERE NOT identity_conflict AND (curp = $1 OR rfc = $2 OR phone = $3) LIMIT 1`,
       [identity.curp, identity.rfc, identity.phone],
     );
     return rows.length > 0;
   }
 
+  async activeOwnersOf(
+    tx: Transaction,
+    identity: { curp: string; rfc: string; phone: string },
+  ): Promise<readonly IdentityOwner[]> {
+    const rows = await queryIn<{ email: string } & Record<IdentityField, boolean>>(
+      tx,
+      `SELECT email, curp = $1 AS curp, rfc = $2 AS rfc, phone = $3 AS phone
+         FROM users
+        WHERE NOT identity_conflict AND (curp = $1 OR rfc = $2 OR phone = $3)
+        ORDER BY created_at, id`,
+      [identity.curp, identity.rfc, identity.phone],
+    );
+    const fields: readonly IdentityField[] = ['curp', 'rfc', 'phone'];
+    return rows.map((row) => ({ email: row.email, fields: fields.filter((field) => row[field]) }));
+  }
+
   async insert(tx: Transaction, user: NewUser): Promise<void> {
-    const row: UserRow = { ...user, emailVerifiedAt: null };
+    const row: UserRow = {
+      ...user,
+      emailVerifiedAt: null,
+      identityConflict: user.identityConflict ?? false,
+    };
     try {
       await queryRunnerOf(tx).manager.insert(UserEntity, row);
     } catch (error) {

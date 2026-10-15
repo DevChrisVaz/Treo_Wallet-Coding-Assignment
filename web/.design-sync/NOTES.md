@@ -125,7 +125,7 @@ historias de `Screen` de la app móvil, para que `parity.html` y `parity-check.m
 
 | Ruta | Historias |
 |---|---|
-| `/login`, `/register`, `/verify-email` (BrandShell) | `Login`, `Register`, `VerifyEmail` |
+| `/login`, `/register`, `/verify-email` (BrandShell) | `Login`, `Register`, `VerifyEmail`, `VerifyEmailInReview` |
 | `/` | `Home`, `HomeEmpty`, `HomeLoading`, `HomeError` |
 | `/accounts/[id]/movements` | `Movements`, `MovementsEmpty`, `MovementsFilters` |
 | `/transfers/new` (`mode="flow"`) | `TransferRecipient`, `TransferAmount`, `TransferReview`, `TransferUncertain`, `TransferRejected`, `TransferOtp`, `TransferCompleted`, `TransferFailed`; programada (bonus): `TransferAmountScheduled`, `TransferReviewScheduled`, `TransferScheduled` |

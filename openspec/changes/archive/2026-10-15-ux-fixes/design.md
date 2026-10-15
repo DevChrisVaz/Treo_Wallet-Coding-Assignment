@@ -115,6 +115,8 @@ Se implementó primero un `422 VALIDATION_FAILED` con `ALREADY_REGISTERED` en ca
 
 Vuelven IDN-01 e IDN-03 como los define `api-foundation`: el registro responde `202` en todos los casos, no crea al usuario y envía al email indicado el aviso genérico "No pudimos completar tu registro", sin decir qué dato chocó. `ALREADY_REGISTERED` sale de `FieldErrorCode`; como en D13, se publica sin versión mayor porque todos los consumidores viven en este repositorio.
 
+Después, el change `registration-review` cambió el aviso por un registro en revisión: el mismo `202` y el mismo correo con código, y la diferencia solo se ve al verificar el correo.
+
 **Alternativa descartada:** mantener el error por campo y encarecer la consulta con un CAPTCHA de AWS WAF en el registro. Encarece la enumeración, pero no la impide, y suma un acertijo al registro y el costo por intento.
 
 ## Risks / Trade-offs
@@ -124,4 +126,4 @@ Vuelven IDN-01 e IDN-03 como los define `api-foundation`: el registro responde `
 - **Cambio de tipo en `scheduledFor`.** Un cliente que siga mandando `AAAA-MM-DD` recibe 422 `INVALID_FORMAT`. Sin clientes externos, el riesgo se limita a una instalación desactualizada de la web o la app.
 - **Paridad web y móvil.** Cada pantalla común (Recibir, búsqueda, campos) se compone primero en el lienzo de ambas apps y luego en el código; las notas de design-sync registran lo que ya se aplicó.
 - **Búsqueda en el cliente.** Con una lista muy grande el filtro sería lento; la lista está acotada hoy por los límites de altas (BEN-10) y se revisará si se pagina.
-- **Registro que no se completa sin decir por qué (D14).** Quien escribe una CURP, un RFC o un teléfono de otra cuenta solo se entera por correo, sin saber qué dato corregir. Es el costo de que ningún dato de identidad pueda enumerarse.
+- **Registro con datos de otra cuenta (D14).** Al revertir el error por campo, quien escribía una CURP, un RFC o un teléfono de otra cuenta solo se enteraba por correo. `registration-review` lo reemplazó por un registro en revisión.

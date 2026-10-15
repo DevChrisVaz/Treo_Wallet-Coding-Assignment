@@ -173,6 +173,9 @@ const DEFAULTS = {
   movements: 'ok',
   scheduled: 'ok',
   cancel: 'ok',
+  // `in-review`: el registro chocó con datos de otra cuenta (IDN-03); verificar e iniciar sesión
+  // responden 403 REGISTRATION_IN_REVIEW.
+  registration: 'ok',
 };
 let scenario = { ...DEFAULTS };
 let debited = false; // tras enviar los $1,250.00: Principal en $23,750.00 y el límite en $30,250.00
@@ -261,8 +264,10 @@ createServer(async (req, res) => {
   }
   if (route === 'GET /__requests') return send(res, 200, { items: requests });
   requests.push({ method: req.method, path, search: url.search });
-  if (route === 'POST /auth/login' || route === 'POST /auth/verify-email')
+  if (route === 'POST /auth/login' || route === 'POST /auth/verify-email') {
+    if (scenario.registration === 'in-review') return fail(res, 403, 'REGISTRATION_IN_REVIEW');
     return send(res, 200, { user, tokens: tokens() });
+  }
   if (route === 'POST /auth/refresh') return send(res, 200, tokens());
   if (route === 'POST /auth/logout') return send(res, 204);
   if (route === 'POST /auth/register' || route === 'POST /auth/verify-email/resend')

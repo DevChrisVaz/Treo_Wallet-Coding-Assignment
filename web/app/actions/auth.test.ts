@@ -186,6 +186,17 @@ describe('verifyEmail', () => {
     expect(cookieWrites()).toEqual([]);
   });
 
+  it('WEB-11 un registro en revisión devuelve REGISTRATION_IN_REVIEW y no crea la sesión', async () => {
+    fakeApi().on('POST', '/auth/verify-email', () =>
+      problemResponse(403, { code: 'REGISTRATION_IN_REVIEW', requestId: 'api-1' }),
+    );
+    expect(await verifyEmail({ email: 'ana@example.com', code: '123456' })).toMatchObject({
+      ok: false,
+      problem: { code: 'REGISTRATION_IN_REVIEW', status: 403 },
+    });
+    expect(cookieWrites()).toEqual([]);
+  });
+
   it('WEB-07 un código que no tiene 6 dígitos no llega a la API', async () => {
     const api = fakeApi();
     const result = await verifyEmail({ email: 'ana@example.com', code: '12345' });
