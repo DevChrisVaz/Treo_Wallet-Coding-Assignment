@@ -48,7 +48,7 @@ Generada con `scripts/trace.sh`: 218 requisitos. Las columnas de tareas y commit
 | CTR-10 | Validación de CURP con dígito verificador | contract-v1 | 4: contract-v1#3.1 contract-v1#3.4 domain-test-coverage#7.1 (+1) | 4: befd9dd 39512bb 3c59b09 (+1) | api 1 |
 | CTR-11 | Validación de RFC de persona física | contract-v1, ux-fixes | 5: contract-v1#3.1 contract-v1#3.5 domain-test-coverage#7.1 (+2) | 6: 8721244 b79fd1e befd9dd (+3) | contract 3 |
 | CTR-12 | Validación de teléfono, concepto, referencia y códigos | contract-v1, ux-fixes | 6: contract-v1#3.1 contract-v1#3.6 domain-test-coverage#7.2 (+3) | 5: 8721244 b79fd1e 0dcce09 (+2) | contract 8 |
-| CTR-13 | Esquemas de formularios alineados con el contrato | contract-v1, contract-v1-2, registration-birth-data, ux-fixes | 11: contract-v1#3.7 contract-v1#3.8 contract-v1-2#1.2 (+8) | 11: da28a1e dc7670d 8721244 (+8) | contract 24 |
+| CTR-13 | Esquemas de formularios alineados con el contrato | contract-v1, contract-v1-2, registration-birth-data, ux-fixes | 11: contract-v1#3.7 contract-v1#3.8 contract-v1-2#1.2 (+8) | 12: a3d4229 da28a1e dc7670d (+9) | contract 24 |
 | CTR-14 | Formato de montos en es-MX sin floats | contract-v1 | 2: contract-v1#4.1 contract-v1#4.2 | 2: 3f8a98b 00bafd9 | contract 2 |
 | CTR-15 | Paquete agnóstico de entorno | contract-v1, contract-v1-1 | 5: contract-v1#1.1 contract-v1#5.1 contract-v1#5.2 (+2) | 7: 6f0a8a7 18354b0 f486d8d (+4) | contract 6 |
 | CTR-16 | Distribución como artefacto, sin dependencias de código | contract-v1 | 3: contract-v1#5.1 contract-v1#5.3 contract-v1#6.2 | 4: f909af3 b859bf3 75f61c2 (+1) | contract 1 |
@@ -56,19 +56,19 @@ Generada con `scripts/trace.sh`: 218 requisitos. Las columnas de tareas y commit
 | CTR-18 | Calendario de la Ciudad de México en el paquete | contract-v1-2, ux-fixes | 2: contract-v1-2#1.3 ux-fixes#10.1 | 4: 8721244 b79fd1e 5963992 (+1) | contract 3 |
 | CTR-19 | Descarga de documentos binarios | contract-v1-2 | 1: contract-v1-2#1.1 | 2: f415c27 ad628da | contract 3 |
 | CTR-20 | Utilidades de captura y búsqueda de texto | ux-fixes | 3: ux-fixes#3.1 ux-fixes#5.1 ux-fixes#8.1 | 2: 8721244 b79fd1e | contract 10 |
-| CTR-21 | Catálogo de entidades de nacimiento | registration-birth-data | 1: registration-birth-data#1.2 | 1: dc7670d | contract 2 |
+| CTR-21 | Catálogo de entidades de nacimiento | registration-birth-data | 1: registration-birth-data#1.2 | 2: a3d4229 dc7670d | contract 2 |
 | DSG-01 | Paquete de tokens como fuente única | design-system | 8: design-system#1.1 design-system#5.1 design-system#5.2 (+5) | 11: b1ea000 f251908 e174ed1 (+8) | web 2, mobile 4, design-tokens 7 |
 | DSG-02 | Identidad visual basada en Treo | design-system | 2: design-system#2.1 web-app#1.3 | 4: 9e12634 715b4b1 7b6e740 (+1) | web 2, mobile 2, design-tokens 3 |
-| DSG-03 | Tokens semánticos | design-system | 3: design-system#2.1 mobile-app#1.7 web-app#1.5 | 8: f3f3e97 c3af92d 21b249b (+5) | mobile 2, design-tokens 2 |
+| DSG-03 | Tokens semánticos | design-system | 3: design-system#2.1 web-app#1.5 mobile-app#1.7 | 8: f3f3e97 c3af92d 21b249b (+5) | mobile 2, design-tokens 2 |
 | DSG-04 | Contraste accesible verificado | design-system | 1: design-system#2.2 | 2: f9d0256 ff80797 | design-tokens 3 |
-| DSG-05 | Tipografía | design-system | 3: design-system#2.3 mobile-app#1.6 web-app#1.3 | 6: e845649 d08344c e174ed1 (+3) | web 2, mobile 5, design-tokens 6 |
-| DSG-06 | Espaciado, forma, foco y movimiento | design-system | 4: design-system#2.3 mobile-app#1.7 web-app#1.3 (+1) | 10: f3f3e97 c3af92d 21b249b (+7) | web 4, mobile 4, design-tokens 7 |
+| DSG-05 | Tipografía | design-system | 3: design-system#2.3 web-app#1.3 mobile-app#1.6 | 6: e845649 d08344c e174ed1 (+3) | web 2, mobile 5, design-tokens 6 |
+| DSG-06 | Espaciado, forma, foco y movimiento | design-system | 4: design-system#2.3 web-app#1.3 web-app#1.5 (+1) | 10: f3f3e97 c3af92d 21b249b (+7) | web 4, mobile 4, design-tokens 7 |
 | DSG-07 | Tema claro listo para tema oscuro | design-system | 3: design-system#2.1 design-system#4.1 design-system#5.3 | 3: 6388596 a316ca5 26d7248 | design-tokens 3 |
 | DSG-08 | Salidas por plataforma desde una sola fuente | design-system | 4: design-system#4.1 design-system#4.2 design-system#5.1 (+1) | 4: 9cd4a31 1ea486f 2562373 (+1) | design-tokens 5 |
-| DSG-09 | Convenciones de dinero | design-system | 7: design-system#3.1 mobile-app#1.7 mobile-app#3.2 (+4) | 12: f3f3e97 c3af92d 21b249b (+9) | web 4, mobile 5, design-tokens 4 |
-| DSG-10 | Estados de transferencia y tipos de movimiento | design-system | 7: design-system#3.1 mobile-app#1.7 mobile-app#3.3 (+4) | 12: f3f3e97 c3af92d 21b249b (+9) | web 2, mobile 5 |
-| DSG-11 | Inventario de componentes | design-system | 9: design-system#4.3 design-system#5.3 mobile-app#1.7 (+6) | 16: e79868c f3f3e97 c3af92d (+13) | web 16, mobile 15, design-tokens 2 |
-| DSG-12 | Textos de la interfaz | design-system | 3: design-system#3.2 mobile-app#2.6 web-app#5.1 | 5: 85a9feb af02f36 7446c08 (+2) | web 4, design-tokens 3 |
+| DSG-09 | Convenciones de dinero | design-system | 7: design-system#3.1 web-app#1.5 web-app#6.1 (+4) | 12: f3f3e97 c3af92d 21b249b (+9) | web 4, mobile 5, design-tokens 4 |
+| DSG-10 | Estados de transferencia y tipos de movimiento | design-system | 7: design-system#3.1 web-app#1.5 web-app#6.2 (+4) | 12: f3f3e97 c3af92d 21b249b (+9) | web 2, mobile 5 |
+| DSG-11 | Inventario de componentes | design-system | 9: design-system#4.3 design-system#5.3 web-app#1.5 (+6) | 16: e79868c f3f3e97 c3af92d (+13) | web 16, mobile 15, design-tokens 2 |
+| DSG-12 | Textos de la interfaz | design-system | 3: design-system#3.2 web-app#5.1 mobile-app#2.6 | 5: 85a9feb af02f36 7446c08 (+2) | web 4, design-tokens 3 |
 | DSG-13 | Lenguaje visual elevado de la marca | redesign | 6: redesign#2.1 redesign#3.2 redesign#4.2 (+3) | 24: 482b0aa 4d9569e d301828 (+21) | web 3, mobile 3, design-tokens 2 |
 | DSG-14 | Lima solo sobre superficies oscuras | redesign | 1: redesign#2.2 | 2: f52d371 f9d0256 | web 3, design-tokens 3 |
 | DSG-15 | Iconografía compartida | redesign | 4: redesign#2.3 redesign#3.1 redesign#4.1 (+1) | 22: 5522250 64d86f3 e0be490 (+19) | web 4, mobile 5, design-tokens 5 |
@@ -87,9 +87,9 @@ Generada con `scripts/trace.sh`: 218 requisitos. Las columnas de tareas y commit
 | HIS-10 | Datos de volumen para desarrollo | api-ledger | 4: api-ledger#11.1 api-ledger#11.2 api-ledger#11.3 (+1) | 6: ed14599 8f0eada fc5307d (+3) | api 17 |
 | HIS-11 | Estado de cuenta mensual en PDF | account-statements, ux-fixes | 6: account-statements#1.1 account-statements#1.2 account-statements#1.8 (+3) | 12: 7663863 b79fd1e 0b9c0c9 (+9) | contract 9, api 29 |
 | HIS-12 | Contenido y conciliación del estado de cuenta | account-statements, ux-fixes | 10: account-statements#1.2 account-statements#1.3 account-statements#1.4 (+7) | 13: 7663863 bfc57a6 0b9c0c9 (+10) | api 46 |
-| IDN-01 | Registro con respuesta uniforme | api-foundation | 5: api-foundation#7.3 domain-test-coverage#3.1 domain-test-coverage#3.5 (+2) | 11: 28ab537 fd33dde 734f34c (+8) | api 7 |
-| IDN-02 | Datos obligatorios del registro | api-foundation, registration-birth-data, ux-fixes | 10: api-foundation#2.5 api-foundation#6.1 api-foundation#7.3 (+7) | 9: dc7670d 7663863 b79fd1e (+6) | api 35 |
-| IDN-03 | Unicidad de los datos de identidad | api-foundation | 7: api-foundation#2.5 api-foundation#7.3 domain-test-coverage#3.5 (+4) | 14: 28ab537 fd33dde 734f34c (+11) | api 8 |
+| IDN-01 | Registro con respuesta uniforme | api-foundation | 5: api-foundation#7.3 domain-test-coverage#3.1 domain-test-coverage#3.5 (+2) | 12: 46d46aa a17006e fd33dde (+9) | api 7 |
+| IDN-02 | Datos obligatorios del registro | api-foundation, registration-birth-data, ux-fixes | 10: api-foundation#2.5 api-foundation#6.1 api-foundation#7.3 (+7) | 10: a3d4229 dc7670d 7663863 (+7) | api 35 |
+| IDN-03 | Unicidad de los datos de identidad | api-foundation | 7: api-foundation#2.5 api-foundation#7.3 domain-test-coverage#3.5 (+4) | 15: 46d46aa a17006e fd33dde (+12) | api 8 |
 | IDN-04 | Almacenamiento seguro de contraseñas | api-foundation | 1: api-foundation#7.1 | 1: fed4b5e | api 5 |
 | IDN-05 | Código de verificación de correo | api-foundation | 4: api-foundation#2.8 api-foundation#7.2 domain-test-coverage#3.1 (+1) | 4: c51d653 a5fe8fb 6323e25 (+1) | api 15 |
 | IDN-06 | Verificación de correo | api-foundation | 3: api-foundation#7.5 domain-test-coverage#3.6 ux-fixes#5.2 | 4: 7663863 fb2e70e 2bdbcc7 (+1) | api 7 |
@@ -102,20 +102,20 @@ Generada con `scripts/trace.sh`: 218 requisitos. Las columnas de tareas y commit
 | IDN-13 | Cierre de sesión | api-foundation | 2: api-foundation#7.10 domain-test-coverage#3.4 | 2: f7bee34 3b4e4d9 | api 6 |
 | IDN-14 | Datos del usuario autenticado | api-foundation | 1: api-foundation#7.11 | 1: 2d0c704 | api 2 |
 | IDN-15 | Límites de tasa en identidad | api-foundation | 1: api-foundation#7.12 | 1: 0e1fa0a | api 5 |
-| MOB-01 | Inicio de sesión | mobile-app | 5: contract-v1-1#3.1 mobile-app#3.1 mobile-app#6.2 (+2) | 4: 54aea3e dd44998 4cac987 (+1) | mobile 7 |
+| MOB-01 | Inicio de sesión | mobile-app | 5: contract-v1-1#3.1 redesign#7.2 mobile-app#3.1 (+2) | 4: 54aea3e dd44998 4cac987 (+1) | mobile 7 |
 | MOB-02 | Almacenamiento seguro de tokens | mobile-app | 5: biometric-unlock#2.1 mobile-app#1.3 mobile-app#1.5 (+2) | 6: 946a9af 4cac987 285efd1 (+3) | mobile 15 |
 | MOB-03 | Renovación de la sesión de una sola vez | mobile-app | 3: mobile-app#2.2 mobile-app#2.3 mobile-app#2.4 | 4: 4cac987 285efd1 a6c0e55 (+1) | mobile 10 |
 | MOB-04 | Cierre de sesión | mobile-app | 2: biometric-unlock#2.4 mobile-app#2.5 | 5: 6be6deb e4e7ace bca19cc (+2) | mobile 5 |
 | MOB-05 | Saldo de las cuentas | mobile-app | 2: mobile-app#3.2 mobile-app#] | 3: d623796 4cac987 d3773c6 | mobile 7 |
 | MOB-06 | Últimos 20 movimientos | mobile-app, ux-fixes | 3: mobile-app#3.3 mobile-app#] ux-fixes#4.4 | 6: 5522250 85a4322 252c5fe (+3) | mobile 8 |
-| MOB-07 | Selección de beneficiario registrado | mobile-app | 2: mobile-app#4.5 redesign#7.5 | 5: c11c20f 123421b 225c723 (+2) | mobile 5 |
+| MOB-07 | Selección de beneficiario registrado | mobile-app | 2: redesign#7.5 mobile-app#4.5 | 5: c11c20f 123421b 225c723 (+2) | mobile 5 |
 | MOB-08 | Captura y validación de la transferencia | mobile-app, ux-fixes | 3: mobile-app#4.6 ux-fixes#3.4 ux-fixes#4.4 | 6: 5522250 225c723 a1bb69a (+3) | mobile 13 |
 | MOB-09 | Confirmación previa y envío único | mobile-app | 2: mobile-app#4.1 mobile-app#4.7 | 5: 225c723 b64bd2f 4cac987 (+2) | mobile 14 |
 | MOB-10 | Reintento ante pérdida de red con la misma llave | mobile-app | 7: mobile-app#1.3 mobile-app#2.2 mobile-app#4.2 (+4) | 8: 225c723 4cac987 99de8f7 (+5) | mobile 21 |
 | MOB-11 | Estado incierto y reintento manual | mobile-app | 2: mobile-app#4.4 mobile-app#4.8 | 4: 225c723 4cac987 c4fc58e (+1) | mobile 5 |
 | MOB-12 | Confirmación con OTP | mobile-app, ux-fixes | 3: mobile-app#4.9 mobile-app#] ux-fixes#5.4 | 5: 5522250 123421b 225c723 (+2) | mobile 22 |
 | MOB-13 | Resultado con el estado real | mobile-app, ux-fixes | 3: mobile-app#4.10 mobile-app#4.11 ux-fixes#4.4 | 9: 5522250 fc6bb8b 123421b (+6) | mobile 9 |
-| MOB-14 | Mensajes de error por código | mobile-app | 4: mobile-app#2.6 mobile-app#4.8 mobile-app#] (+1) | 7: c11c20f 123421b 225c723 (+4) | mobile 9 |
+| MOB-14 | Mensajes de error por código | mobile-app | 4: redesign#7.5 mobile-app#2.6 mobile-app#4.8 (+1) | 7: c11c20f 123421b 225c723 (+4) | mobile 9 |
 | MOB-15 | Montos sin punto flotante | mobile-app | 4: mobile-app#1.2 mobile-app#3.2 mobile-app#3.3 (+1) | 6: d623796 4cac987 d698a85 (+3) | mobile 8 |
 | MOB-16 | Privacidad en segundo plano | mobile-app | 4: biometric-unlock#2.3 mobile-app#1.3 mobile-app#5.1 (+1) | 6: 4f247e2 5a0cbb3 4cac987 (+3) | mobile 12 |
 | MOB-17 | URL de la API configurable para desarrollo local | mobile-app | 4: mobile-app#1.1 mobile-app#1.4 mobile-app#6.1 (+1) | 5: 6265630 4cac987 4e5054c (+2) | mobile 13 |
@@ -195,17 +195,17 @@ Generada con `scripts/trace.sh`: 218 requisitos. Las columnas de tareas y commit
 | WEB-08 | Resultado de las mutaciones como valor | web-app | 3: scheduled-transfers#3.3 web-app#2.5 web-app#5.1 | 5: 433fa46 27509a1 9635f0c (+2) | web 13 |
 | WEB-09 | Proxy de lecturas con lista blanca | web-app | 5: account-statements#2.1 scheduled-transfers#3.3 web-app#1.2 (+2) | 8: 852e373 433fa46 27509a1 (+5) | web 14 |
 | WEB-10 | Propagación de headers hacia la API | web-app | 2: web-app#2.3 web-app#8.1 | 3: 0cbf6ed d3ba0b9 05aa965 | web 14 |
-| WEB-11 | Registro y verificación de correo | registration-birth-data, ux-fixes, web-app | 9: redesign#6.2 registration-birth-data#3.1 registration-birth-data#3.2 (+6) | 13: 28ab537 fd33dde 41d1d1b (+10) | web 23 |
+| WEB-11 | Registro y verificación de correo | web-app, registration-birth-data, ux-fixes | 9: redesign#6.2 web-app#4.2 web-app#4.4 (+6) | 15: a3d4229 46d46aa a17006e (+12) | web 23 |
 | WEB-12 | Inicio de sesión | web-app | 4: contract-v1-1#2.1 redesign#6.2 web-app#4.1 (+1) | 5: b63ce47 2712c63 af02f36 (+2) | web 11 |
-| WEB-13 | Resumen de cuentas | ux-fixes, web-app | 2: ux-fixes#7.1 web-app#6.1 | 6: 64d86f3 d548eab 1f484b4 (+3) | web 9 |
+| WEB-13 | Resumen de cuentas | web-app, ux-fixes | 2: web-app#6.1 ux-fixes#7.1 | 6: 64d86f3 d548eab 1f484b4 (+3) | web 9 |
 | WEB-14 | Historial de movimientos | web-app | 4: account-statements#2.3 redesign#6.4 web-app#6.2 (+1) | 7: b9aeea0 db1bffd 5719ece (+4) | web 15 |
 | WEB-15 | Beneficiarios | web-app | 2: web-app#7.1 web-app#7.2 | 4: 221a143 af02f36 05aa62c (+1) | web 9 |
-| WEB-16 | Flujo de transferencia | ux-fixes, web-app | 6: redesign#6.5 ux-fixes#4.3 web-app#8.3 (+3) | 16: 64d86f3 1566084 4d5e011 (+13) | web 28 |
+| WEB-16 | Flujo de transferencia | web-app, ux-fixes | 6: redesign#6.5 web-app#8.3 web-app#8.4 (+3) | 16: 64d86f3 1566084 4d5e011 (+13) | web 28 |
 | WEB-17 | Una sola transferencia por intento | web-app | 4: web-app#8.1 web-app#8.2 web-app#8.4 (+1) | 9: 274c2c4 e4e52a4 86ab381 (+6) | web 31 |
-| WEB-18 | Confirmación con OTP | ux-fixes, web-app | 3: ux-fixes#5.3 web-app#8.5 web-app#8.7 | 7: 64d86f3 e4e52a4 1e8561b (+4) | web 24 |
+| WEB-18 | Confirmación con OTP | web-app, ux-fixes | 3: web-app#8.5 web-app#8.7 ux-fixes#5.3 | 7: 64d86f3 e4e52a4 1e8561b (+4) | web 24 |
 | WEB-19 | Mensajes por código de error | web-app | 3: redesign#6.5 web-app#5.1 web-app#8.4 | 8: 1566084 4d5e011 1e8561b (+5) | web 8 |
 | WEB-20 | Estados de carga, vacío y error | web-app | 5: web-app#1.5 web-app#5.2 web-app#6.1 (+2) | 12: d1f5e8a 221a143 1e8561b (+9) | web 20 |
-| WEB-21 | Montos sin floats ni redondeo | ux-fixes, web-app | 5: ux-fixes#3.3 web-app#1.1 web-app#1.4 (+2) | 8: 64d86f3 af02f36 2d1c617 (+5) | web 11 |
+| WEB-21 | Montos sin floats ni redondeo | web-app, ux-fixes | 5: web-app#1.1 web-app#1.4 web-app#6.1 (+2) | 8: 64d86f3 af02f36 2d1c617 (+5) | web 11 |
 | WEB-22 | Rutas protegidas | web-app | 3: web-app#3.2 web-app#4.6 web-app#5.2 | 5: 86ab381 0cbf6ed dcf659f (+2) | web 16 |
 | WEB-23 | Accesibilidad básica | web-app | 8: redesign#6.7 web-app#1.3 web-app#1.4 (+5) | 44: 048ca0b e0be490 e79868c (+41) | web 93 |
 | WEB-24 | Layout responsivo con dos formas | redesign | 6: redesign#3.6 redesign#5.1 redesign#6.1 (+3) | 25: 482b0aa 4d9569e d27f450 (+22) | web 10 |
