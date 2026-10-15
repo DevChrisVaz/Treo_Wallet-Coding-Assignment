@@ -326,6 +326,29 @@ export const RegisterErrors = () => (
   />
 );
 
+/**
+ * /register tras enviar con una CURP y un teléfono que ya son de otra cuenta (WEB-11): la API responde
+ * 422 `VALIDATION_FAILED` con `ALREADY_REGISTERED` por campo y la pantalla se queda en el formulario,
+ * con el mensaje de la API bajo cada campo (el RFC, que no chocó, no lleva error).
+ */
+export const RegisterRejected = () => (
+  <RegisterForm
+    values={{
+      email: 'ana@example.com',
+      password: 'contraseña-segura1',
+      confirmPassword: 'contraseña-segura1',
+      fullName: 'Beatriz Sepúlveda Romero',
+      curp: 'SEPB851121HDFRRL08',
+      rfc: 'SEPB851121SD2',
+      phone: '5520000042',
+    }}
+    errors={{
+      curp: 'Esta CURP ya está registrada en otra cuenta.',
+      phone: 'Este teléfono ya está registrado en otra cuenta.',
+    }}
+  />
+);
+
 /** /verify-email?email=…&registered=1 — VerifyEmailForm al llegar del registro. */
 export const VerifyEmail = () => (
   <BrandShell title="Verifica tu correo">
