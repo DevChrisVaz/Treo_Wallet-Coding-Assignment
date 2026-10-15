@@ -1075,6 +1075,7 @@ Así se rastrea cada requisito en el código:
 | `redesign`                                                | design-tokens, web, mobile      | DSG-13 a DSG-17, WEB-24 a WEB-31, MOB-18 a MOB-22       | Aplicado e integrado en `release`; faltan la verificación en Expo Go y subir los lienzos a Claude Design |
 | `ux-fixes`                                                | contract, api, web, mobile, docs | Cambios a CTR-11 a CTR-13, CTR-18, IDN-02, TRF-09, TRF-27 a TRF-30, HIS-11, WEB-11 a WEB-34 y MOB-06 a MOB-23; nuevos CTR-20, WEB-35, WEB-36, MOB-28 y MOB-29 | Completo                                                    |
 | `web-redis-sessions`                                      | web                             | WEB-37                                                  | Completo                                                    |
+| `registration-review`                                     | contract, design-tokens, api, web, mobile | IDN-16, MOB-30 y cambios a IDN-03, IDN-06, IDN-08, AUD-01, DSG-12, WEB-11 y WEB-12| Completo                                                    |
 | `delivery`                                                | docs                            | Sin requisitos nuevos                                   | Completo                                  |
 
 ### Mapa de la especificación
@@ -1132,6 +1133,7 @@ Cada change tiene un `design.md` con las decisiones y las alternativas descartad
 | [`redesign`](openspec/changes/archive/2026-10-14-redesign/design.md) | Prototipo en una rama con aprobación visual antes de aplicar; paridad web y móvil; tokens v2 aditivos |
 | [`domain-test-coverage`](openspec/changes/archive/2026-10-14-domain-test-coverage/design.md) | Cada prueba escrita después del código se demuestra rompiendo la regla; una base de datos por línea de trabajo |
 | [`web-redis-sessions`](openspec/changes/archive/2026-10-14-web-redis-sessions/design.md) | Sesiones en Redis con `REDIS_URL` y en un `Map` sin ella; un hash por sesión con TTL; renovación del plazo atómica en Lua; conexión que falla rápido; la misma suite de pruebas para las dos implementaciones |
+| [`registration-review`](openspec/changes/archive/2026-10-15-registration-review/design.md) | Un registro con datos de otra cuenta sigue el mismo camino hasta verificar el correo y queda en revisión, sin cuentas; el dueño de los datos recibe un aviso; la resolución la hace soporte |
 | [`delivery`](openspec/changes/archive/2026-10-15-delivery/design.md) | Propuesta de AWS ([`docs/aws-deploy.md`](docs/aws-deploy.md)), trazabilidad generada, guion del video |
 
 La [bitácora de AI](docs/ai-log.md) registra qué propuso la AI, qué acepté, qué rechacé o cambié, y dónde se equivocó y se corrigió.

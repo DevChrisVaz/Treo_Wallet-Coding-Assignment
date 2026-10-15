@@ -134,6 +134,10 @@ El paquete SHALL exportar en español de México, con un tono cercano que habla 
 - **WHEN** un cliente recibe un `code` que el paquete no conoce
 - **THEN** muestra el mensaje de `INTERNAL_ERROR`
 
+#### Scenario: Registro en revisión
+- **WHEN** un cliente muestra el error `REGISTRATION_IN_REVIEW`
+- **THEN** el texto es "Tu registro está en revisión. Te escribiremos a tu correo cuando terminemos."
+
 ### Requirement: DSG-13 Lenguaje visual elevado de la marca
 El sistema SHALL conservar la identidad de DSG-02 (paleta de Treo, Work Sans, botones en píldora) y SHALL definir además un lienzo cálido para el fondo de la app con el contenido en tarjetas blancas elevadas, una superficie de *hero* en verde profundo para el saldo y radio de 16 px para las superficies grandes (*hero*, hojas inferiores y paneles). Las tarjetas pequeñas MUST conservar el radio de 9 px. Amplía DSG-02 y sustituye, para las superficies grandes, el radio de DSG-06.
 

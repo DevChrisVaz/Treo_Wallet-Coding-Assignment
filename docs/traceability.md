@@ -92,7 +92,7 @@ Generada con `scripts/trace.sh`: 220 requisitos. Las columnas de tareas y commit
 | IDN-03 | Unicidad de los datos de identidad | api-foundation, registration-review | 9: api-foundation#2.5 api-foundation#7.3 domain-test-coverage#3.5 (+6) | 21: e667fa6 4de4677 c62b858 (+18) | api 15 |
 | IDN-04 | Almacenamiento seguro de contraseñas | api-foundation | 1: api-foundation#7.1 | 1: fed4b5e | api 5 |
 | IDN-05 | Código de verificación de correo | api-foundation | 4: api-foundation#2.8 api-foundation#7.2 domain-test-coverage#3.1 (+1) | 4: c51d653 a5fe8fb 6323e25 (+1) | api 15 |
-| IDN-06 | Verificación de correo | api-foundation, registration-review | 5: api-foundation#7.5 domain-test-coverage#3.6 ux-fixes#5.2 (+2) | 10: e667fa6 4de4677 c62b858 (+7) | api 10 |
+| IDN-06 | Verificación de correo | api-foundation, registration-review | 5: api-foundation#7.5 domain-test-coverage#3.6 registration-review#1.1 (+2) | 10: e667fa6 4de4677 c62b858 (+7) | api 10 |
 | IDN-07 | Reenvío del código de verificación | api-foundation | 2: api-foundation#7.6 domain-test-coverage#3.5 | 2: 6d835e1 0c7d57c | api 5 |
 | IDN-08 | Inicio de sesión sin enumeración | api-foundation, registration-review | 4: api-foundation#7.9 domain-test-coverage#3.6 registration-review#1.1 (+1) | 8: e667fa6 4de4677 c62b858 (+5) | api 10 |
 | IDN-09 | Access token de vida corta | api-foundation | 1: api-foundation#7.7 | 1: 557d660 | api 5 |
@@ -197,7 +197,7 @@ Generada con `scripts/trace.sh`: 220 requisitos. Las columnas de tareas y commit
 | WEB-08 | Resultado de las mutaciones como valor | web-app | 3: scheduled-transfers#3.3 web-app#2.5 web-app#5.1 | 5: 433fa46 27509a1 9635f0c (+2) | web 13 |
 | WEB-09 | Proxy de lecturas con lista blanca | web-app | 5: account-statements#2.1 scheduled-transfers#3.3 web-app#1.2 (+2) | 8: 852e373 433fa46 27509a1 (+5) | web 14 |
 | WEB-10 | Propagación de headers hacia la API | web-app | 2: web-app#2.3 web-app#8.1 | 3: 0cbf6ed d3ba0b9 05aa965 | web 14 |
-| WEB-11 | Registro y verificación de correo | web-app, registration-birth-data, ux-fixes, registration-review | 10: redesign#6.2 web-app#4.2 web-app#4.4 (+7) | 21: e667fa6 c62b858 a4439ad (+18) | web 26 |
+| WEB-11 | Registro y verificación de correo | web-app, registration-birth-data, registration-review, ux-fixes | 10: redesign#6.2 web-app#4.2 web-app#4.4 (+7) | 21: e667fa6 c62b858 a4439ad (+18) | web 26 |
 | WEB-12 | Inicio de sesión | web-app, registration-review | 5: contract-v1-1#2.1 redesign#6.2 web-app#4.1 (+2) | 8: e667fa6 a4439ad 0f64221 (+5) | web 13 |
 | WEB-13 | Resumen de cuentas | web-app, ux-fixes | 2: web-app#6.1 ux-fixes#7.1 | 6: 64d86f3 d548eab 1f484b4 (+3) | web 9 |
 | WEB-14 | Historial de movimientos | web-app | 4: account-statements#2.3 redesign#6.4 web-app#6.2 (+1) | 7: b9aeea0 db1bffd 5719ece (+4) | web 15 |

@@ -134,7 +134,7 @@ En cada llamada a la API, la web SHALL enviar la IP del cliente en `X-Forwarded-
 - **AND** la web hace exactamente una llamada a la API por esa petición
 
 ### Requirement: WEB-11 Registro y verificación de correo
-La web SHALL ofrecer un registro con email, contraseña, confirmación de la contraseña, nombres, apellido paterno, apellido materno (opcional), fecha de nacimiento, entidad de nacimiento, CURP, RFC y teléfono, validados en el formulario con las reglas del contrato (CTR-13). Cada campo MUST validarse al salir de él, sin esperar al envío, y corregirse al teclear. La confirmación de la contraseña es un campo solo de la interfaz: MUST coincidir con la contraseña y MUST NOT enviarse a la API. Mientras se escribe, la CURP y el RFC MUST quedar en mayúsculas alfanuméricas con un máximo de 18 y 13 caracteres, y el teléfono en dígitos con un máximo de 10, también al pegar. El email MUST enviarse recortado y en minúsculas. La entidad de nacimiento MUST elegirse de una lista con los nombres del catálogo del contrato (CTR-21) y enviarse como código; la web MUST NOT rellenar la fecha ni la entidad a partir de la CURP, para que se contrasten como datos independientes (CTR-13). Si la API acepta el registro (`202`), la web MUST mostrar siempre el mismo mensaje genérico y llevar al usuario a la verificación, donde captura el código de 6 dígitos y puede pedir un reenvío. Si la API responde `422` con errores de campo, la web MUST mostrar cada mensaje bajo su campo y quedarse en el formulario. Al verificar, la web SHALL iniciar la sesión con los tokens recibidos y mostrar el resumen de cuentas.
+La web SHALL ofrecer un registro con email, contraseña, confirmación de la contraseña, nombres, apellido paterno, apellido materno (opcional), fecha de nacimiento, entidad de nacimiento, CURP, RFC y teléfono, validados en el formulario con las reglas del contrato (CTR-13). Cada campo MUST validarse al salir de él, sin esperar al envío, y corregirse al teclear. La confirmación de la contraseña es un campo solo de la interfaz: MUST coincidir con la contraseña y MUST NOT enviarse a la API. Mientras se escribe, la CURP y el RFC MUST quedar en mayúsculas alfanuméricas con un máximo de 18 y 13 caracteres, y el teléfono en dígitos con un máximo de 10, también al pegar. El email MUST enviarse recortado y en minúsculas. La entidad de nacimiento MUST elegirse de una lista con los nombres del catálogo del contrato (CTR-21) y enviarse como código; la web MUST NOT rellenar la fecha ni la entidad a partir de la CURP, para que se contrasten como datos independientes (CTR-13). Si la API acepta el registro (`202`), la web MUST mostrar siempre el mismo mensaje genérico y llevar al usuario a la verificación, donde captura el código de 6 dígitos y puede pedir un reenvío. Si la API responde `422` con errores de campo, la web MUST mostrar cada mensaje bajo su campo y quedarse en el formulario. Al verificar, la web SHALL iniciar la sesión con los tokens recibidos y mostrar el resumen de cuentas. Si la verificación responde `403 REGISTRATION_IN_REVIEW` (IDN-06), la web MUST mostrar el mensaje de `REGISTRATION_IN_REVIEW` del paquete de diseño, MUST NOT iniciar sesión y MUST ofrecer volver al inicio de sesión.
 
 #### Scenario: Registro enviado
 - **WHEN** el usuario envía un registro válido
@@ -191,8 +191,13 @@ La web SHALL ofrecer un registro con email, contraseña, confirmación de la con
 - **WHEN** el usuario elige "Ciudad de México" en la entidad de nacimiento
 - **THEN** la petición lleva `birthState` igual a `"DF"`
 
+#### Scenario: Registro en revisión al verificar
+- **WHEN** el usuario envía el código correcto y la API responde `403` con `code` `REGISTRATION_IN_REVIEW`
+- **THEN** la web muestra "Tu registro está en revisión. Te escribiremos a tu correo cuando terminemos." y un enlace para volver a iniciar sesión
+- **AND** no crea ninguna sesión
+
 ### Requirement: WEB-12 Inicio de sesión
-La web SHALL ofrecer un inicio de sesión con email y contraseña. Ante credenciales inválidas MUST mostrar un único mensaje genérico. Si la API responde `EMAIL_NOT_VERIFIED`, la web SHALL llevar al usuario a la verificación de ese correo. Si responde `RATE_LIMITED`, MUST indicar cuánto esperar según `Retry-After`.
+La web SHALL ofrecer un inicio de sesión con email y contraseña. Ante credenciales inválidas MUST mostrar un único mensaje genérico. Si la API responde `EMAIL_NOT_VERIFIED`, la web SHALL llevar al usuario a la verificación de ese correo. Si responde `REGISTRATION_IN_REVIEW`, la web MUST mostrar su mensaje y quedarse en el inicio de sesión. Si responde `RATE_LIMITED`, MUST indicar cuánto esperar según `Retry-After`.
 
 #### Scenario: Credenciales inválidas
 - **WHEN** la API responde `INVALID_CREDENTIALS`
@@ -205,6 +210,10 @@ La web SHALL ofrecer un inicio de sesión con email y contraseña. Ante credenci
 #### Scenario: Demasiados intentos
 - **WHEN** la API responde `429` con `Retry-After: 300`
 - **THEN** la web muestra "Hiciste demasiados intentos. Espera un momento y vuelve a intentar. Intenta de nuevo en 5 minutos." (mensaje de `RATE_LIMITED` del paquete de diseño más la espera de `Retry-After`)
+
+#### Scenario: Registro en revisión
+- **WHEN** la API responde `403` con `code` `REGISTRATION_IN_REVIEW`
+- **THEN** la web muestra "Tu registro está en revisión. Te escribiremos a tu correo cuando terminemos." (mensaje de `REGISTRATION_IN_REVIEW` del paquete de diseño) y no lleva a la verificación
 
 ### Requirement: WEB-13 Resumen de cuentas
 La web SHALL mostrar las cuentas del usuario con su nombre, su CLABE enmascarada (solo los últimos 4 dígitos) y su saldo, y el límite diario de transferencias con lo usado y lo restante del día ("Te quedan $X hoy"). La CLABE completa MUST mostrarse únicamente en "Recibir dinero" (WEB-35); la tarjeta de cuenta MUST NOT ofrecer mostrarla.

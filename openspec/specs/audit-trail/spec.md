@@ -8,7 +8,7 @@ Define la bitácora de auditoría de la billetera: qué eventos de negocio y de 
 
 ### Requirement: AUD-01 Catálogo de eventos auditados
 La API SHALL registrar en la bitácora de auditoría los eventos de este catálogo, y solo estos:
-- Identidad: `USER_REGISTERED`, `EMAIL_VERIFIED`, `EMAIL_VERIFICATION_RESENT`, `LOGIN_SUCCEEDED`, `LOGIN_FAILED` (con el motivo), `LOGOUT`.
+- Identidad: `USER_REGISTERED`, `EMAIL_VERIFIED`, `EMAIL_VERIFICATION_RESENT`, `REGISTRATION_IN_REVIEW` (con qué datos de identidad chocaron, como `curpTaken`, `rfcTaken` y `phoneTaken`), `LOGIN_SUCCEEDED`, `LOGIN_FAILED` (con el motivo), `LOGOUT`.
 - Seguridad: `REFRESH_TOKEN_REUSE_DETECTED`, `OTP_ATTEMPT_FAILED` y `OTP_ATTEMPTS_EXHAUSTED` (para ambos propósitos de código, indicado en los metadatos).
 - Beneficiarios: `BENEFICIARY_CREATED`.
 - Transferencias: `TRANSFER_CREATED` (con el estado inicial), `TRANSFER_OTP_SENT`, `TRANSFER_OTP_RESENT`, `TRANSFER_COMPLETED`, `TRANSFER_REJECTED` (con el motivo), `TRANSFER_FAILED` (con el motivo).
@@ -27,6 +27,10 @@ Cada evento MUST incluir el momento en que ocurrió, el tipo de actor (`USER`, `
 #### Scenario: Las lecturas no se auditan
 - **WHEN** un usuario llama a `GET /me`
 - **THEN** no se agrega ningún evento a la bitácora
+
+#### Scenario: Registro en revisión auditado
+- **WHEN** un usuario en revisión cuyo RFC era de otro usuario verifica su correo
+- **THEN** existe un evento `REGISTRATION_IN_REVIEW` sobre ese usuario con `rfcTaken` verdadero y sin el RFC en los metadatos
 
 ### Requirement: AUD-02 Sin datos personales en la auditoría
 Los eventos de auditoría MUST NOT contener contraseñas, tokens, códigos de un solo uso, email, teléfono, CURP, RFC ni CLABE completas. Los metadatos SHALL limitarse a ids, montos, estados, motivos y propósitos.
