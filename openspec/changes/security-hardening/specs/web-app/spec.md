@@ -24,7 +24,7 @@ En cada llamada a la API, la web SHALL enviar la IP del cliente en `X-Forwarded-
 ## ADDED Requirements
 
 ### Requirement: WEB-38 Headers de seguridad en toda respuesta
-La web SHALL enviar en cada respuesta, incluidas las de `/bff/*` y `/_next/*`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` y un `Permissions-Policy` que deshabilite al menos cámara, micrófono, geolocalización y pagos. Solo cuando la cookie de sesión es segura (`SESSION_COOKIE_SECURE` verdadero, es decir, con HTTPS) SHALL enviar además `Strict-Transport-Security: max-age=63072000; includeSubDomains`. La política de referencia MUST permitir que las Server Actions reciban el `Origin` del propio sitio (WEB-06).
+La web SHALL enviar en cada respuesta, incluidas las de `/bff/*` y `/_next/*`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` y un `Permissions-Policy` que deshabilite al menos cámara, micrófono, geolocalización y pagos. Solo cuando la cookie de sesión es segura (`SESSION_COOKIE_SECURE` verdadero **al arrancar el servidor**, es decir, con HTTPS) SHALL enviar además, en las respuestas de página, `Strict-Transport-Security: max-age=63072000; includeSubDomains`; el valor de esa variable durante `next build` MUST NOT influir. El `Permissions-Policy` MUST usar solo funciones que el navegador reconoce, de modo que la consola no registre errores sobre ese header. La política de referencia MUST permitir que las Server Actions reciban el `Origin` del propio sitio (WEB-06).
 
 #### Scenario: Una página
 - **WHEN** el navegador pide `/login`
@@ -40,8 +40,16 @@ La web SHALL enviar en cada respuesta, incluidas las de `/bff/*` y `/_next/*`, `
 
 #### Scenario: HSTS solo con HTTPS
 - **WHEN** la web corre con `SESSION_COOKIE_SECURE=true`
-- **THEN** las respuestas llevan `Strict-Transport-Security: max-age=63072000; includeSubDomains`
+- **THEN** las páginas llevan `Strict-Transport-Security: max-age=63072000; includeSubDomains`
 - **AND** con `SESSION_COOKIE_SECURE=false` ninguna respuesta lo lleva
+
+#### Scenario: HSTS no depende del build
+- **WHEN** se compila sin `SESSION_COOKIE_SECURE` y el servidor arranca con `SESSION_COOKIE_SECURE=false`
+- **THEN** ninguna página, ruta de `/bff` ni archivo de `/_next` lleva `Strict-Transport-Security`
+
+#### Scenario: Consola limpia
+- **WHEN** el navegador carga cualquier pantalla
+- **THEN** la consola no registra errores sobre el header `Permissions-Policy`
 
 #### Scenario: La web no se puede incrustar
 - **WHEN** otro sitio intenta mostrar la web dentro de un `iframe`

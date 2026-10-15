@@ -26,7 +26,7 @@
 
 - [x] 4.1 [web] Reinstalar el contrato 1.6.0. Reenviar el `User-Agent` del navegador en cada llamada a la API (también la renovación y las lecturas); pruebas (WEB-10)
 - [x] 4.2 [web] Un `429` al renovar conserva la sesión y se recupera después; un `429` al crear, confirmar o reenviar muestra el mensaje con la espera sin repetir la llamada; pruebas de la renovación, las acciones y los componentes (WEB-40)
-- [x] 4.3 [web] Headers estáticos en `next.config.ts` (`nosniff`, `DENY`, `Referrer-Policy`, `Permissions-Policy`, y HSTS solo con `SESSION_COOKIE_SECURE`); pruebas de configuración (WEB-38)
+- [x] 4.3 [web] Headers estáticos en `next.config.ts` (`nosniff`, `DENY`, `Referrer-Policy`, `Permissions-Policy`) y HSTS desde `proxy.ts` solo con `SESSION_COOKIE_SECURE` al arrancar, no al compilar; pruebas de configuración y del proxy (WEB-38)
 - [x] 4.4 [web] Content-Security-Policy con nonce en `proxy.ts`, que conserva `x-wallet-path`; pruebas de las directivas en desarrollo, en producción con HTTPS y en HTTP local, y de que el nonce cambia por petición (WEB-39)
 - [x] 4.5 [web] Prueba e2e que recorre las pantallas públicas y las autenticadas y falla ante cualquier violación de la política, comprueba los headers de WEB-38 y que un script en línea sin nonce no corre; corre toda la suite e2e (WEB-38, WEB-39)
 - [x] 4.6 [web] Verificación de la compilación de producción: `playwright.prod.config.ts` y el script `test:e2e:prod` (`next build` y `next start` contra la API simulada, en puertos propios) con la prueba de 4.5 (WEB-39)

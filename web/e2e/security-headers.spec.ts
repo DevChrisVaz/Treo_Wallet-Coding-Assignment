@@ -14,6 +14,9 @@ const PRODUCTION = process.env.E2E_PROD === '1';
 const DEV_TOOLS = PRODUCTION ? /^(?!)/ : /next-devtools/;
 
 const CSP_MESSAGE = /Content[- ]Security[- ]Policy|Refused to|violates the following/i;
+/** Chromium registra un error en cada página si el Permissions-Policy lista una función que no conoce. */
+const PERMISSIONS_MESSAGE = /Permissions-Policy|Unrecognized feature/i;
+
 interface Collected {
   messages: string[];
   violations: () => Promise<string[]>;
@@ -23,12 +26,12 @@ interface Collected {
 async function collectViolations(page: Page): Promise<Collected> {
   const messages: string[] = [];
   page.on('console', (message) => {
-    if (CSP_MESSAGE.test(message.text())) {
+    if (CSP_MESSAGE.test(message.text()) || PERMISSIONS_MESSAGE.test(message.text())) {
       messages.push(`${message.text()} (${message.location().url})`);
     }
   });
   page.on('pageerror', (error) => {
-    if (CSP_MESSAGE.test(error.message)) {
+    if (CSP_MESSAGE.test(error.message) || PERMISSIONS_MESSAGE.test(error.message)) {
       messages.push(error.message);
     }
   });

@@ -11,7 +11,6 @@ const DISABLED_FEATURES = [
   'payment',
   'usb',
   'serial',
-  'bluetooth',
   'accelerometer',
   'gyroscope',
   'magnetometer',

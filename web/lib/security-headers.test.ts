@@ -21,6 +21,11 @@ describe('securityHeaders', () => {
     expect(STRICT_TRANSPORT_SECURITY).not.toContain('preload');
   });
 
+  it('WEB-38 el Permissions-Policy no lista funciones que Chromium no reconoce', () => {
+    const policy = asMap(securityHeaders())['Permissions-Policy'] ?? '';
+    expect(policy).not.toContain('bluetooth');
+  });
+
   it('WEB-38 el Permissions-Policy deshabilita cámara, micrófono, geolocalización y pagos', () => {
     const policy = asMap(securityHeaders())['Permissions-Policy'] ?? '';
     for (const feature of ['camera', 'microphone', 'geolocation', 'payment']) {
