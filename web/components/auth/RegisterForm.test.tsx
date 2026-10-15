@@ -15,7 +15,11 @@ const registerMock = vi.mocked(register);
 const VALID = {
   email: 'ana@example.com',
   password: 'contraseña-larga-1',
-  fullName: 'Ana Gómez Castillo',
+  firstNames: 'Ana',
+  paternalSurname: 'Gómez',
+  maternalSurname: 'Castillo',
+  birthDate: '1990-01-01',
+  birthState: 'DF',
   curp: 'GOMC900101HDFNLR09',
   rfc: 'GOMC900101AB1',
   phone: '5512345678',
@@ -27,7 +31,13 @@ async function fill(values: Partial<typeof VALID> & { confirmPassword?: string }
   await user.type(screen.getByLabelText('Correo'), data.email);
   await user.type(screen.getByLabelText('Contraseña'), data.password);
   await user.type(screen.getByLabelText('Confirmar contraseña'), data.confirmPassword);
-  await user.type(screen.getByLabelText('Nombre completo'), data.fullName);
+  await user.type(screen.getByLabelText('Nombre(s)'), data.firstNames);
+  await user.type(screen.getByLabelText('Apellido paterno'), data.paternalSurname);
+  if (data.maternalSurname) {
+    await user.type(screen.getByLabelText('Apellido materno (opcional)'), data.maternalSurname);
+  }
+  await user.type(screen.getByLabelText('Fecha de nacimiento'), data.birthDate);
+  await user.selectOptions(screen.getByLabelText('Entidad de nacimiento'), data.birthState);
   await user.type(screen.getByLabelText('CURP'), data.curp);
   await user.type(screen.getByLabelText('RFC'), data.rfc);
   await user.type(screen.getByLabelText('Teléfono'), data.phone);
@@ -89,14 +99,63 @@ describe('RegisterForm', () => {
     const user = userEvent.setup();
     render(<RegisterForm />);
 
-    await user.type(screen.getByLabelText('Nombre completo'), 'Ana3 Gómez');
-    expect(screen.getByLabelText('Nombre completo')).not.toHaveAttribute('aria-invalid', 'true');
+    await user.type(screen.getByLabelText('Nombre(s)'), 'Ana3');
+    expect(screen.getByLabelText('Nombre(s)')).not.toHaveAttribute('aria-invalid', 'true');
     await user.tab();
-    expect(screen.getByLabelText('Nombre completo')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Nombre(s)')).toHaveAttribute('aria-invalid', 'true');
 
     await user.type(screen.getByLabelText('Teléfono'), '1555123456');
     await user.tab();
     expect(screen.getByLabelText('Teléfono')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('WEB-11 el apellido materno es opcional y no se envía si está vacío', async () => {
+    registerMock.mockResolvedValue({ ok: true, data: { message: 'ok' } });
+    render(<RegisterForm />);
+
+    await fill({ maternalSurname: '' });
+
+    const expected: Record<string, unknown> = { ...VALID };
+    delete expected.maternalSurname;
+    expect(registerMock).toHaveBeenCalledWith(expected);
+  });
+
+  it('WEB-11 la entidad se elige por nombre y se envía como código', async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm />);
+    const select = screen.getByLabelText('Entidad de nacimiento');
+
+    await user.selectOptions(select, 'Ciudad de México');
+
+    expect(select).toHaveValue('DF');
+  });
+
+  it('WEB-11 marca la fecha y la entidad que no coinciden con la CURP al salir del campo', async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm />);
+
+    await user.type(screen.getByLabelText('CURP'), VALID.curp);
+    await user.type(screen.getByLabelText('Fecha de nacimiento'), '1990-01-02');
+    await user.selectOptions(screen.getByLabelText('Entidad de nacimiento'), 'Jalisco');
+    await user.tab();
+
+    expect(screen.getByLabelText('Fecha de nacimiento')).toHaveAccessibleDescription(
+      expect.stringContaining('La fecha no coincide con tu CURP'),
+    );
+    expect(screen.getByLabelText('Entidad de nacimiento')).toHaveAccessibleDescription(
+      expect.stringContaining('La entidad no coincide con tu CURP'),
+    );
+    expect(registerMock).not.toHaveBeenCalled();
+  });
+
+  it('WEB-11 no rellena la fecha ni la entidad a partir de la CURP', async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm />);
+
+    await user.type(screen.getByLabelText('CURP'), VALID.curp);
+
+    expect(screen.getByLabelText('Fecha de nacimiento')).toHaveValue('');
+    expect(screen.getByLabelText('Entidad de nacimiento')).toHaveValue('');
   });
 
   it('WEB-11 un RFC que no coincide con la CURP marca el RFC', async () => {

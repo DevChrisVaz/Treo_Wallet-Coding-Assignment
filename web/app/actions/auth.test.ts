@@ -125,7 +125,11 @@ describe('logout', () => {
 const REGISTRATION = {
   email: 'ana@example.com',
   password: 'contraseña-larga-1',
-  fullName: 'Ana Gómez Castillo',
+  firstNames: 'Ana',
+  paternalSurname: 'Gómez',
+  maternalSurname: 'Castillo',
+  birthDate: '1990-01-01',
+  birthState: 'DF',
   curp: 'GOMC900101HDFNLR09',
   rfc: 'GOMC900101AB1',
   phone: '5512345678',
