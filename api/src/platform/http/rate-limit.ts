@@ -6,6 +6,7 @@ import {
   type Options,
   type Store,
 } from 'express-rate-limit';
+import { currentRequestContext } from '../context/request-context.js';
 import type { Clock } from '../../shared/clock.js';
 import { DomainError } from '../../shared/errors.js';
 import { sendProblem } from './error-handler.js';
@@ -66,6 +67,11 @@ export class ClockMemoryStore implements Store {
 /** Llave por IP del cliente (PLT-07); en IPv6 agrupa por subred para no regalar llaves. */
 export function byIp(req: Request): string {
   return ipKeyGenerator(req.ip ?? 'desconocida');
+}
+
+/** Llave por usuario autenticado: va después de `authenticate`, que lo deja en el contexto. */
+export function byUser(): string {
+  return currentRequestContext()?.userId ?? 'anonimo';
 }
 
 export interface RateLimitOptions {

@@ -1,6 +1,9 @@
 import type { RequestHandler } from 'express';
 import { routeTable } from '../../../../platform/http/auth.js';
+import { byUser, rateLimit } from '../../../../platform/http/rate-limit.js';
 import { parseBody } from '../../../../platform/http/validation.js';
+import type { AppConfig } from '../../../../platform/config/config.js';
+import type { Clock } from '../../../../shared/clock.js';
 import type { CancelTransfer } from '../../application/cancel-transfer.js';
 import type { ConfirmTransfer } from '../../application/confirm-transfer.js';
 import type { CreateTransfer } from '../../application/create-transfer.js';
@@ -23,10 +26,26 @@ export interface TransferHandlers {
 }
 
 /** Rutas de transferencias: solo traducen HTTP y delegan en los casos de uso (PLT-18). */
-export function transferRoutes(handlers: TransferHandlers, authenticateRequest: RequestHandler) {
-  const routes = routeTable(authenticateRequest);
+const MINUTE = 60_000;
 
-  routes.post('/transfers', async (req, res) => {
+export function transferRoutes(
+  handlers: TransferHandlers,
+  authenticateRequest: RequestHandler,
+  clock: Clock,
+  limits: Pick<AppConfig['rateLimits'], 'transferCreateMax'>,
+) {
+  const routes = routeTable(authenticateRequest);
+  // Por usuario (TRF-37): después de autenticar y antes de validar. Una repetición de la misma
+  // llave de idempotencia también cuenta; el margen está en los topes, no en una excepción.
+  const createLimit = rateLimit({
+    name: 'transfer-create',
+    windowMs: 10 * MINUTE,
+    limit: limits.transferCreateMax,
+    key: byUser,
+    clock,
+  });
+
+  routes.post('/transfers', createLimit, async (req, res) => {
     // La llave se valida antes que el cuerpo; ninguna de las dos validaciones la consume (TRF-02).
     const key = parseIdempotencyKey(req.get('Idempotency-Key'));
     const input = parseBody(createTransferRequestSchema, req.body);

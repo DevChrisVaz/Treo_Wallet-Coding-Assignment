@@ -382,7 +382,12 @@ export function createApp(container: Container): Express {
     movementRoutes(container.movements, authenticateRequest),
     statementRoutes(container.statements, authenticateRequest, container.clock),
     beneficiaryRoutes(container.beneficiaries, authenticateRequest, container.clock),
-    transferRoutes(container.transfers, authenticateRequest),
+    transferRoutes(
+      container.transfers,
+      authenticateRequest,
+      container.clock,
+      container.config.rateLimits,
+    ),
   ];
   for (const table of tables) assertPublicRoutesAllowed(table.table);
   return createHttpApp({
