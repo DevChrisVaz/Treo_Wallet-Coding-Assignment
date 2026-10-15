@@ -15,7 +15,10 @@ const registerRequestSchema = registerRequestSchemaAt(NOW);
 const validRegistration = {
   email: 'ana@example.com',
   password: 'contraseña larga 123',
-  fullName: 'Ana Gómez',
+  firstNames: 'Ana',
+  paternalSurname: 'Gómez',
+  birthDate: '1990-01-01',
+  birthState: 'DF',
   curp: 'GOMC900101HDFNLR09',
   rfc: 'GOMC900101AB1',
   phone: '5512345678',
@@ -24,7 +27,11 @@ const validRegistration = {
 /** CURP y RFC coherentes (primeros 10 caracteres iguales) de alguien nacido en 20`yymmdd`. */
 function identityBornOn(yymmdd: string) {
   const first17 = `GOMC${yymmdd}HDFNLRA`;
-  return { curp: `${first17}${curpCheckDigit(first17)}`, rfc: `GOMC${yymmdd}AB1` };
+  return {
+    curp: `${first17}${curpCheckDigit(first17)}`,
+    rfc: `GOMC${yymmdd}AB1`,
+    birthDate: `20${yymmdd.slice(0, 2)}-${yymmdd.slice(2, 4)}-${yymmdd.slice(4, 6)}`,
+  };
 }
 
 function fieldErrors(input: Record<string, unknown>) {
@@ -101,19 +108,25 @@ describe('IDN-02 esquema del registro', () => {
   });
 
   it.each([
-    ['con dígitos', 'Ana 2 Gómez'],
-    ['con símbolos', 'Ana@ Gómez'],
-    ['de una sola palabra', 'Ana'],
-    ['con espacios repetidos', 'Ana  Gómez'],
-    ['con espacio al inicio', ' Ana Gómez'],
-  ])('IDN-02 nombre %s se rechaza en /fullName', (_case, fullName) => {
-    expect(fieldErrors({ ...validRegistration, fullName })).toEqual([
-      expect.objectContaining({ pointer: '/fullName', code: 'INVALID_FORMAT' }),
+    ['con dígitos', 'Ana2'],
+    ['con símbolos', 'Ana@'],
+    ['con espacios repetidos', 'Ana  Luz'],
+    ['con espacio al inicio', ' Ana'],
+  ])('IDN-02 nombres %s se rechazan en /firstNames', (_case, firstNames) => {
+    expect(fieldErrors({ ...validRegistration, firstNames })).toEqual([
+      expect.objectContaining({ pointer: '/firstNames', code: 'INVALID_FORMAT' }),
     ]);
   });
 
   it("IDN-02 acepta nombres con acentos, ñ, apóstrofo, guion y punto: 'María-José O'Brien Ñ.'", () => {
-    expect(fieldErrors({ ...validRegistration, fullName: "María-José O'Brien Ñ." })).toEqual([]);
+    expect(
+      fieldErrors({
+        ...validRegistration,
+        firstNames: 'María-José',
+        paternalSurname: "O'Brien",
+        maternalSurname: 'Ñ.',
+      }),
+    ).toEqual([]);
   });
 
   it.each(['0512345678', '1512345678', '551234567'])(
@@ -125,22 +138,39 @@ describe('IDN-02 esquema del registro', () => {
     },
   );
 
-  it('IDN-02 una CURP de quien cumple 18 mañana se rechaza en /curp con DATE_OUT_OF_RANGE', () => {
-    const { curp, rfc } = identityBornOn('081015');
-    expect(fieldErrors({ ...validRegistration, curp, rfc })).toEqual([
-      { pointer: '/curp', code: 'DATE_OUT_OF_RANGE', message: expect.any(String) },
+  it('IDN-02 quien cumple 18 mañana se rechaza en /birthDate con DATE_OUT_OF_RANGE', () => {
+    expect(fieldErrors({ ...validRegistration, ...identityBornOn('081015') })).toEqual([
+      { pointer: '/birthDate', code: 'DATE_OUT_OF_RANGE', message: expect.any(String) },
     ]);
   });
 
-  it('IDN-02 una CURP de quien cumple 18 hoy (en CDMX) se acepta', () => {
-    const { curp, rfc } = identityBornOn('081014');
-    expect(fieldErrors({ ...validRegistration, curp, rfc })).toEqual([]);
+  it('IDN-02 quien cumple 18 hoy (en CDMX) se acepta', () => {
+    expect(fieldErrors({ ...validRegistration, ...identityBornOn('081014') })).toEqual([]);
   });
 
-  it('IDN-02 una CURP con fecha de nacimiento futura se rechaza en /curp con INVALID_DATE', () => {
-    const { curp, rfc } = identityBornOn('301014');
-    expect(fieldErrors({ ...validRegistration, curp, rfc })).toEqual([
-      { pointer: '/curp', code: 'INVALID_DATE', message: expect.any(String) },
+  it('IDN-02 una fecha de nacimiento futura se rechaza en /birthDate con INVALID_DATE', () => {
+    expect(fieldErrors({ ...validRegistration, ...identityBornOn('301014') })).toEqual([
+      { pointer: '/birthDate', code: 'INVALID_DATE', message: expect.any(String) },
+    ]);
+  });
+
+  it('IDN-02 una fecha de nacimiento distinta de la CURP se rechaza en /birthDate', () => {
+    expect(fieldErrors({ ...validRegistration, birthDate: '1990-01-02' })).toEqual([
+      {
+        pointer: '/birthDate',
+        code: 'INVALID_FORMAT',
+        message: 'La fecha no coincide con tu CURP',
+      },
+    ]);
+  });
+
+  it('IDN-02 una entidad distinta de la CURP se rechaza en /birthState', () => {
+    expect(fieldErrors({ ...validRegistration, birthState: 'JC' })).toEqual([
+      {
+        pointer: '/birthState',
+        code: 'INVALID_FORMAT',
+        message: 'La entidad no coincide con tu CURP',
+      },
     ]);
   });
 
@@ -155,7 +185,10 @@ describe('IDN-02 esquema del registro', () => {
       expect.arrayContaining([
         expect.objectContaining({ pointer: '/email', code: 'REQUIRED' }),
         expect.objectContaining({ pointer: '/password', code: 'REQUIRED' }),
-        expect.objectContaining({ pointer: '/fullName', code: 'REQUIRED' }),
+        expect.objectContaining({ pointer: '/firstNames', code: 'REQUIRED' }),
+        expect.objectContaining({ pointer: '/paternalSurname', code: 'REQUIRED' }),
+        expect.objectContaining({ pointer: '/birthDate', code: 'REQUIRED' }),
+        expect.objectContaining({ pointer: '/birthState', code: 'REQUIRED' }),
         expect.objectContaining({ pointer: '/curp', code: 'REQUIRED' }),
         expect.objectContaining({ pointer: '/rfc', code: 'REQUIRED' }),
         expect.objectContaining({ pointer: '/phone', code: 'REQUIRED' }),
