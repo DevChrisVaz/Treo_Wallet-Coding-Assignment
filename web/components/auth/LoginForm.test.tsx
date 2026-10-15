@@ -69,6 +69,22 @@ describe('LoginForm', () => {
     expect(router.push).toHaveBeenCalledWith('/verify-email?email=ana%40example.com');
   });
 
+  it('WEB-12 ante REGISTRATION_IN_REVIEW muestra el mensaje y no lleva a la verificación', async () => {
+    loginMock.mockResolvedValue({
+      ok: false,
+      problem: problem('REGISTRATION_IN_REVIEW', { status: 403 }),
+    });
+    render(<LoginForm />);
+
+    await fillAndSubmit();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Tu registro está en revisión. Te escribiremos a tu correo cuando terminemos.',
+    );
+    expect(router.push).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
   it('WEB-12 ante RATE_LIMITED con Retry-After 300 indica esperar 5 minutos', async () => {
     loginMock.mockResolvedValue({
       ok: false,

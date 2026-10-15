@@ -46,6 +46,26 @@ describe('VerifyEmailForm', () => {
     expect(router.replace).toHaveBeenCalledWith('/');
   });
 
+  it('WEB-11 un registro en revisión lo dice, ofrece volver al inicio de sesión y no inicia la sesión', async () => {
+    verifyMock.mockResolvedValue({
+      ok: false,
+      problem: problem('REGISTRATION_IN_REVIEW', { status: 403 }),
+    });
+    render(<VerifyEmailForm email="ana@example.com" />);
+
+    await submitCode('123456');
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Tu registro está en revisión. Te escribiremos a tu correo cuando terminemos.',
+    );
+    expect(screen.getByRole('link', { name: 'Ir a iniciar sesión' })).toHaveAttribute(
+      'href',
+      '/login',
+    );
+    expect(screen.queryByRole('button', { name: 'Verificar correo' })).not.toBeInTheDocument();
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
   it('WEB-11 un código incorrecto muestra los intentos restantes', async () => {
     verifyMock.mockResolvedValue({
       ok: false,

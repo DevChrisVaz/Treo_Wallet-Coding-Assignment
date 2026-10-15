@@ -343,6 +343,27 @@ export const VerifyEmail = () => (
   </BrandShell>
 );
 
+/**
+ * /verify-email tras enviar el código de un registro en revisión (WEB-11): la API responde
+ * `403 REGISTRATION_IN_REVIEW` sin sesión y la pantalla lo dice en lugar del formulario, con el
+ * camino de vuelta al inicio de sesión.
+ */
+export const VerifyEmailInReview = () => (
+  <BrandShell title="Verifica tu correo">
+    <div className="grid gap-4">
+      <InlineAlert tone="info">
+        Tu registro está en revisión. Te escribiremos a tu correo cuando terminemos.
+      </InlineAlert>
+      <a
+        href="#"
+        className="inline-flex min-h-11 items-center justify-center font-medium text-action underline underline-offset-2"
+      >
+        Ir a iniciar sesión
+      </a>
+    </div>
+  </BrandShell>
+);
+
 /* ------------------------------------------------------------------ inicio */
 
 function HomeShell({ children }: { children: ReactNode }) {

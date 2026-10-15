@@ -1,6 +1,7 @@
 'use client';
 
 import { verifyEmailForm } from '@devchrisvaz/wallet-contract';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -30,9 +31,14 @@ export interface VerifyEmailFormProps {
   registered?: boolean;
 }
 
-/** Verificación de correo con el código de 6 dígitos y reenvío (WEB-11). */
+/**
+ * Verificación de correo con el código de 6 dígitos y reenvío (WEB-11). Si el registro quedó en
+ * revisión (`403 REGISTRATION_IN_REVIEW`), la API no devuelve sesión: la pantalla lo dice y ofrece
+ * volver al inicio de sesión.
+ */
 export function VerifyEmailForm({ email = '', registered = false }: VerifyEmailFormProps) {
   const router = useRouter();
+  const [inReview, setInReview] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(registered ? REGISTERED_MESSAGE : null);
   const [resending, setResending] = useState(false);
@@ -61,6 +67,10 @@ export function VerifyEmailForm({ email = '', registered = false }: VerifyEmailF
       router.replace('/');
       return;
     }
+    if (result.problem.code === 'REGISTRATION_IN_REVIEW') {
+      setInReview(true);
+      return;
+    }
     if (applyServerFieldErrors(result.problem, setFieldError, ['email', 'code'])) return;
     setError(describeProblem(result.problem));
   });
@@ -78,6 +88,22 @@ export function VerifyEmailForm({ email = '', registered = false }: VerifyEmailF
     } finally {
       setResending(false);
     }
+  }
+
+  if (inReview) {
+    return (
+      <div className="grid gap-4">
+        <InlineAlert tone="info" focusOnMount>
+          {describeProblem({ code: 'REGISTRATION_IN_REVIEW' })}
+        </InlineAlert>
+        <Link
+          href="/login"
+          className="inline-flex min-h-11 items-center justify-center font-medium text-action underline underline-offset-2"
+        >
+          Ir a iniciar sesión
+        </Link>
+      </div>
+    );
   }
 
   return (
