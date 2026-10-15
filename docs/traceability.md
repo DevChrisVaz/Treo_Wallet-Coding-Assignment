@@ -37,7 +37,7 @@ Generada con `scripts/trace.sh`: 216 requisitos. Las columnas de tareas y commit
 | BEN-10 | Límite de altas de beneficiarios | api-ledger | 2: api-ledger#5.4 api-ledger#5.6 | 2: c076f67 605ed26 | api 1 |
 | BEN-11 | Auditoría del alta de beneficiarios | api-ledger | 3: api-ledger#5.3 api-ledger#5.6 domain-test-coverage#4.2 | 3: b347718 c076f67 e3e5f28 | api 4 |
 | CTR-01 | Contrato OpenAPI como fuente de verdad | contract-v1 | 2: contract-v1#1.2 contract-v1#6.1 | 2: b2f920a 25ea459 | — |
-| CTR-02 | Versionado semántico del contrato | contract-v1 | 6: contract-v1#1.3 contract-v1#6.2 contract-v1-1#1.3 (+3) | 10: 8721244 3ca9435 5242cd5 (+7) | contract 3 |
+| CTR-02 | Versionado semántico del contrato | contract-v1 | 6: contract-v1#1.3 contract-v1#6.2 contract-v1-1#1.3 (+3) | 12: 3df47c3 b211155 8721244 (+9) | contract 3 |
 | CTR-03 | Tipos generados desde el contrato | contract-v1 | 3: contract-v1#2.1 contract-v1#2.2 contract-v1#6.1 | 3: b2f920a cdb92c8 cd24bec | — |
 | CTR-04 | Cliente HTTP tipado por rutas | contract-v1 | 1: contract-v1#2.3 | 1: 8e1a0da | contract 8 |
 | CTR-05 | Request ID en cada petición | contract-v1 | 1: contract-v1#2.4 | 1: 24b5d02 | contract 3 |
@@ -60,7 +60,7 @@ Generada con `scripts/trace.sh`: 216 requisitos. Las columnas de tareas y commit
 | DSG-02 | Identidad visual basada en Treo | design-system | 2: design-system#2.1 web-app#1.3 | 4: 9e12634 715b4b1 7b6e740 (+1) | web 2, mobile 2, design-tokens 3 |
 | DSG-03 | Tokens semánticos | design-system | 3: design-system#2.1 mobile-app#1.7 web-app#1.5 | 8: f3f3e97 c3af92d 21b249b (+5) | mobile 2, design-tokens 2 |
 | DSG-04 | Contraste accesible verificado | design-system | 1: design-system#2.2 | 2: f9d0256 ff80797 | design-tokens 3 |
-| DSG-05 | Tipografía | design-system | 3: design-system#2.3 mobile-app#1.6 web-app#1.3 | 4: e174ed1 a05cde9 7b6e740 (+1) | web 1, mobile 5, design-tokens 6 |
+| DSG-05 | Tipografía | design-system | 3: design-system#2.3 mobile-app#1.6 web-app#1.3 | 6: e845649 d08344c e174ed1 (+3) | web 2, mobile 5, design-tokens 6 |
 | DSG-06 | Espaciado, forma, foco y movimiento | design-system | 4: design-system#2.3 mobile-app#1.7 web-app#1.3 (+1) | 10: f3f3e97 c3af92d 21b249b (+7) | web 4, mobile 4, design-tokens 7 |
 | DSG-07 | Tema claro listo para tema oscuro | design-system | 3: design-system#2.1 design-system#4.1 design-system#5.3 | 3: 6388596 a316ca5 26d7248 | design-tokens 3 |
 | DSG-08 | Salidas por plataforma desde una sola fuente | design-system | 4: design-system#4.1 design-system#4.2 design-system#5.1 (+1) | 4: 9cd4a31 1ea486f 2562373 (+1) | design-tokens 5 |
@@ -68,11 +68,11 @@ Generada con `scripts/trace.sh`: 216 requisitos. Las columnas de tareas y commit
 | DSG-10 | Estados de transferencia y tipos de movimiento | design-system | 7: design-system#3.1 mobile-app#1.7 mobile-app#3.3 (+4) | 12: f3f3e97 c3af92d 21b249b (+9) | web 2, mobile 5 |
 | DSG-11 | Inventario de componentes | design-system | 9: design-system#4.3 design-system#5.3 mobile-app#1.7 (+6) | 16: e79868c f3f3e97 c3af92d (+13) | web 16, mobile 15, design-tokens 2 |
 | DSG-12 | Textos de la interfaz | design-system | 3: design-system#3.2 mobile-app#2.6 web-app#5.1 | 5: 85a9feb af02f36 7446c08 (+2) | web 4, design-tokens 3 |
-| DSG-13 | Lenguaje visual elevado de la marca | redesign | 5: redesign#2.1 redesign#3.2 redesign#4.2 (+2) | 22: d301828 d623796 d548eab (+19) | web 3, mobile 3, design-tokens 2 |
+| DSG-13 | Lenguaje visual elevado de la marca | redesign | 6: redesign#2.1 redesign#3.2 redesign#4.2 (+3) | 24: 482b0aa 4d9569e d301828 (+21) | web 3, mobile 3, design-tokens 2 |
 | DSG-14 | Lima solo sobre superficies oscuras | redesign | 1: redesign#2.2 | 2: f52d371 f9d0256 | web 3, design-tokens 3 |
-| DSG-15 | Iconografía compartida | redesign | 3: redesign#2.3 redesign#3.1 redesign#4.1 | 11: 5522250 64d86f3 fd810f1 (+8) | web 4, mobile 5, design-tokens 5 |
-| DSG-16 | Tokens v2 aditivos para las tres salidas | redesign | 2: redesign#2.1 redesign#5.4 | 8: 3a247e4 1b48b7d a6da6a8 (+5) | design-tokens 5 |
-| DSG-17 | Inventario de componentes v2 | redesign | 10: redesign#1.1 redesign#1.2 redesign#1.3 (+7) | 51: fa94051 8cc7961 cc1375d (+48) | web 21, mobile 5, design-tokens 6 |
+| DSG-15 | Iconografía compartida | redesign | 4: redesign#2.3 redesign#3.1 redesign#4.1 (+1) | 22: 5522250 64d86f3 e0be490 (+19) | web 4, mobile 5, design-tokens 5 |
+| DSG-16 | Tokens v2 aditivos para las tres salidas | redesign | 3: redesign#2.1 redesign#5.4 redesign#P0 | 11: 4d9569e 3a247e4 1b48b7d (+8) | design-tokens 5 |
+| DSG-17 | Inventario de componentes v2 | redesign | 10: redesign#1.1 redesign#1.2 redesign#1.3 (+7) | 56: e845649 c4f1976 8f9555e (+53) | web 21, mobile 5, design-tokens 6 |
 | DSG-18 | Estados y textos de las transferencias programadas | scheduled-transfers | 1: scheduled-transfers#1.1 | 4: 476fabd 85a9feb c916ab5 (+1) | design-tokens 3 |
 | HIS-01 | Historial por cuenta propia | api-ledger | 3: api-ledger#9.3 api-ledger#9.4 api-ledger#9.5 | 3: 36d5ccf 304d730 d9386c6 | api 7 |
 | HIS-02 | Solo el dinero que se movió | api-ledger | 2: api-ledger#9.3 api-ledger#9.5 | 2: 36d5ccf d9386c6 | api 1 |
@@ -86,9 +86,9 @@ Generada con `scripts/trace.sh`: 216 requisitos. Las columnas de tareas y commit
 | HIS-10 | Datos de volumen para desarrollo | api-ledger | 4: api-ledger#11.1 api-ledger#11.2 api-ledger#11.3 (+1) | 6: ed14599 8f0eada fc5307d (+3) | api 17 |
 | HIS-11 | Estado de cuenta mensual en PDF | account-statements, ux-fixes | 6: account-statements#1.1 account-statements#1.2 account-statements#1.8 (+3) | 12: 7663863 b79fd1e 0b9c0c9 (+9) | contract 9, api 29 |
 | HIS-12 | Contenido y conciliación del estado de cuenta | account-statements, ux-fixes | 10: account-statements#1.2 account-statements#1.3 account-statements#1.4 (+7) | 13: 7663863 bfc57a6 0b9c0c9 (+10) | api 46 |
-| IDN-01 | Registro con respuesta uniforme | api-foundation | 3: api-foundation#7.3 domain-test-coverage#3.1 domain-test-coverage#3.5 | 4: 6d835e1 a5fe8fb 69327b6 (+1) | api 7 |
+| IDN-01 | Registro con respuesta uniforme | api-foundation, ux-fixes | 4: api-foundation#7.3 domain-test-coverage#3.1 domain-test-coverage#3.5 (+1) | 6: 26fd371 1b4375a 6d835e1 (+3) | api 7 |
 | IDN-02 | Datos obligatorios del registro | api-foundation, ux-fixes | 6: api-foundation#2.5 api-foundation#6.1 api-foundation#7.3 (+3) | 8: 7663863 b79fd1e c51d653 (+5) | api 25 |
-| IDN-03 | Unicidad de los datos de identidad | api-foundation | 3: api-foundation#2.5 api-foundation#7.3 domain-test-coverage#3.5 | 4: 6d835e1 69327b6 489fc77 (+1) | api 8 |
+| IDN-03 | Unicidad de los datos de identidad | api-foundation, ux-fixes | 5: api-foundation#2.5 api-foundation#7.3 domain-test-coverage#3.5 (+2) | 7: 26fd371 e45deb4 1b4375a (+4) | api 9 |
 | IDN-04 | Almacenamiento seguro de contraseñas | api-foundation | 1: api-foundation#7.1 | 1: fed4b5e | api 5 |
 | IDN-05 | Código de verificación de correo | api-foundation | 4: api-foundation#2.8 api-foundation#7.2 domain-test-coverage#3.1 (+1) | 4: c51d653 a5fe8fb 6323e25 (+1) | api 15 |
 | IDN-06 | Verificación de correo | api-foundation | 3: api-foundation#7.5 domain-test-coverage#3.6 ux-fixes#5.2 | 4: 7663863 fb2e70e 2bdbcc7 (+1) | api 7 |
@@ -101,31 +101,31 @@ Generada con `scripts/trace.sh`: 216 requisitos. Las columnas de tareas y commit
 | IDN-13 | Cierre de sesión | api-foundation | 2: api-foundation#7.10 domain-test-coverage#3.4 | 2: f7bee34 3b4e4d9 | api 6 |
 | IDN-14 | Datos del usuario autenticado | api-foundation | 1: api-foundation#7.11 | 1: 2d0c704 | api 2 |
 | IDN-15 | Límites de tasa en identidad | api-foundation | 1: api-foundation#7.12 | 1: 0e1fa0a | api 5 |
-| MOB-01 | Inicio de sesión | mobile-app | 5: contract-v1-1#3.1 mobile-app#3.1 mobile-app#6.2 (+2) | 3: dd44998 4cac987 1375f3e | mobile 7 |
+| MOB-01 | Inicio de sesión | mobile-app | 5: contract-v1-1#3.1 mobile-app#3.1 mobile-app#6.2 (+2) | 4: 54aea3e dd44998 4cac987 (+1) | mobile 7 |
 | MOB-02 | Almacenamiento seguro de tokens | mobile-app | 5: biometric-unlock#2.1 mobile-app#1.3 mobile-app#1.5 (+2) | 6: 946a9af 4cac987 285efd1 (+3) | mobile 15 |
 | MOB-03 | Renovación de la sesión de una sola vez | mobile-app | 3: mobile-app#2.2 mobile-app#2.3 mobile-app#2.4 | 4: 4cac987 285efd1 a6c0e55 (+1) | mobile 10 |
 | MOB-04 | Cierre de sesión | mobile-app | 2: biometric-unlock#2.4 mobile-app#2.5 | 5: 6be6deb e4e7ace bca19cc (+2) | mobile 5 |
 | MOB-05 | Saldo de las cuentas | mobile-app | 2: mobile-app#3.2 mobile-app#] | 3: d623796 4cac987 d3773c6 | mobile 7 |
 | MOB-06 | Últimos 20 movimientos | mobile-app, ux-fixes | 3: mobile-app#3.3 mobile-app#] ux-fixes#4.4 | 6: 5522250 85a4322 252c5fe (+3) | mobile 8 |
-| MOB-07 | Selección de beneficiario registrado | mobile-app | 2: mobile-app#4.5 redesign#] | 3: 225c723 4cac987 45d4cd4 | mobile 5 |
+| MOB-07 | Selección de beneficiario registrado | mobile-app | 2: mobile-app#4.5 redesign#7.5 | 5: c11c20f 123421b 225c723 (+2) | mobile 5 |
 | MOB-08 | Captura y validación de la transferencia | mobile-app, ux-fixes | 3: mobile-app#4.6 ux-fixes#3.4 ux-fixes#4.4 | 6: 5522250 225c723 a1bb69a (+3) | mobile 13 |
 | MOB-09 | Confirmación previa y envío único | mobile-app | 2: mobile-app#4.1 mobile-app#4.7 | 5: 225c723 b64bd2f 4cac987 (+2) | mobile 14 |
 | MOB-10 | Reintento ante pérdida de red con la misma llave | mobile-app | 7: mobile-app#1.3 mobile-app#2.2 mobile-app#4.2 (+4) | 8: 225c723 4cac987 99de8f7 (+5) | mobile 21 |
 | MOB-11 | Estado incierto y reintento manual | mobile-app | 2: mobile-app#4.4 mobile-app#4.8 | 4: 225c723 4cac987 c4fc58e (+1) | mobile 5 |
 | MOB-12 | Confirmación con OTP | mobile-app, ux-fixes | 3: mobile-app#4.9 mobile-app#] ux-fixes#5.4 | 5: 5522250 123421b 225c723 (+2) | mobile 22 |
 | MOB-13 | Resultado con el estado real | mobile-app, ux-fixes | 3: mobile-app#4.10 mobile-app#4.11 ux-fixes#4.4 | 9: 5522250 fc6bb8b 123421b (+6) | mobile 9 |
-| MOB-14 | Mensajes de error por código | mobile-app | 4: mobile-app#2.6 mobile-app#4.8 mobile-app#] (+1) | 5: 225c723 85a9feb 4cac987 (+2) | mobile 9 |
+| MOB-14 | Mensajes de error por código | mobile-app | 4: mobile-app#2.6 mobile-app#4.8 mobile-app#] (+1) | 7: c11c20f 123421b 225c723 (+4) | mobile 9 |
 | MOB-15 | Montos sin punto flotante | mobile-app | 4: mobile-app#1.2 mobile-app#3.2 mobile-app#3.3 (+1) | 6: d623796 4cac987 d698a85 (+3) | mobile 8 |
 | MOB-16 | Privacidad en segundo plano | mobile-app | 4: biometric-unlock#2.3 mobile-app#1.3 mobile-app#5.1 (+1) | 6: 4f247e2 5a0cbb3 4cac987 (+3) | mobile 12 |
 | MOB-17 | URL de la API configurable para desarrollo local | mobile-app | 4: mobile-app#1.1 mobile-app#1.4 mobile-app#6.1 (+1) | 5: 6265630 4cac987 4e5054c (+2) | mobile 13 |
-| MOB-18 | Navegación por pestañas | redesign | 3: redesign#4.3 redesign#5.2 redesign#] | 10: 07980de 54aea3e 6be6deb (+7) | mobile 17 |
-| MOB-19 | Inicio rediseñado | redesign, ux-fixes | 4: redesign#4.4 redesign#5.2 redesign#] (+1) | 10: 5522250 07980de d623796 (+7) | mobile 20 |
-| MOB-20 | Movimientos como pestaña | redesign | 3: redesign#4.4 redesign#5.2 redesign#] | 11: 07980de 85a4322 e4e7ace (+8) | mobile 16 |
-| MOB-21 | Flujo de transferencia por pasos | redesign | 3: redesign#4.5 redesign#5.2 redesign#] | 13: fc6bb8b 1e9565c 07980de (+10) | mobile 17 |
-| MOB-22 | Inicio de sesión de marca | redesign | 2: redesign#5.2 redesign#] | 6: 07980de 54aea3e a2e2231 (+3) | mobile 3 |
-| MOB-23 | Estados de las programadas en la app | scheduled-transfers, ux-fixes | 2: scheduled-transfers#4.1 ux-fixes#10.4 | 5: 5522250 fa94051 fc6bb8b (+2) | mobile 3 |
-| MOB-24 | Activación opcional del desbloqueo biométrico | biometric-unlock | 6: biometric-unlock#1.1 biometric-unlock#1.2 biometric-unlock#3.1 (+3) | 11: b1ea000 fa94051 f251908 (+8) | mobile 33 |
-| MOB-25 | Bloqueo al abrir y al volver de segundo plano | biometric-unlock | 5: biometric-unlock#2.1 biometric-unlock#2.2 biometric-unlock#2.3 (+2) | 8: fa94051 1e9565c 776c772 (+5) | mobile 22 |
+| MOB-18 | Navegación por pestañas | redesign | 5: redesign#4.3 redesign#5.2 redesign#7.1 (+2) | 12: 482b0aa 4d9569e 07980de (+9) | mobile 17 |
+| MOB-19 | Inicio rediseñado | redesign, ux-fixes | 4: redesign#4.4 redesign#5.2 redesign#7.3 (+1) | 10: 5522250 07980de d623796 (+7) | mobile 20 |
+| MOB-20 | Movimientos como pestaña | redesign | 3: redesign#4.4 redesign#5.2 redesign#7.4 | 11: 07980de 85a4322 e4e7ace (+8) | mobile 16 |
+| MOB-21 | Flujo de transferencia por pasos | redesign | 3: redesign#4.5 redesign#5.2 redesign#7.5 | 13: fc6bb8b 1e9565c 07980de (+10) | mobile 17 |
+| MOB-22 | Inicio de sesión de marca | redesign | 2: redesign#5.2 redesign#7.2 | 6: 07980de 54aea3e a2e2231 (+3) | mobile 3 |
+| MOB-23 | Estados de las programadas en la app | scheduled-transfers, ux-fixes | 3: redesign#P2 scheduled-transfers#4.1 ux-fixes#10.4 | 19: 5522250 b1ea000 048ca0b (+16) | mobile 3 |
+| MOB-24 | Activación opcional del desbloqueo biométrico | biometric-unlock | 7: biometric-unlock#1.1 biometric-unlock#1.2 biometric-unlock#3.1 (+4) | 23: b1ea000 048ca0b fa94051 (+20) | mobile 33 |
+| MOB-25 | Bloqueo al abrir y al volver de segundo plano | biometric-unlock | 6: biometric-unlock#2.1 biometric-unlock#2.2 biometric-unlock#2.3 (+3) | 22: b1ea000 048ca0b fa94051 (+19) | mobile 22 |
 | MOB-26 | Alternativas al desbloqueo biométrico | biometric-unlock | 3: biometric-unlock#2.2 biometric-unlock#2.4 biometric-unlock#] | 5: fa94051 1e9565c bca19cc (+2) | mobile 10 |
 | MOB-27 | Desactivación del desbloqueo | biometric-unlock | 4: biometric-unlock#1.2 biometric-unlock#2.4 biometric-unlock#3.2 (+1) | 8: fa94051 f251908 1e9565c (+5) | mobile 8 |
 | MOB-28 | Recibir dinero | ux-fixes | 1: ux-fixes#7.2 | 2: 5522250 b79fd1e | mobile 4 |
@@ -142,7 +142,7 @@ Generada con `scripts/trace.sh`: 216 requisitos. Las columnas de tareas y commit
 | PLT-10 | Salud del servicio | api-foundation | 1: api-foundation#3.8 | 1: 0bf2009 | api 2 |
 | PLT-11 | Documentación navegable del contrato | api-foundation | 1: api-foundation#3.9 | 1: 6857381 | api 5 |
 | PLT-12 | Conformidad de las respuestas con el contrato | api-foundation | 1: api-foundation#3.10 | 1: e853997 | api 6 |
-| PLT-13 | Entorno local reproducible | api-foundation, ux-fixes | 6: api-foundation#1.1 api-foundation#1.4 api-foundation#3.12 (+3) | 9: 7663863 b79fd1e 6265630 (+6) | api 13 |
+| PLT-13 | Entorno local reproducible | api-foundation, ux-fixes | 6: api-foundation#1.1 api-foundation#1.4 api-foundation#3.12 (+3) | 10: b211155 7663863 b79fd1e (+7) | api 13 |
 | PLT-14 | Roles de base de datos de privilegio mínimo | api-foundation | 2: api-foundation#2.1 api-foundation#2.9 | 3: 3c1128f 2a0ebd5 a32918c | api 11 |
 | PLT-15 | Esquema gestionado solo por migraciones reversibles | api-foundation | 3: api-foundation#2.2 api-foundation#2.9 api-foundation#9.1 | 4: a8230bd 3c1128f 2a0ebd5 (+1) | api 17 |
 | PLT-16 | Entrega de correo transaccional | api-foundation | 2: api-foundation#5.1 api-foundation#5.2 | 2: aed0afd f1cd313 | api 13 |
@@ -194,30 +194,30 @@ Generada con `scripts/trace.sh`: 216 requisitos. Las columnas de tareas y commit
 | WEB-08 | Resultado de las mutaciones como valor | web-app | 3: scheduled-transfers#3.3 web-app#2.5 web-app#5.1 | 5: 433fa46 27509a1 9635f0c (+2) | web 13 |
 | WEB-09 | Proxy de lecturas con lista blanca | web-app | 4: account-statements#2.1 scheduled-transfers#3.3 web-app#1.2 (+1) | 7: 433fa46 27509a1 02bb16c (+4) | web 14 |
 | WEB-10 | Propagación de headers hacia la API | web-app | 2: web-app#2.3 web-app#8.1 | 3: 0cbf6ed d3ba0b9 05aa965 | web 14 |
-| WEB-11 | Registro y verificación de correo | ux-fixes, web-app | 5: redesign#] ux-fixes#2.3 web-app#4.2 (+2) | 5: 64d86f3 af02f36 d769332 (+2) | web 18 |
-| WEB-12 | Inicio de sesión | web-app | 4: contract-v1-1#2.1 redesign#] web-app#4.1 (+1) | 4: 2712c63 af02f36 1627708 (+1) | web 11 |
+| WEB-11 | Registro y verificación de correo | ux-fixes, web-app | 6: redesign#6.2 ux-fixes#2.3 ux-fixes#2.6 (+3) | 7: 9925197 1b4375a 64d86f3 (+4) | web 20 |
+| WEB-12 | Inicio de sesión | web-app | 4: contract-v1-1#2.1 redesign#6.2 web-app#4.1 (+1) | 4: 2712c63 af02f36 1627708 (+1) | web 11 |
 | WEB-13 | Resumen de cuentas | ux-fixes, web-app | 2: ux-fixes#7.1 web-app#6.1 | 6: 64d86f3 d548eab 1f484b4 (+3) | web 9 |
-| WEB-14 | Historial de movimientos | web-app | 4: account-statements#2.3 redesign#] web-app#6.2 (+1) | 7: b9aeea0 db1bffd 5719ece (+4) | web 15 |
+| WEB-14 | Historial de movimientos | web-app | 4: account-statements#2.3 redesign#6.4 web-app#6.2 (+1) | 7: b9aeea0 db1bffd 5719ece (+4) | web 15 |
 | WEB-15 | Beneficiarios | web-app | 2: web-app#7.1 web-app#7.2 | 4: 221a143 af02f36 05aa62c (+1) | web 9 |
-| WEB-16 | Flujo de transferencia | ux-fixes, web-app | 6: redesign#] ux-fixes#4.3 web-app#8.3 (+3) | 13: 64d86f3 dcd9fcc e4e52a4 (+10) | web 28 |
+| WEB-16 | Flujo de transferencia | ux-fixes, web-app | 6: redesign#6.5 ux-fixes#4.3 web-app#8.3 (+3) | 16: 64d86f3 1566084 4d5e011 (+13) | web 28 |
 | WEB-17 | Una sola transferencia por intento | web-app | 4: web-app#8.1 web-app#8.2 web-app#8.4 (+1) | 9: 274c2c4 e4e52a4 86ab381 (+6) | web 31 |
 | WEB-18 | Confirmación con OTP | ux-fixes, web-app | 3: ux-fixes#5.3 web-app#8.5 web-app#8.7 | 7: 64d86f3 e4e52a4 1e8561b (+4) | web 24 |
-| WEB-19 | Mensajes por código de error | web-app | 3: redesign#] web-app#5.1 web-app#8.4 | 4: 86ab381 af02f36 2701bf1 (+1) | web 8 |
+| WEB-19 | Mensajes por código de error | web-app | 3: redesign#6.5 web-app#5.1 web-app#8.4 | 8: 1566084 4d5e011 1e8561b (+5) | web 8 |
 | WEB-20 | Estados de carga, vacío y error | web-app | 5: web-app#1.5 web-app#5.2 web-app#6.1 (+2) | 12: d1f5e8a 221a143 1e8561b (+9) | web 20 |
 | WEB-21 | Montos sin floats ni redondeo | ux-fixes, web-app | 5: ux-fixes#3.3 web-app#1.1 web-app#1.4 (+2) | 8: 64d86f3 af02f36 2d1c617 (+5) | web 11 |
 | WEB-22 | Rutas protegidas | web-app | 3: web-app#3.2 web-app#4.6 web-app#5.2 | 5: 86ab381 0cbf6ed dcf659f (+2) | web 16 |
-| WEB-23 | Accesibilidad básica | web-app | 8: redesign#] web-app#1.3 web-app#1.4 (+5) | 39: 048ca0b e0be490 e79868c (+36) | web 93 |
-| WEB-24 | Layout responsivo con dos formas | redesign | 3: redesign#3.6 redesign#5.1 redesign#] | 17: 28fa3f7 92b8008 43c2ba9 (+14) | web 10 |
-| WEB-25 | Paridad visual con la app móvil en teléfono | redesign | 3: redesign#5.3 redesign#5.4 redesign#] | 29: 8cc7961 e0be490 a93c747 (+26) | web 28 |
-| WEB-26 | Navegación del dashboard | redesign, ux-fixes | 4: redesign#3.3 redesign#5.1 redesign#] (+1) | 18: 64d86f3 b79fd1e fd810f1 (+15) | web 16 |
-| WEB-27 | Navegación de la app en teléfono | redesign | 3: redesign#3.3 redesign#5.1 redesign#] | 21: d27f450 05270c8 dcd9fcc (+18) | web 23 |
-| WEB-28 | Inicio rediseñado | redesign, ux-fixes | 4: redesign#3.4 redesign#5.1 redesign#] (+1) | 22: 64d86f3 b79fd1e 405577d (+19) | web 27 |
-| WEB-29 | Movimientos agrupados por día | redesign | 3: redesign#3.4 redesign#5.1 redesign#] | 16: 92b8008 43c2ba9 f52d371 (+13) | web 24 |
-| WEB-30 | Flujo de transferencia por pasos | redesign | 3: redesign#3.5 redesign#5.1 redesign#] | 21: 321e4e4 1566084 4d5e011 (+18) | web 36 |
-| WEB-31 | Pantallas públicas de marca | redesign | 2: redesign#5.1 redesign#] | 9: fd10d6d 167469d e80a052 (+6) | web 7 |
-| WEB-32 | Descarga del estado de cuenta | account-statements, ux-fixes | 5: account-statements#2.1 account-statements#2.2 account-statements#2.3 (+2) | 10: 64d86f3 8cc7961 cc1375d (+7) | web 23 |
-| WEB-33 | Programar una transferencia | scheduled-transfers, ux-fixes | 4: scheduled-transfers#3.2 scheduled-transfers#3.5 scheduled-transfers#5.1 (+1) | 21: 64d86f3 048ca0b 8cc7961 (+18) | web 44 |
-| WEB-34 | Página de transferencias programadas | scheduled-transfers, ux-fixes | 6: scheduled-transfers#3.1 scheduled-transfers#3.3 scheduled-transfers#3.4 (+3) | 31: 64d86f3 048ca0b 8cc7961 (+28) | web 31 |
+| WEB-23 | Accesibilidad básica | web-app | 8: redesign#6.7 web-app#1.3 web-app#1.4 (+5) | 44: 048ca0b e0be490 e79868c (+41) | web 93 |
+| WEB-24 | Layout responsivo con dos formas | redesign | 6: redesign#3.6 redesign#5.1 redesign#6.1 (+3) | 25: 482b0aa 4d9569e d27f450 (+22) | web 10 |
+| WEB-25 | Paridad visual con la app móvil en teléfono | redesign | 5: redesign#5.3 redesign#5.4 redesign#6.6 (+2) | 48: e845649 ecb29f3 d08344c (+45) | web 29 |
+| WEB-26 | Navegación del dashboard | redesign, ux-fixes | 5: redesign#3.3 redesign#5.1 redesign#6.1 (+2) | 21: 64d86f3 b79fd1e eca1fa0 (+18) | web 16 |
+| WEB-27 | Navegación de la app en teléfono | redesign | 5: redesign#3.3 redesign#5.1 redesign#6.1 (+2) | 37: 4d9569e e0be490 a93c747 (+34) | web 23 |
+| WEB-28 | Inicio rediseñado | redesign, ux-fixes | 4: redesign#3.4 redesign#5.1 redesign#6.3 (+1) | 22: 64d86f3 b79fd1e 405577d (+19) | web 27 |
+| WEB-29 | Movimientos agrupados por día | redesign | 3: redesign#3.4 redesign#5.1 redesign#6.4 | 16: 92b8008 43c2ba9 f52d371 (+13) | web 24 |
+| WEB-30 | Flujo de transferencia por pasos | redesign | 3: redesign#3.5 redesign#5.1 redesign#6.5 | 22: ecb29f3 321e4e4 1566084 (+19) | web 36 |
+| WEB-31 | Pantallas públicas de marca | redesign | 2: redesign#5.1 redesign#6.2 | 9: fd10d6d 167469d e80a052 (+6) | web 7 |
+| WEB-32 | Descarga del estado de cuenta | account-statements, ux-fixes | 6: account-statements#2.1 account-statements#2.2 account-statements#2.3 (+3) | 23: 64d86f3 b1ea000 048ca0b (+20) | web 23 |
+| WEB-33 | Programar una transferencia | scheduled-transfers, ux-fixes | 6: redesign#P1 redesign#P2 scheduled-transfers#3.2 (+3) | 39: 64d86f3 b1ea000 048ca0b (+36) | web 44 |
+| WEB-34 | Página de transferencias programadas | scheduled-transfers, ux-fixes | 8: redesign#P1 redesign#P2 scheduled-transfers#3.1 (+5) | 43: 64d86f3 b1ea000 048ca0b (+40) | web 31 |
 | WEB-35 | Recibir dinero | ux-fixes | 1: ux-fixes#7.1 | 2: 64d86f3 b79fd1e | web 8 |
 | WEB-36 | Búsqueda de beneficiarios | ux-fixes | 1: ux-fixes#8.2 | 2: 64d86f3 b79fd1e | web 14 |
 
@@ -238,26 +238,3 @@ Ninguno.
 - `CTR-17` Verificación continua del paquete
 - `PLT-17` Integración continua del proyecto
 
-<!-- trace.sh:end -->
-
-## Notas sobre los huecos
-
-Lo anterior se generó con `scripts/trace.sh --check`, que **termina con error** mientras queden huecos; hoy quedan cuatro. Esta sección es manual y el script no la genera. Para regenerar solo la matriz y conservarla: `{ scripts/trace.sh; sed -n '/trace.sh:end/,$p' docs/traceability.md; } > /tmp/t.md && mv /tmp/t.md docs/traceability.md`. Ningún hueco se cubrió con una prueba falsa.
-
-Los cuatro son requisitos de **proceso**, no de comportamiento de la aplicación. Se verifican con un paso del CI o con un script, no con una prueba cuyo título empiece con el ID:
-
-| ID | Por qué no tiene prueba con su ID | Dónde se verifica |
-| -- | --------------------------------- | ----------------- |
-| `CTR-01` | El escenario es "se ejecuta el lint sobre `openapi.yaml` y no reporta errores". Es una herramienta (Redocly), no código del paquete | Paso "Lint del contrato (CTR-01)" de [`contract.yml`](../.github/workflows/contract.yml) (`npm run lint:contract`). El 2026-10-14 terminó con código 0. Las reglas de forma del contrato (códigos de error `application/problem+json`) las ejercen indirectamente las pruebas de conformidad de la API (PLT-12) |
-| `CTR-03` | El escenario es "regenerar los tipos da un resultado idéntico a los versionados" | Paso "Tipos generados al día (CTR-03)" de `contract.yml` (`npm run generate` y `git diff --exit-code -- src/generated`). El 2026-10-14, `npm run generate` no dejó cambios en `src/generated` |
-| `CTR-17` | Pide que el paquete tenga su propio pipeline de CI que falle si algo falla | El propio [`contract.yml`](../.github/workflows/contract.yml): filtros de rutas, lint, tipos al día, typecheck, pruebas, build y empaquetado. Que esté en verde se comprueba con la tarea 5.1 de `delivery`, que sigue **pendiente** |
-| `PLT-17` | Igual para el CI de `/api`: se dispara con cambios en `api/**` y `contract/**` | [`api.yml`](../.github/workflows/api.yml) (paso "Pruebas unitarias e integración (PLT-17)"). Su estado en verde también depende de la tarea 5.1 |
-
-**Qué haría falta para cerrarlos:** o una prueba que lea los workflows y compruebe sus disparadores y pasos (comprueba la configuración, no el resultado del CI), o aceptar que `trace.sh` admita una lista explícita de requisitos verificados por CI. Ninguna de las dos se hizo: lo primero daría una falsa sensación de cobertura, y lo segundo cambiaría el significado de `--check`. Por eso el comando sigue fallando y los huecos quedan visibles.
-
-**Límites de la matriz:**
-
-- **La columna de commits es una cota.** Cuenta los commits que citan el ID en `Refs:` o que ligan una tarea que lo nombra con `Task:`. Los commits anteriores a la convención o los que no llevan trailers no aparecen, aunque todos los requisitos tienen al menos uno.
-- **La columna de pruebas cuenta títulos, no verifica que la prueba pase.** Esa información la da el CI. Además solo detecta títulos de `it`, `test` y `describe` que empiezan con el ID, en `contract`, `api`, `web`, `mobile` y `design-tokens` (esta última no estaba en la tarea 2.4 y se agregó, porque ahí se prueban los requisitos DSG).
-- **Las tareas sin marcar cuentan.** Un requisito con una tarea pendiente (por ejemplo, de `redesign`) aparece con tareas aunque no esté terminado. El estado de cada tarea está en su `tasks.md`.
-- **El change `redesign` vive en su propia rama de trabajo** (README, tabla de changes); la matriz incluye sus requisitos tal como están en esta rama.
