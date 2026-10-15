@@ -4,17 +4,44 @@ function groupThousands(integerPart: string): string {
 
 const DECIMAL = /^(-?)(0|[1-9][0-9]*)(?:\.([0-9]{1,2}))?$/;
 
+let currencyFormat: Intl.NumberFormat | undefined;
+
+/** `Intl.NumberFormat('es-MX', MXN)` si el motor lo trae (Node, navegadores, Hermes con Intl). */
+function mxnFormat(): Intl.NumberFormat | undefined {
+  if (typeof Intl === 'undefined') return undefined;
+  try {
+    currencyFormat ??= new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return currencyFormat;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Formatea un monto en pesos mexicanos con la convención `es-MX` (`$1,250.50`, `-$150.00`).
- * Trabaja solo con texto: no convierte a número ni depende de `Intl`, así que es exacto para
- * cualquier longitud y da el mismo resultado en Node, navegadores y Hermes.
+ * Nunca convierte el monto a `number`: la parte entera se pasa a `Intl.NumberFormat('es-MX')` como
+ * `BigInt` (exacta para cualquier longitud) y los centavos se toman del texto original. Si el motor
+ * no trae `Intl` (Hermes sin soporte), agrupa miles a mano y da el mismo resultado.
  */
 export function formatMXN(amount: string): string {
   const match = DECIMAL.exec(amount);
   if (!match) throw new RangeError(`Monto inválido: "${amount}"`);
-  const [, sign = '', integerPart = '0', fraction = ''] = match;
-  const grouped = groupThousands(integerPart);
-  return `${sign}$${grouped}.${fraction.padEnd(2, '0')}`;
+  const [, sign = '', integerPart = '0', rawFraction = ''] = match;
+  const fraction = rawFraction.padEnd(2, '0');
+  const format = mxnFormat();
+  if (format) {
+    const body = format
+      .formatToParts(BigInt(integerPart))
+      .map((part) => (part.type === 'fraction' ? fraction : part.value))
+      .join('');
+    return `${sign}${body}`;
+  }
+  return `${sign}$${groupThousands(integerPart)}.${fraction}`;
 }
 
 /**
