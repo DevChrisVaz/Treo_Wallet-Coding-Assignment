@@ -22,7 +22,7 @@ import type { TransferDestinationResolver, TransferRequest } from './destination
 import type { IdempotencyGate } from './idempotency-gate.js';
 import type { LockedTransferExecutor } from './locked-transfer-executor.js';
 import type { RejectionReason, ScheduledCap, TransferRow, TransferStore } from './ports.js';
-import type { TransferOtpMailer } from './transfer-emails.js';
+import type { TransferOtpMailer, TransferReceiptMailer } from './transfer-emails.js';
 import { balanceOrLimitError } from './transfer-errors.js';
 import {
   toTransferView,
@@ -52,6 +52,8 @@ export interface CreateTransferDeps {
   /** Transferencia con su destino y su desafío: comprobante y datos del correo del OTP. */
   readonly details: TransferDetailsReader;
   readonly otpMail: TransferOtpMailer;
+  /** Comprobante al remitente de una transferencia a un tercero completada (TRF-38). */
+  readonly receipts: TransferReceiptMailer;
   /** Lo que queda del límite de hoy (para repetir un rechazo por límite). */
   readonly remainingToday: (userId: string) => Promise<Money>;
 }
@@ -334,6 +336,9 @@ export class CreateTransfer {
       const delivery = result.otp
         ? await this.deps.otpMail.send(details, result.otp.code)
         : undefined;
+      // Solo la ejecución que creó la transferencia ya COMPLETED comprueba: una repetición de la
+      // llave no llega aquí (TRF-38).
+      this.deps.receipts.send(details);
       return { kind: 'CREATED', transfer: this.toView(details, delivery) };
     }
     if (result.kind === 'REJECTED') {

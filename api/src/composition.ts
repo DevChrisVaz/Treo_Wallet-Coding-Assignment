@@ -66,6 +66,7 @@ import { TransferLocker } from './modules/transfers/application/transfer-locker.
 import {
   ScheduledFailureMailer,
   TransferOtpMailer,
+  TransferReceiptMailer,
 } from './modules/transfers/application/transfer-emails.js';
 import { PgTransferDetails } from './modules/transfers/infrastructure/pg-transfer-details.js';
 import { transferRoutes } from './modules/transfers/infrastructure/http/routes.js';
@@ -187,6 +188,7 @@ export async function createContainer(
     maxResends: config.transfers.otpMaxResends,
   };
   const otpMail = new TransferOtpMailer(mailer, logger, otpPolicy.ttlMs);
+  const receipts = new TransferReceiptMailer(notices, clock);
   const locker = new TransferLocker(dailyUsage, accountLocks, clock, config.transfers.dailyLimit);
   const refreshTokens = new PgRefreshTokenStore();
   const sessions = new SessionService(refreshTokens, clock);
@@ -316,6 +318,7 @@ export async function createContainer(
         executor,
         details: transferDetails,
         otpMail,
+        receipts,
         remainingToday: async (userId) => {
           const today = await dailyUsage.usage(userId, businessDayOf(clock.now()));
           const limit = today?.limit ?? config.transfers.dailyLimit;
