@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Lint, tipos, formato, pruebas y build
+    name: Lint, tipos, formato, pruebas, build y pruebas en navegador
     runs-on: ubuntu-latest
     # Redis para las pruebas del almacén de sesiones (WEB-37); la misma versión que web/docker-compose.yml.
     services:
@@ -92,3 +92,13 @@ jobs:
       - name: Build de Next.js
         working-directory: web
         run: npm run build
+
+      # Las pruebas en navegador levantan su propia API simulada (e2e/fake-api.mjs) y next dev, con
+      # sesiones en memoria: no necesitan la API real ni Redis.
+      - name: Instalar Chromium para Playwright
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Pruebas en navegador (layout, teclado, hojas y axe, WEB-23 a WEB-31)
+        working-directory: web
+        run: npm run test:e2e
