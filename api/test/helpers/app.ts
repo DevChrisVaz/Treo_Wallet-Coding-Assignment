@@ -43,6 +43,16 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
       otpMaxResends: 3,
     },
     cursorSigningSecret: Buffer.alloc(32, 17),
+    // Los topes de transferencias suben al máximo para que las suites de concurrencia (~100
+    // transferencias de un usuario) afirmen lo suyo; cada prueba de un límite pasa el suyo (D2).
+    rateLimits: {
+      refreshMax: 120,
+      logoutMax: 60,
+      transferCreateMax: 10_000,
+      transferConfirmMax: 10_000,
+      transferResendMax: 10_000,
+      transferCancelMax: 10_000,
+    },
     // Las pruebas llaman a `runOnce()` directamente (D6).
     scheduler: { enabled: false, intervalMs: 60_000, batchSize: 100 },
     ...overrides,
