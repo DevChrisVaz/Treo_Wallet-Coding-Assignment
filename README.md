@@ -485,7 +485,7 @@ ESLint hace cumplir las reglas de capas:
 
    Si algo falla, el comando termina con código 1.
 
-**Tiempo medido en local** (PostgreSQL 16 en Docker, 2026-10-13): **10.7 s** la primera vez (120,128 asientos, 60,013 en la "Principal" de Ana) y 0.5 s las siguientes. Los planes `EXPLAIN ANALYZE` de las consultas del historial con este volumen están en `openspec/changes/api-ledger/design.md`.
+**Tiempo medido en local** (PostgreSQL 16 en Docker, 2026-10-13): **10.7 s** la primera vez (120,128 asientos, 60,013 en la "Principal" de Ana) y 0.5 s las siguientes. Los planes `EXPLAIN ANALYZE` de las consultas del historial con este volumen están en `openspec/changes/archive/2026-10-14-api-ledger/design.md`.
 
 #### Conciliación del ledger
 
@@ -1118,18 +1118,18 @@ Cada change tiene un `design.md` con las decisiones y las alternativas descartad
 | Change | Decisiones principales |
 | ------ | ---------------------- |
 | [`contract-v1`](openspec/changes/archive/2026-10-13-contract-v1/design.md) (archivado) | Contrato primero con el `openapi.yaml` escrito a mano; tipos con `openapi-typescript`; llave de idempotencia provista por el consumidor; montos como string con aritmética entera; paquete como artefacto local |
-| [`design-system`](openspec/changes/design-system/design.md) | Una fuente de tokens con tres salidas; dinero, estados y movimientos como datos; textos de la interfaz en el paquete |
-| [`api-foundation`](openspec/changes/api-foundation/design.md) | Módulos por contexto con capas; dónde TypeORM no alcanza; roles `wallet_migrator` y `wallet_app`; autenticación con refresh rotativo; errores RFC 9457 traducidos por nombre de constraint |
-| [`api-ledger`](openspec/changes/api-ledger/design.md) | Ledger de partida doble; bloqueo de filas en orden determinista; idempotencia por columna única; límite diario con fila contador; `EXPLAIN ANALYZE` del historial con volumen |
-| [`web-app`](openspec/changes/web-app/design.md) | Next.js como BFF con la sesión en el servidor; Server Actions para mutaciones y proxy para lecturas; ciclo de vida de la llave de idempotencia |
+| [`design-system`](openspec/changes/archive/2026-10-14-design-system/design.md) | Una fuente de tokens con tres salidas; dinero, estados y movimientos como datos; textos de la interfaz en el paquete |
+| [`api-foundation`](openspec/changes/archive/2026-10-14-api-foundation/design.md) | Módulos por contexto con capas; dónde TypeORM no alcanza; roles `wallet_migrator` y `wallet_app`; autenticación con refresh rotativo; errores RFC 9457 traducidos por nombre de constraint |
+| [`api-ledger`](openspec/changes/archive/2026-10-14-api-ledger/design.md) | Ledger de partida doble; bloqueo de filas en orden determinista; idempotencia por columna única; límite diario con fila contador; `EXPLAIN ANALYZE` del historial con volumen |
+| [`web-app`](openspec/changes/archive/2026-10-14-web-app/design.md) | Next.js como BFF con la sesión en el servidor; Server Actions para mutaciones y proxy para lecturas; ciclo de vida de la llave de idempotencia |
 | [`mobile-app`](openspec/changes/mobile-app/design.md) | Expo con Expo Router; máquina de estados del intento de transferencia; reintento con la misma llave tras perder la red; tokens en almacenamiento seguro |
-| [`contract-v1-1`](openspec/changes/contract-v1-1/design.md) y [`contract-v1-2`](openspec/changes/contract-v1-2/design.md) | Versiones 1.1.0 y 1.2.0 del contrato; calendario de la Ciudad de México; descarga binaria |
-| [`account-statements`](openspec/changes/account-statements/design.md) | PDFKit en la API; instantánea `REPEATABLE READ READ ONLY`; conciliación del resumen en el dominio |
-| [`scheduled-transfers`](openspec/changes/scheduled-transfers/design.md) | Ejecutor dentro de la API con `SKIP LOCKED`; tope de 20 por usuario; huella de idempotencia estable |
+| [`contract-v1-1`](openspec/changes/archive/2026-10-14-contract-v1-1/design.md) y [`contract-v1-2`](openspec/changes/archive/2026-10-14-contract-v1-2/design.md) | Versiones 1.1.0 y 1.2.0 del contrato; calendario de la Ciudad de México; descarga binaria |
+| [`account-statements`](openspec/changes/archive/2026-10-14-account-statements/design.md) | PDFKit en la API; instantánea `REPEATABLE READ READ ONLY`; conciliación del resumen en el dominio |
+| [`scheduled-transfers`](openspec/changes/archive/2026-10-14-scheduled-transfers/design.md) | Ejecutor dentro de la API con `SKIP LOCKED`; tope de 20 por usuario; huella de idempotencia estable |
 | [`ux-fixes`](openspec/changes/ux-fixes/design.md) | `PersonName` aparte de `FullName` para que "Tienda 24" siga siendo un beneficiario válido; referencia `null` en lugar de un valor por omisión; `scheduledFor` como instante con precisión de minuto (10 minutos a 90 días; las filas viejas pasan a las 09:00 de la Ciudad de México); la CLABE completa solo en "Recibir"; búsqueda en el cliente porque la lista no está paginada; `Ñ` y `&` conservadas al escribir el RFC; la app móvil no tiene registro, programación ni estado de cuenta |
-| [`biometric-unlock`](openspec/changes/biometric-unlock/design.md) | `expo-local-authentication`; puerta antes de restaurar la sesión; preferencia en el almacenamiento seguro |
-| [`redesign`](openspec/changes/redesign/design.md) | Prototipo en una rama con aprobación visual antes de aplicar; paridad web y móvil; tokens v2 aditivos |
-| [`domain-test-coverage`](openspec/changes/domain-test-coverage/design.md) | Cada prueba escrita después del código se demuestra rompiendo la regla; una base de datos por línea de trabajo |
+| [`biometric-unlock`](openspec/changes/archive/2026-10-14-biometric-unlock/design.md) | `expo-local-authentication`; puerta antes de restaurar la sesión; preferencia en el almacenamiento seguro |
+| [`redesign`](openspec/changes/archive/2026-10-14-redesign/design.md) | Prototipo en una rama con aprobación visual antes de aplicar; paridad web y móvil; tokens v2 aditivos |
+| [`domain-test-coverage`](openspec/changes/archive/2026-10-14-domain-test-coverage/design.md) | Cada prueba escrita después del código se demuestra rompiendo la regla; una base de datos por línea de trabajo |
 | [`delivery`](openspec/changes/delivery/design.md) | Propuesta de AWS ([`docs/aws-deploy.md`](docs/aws-deploy.md)), trazabilidad generada, guion del video |
 
 La [bitácora de AI](docs/ai-log.md) registra qué propuso la AI, qué acepté, qué rechacé o cambié, y dónde se equivocó y se corrigió.
@@ -1141,7 +1141,7 @@ Dónde está cada punto de la lista de entregables y su estado.
 | Entregable | Dónde está | Estado |
 | ---------- | ---------- | ------ |
 | Repositorio de GitHub con historial completo, sin squash | [DevChrisVaz/Treo_Wallet-Coding-Assignment](https://github.com/DevChrisVaz/Treo_Wallet-Coding-Assignment). El historial conserva cada commit de cada tarea, con los trailers `Task:` y `Refs:`, y las ramas se integraron con `--no-ff` | Cumple. Comprobar la visibilidad del repositorio antes de enviarlo |
-| Carpeta `/specs` con los cuatro archivos de la Fase 1 | **Desviación declarada:** no hay `/specs`; se usa OpenSpec. `requirements.md` equivale a los `specs/` de cada change ([`openspec/specs/`](openspec/specs/) y `openspec/changes/*/specs/`); `design.md` a los [`design.md`](#decisiones-clave) de cada change (incluye el diagrama ER en Mermaid de [`api-foundation`](openspec/changes/api-foundation/design.md) y [`api-ledger`](openspec/changes/api-ledger/design.md), la concurrencia, la idempotencia y el `EXPLAIN ANALYZE`); `tasks.md` a los `tasks.md` de cada change, con etiquetas `[api]`, `[web]`, `[mobile]`; `ai-log.md` a [`docs/ai-log.md`](docs/ai-log.md) | Cumple, con la estructura de OpenSpec. Mapa en [Especificación y bitácora de AI](#especificación-y-bitácora-de-ai) |
+| Carpeta `/specs` con los cuatro archivos de la Fase 1 | **Desviación declarada:** no hay `/specs`; se usa OpenSpec. `requirements.md` equivale a los `specs/` de cada change ([`openspec/specs/`](openspec/specs/) y `openspec/changes/*/specs/`); `design.md` a los [`design.md`](#decisiones-clave) de cada change (incluye el diagrama ER en Mermaid de [`api-foundation`](openspec/changes/archive/2026-10-14-api-foundation/design.md) y [`api-ledger`](openspec/changes/archive/2026-10-14-api-ledger/design.md), la concurrencia, la idempotencia y el `EXPLAIN ANALYZE`); `tasks.md` a los `tasks.md` de cada change, con etiquetas `[api]`, `[web]`, `[mobile]`; `ai-log.md` a [`docs/ai-log.md`](docs/ai-log.md) | Cumple, con la estructura de OpenSpec. Mapa en [Especificación y bitácora de AI](#especificación-y-bitácora-de-ai) |
 | Trazabilidad requerimiento → diseño → tarea → commit → prueba | [`docs/traceability.md`](docs/traceability.md), generado por [`scripts/trace.sh`](scripts/trace.sh) | Cumple; los huecos que quedan están explicados en ese archivo |
 | [`docs/aws-deploy.md`](docs/aws-deploy.md) con la propuesta y su diagrama | [`docs/aws-deploy.md`](docs/aws-deploy.md) | Escrito. El diagrama renderiza con `mermaid-cli`; falta verlo en GitHub y revisar con el usuario las decisiones D1 a D12 (tarea 1.1) |
 | Esqueleto de infraestructura como código (bonus) | [`infrastructure/`](infrastructure/README.md), en Terraform | Escrito y probado con proveedores simulados en cada ambiente. **No se ha aplicado** en una cuenta de AWS y faltan los `Dockerfile` |
