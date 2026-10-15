@@ -1,6 +1,6 @@
 ## 1. API: `db:bootstrap` seguro
 
-- [ ] 1.1 [api] La decisión del respaldo de `db:bootstrap` como función pura (`planBootstrap`, con `psql` y los puertos de compose inyectados) y `db-bootstrap.ts` que solo ejecuta el plan: con `psql`, igual que hoy; sin `psql`, solo si el host de la URL es local y su puerto lo publica el servicio `postgres` de compose, y si no, error en español que nombra la URL (sin contraseña) y el puerto de compose. Pruebas unitarias: con `psql` (cualquier host), URL local con el puerto de compose, puerto distinto, host remoto, `::1` y `[::1]`, puerto por defecto 5432, servicio apagado, varios puertos publicados, contraseña fuera del mensaje (PLT-14)
+- [x] 1.1 [api] La decisión del respaldo de `db:bootstrap` como función pura (`planBootstrap`, con `psql` y los puertos de compose inyectados) y `db-bootstrap.ts` que solo ejecuta el plan: con `psql`, igual que hoy; sin `psql`, solo si el host de la URL es local y su puerto lo publica el servicio `postgres` de compose, y si no, error en español que nombra la URL (sin contraseña) y el puerto de compose. Pruebas unitarias: con `psql` (cualquier host), URL local con el puerto de compose, puerto distinto, host remoto, `::1` y `[::1]`, puerto por defecto 5432, servicio apagado, varios puertos publicados, contraseña fuera del mensaje (PLT-14)
 
 ## 2. Web: CI e icono
 
