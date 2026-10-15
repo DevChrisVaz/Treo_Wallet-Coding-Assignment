@@ -255,6 +255,10 @@ El esquema del formulario de transferencia MUST tener una variante que, dado el 
 - **WHEN** el formulario de registro trae `firstNames` de 50 caracteres, `paternalSurname` de 40 y `maternalSurname` de 20
 - **THEN** el esquema lo rechaza en `/firstNames` con `TOO_LONG`
 
+#### Scenario: Nombres con acentos, ñ, apóstrofo, guion y punto
+- **WHEN** el formulario de registro trae `firstNames` `"María-José"`, `paternalSurname` `"O'Brien"` y `maternalSurname` `"Ñ."`
+- **THEN** el esquema lo acepta
+
 #### Scenario: Apellido materno omitido
 - **WHEN** el formulario de registro no trae `maternalSurname` o lo trae vacío
 - **THEN** el esquema lo acepta
