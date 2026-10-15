@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createApiClient, NetworkError, ProblemError } from '../src/index';
 import { fakeFetch } from './support/fake-fetch';
@@ -249,6 +250,26 @@ describe('Retry-After', () => {
 
     expect(error).toBeInstanceOf(ProblemError);
     expect(error).toMatchObject({ status: 429, code: 'RATE_LIMITED', retryAfter: 300 });
+  });
+
+  it('CTR-22 un 429 en logout llega como el error tipado con retryAfter', async () => {
+    const { fetch } = fakeFetch(() => rateLimited('120'));
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    const error = await rejectionOf(
+      client.POST('/auth/logout', { body: { refreshToken: 'x'.repeat(43) } }),
+    );
+
+    expect(error).toBeInstanceOf(ProblemError);
+    expect(error).toMatchObject({ status: 429, code: 'RATE_LIMITED', retryAfter: 120 });
+  });
+
+  it('CTR-22 openapi.yaml declara el 429 de logout y la versión 1.6.0', () => {
+    const yaml = readFileSync(new URL('../openapi.yaml', import.meta.url), 'utf8');
+    const logout = yaml.slice(yaml.indexOf('operationId: logout'));
+    const block = logout.slice(0, logout.indexOf('\n  /me:'));
+    expect(block).toContain("'429':");
+    expect(yaml).toContain('version: 1.6.0');
   });
 
   it.each([

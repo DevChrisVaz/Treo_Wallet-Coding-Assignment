@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Wallet API
-  version: 1.5.0
+  version: 1.6.0
   summary: Billetera digital en MXN con transferencias entre cuentas de la plataforma.
   description: |
     Contrato de la API (contrato primero). Es la fuente de verdad que consumen `/api`, `/web` y `/mobile`
@@ -243,6 +243,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '422':
           $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalError'
 
