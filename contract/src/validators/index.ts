@@ -1,3 +1,4 @@
+export * from './birth-states';
 export * from './amount';
 export * from './clabe';
 export * from './curp';

@@ -34,6 +34,14 @@ export function curpBirthDate(value: string): string | null {
 }
 
 /**
+ * Entidad de nacimiento que codifica una CURP (caracteres 12 y 13), o `null` si la CURP no tiene la
+ * forma. No revisa la fecha ni el dígito verificador.
+ */
+export function curpBirthState(value: string): string | null {
+  return CURP.test(value) ? value.slice(11, 13) : null;
+}
+
+/**
  * Indica si quien nació en `birthDate` (`YYYY-MM-DD`) tiene al menos `years` años cumplidos el día
  * `today` (`YYYY-MM-DD`). Quien nació un 29 de febrero cumple en 1 de marzo los años no bisiestos.
  */
