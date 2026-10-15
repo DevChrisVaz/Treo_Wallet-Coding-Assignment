@@ -71,7 +71,7 @@ Son cinco proyectos independientes en un solo repositorio. **No es un monorepo:*
 
 **Desviaciones del enunciado:**
 
-- **Sin carpeta `/specs`:** la especificación vive en `openspec/` con su estructura nativa. Ver [Especificación y bitácora de AI](#especificación-y-bitácora-de-ai).
+- **`/specs` es un índice:** la especificación vive en `openspec/` con su estructura nativa y [`specs/`](specs/) enlaza a cada pieza. Ver [Especificación y bitácora de AI](#especificación-y-bitácora-de-ai).
 - **Sin monorepo:** cada proyecto se puede construir, probar y desplegar por su cuenta, y se separará en su propio repositorio.
 - **La web no es un sitio estático:** es un BFF que guarda la sesión en el servidor, ejecuta Server Actions y llama a la API con el access token. Por eso en AWS no aplica S3 + CloudFront, que sugiere el enunciado. Se planea Next.js en ECS Fargate detrás de CloudFront (`openspec/changes/archive/2026-10-15-delivery/design.md`, D3).
 
@@ -1101,7 +1101,7 @@ Así se rastrea cada requisito en el código:
 Cada historia de usuario del enunciado (HU1 a HU6) se traza a sus requisitos, al change que los implementa y a las secciones de tareas. Las tareas nombran los requisitos que cubren, los commits los citan en los trailers `Task:` y `Refs:`, y los títulos de las pruebas empiezan con el ID.
 
 - **Matriz completa, generada:** [`docs/traceability.md`](docs/traceability.md) (requisito → change → tareas → commits → pruebas, más la lista de huecos). Se regenera con `scripts/trace.sh`; con `--check` termina con error si queda algún hueco.
-- **Requisitos vigentes:** [`openspec/specs/`](openspec/specs/) tiene las capabilities ya archivadas (hoy `api-contract`, del change `contract-v1`). El resto vive en `openspec/changes/<change>/specs/<capability>/spec.md` hasta que cada change se archive.
+- **Requisitos vigentes:** [`openspec/specs/`](openspec/specs/) tiene las capabilities de los changes ya archivados (accounts, api-contract, api-platform, audit-trail, beneficiaries, design-system, identity, mobile-app, movement-history, transfers, web-app). Los changes nuevos viven en `openspec/changes/<change>/specs/<capability>/spec.md` hasta que se archivan. [`specs/`](specs/) indexa todo.
 
 | Historia de usuario | Requisitos | Change y secciones de tareas |
 | ------------------- | ---------- | ---------------------------- |
@@ -1169,7 +1169,7 @@ Dónde está cada punto de la lista de entregables y su estado.
 | Entregable | Dónde está | Estado |
 | ---------- | ---------- | ------ |
 | Repositorio de GitHub con historial completo, sin squash | [DevChrisVaz/Treo_Wallet-Coding-Assignment](https://github.com/DevChrisVaz/Treo_Wallet-Coding-Assignment). El historial conserva cada commit de cada tarea, con los trailers `Task:` y `Refs:`, y las ramas se integraron con `--no-ff` | Cumple. Comprobar la visibilidad del repositorio antes de enviarlo |
-| Carpeta `/specs` con los cuatro archivos de la Fase 1 | **Desviación declarada:** no hay `/specs`; se usa OpenSpec. `requirements.md` equivale a los `specs/` de cada change ([`openspec/specs/`](openspec/specs/) y `openspec/changes/*/specs/`); `design.md` a los [`design.md`](#decisiones-clave) de cada change (incluye el diagrama ER en Mermaid de [`api-foundation`](openspec/changes/archive/2026-10-14-api-foundation/design.md) y [`api-ledger`](openspec/changes/archive/2026-10-14-api-ledger/design.md), la concurrencia, la idempotencia y el `EXPLAIN ANALYZE`); `tasks.md` a los `tasks.md` de cada change, con etiquetas `[api]`, `[web]`, `[mobile]`; `ai-log.md` a [`docs/ai-log.md`](docs/ai-log.md) | Cumple, con la estructura de OpenSpec. Mapa en [Especificación y bitácora de AI](#especificación-y-bitácora-de-ai) |
+| Carpeta `/specs` con los cuatro archivos de la Fase 1 | **Desviación declarada:** `/specs` es solo un índice con enlaces; la especificación está en OpenSpec. `requirements.md` equivale a los `specs/` de cada change ([`openspec/specs/`](openspec/specs/) y `openspec/changes/*/specs/`); `design.md` a los [`design.md`](#decisiones-clave) de cada change (incluye el diagrama ER en Mermaid de [`api-foundation`](openspec/changes/archive/2026-10-14-api-foundation/design.md) y [`api-ledger`](openspec/changes/archive/2026-10-14-api-ledger/design.md), la concurrencia, la idempotencia y el `EXPLAIN ANALYZE`); `tasks.md` a los `tasks.md` de cada change, con etiquetas `[api]`, `[web]`, `[mobile]`; `ai-log.md` a [`docs/ai-log.md`](docs/ai-log.md) | Cumple, con la estructura de OpenSpec. Mapa en [Especificación y bitácora de AI](#especificación-y-bitácora-de-ai) |
 | Trazabilidad requerimiento → diseño → tarea → commit → prueba | [`docs/traceability.md`](docs/traceability.md), generado por [`scripts/trace.sh`](scripts/trace.sh) | Cumple; los huecos que quedan están explicados en ese archivo |
 | [`docs/aws-deploy.md`](docs/aws-deploy.md) con la propuesta y su diagrama | [`docs/aws-deploy.md`](docs/aws-deploy.md) | Escrito. El diagrama renderiza con `mermaid-cli`; falta verlo en GitHub y revisar con el usuario las decisiones D1 a D12 (tarea 1.1) |
 | Esqueleto de infraestructura como código (bonus) | [`infrastructure/`](infrastructure/README.md), en Terraform | Escrito y probado con proveedores simulados en cada ambiente. **No se ha aplicado** en una cuenta de AWS y faltan los `Dockerfile` |

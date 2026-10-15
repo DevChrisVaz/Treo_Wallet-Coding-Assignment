@@ -130,7 +130,7 @@ El aviso de inicio de sesión describe al cliente con el `User-Agent` (`client-d
 4. 60,000 transferencias completadas (120,000 asientos), todas con un lado en "Principal" de Ana, más 12 depósitos de nómina de la Tesorería, repartidas en los 12 meses que terminan **ayer a las 23:59 de CDMX**: nada cae en el día actual, así que el límite diario de hoy está libre. Se generan por tandas de 5,000 con `generate_series` y el `balance_after` se calcula en staging con una función de ventana.
 5. Ajuste de cada saldo al `balance_after` de su último asiento, `ANALYZE` y verificación de invariantes: mínimo de 100,000 asientos, suma global cero, ningún `balance_after` negativo en cuentas USER, cadena de `balance_after` correcta, saldos iguales al último asiento, Tesorería igual al negativo de las cuentas USER y ningún movimiento de hoy. Si algo falla, el comando termina con código 1.
 
-Tiempo medido en local (PostgreSQL 16 en Docker, 2026-10-13): **10.7 s** la primera vez (120,128 asientos, 60,013 en "Principal" de Ana) y 0.5 s las siguientes. Los planes de las consultas del historial con este volumen están en `openspec/changes/api-ledger/design.md` (sección "EXPLAIN ANALYZE").
+Tiempo medido en local (PostgreSQL 16 en Docker, 2026-10-13): **10.7 s** la primera vez (120,128 asientos, 60,013 en "Principal" de Ana) y 0.5 s las siguientes. Los planes de las consultas del historial con este volumen están en `openspec/changes/archive/2026-10-14-api-ledger/design.md` (sección "EXPLAIN ANALYZE").
 
 `db:fund` es la única forma de meter dinero (no hay endpoint que lo cree): valida el monto con las mismas reglas que la API antes de conectarse, usa el rol de la aplicación y registra `FUNDING_POSTED` con actor SYSTEM.
 
