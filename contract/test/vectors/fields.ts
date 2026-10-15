@@ -106,3 +106,14 @@ export const namePartVectors: Vector[] = [
   { input: 'Ana2', valid: false, code: 'INVALID_FORMAT', note: 'dígito' },
   { input: 'N'.repeat(101), valid: false, code: 'TOO_LONG' },
 ];
+
+/** Esquema `OptionalNamePart` del contrato: apellido materno, vacío significa «sin apellido materno». */
+export const optionalNamePartVectors: Vector[] = [
+  { input: 'Cruz', valid: true },
+  { input: 'de la Cruz', valid: true },
+  { input: '', valid: true, note: 'vacío = omitido' },
+  { input: '   ', valid: false, code: 'INVALID_FORMAT', note: 'solo espacios no es vacío' },
+  { input: ' Cruz', valid: false, code: 'INVALID_FORMAT' },
+  { input: 'Cruz2', valid: false, code: 'INVALID_FORMAT' },
+  { input: 'N'.repeat(101), valid: false, code: 'TOO_LONG' },
+];

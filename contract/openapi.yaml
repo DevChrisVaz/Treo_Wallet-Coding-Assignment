@@ -900,6 +900,14 @@ components:
       minLength: 1
       maxLength: 100
       pattern: "^\\p{L}[\\p{L}\\p{M}'.-]*( \\p{L}[\\p{L}\\p{M}'.-]*)*$"
+    OptionalNamePart:
+      description: |
+        Apellido materno del registro. Es opcional: ausente o vacío (`""`) significa «sin apellido
+        materno»; si trae texto, debe ser un `NamePart`.
+      anyOf:
+        - $ref: '#/components/schemas/NamePart'
+        - type: string
+          maxLength: 0
     BirthDate:
       description: Fecha de nacimiento `YYYY-MM-DD`. Que exista en el calendario se valida fuera del schema.
       type: string
@@ -967,7 +975,7 @@ components:
         password: { $ref: '#/components/schemas/Password' }
         firstNames: { $ref: '#/components/schemas/NamePart' }
         paternalSurname: { $ref: '#/components/schemas/NamePart' }
-        maternalSurname: { $ref: '#/components/schemas/NamePart' }
+        maternalSurname: { $ref: '#/components/schemas/OptionalNamePart' }
         birthDate: { $ref: '#/components/schemas/BirthDate' }
         birthState: { $ref: '#/components/schemas/BirthState' }
         curp: { $ref: '#/components/schemas/Curp' }

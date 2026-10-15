@@ -482,6 +482,11 @@ export interface components {
          *     (con acentos y ñ), apóstrofo, guion y punto; sin dígitos ni otros símbolos.
          */
         NamePart: string;
+        /**
+         * @description Apellido materno del registro. Es opcional: ausente o vacío (`""`) significa «sin apellido
+         *     materno»; si trae texto, debe ser un `NamePart`.
+         */
+        OptionalNamePart: components["schemas"]["NamePart"] | string;
         /** @description Fecha de nacimiento `YYYY-MM-DD`. Que exista en el calendario se valida fuera del schema. */
         BirthDate: string;
         /**
@@ -529,7 +534,7 @@ export interface components {
             password: components["schemas"]["Password"];
             firstNames: components["schemas"]["NamePart"];
             paternalSurname: components["schemas"]["NamePart"];
-            maternalSurname?: components["schemas"]["NamePart"];
+            maternalSurname?: components["schemas"]["OptionalNamePart"];
             birthDate: components["schemas"]["BirthDate"];
             birthState: components["schemas"]["BirthState"];
             curp: components["schemas"]["Curp"];

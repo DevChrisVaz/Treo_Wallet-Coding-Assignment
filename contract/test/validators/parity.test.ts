@@ -11,6 +11,7 @@ import {
   phone,
   reference,
   namePart,
+  optionalNamePart,
   newPassword,
   rfc,
   scheduledInstant,
@@ -20,6 +21,7 @@ import { amountVectors } from '../vectors/amount';
 import {
   conceptVectors,
   namePartVectors,
+  optionalNamePartVectors,
   otpVectors,
   phoneVectors,
   passwordVectors,
@@ -51,12 +53,17 @@ const parity: [string, { safeParse: (input: unknown) => { success: boolean } }, 
   ['ScheduledInstant', scheduledInstant, scheduledInstantVectors],
   ['Password', newPassword, passwordVectors],
   ['NamePart', namePart, namePartVectors],
+  ['OptionalNamePart', optionalNamePart, optionalNamePartVectors],
   ['BirthDate', birthDate, birthDateVectors],
   ['BirthState', birthState, birthStateVectors],
 ];
 
 describe.each(parity)('paridad con el esquema %s del contrato', (schemaName, schema, vectors) => {
-  const validateContract = ajv.compile(contract.components.schemas[schemaName] ?? {});
+  const validateContract = ajv.compile({
+    ...(contract.components.schemas[schemaName] ?? {}),
+    // Los schemas que usan `$ref` a otros del contrato lo resuelven contra este documento.
+    components: contract.components,
+  });
 
   it.each(vectors)('CTR-13 contrato y paquete coinciden en $input', (vector) => {
     expect(validateContract(vector.input)).toBe(contractExpectation(vector));
