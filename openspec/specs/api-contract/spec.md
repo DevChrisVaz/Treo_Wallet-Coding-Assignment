@@ -3,7 +3,9 @@
 ## Purpose
 
 Define el contrato OpenAPI de la billetera como única fuente de verdad compartida por la API, la web y la app móvil, y el paquete que lo distribuye con tipos, cliente tipado, validadores de entrada y formato de montos, sin crear dependencias de código entre proyectos.
+
 ## Requirements
+
 ### Requirement: CTR-01 Contrato OpenAPI como fuente de verdad
 El paquete SHALL incluir el archivo `openapi.yaml` en formato OpenAPI 3.1 como única definición de las rutas, esquemas, códigos de error y headers de la API. El archivo MUST pasar el lint del contrato sin errores, y cada operación MUST declarar un `operationId` único y sus respuestas de error como `application/problem+json`.
 
@@ -159,7 +161,7 @@ El paquete SHALL exportar un validador de CURP que exija la estructura del contr
 - **THEN** la CURP se rechaza por fecha inválida
 
 ### Requirement: CTR-11 Validación de RFC de persona física
-El paquete SHALL exportar un validador de RFC de persona física (13 caracteres en mayúsculas) que verifique la estructura del contrato y que la fecha `AAMMDD` exista en el calendario. El validador MUST NOT exigir que el RFC coincida con la CURP.
+El paquete SHALL exportar un validador de RFC de persona física (13 caracteres en mayúsculas) que verifique la estructura del contrato y que la fecha `AAMMDD` exista en el calendario. El validador del RFC por sí solo MUST NOT exigir que coincida con la CURP, porque no conoce otro campo. El esquema del formulario de registro (CTR-13) MUST rechazar un RFC cuyos primeros 10 caracteres no sean iguales a los primeros 10 de la CURP, con el error en `/rfc`, el código `INVALID_FORMAT` y el mensaje "El RFC no coincide con tu CURP"; si el RFC ya es inválido por sí solo, MUST NOT repetir el error de coincidencia.
 
 #### Scenario: RFC válido
 - **WHEN** se valida un RFC de 13 caracteres con fecha existente
@@ -173,8 +175,16 @@ El paquete SHALL exportar un validador de RFC de persona física (13 caracteres 
 - **WHEN** se valida un RFC de 12 caracteres
 - **THEN** el RFC se rechaza
 
+#### Scenario: RFC que no coincide con la CURP
+- **WHEN** el formulario de registro trae una CURP y un RFC válidos cuyos primeros 10 caracteres difieren
+- **THEN** el esquema lo rechaza en `/rfc` con `INVALID_FORMAT` y el mensaje "El RFC no coincide con tu CURP"
+
+#### Scenario: RFC inválido por sí solo
+- **WHEN** el formulario de registro trae un RFC con fecha inexistente
+- **THEN** el esquema reporta solo el error de la fecha y no el de coincidencia con la CURP
+
 ### Requirement: CTR-12 Validación de teléfono, concepto, referencia y códigos
-El paquete SHALL exportar validadores para el teléfono (10 dígitos nacionales), el concepto (1 a 40 caracteres, sin espacios al inicio ni al final), la referencia numérica (string de 1 a 7 dígitos) y los códigos de un solo uso (6 dígitos), con las mismas reglas que el contrato.
+El paquete SHALL exportar validadores para el teléfono (exactamente 10 dígitos nacionales, el primero de 2 a 9), el concepto (1 a 40 caracteres, sin espacios al inicio ni al final), la referencia numérica opcional (string de 1 a 7 dígitos; ausente o vacía significa "sin referencia") y los códigos de un solo uso (exactamente 6 dígitos), con las mismas reglas que el contrato.
 
 #### Scenario: Concepto con espacios en los extremos
 - **WHEN** se valida el concepto `" Renta "`
@@ -184,8 +194,16 @@ El paquete SHALL exportar validadores para el teléfono (10 dígitos nacionales)
 - **WHEN** se valida la referencia `"12345678"`
 - **THEN** la referencia se rechaza
 
+#### Scenario: Referencia omitida
+- **WHEN** se valida un formulario de transferencia sin referencia o con la referencia vacía
+- **THEN** el esquema lo acepta y lo interpreta como "sin referencia"
+
 #### Scenario: Código de un solo uso
-- **WHEN** se validan `"123456"` y `"12345"`
+- **WHEN** se validan `"123456"`, `"12345"` y `"1234567"`
+- **THEN** el primero es válido y los otros dos se rechazan
+
+#### Scenario: Teléfono que empieza con 0 o 1
+- **WHEN** se validan `"5512345678"` y `"0512345678"`
 - **THEN** el primero es válido y el segundo se rechaza
 
 ### Requirement: CTR-13 Esquemas de formularios alineados con el contrato
@@ -236,6 +254,10 @@ El esquema del formulario de transferencia MUST tener una variante que, dado el 
 #### Scenario: Nombre completo demasiado largo
 - **WHEN** el formulario de registro trae `firstNames` de 50 caracteres, `paternalSurname` de 40 y `maternalSurname` de 20
 - **THEN** el esquema lo rechaza en `/firstNames` con `TOO_LONG`
+
+#### Scenario: Nombres con acentos, ñ, apóstrofo, guion y punto
+- **WHEN** el formulario de registro trae `firstNames` `"María-José"`, `paternalSurname` `"O'Brien"` y `maternalSurname` `"Ñ."`
+- **THEN** el esquema lo acepta
 
 #### Scenario: Apellido materno omitido
 - **WHEN** el formulario de registro no trae `maternalSurname` o lo trae vacío
@@ -315,19 +337,23 @@ El paquete SHALL tener su propio pipeline de CI que se ejecute ante cambios en l
 - **THEN** el pipeline termina en rojo
 
 ### Requirement: CTR-18 Calendario de la Ciudad de México en el paquete
-El paquete SHALL exportar una función que devuelve la fecha calendario (`YYYY-MM-DD`) de un instante en `America/Mexico_City` y otra que devuelve el rango programable: desde el día siguiente a la fecha actual hasta 90 días después de ella, ambos inclusive. Ambas MUST recibir el instante como parámetro, sin leer el reloj del sistema, y MUST funcionar en Node.js y en el motor JavaScript de React Native (CTR-15).
+El paquete SHALL exportar una función que devuelve la fecha calendario (`YYYY-MM-DD`) y la hora (`HH:mm`) de un instante en `America/Mexico_City`, otra que combina una fecha y una hora de la Ciudad de México en el instante ISO que espera `scheduledFor`, y otra que devuelve la ventana programable: desde 10 minutos hasta 90 días después del instante dado, ambos inclusive. Todas MUST recibir el instante como parámetro, sin leer el reloj del sistema, y MUST funcionar en Node.js y en el motor JavaScript de React Native (CTR-15). El paquete SHALL exportar también los formatos de fecha y hora en palabras (`20 de octubre de 2026, 14:30`) de un instante en la Ciudad de México.
 
 #### Scenario: Instante de noche
 - **WHEN** se pide la fecha de 2026-10-01T05:30:00Z (23:30 del 30 de septiembre en la Ciudad de México)
-- **THEN** la función devuelve `"2026-09-30"`
+- **THEN** la función devuelve la fecha `"2026-09-30"` y la hora `"23:30"`
 
-#### Scenario: Rango programable
-- **WHEN** se pide el rango para 2026-10-14T18:00:00Z
-- **THEN** el rango es de `"2026-10-15"` a `"2027-01-12"`
+#### Scenario: Ventana programable
+- **WHEN** se pide la ventana para 2026-10-14T18:00:00Z
+- **THEN** la ventana va de 2026-10-14T18:10:00Z a 2027-01-12T18:00:00Z
 
-#### Scenario: Cambio de año
-- **WHEN** se pide el rango para 2026-12-31T23:00:00Z (17:00 del 31 de diciembre en la Ciudad de México)
-- **THEN** el rango empieza en `"2027-01-01"`
+#### Scenario: Fecha y hora a instante
+- **WHEN** se combinan la fecha `"2026-10-20"` y la hora `"14:30"` de la Ciudad de México
+- **THEN** el instante es `2026-10-20T20:30:00.000Z`
+
+#### Scenario: Fecha u hora inexistentes
+- **WHEN** se combinan la fecha `"2026-02-30"` y la hora `"14:30"`
+- **THEN** la función rechaza la combinación
 
 ### Requirement: CTR-19 Descarga de documentos binarios
 El cliente tipado SHALL permitir obtener la respuesta `application/pdf` de `getAccountStatement` como bytes o como stream, sin intentar interpretarla como JSON. Una respuesta de error en esa misma ruta MUST llegar como el error tipado de CTR-07.
@@ -339,6 +365,43 @@ El cliente tipado SHALL permitir obtener la respuesta `application/pdf` de `getA
 #### Scenario: Error al pedir el PDF
 - **WHEN** la API responde 404 `application/problem+json` con `code` `NOT_FOUND` en esa ruta
 - **THEN** el consumidor recibe un error tipado con `code === "NOT_FOUND"`
+
+### Requirement: CTR-20 Utilidades de captura y búsqueda de texto
+El paquete SHALL exportar utilidades puras, usadas por la web y la app móvil, para que un campo no admita lo que el contrato rechazaría:
+- una que deja solo dígitos (también al pegar) y recorta a una longitud máxima, para el teléfono, la referencia y los códigos de 6 dígitos;
+- una que pasa a mayúsculas y deja solo letras, dígitos, `Ñ` y `&`, para la CURP y el RFC;
+- una que sanea un monto mientras se escribe o se pega: solo dígitos y un punto, a lo más 2 decimales, a lo más 12 dígitos enteros y sin ceros a la izquierda; devuelve el texto con separadores de miles para mostrar y el monto sin separadores para enviar, y es idempotente sobre su propio resultado;
+- una que decide si un beneficiario coincide con una búsqueda, sin distinguir mayúsculas ni acentos, por nombre y alias, y por CLABE cuando la consulta son solo dígitos.
+
+El monto que devuelve la utilidad de montos MUST ser siempre uno que el contrato acepta (CTR-08), sin aritmética de punto flotante.
+
+#### Scenario: Monto con letras y tres decimales
+- **WHEN** se sanea `"12a,345.678"`
+- **THEN** el texto para mostrar es `"12,345.67"` y el monto para enviar es `"12345.67"`
+
+#### Scenario: Ceros a la izquierda
+- **WHEN** se sanea `"007"` y `"0.5"`
+- **THEN** los montos para enviar son `"7"` y `"0.5"`
+
+#### Scenario: Idempotencia del saneamiento
+- **WHEN** se vuelve a sanear el texto que ya se devolvió para mostrar
+- **THEN** el resultado es el mismo
+
+#### Scenario: Solo dígitos
+- **WHEN** se pasa `"12-34 a5"` a la utilidad de dígitos con longitud máxima 7
+- **THEN** el resultado es `"12345"`
+
+#### Scenario: Mayúsculas de CURP y RFC
+- **WHEN** se pasa `"ñu&a-12"` a la utilidad de mayúsculas alfanuméricas
+- **THEN** el resultado es `"ÑU&A12"`
+
+#### Scenario: Búsqueda sin acentos
+- **WHEN** se busca `"jose"` entre los beneficiarios "José" y "Luis"
+- **THEN** solo coincide "José"
+
+#### Scenario: Búsqueda por CLABE
+- **WHEN** la consulta son solo dígitos
+- **THEN** coincide con los beneficiarios cuya CLABE los contiene y no con los que solo los tienen en el nombre
 
 ### Requirement: CTR-21 Catálogo de entidades de nacimiento
 El paquete SHALL exportar el catálogo de entidades de nacimiento: los 33 códigos de dos letras que acepta el patrón de la CURP (las 32 entidades federativas y `NE`, nacido en el extranjero), cada uno con su nombre en español, ordenado por nombre y con `NE` al final, y una función que devuelve la entidad que codifica una CURP o `null` si la CURP no tiene la forma. El patrón de la CURP del contrato y el catálogo MUST aceptar exactamente los mismos códigos.
@@ -354,4 +417,3 @@ El paquete SHALL exportar el catálogo de entidades de nacimiento: los 33 códig
 #### Scenario: Entidad de una CURP
 - **WHEN** se pide la entidad de una CURP válida con los caracteres 12 y 13 iguales a `DF`
 - **THEN** la función devuelve `"DF"`
-

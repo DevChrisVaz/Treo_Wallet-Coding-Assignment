@@ -21,7 +21,7 @@ Cada movimiento del historial SHALL corresponder a un asiento del ledger. Las tr
 - **THEN** el historial de su cuenta no muestra ningún movimiento de esa transferencia
 
 ### Requirement: HIS-03 Contenido de un movimiento
-Cada movimiento SHALL incluir `id`, `type`, `amount` con signo (negativo para salidas), `balanceAfter`, `concept`, `reference`, `counterparty`, `transferId` y `occurredAt`. El `type` MUST ser uno de `DEPOSIT`, `TRANSFER_IN`, `TRANSFER_OUT`, `OWN_TRANSFER_IN` u `OWN_TRANSFER_OUT`. La contraparte MUST ser nula en los depósitos de la Tesorería, el nombre del remitente en las entradas, el alias del beneficiario en las salidas a terceros y el nombre de la cuenta en los traspasos propios, con los últimos 4 dígitos de su CLABE cuando aplique.
+Cada movimiento SHALL incluir `id`, `type`, `amount` con signo (negativo para salidas), `balanceAfter`, `concept`, `reference`, `counterparty`, `transferId` y `occurredAt`. El `type` MUST ser uno de `DEPOSIT`, `TRANSFER_IN`, `TRANSFER_OUT`, `OWN_TRANSFER_IN` u `OWN_TRANSFER_OUT`. La contraparte MUST ser nula en los depósitos de la Tesorería, el nombre del remitente en las entradas, el alias del beneficiario en las salidas a terceros y el nombre de la cuenta en los traspasos propios, con los últimos 4 dígitos de su CLABE cuando aplique. La referencia MUST ser nula cuando la transferencia se hizo sin referencia y en los depósitos de la Tesorería.
 
 #### Scenario: Salida a un beneficiario
 - **WHEN** Ana envía 150.00 a su beneficiario "Luis" desde una cuenta con 1000.00
@@ -34,6 +34,11 @@ Cada movimiento SHALL incluir `id`, `type`, `amount` con signo (negativo para sa
 #### Scenario: Depósito de la Tesorería
 - **WHEN** la cuenta recibió un fondeo de la Tesorería
 - **THEN** el movimiento es `DEPOSIT` con `counterparty` nulo
+
+#### Scenario: Movimiento sin referencia
+- **WHEN** Ana envía 150.00 a su beneficiario "Luis" sin indicar una referencia
+- **THEN** el movimiento trae `reference` igual a `null`
+- **AND** si la indicó, el movimiento trae su texto
 
 ### Requirement: HIS-04 Orden y paginación por cursor
 La API SHALL devolver los movimientos en orden descendente por `occurredAt` y, en caso de empate, por `id`, paginados por cursor y nunca por desplazamiento. El tamaño de página MUST ser 20 por defecto, con un máximo de 100; `nextCursor` MUST ser nulo en la última página. Recorrer todas las páginas MUST devolver cada movimiento exactamente una vez, aunque se registren movimientos nuevos durante el recorrido.
@@ -109,20 +114,34 @@ El comando `db:seed` SHALL generar al menos 100000 movimientos distribuidos en 1
 - **AND** ningún movimiento del seed pertenece al día actual de `America/Mexico_City`
 
 ### Requirement: HIS-11 Estado de cuenta mensual en PDF
-La API SHALL responder `GET /accounts/{accountId}/statements/{period}` (`getAccountStatement`) con el estado de cuenta en PDF del mes `period` (`YYYY-MM`, mes calendario de `America/Mexico_City`) de una cuenta del usuario autenticado, con `Content-Type: application/pdf`, `Cache-Control: no-store` y `Content-Disposition: attachment; filename="estado-de-cuenta-<period>-<últimos 4 dígitos de la CLABE>.pdf"`. Si la cuenta no existe o es de otro usuario, MUST responder 404 `NOT_FOUND`. Un periodo con formato inválido o posterior al mes en curso MUST responder 422 `VALIDATION_FAILED`. El mes en curso MUST permitirse y cubrir desde su primer día hasta el momento de la generación, identificado en el documento como parcial. La API MUST limitar la generación a 10 estados de cuenta por minuto por usuario y responder `429 RATE_LIMITED` con `Retry-After` al excederlo (PLT-09). Amplía HIS-01.
+La API SHALL responder `GET /accounts/{accountId}/statements/{period}` (`getAccountStatement`) con el estado de cuenta en PDF del mes `period` (`YYYY-MM`, mes calendario de `America/Mexico_City`) de una cuenta del usuario autenticado, con `Content-Type: application/pdf`, `Cache-Control: no-store` y `Content-Disposition: attachment; filename="estado-de-cuenta-<period>-<últimos 4 dígitos de la CLABE>.pdf"`. Si la cuenta no existe o es de otro usuario, MUST responder 404 `NOT_FOUND`. Un periodo con formato inválido MUST responder 422 `VALIDATION_FAILED`. Un periodo posterior al mes en curso, o anterior al mes de apertura de la cuenta (`Account.createdAt`, en `America/Mexico_City`), MUST responder 422 `VALIDATION_FAILED` con el error en `/period` y el código `DATE_OUT_OF_RANGE`, sin auditar la descarga. El mes de apertura y el mes en curso MUST permitirse. El mes en curso MUST cubrir desde su primer día hasta el momento de la generación, identificado en el documento como parcial. La API MUST limitar la generación a 10 estados de cuenta por minuto por usuario y responder `429 RATE_LIMITED` con `Retry-After` al excederlo (PLT-09). Amplía HIS-01.
 
 #### Scenario: Estado de cuenta de un mes cerrado
-- **WHEN** Ana pide el estado de septiembre de 2026 de su cuenta "Principal" con CLABE terminada en 0015
+- **WHEN** Ana pide el estado de septiembre de 2026 de su cuenta "Principal" con CLABE terminada en 0015, abierta en agosto de 2026
 - **THEN** la API responde 200 con `Content-Type: application/pdf` y un cuerpo que empieza con `%PDF-`
 - **AND** `Content-Disposition` propone el nombre `estado-de-cuenta-2026-09-0015.pdf`
 
 #### Scenario: Cuenta ajena
 - **WHEN** Ana pide el estado de cuenta de una cuenta de Luis
 - **THEN** la API responde 404 con `code` `NOT_FOUND`
+- **AND** también cuando el periodo es anterior a la apertura de esa cuenta
 
 #### Scenario: Mes futuro
 - **WHEN** el 14 de octubre de 2026 se pide el periodo `2026-11`
 - **THEN** la API responde 422 con `code` `VALIDATION_FAILED`
+
+#### Scenario: Mes anterior a la apertura de la cuenta
+- **WHEN** Ana abrió su cuenta el 3 de agosto de 2026 y pide el periodo `2026-07`
+- **THEN** la API responde 422 con `code` `VALIDATION_FAILED` y un error en `/period` con el código `DATE_OUT_OF_RANGE`
+- **AND** no se registra ninguna descarga en la bitácora
+
+#### Scenario: Mes de apertura
+- **WHEN** Ana abrió su cuenta el 3 de agosto de 2026 y pide el periodo `2026-08`
+- **THEN** la API responde 200 con el estado de cuenta de agosto
+
+#### Scenario: Cuenta abierta de noche
+- **WHEN** la cuenta se abrió a las 23:30 del 31 de agosto de 2026 en la Ciudad de México (05:30 UTC del 1 de septiembre)
+- **THEN** su mes de apertura es agosto de 2026 y la API acepta el periodo `2026-08`
 
 #### Scenario: Periodo con formato inválido
 - **WHEN** se pide el periodo `2026-13`
@@ -145,7 +164,7 @@ El estado de cuenta SHALL contener:
   - la etiqueta del tipo de movimiento;
   - el concepto;
   - la contraparte;
-  - la referencia;
+  - la referencia, solo cuando el movimiento la tiene;
   - el monto en la columna de cargo o en la de abono, sin signo;
   - el saldo posterior.
 
@@ -155,6 +174,7 @@ El documento MUST cumplir estas reglas:
 - **Páginas:** cada página MUST repetir los encabezados de la tabla y mostrar "Página X de Y" y la leyenda "Documento informativo; no es un comprobante fiscal."
 - **Mes sin movimientos:** el documento MUST mostrar el resumen y el texto "Sin movimientos en el periodo".
 - **Instantánea:** el saldo inicial y los movimientos MUST leerse de una misma instantánea de la base de datos.
+- **Sin referencia:** un renglón de un movimiento sin referencia MUST NOT mostrar "null", "0" ni la palabra "Referencia".
 
 #### Scenario: Conciliación del periodo
 - **WHEN** una cuenta cerró agosto de 2026 con 1000.00 y en septiembre recibió 500.00 y envió 150.00
@@ -182,3 +202,8 @@ El documento MUST cumplir estas reglas:
 #### Scenario: Transferencia durante la generación
 - **WHEN** una transferencia de la cuenta se completa después de leer el saldo inicial y antes de leer los movimientos
 - **THEN** el documento no la incluye y su resumen cuadra
+
+#### Scenario: Movimiento sin referencia
+- **WHEN** el periodo tiene una transferencia sin referencia y otra con la referencia `1234567`
+- **THEN** el renglón de la primera no imprime "null" ni "Referencia"
+- **AND** el de la segunda sí imprime su referencia
