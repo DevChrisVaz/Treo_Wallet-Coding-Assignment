@@ -336,6 +336,7 @@ export async function createContainer(
         audit,
         clock,
         details: transferDetails,
+        receipts,
       }),
       resendTransferOtp: new ResendTransferOtp({
         transactions,
