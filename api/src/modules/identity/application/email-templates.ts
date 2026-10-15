@@ -1,5 +1,5 @@
 import { formatMexicoCityDateTime } from '@devchrisvaz/wallet-contract';
-import { escapeHtml, layout } from '../../../platform/mail/html.js';
+import { codeBlock, layout, paragraph } from '../../../platform/mail/html.js';
 
 export interface EmailContent {
   readonly subject: string;
@@ -24,9 +24,10 @@ export function verificationCodeEmail(input: {
     ].join('\n'),
     html: layout(
       subject,
-      `<p>Hola, ${escapeHtml(input.fullName)}:</p>` +
-        `<p>Tu código de verificación es <strong style="font-size: 20px;">${escapeHtml(input.code)}</strong>.</p>` +
-        `<p>Vence en ${input.minutes} minutos. Si no fuiste tú, ignora este correo.</p>`,
+      paragraph(`Hola, ${input.fullName}:`) +
+        paragraph('Tu código de verificación es:') +
+        codeBlock(input.code) +
+        paragraph(`Vence en ${input.minutes} minutos. Si no fuiste tú, ignora este correo.`),
     ),
   };
 }
@@ -45,7 +46,7 @@ export function identityUseAttemptEmail(): EmailContent {
   return {
     subject,
     text: lines.join('\n'),
-    html: layout(subject, lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')),
+    html: layout(subject, lines.map(paragraph).join('')),
   };
 }
 
@@ -60,7 +61,7 @@ export function registrationAttemptEmail(): EmailContent {
   return {
     subject,
     text: lines.join('\n'),
-    html: layout(subject, lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')),
+    html: layout(subject, lines.map(paragraph).join('')),
   };
 }
 
@@ -86,7 +87,7 @@ export function loginNoticeEmail(input: {
   return {
     subject,
     text: lines.join('\n'),
-    html: layout(subject, lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')),
+    html: layout(subject, lines.map(paragraph).join('')),
   };
 }
 
@@ -107,6 +108,6 @@ export function sessionClosedEmail(input: { readonly at: Date }): EmailContent {
   return {
     subject,
     text: lines.join('\n'),
-    html: layout(subject, lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')),
+    html: layout(subject, lines.map(paragraph).join('')),
   };
 }

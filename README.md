@@ -1093,6 +1093,7 @@ Así se rastrea cada requisito en el código:
 | `registration-review`                                     | contract, design-tokens, api, web, mobile | IDN-16, MOB-30 y cambios a IDN-03, IDN-06, IDN-08, AUD-01, DSG-12, WEB-11 y WEB-12| Completo                                                    |
 | `security-hardening`                                      | contract, api, web, mobile, docs | PLT-19, PLT-20, IDN-17 a IDN-19, BEN-12, TRF-37, TRF-38, CTR-22, WEB-38 a WEB-40, MOB-31 y MOB-32; cambios a PLT-16, TRF-15 y WEB-10 | Completo; falta ver llegar el `User-Agent` de la app desde un teléfono |
 | `tooling-fixes`                                           | api, web, docs                  | WEB-41 y cambio a PLT-14                                | Completo                                                    |
+| `email-branding`                                          | api, docs                       | Cambio a PLT-16                                         | Completo; sin probar en clientes de correo reales           |
 | `delivery`                                                | docs                            | Sin requisitos nuevos                                   | Completo                                  |
 
 ### Mapa de la especificación
@@ -1128,6 +1129,7 @@ Cada historia de usuario del enunciado (HU1 a HU6) se traza a sus requisitos, al
 - **Ajustes de uso:** `ux-fixes` (registro, montos, referencia opcional, códigos, perfil, Recibir, búsqueda, meses del estado de cuenta y programadas con hora; WEB-35, WEB-36, MOB-28, MOB-29 y CTR-20 son requisitos nuevos).
 - **Seguridad:** `security-hardening` (límites de tasa de `refresh`, `logout` y transferencias, `no-store`, headers y CSP de la web, avisos por correo; PLT-19, PLT-20, IDN-17 a IDN-19, BEN-12, TRF-37, TRF-38, CTR-22, WEB-38 a WEB-40, MOB-31 y MOB-32, y modifica PLT-16, TRF-15 y WEB-10).
 - **Herramientas:** `tooling-fixes` (`db:bootstrap` que solo actúa sobre el servidor de su URL, la prueba de producción en el CI de la web y el icono de la web; WEB-41 y modifica PLT-14).
+- **Correos con la identidad de marca:** `email-branding` (una envoltura común con la banda de TreoWallet, tarjeta y pie, y piezas para código, filas y avisos; modifica PLT-16).
 - **Cobertura de pruebas del dominio:** `domain-test-coverage` (solo pruebas, sin requisitos nuevos).
 
 Los huecos que hoy tiene la matriz (cuatro requisitos que se verifican en el CI y no con una prueba) están explicados al final de [`docs/traceability.md`](docs/traceability.md).
@@ -1155,6 +1157,7 @@ Cada change tiene un `design.md` con las decisiones y las alternativas descartad
 | [`registration-review`](openspec/changes/archive/2026-10-15-registration-review/design.md) | Un registro con datos de otra cuenta sigue el mismo camino hasta verificar el correo y queda en revisión, sin cuentas; el dueño de los datos recibe un aviso; la resolución la hace soporte |
 | [`security-hardening`](openspec/changes/archive/2026-10-15-security-hardening/design.md) | Solo el tope de cada límite es configurable y los de transferencias son por usuario; `no-store` en toda la API; CSP con nonce en `proxy.ts` y `Referrer-Policy` que no rompe el `Origin` de las Server Actions; avisos que no hacen esperar la respuesta, con un `drain()` de 5 s al apagar; el `User-Agent` descrito sin dependencias |
 | [`tooling-fixes`](openspec/changes/archive/2026-10-15-tooling-fixes/design.md) | Una guarda en el respaldo de `db:bootstrap` (host local y puerto que publica compose) en vez de un contenedor de `psql` aparte; el `next build` extra en el CI de la web se acepta; icono SVG escrito a mano y `.ico` generado desde él |
+| [`email-branding`](openspec/changes/archive/2026-10-15-email-branding/design.md) | Una sola envoltura con tablas y estilos en línea y colores de `design-tokens`; el logotipo es texto, sin imágenes (DSG-02, sin URL pública); piezas pequeñas que escapan su contenido en lugar de plantillas |
 | [`delivery`](openspec/changes/archive/2026-10-15-delivery/design.md) | Propuesta de AWS ([`docs/aws-deploy.md`](docs/aws-deploy.md)), trazabilidad generada, guion del video |
 
 La [bitácora de AI](docs/ai-log.md) registra qué propuso la AI, qué acepté, qué rechacé o cambié, y dónde se equivocó y se corrigió.

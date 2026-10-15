@@ -36,7 +36,7 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | BEN-09 | Listado de beneficiarios | api-ledger | 2: api-ledger#5.4 api-ledger#5.6 | 2: c076f67 605ed26 | api 3 |
 | BEN-10 | Límite de altas de beneficiarios | api-ledger | 2: api-ledger#5.4 api-ledger#5.6 | 2: c076f67 605ed26 | api 1 |
 | BEN-11 | Auditoría del alta de beneficiarios | api-ledger | 3: api-ledger#5.3 api-ledger#5.6 domain-test-coverage#4.2 | 3: b347718 c076f67 e3e5f28 | api 4 |
-| BEN-12 | Aviso del alta de un beneficiario | security-hardening | 1: security-hardening#3.5 | 7: d8accf3 b2eb142 4ecc6b1 (+4) | api 7 |
+| BEN-12 | Aviso del alta de un beneficiario | security-hardening | 1: security-hardening#3.5 | 8: 755b17c d8accf3 b2eb142 (+5) | api 7 |
 | CTR-01 | Contrato OpenAPI como fuente de verdad | contract-v1 | 2: contract-v1#1.2 contract-v1#6.1 | 2: b2f920a 25ea459 | — |
 | CTR-02 | Versionado semántico del contrato | contract-v1 | 7: contract-v1#1.3 contract-v1#6.2 contract-v1-1#1.3 (+4) | 13: dc7670d 3df47c3 b211155 (+10) | contract 3 |
 | CTR-03 | Tipos generados desde el contrato | contract-v1 | 3: contract-v1#2.1 contract-v1#2.2 contract-v1#6.1 | 3: b2f920a cdb92c8 cd24bec | — |
@@ -58,7 +58,7 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | CTR-19 | Descarga de documentos binarios | contract-v1-2 | 1: contract-v1-2#1.1 | 2: f415c27 ad628da | contract 3 |
 | CTR-20 | Utilidades de captura y búsqueda de texto | ux-fixes | 3: ux-fixes#3.1 ux-fixes#5.1 ux-fixes#8.1 | 2: 8721244 b79fd1e | contract 10 |
 | CTR-21 | Catálogo de entidades de nacimiento | registration-birth-data | 1: registration-birth-data#1.2 | 3: cef2c5a a3d4229 dc7670d | contract 2 |
-| CTR-22 | Respuesta 429 en el cierre de sesión | security-hardening | 1: security-hardening#1.1 | 5: d8accf3 b2eb142 4ecc6b1 (+2) | contract 2 |
+| CTR-22 | Respuesta 429 en el cierre de sesión | security-hardening | 1: security-hardening#1.1 | 6: 755b17c d8accf3 b2eb142 (+3) | contract 2 |
 | DSG-01 | Paquete de tokens como fuente única | design-system | 8: design-system#1.1 design-system#5.1 design-system#5.2 (+5) | 11: b1ea000 f251908 e174ed1 (+8) | web 2, mobile 4, design-tokens 7 |
 | DSG-02 | Identidad visual basada en Treo | design-system | 2: design-system#2.1 web-app#1.3 | 4: 9e12634 715b4b1 7b6e740 (+1) | web 2, mobile 2, design-tokens 3 |
 | DSG-03 | Tokens semánticos | design-system | 3: design-system#2.1 web-app#1.5 mobile-app#1.7 | 8: f3f3e97 c3af92d 21b249b (+5) | mobile 2, design-tokens 2 |
@@ -105,9 +105,9 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | IDN-14 | Datos del usuario autenticado | api-foundation | 1: api-foundation#7.11 | 1: 2d0c704 | api 2 |
 | IDN-15 | Límites de tasa en identidad | api-foundation | 1: api-foundation#7.12 | 1: 0e1fa0a | api 5 |
 | IDN-16 | Aviso al dueño de los datos de identidad | registration-review | 1: registration-review#3.3 | 6: d4a26ac e667fa6 4de4677 (+3) | api 5 |
-| IDN-17 | Límites de tasa de renovación y cierre de sesión | security-hardening | 2: security-hardening#1.1 security-hardening#2.2 | 7: d8accf3 b2eb142 4ecc6b1 (+4) | api 7 |
-| IDN-18 | Aviso de inicio de sesión | security-hardening | 2: security-hardening#3.1 security-hardening#3.2 | 7: d8accf3 b2eb142 4ecc6b1 (+4) | api 16 |
-| IDN-19 | Aviso de sesión cerrada por seguridad | security-hardening | 1: security-hardening#3.4 | 7: d8accf3 b2eb142 4ecc6b1 (+4) | api 7 |
+| IDN-17 | Límites de tasa de renovación y cierre de sesión | security-hardening | 2: security-hardening#1.1 security-hardening#2.2 | 8: 755b17c d8accf3 b2eb142 (+5) | api 7 |
+| IDN-18 | Aviso de inicio de sesión | security-hardening | 2: security-hardening#3.1 security-hardening#3.2 | 8: 755b17c d8accf3 b2eb142 (+5) | api 16 |
+| IDN-19 | Aviso de sesión cerrada por seguridad | security-hardening | 1: security-hardening#3.4 | 8: 755b17c d8accf3 b2eb142 (+5) | api 7 |
 | MOB-01 | Inicio de sesión | mobile-app | 5: contract-v1-1#3.1 redesign#7.2 mobile-app#3.1 (+2) | 4: 54aea3e dd44998 4cac987 (+1) | mobile 7 |
 | MOB-02 | Almacenamiento seguro de tokens | mobile-app | 5: biometric-unlock#2.1 mobile-app#1.3 mobile-app#1.5 (+2) | 6: 946a9af 4cac987 285efd1 (+3) | mobile 15 |
 | MOB-03 | Renovación de la sesión de una sola vez | mobile-app | 3: mobile-app#2.2 mobile-app#2.3 mobile-app#2.4 | 4: 4cac987 285efd1 a6c0e55 (+1) | mobile 10 |
@@ -138,8 +138,8 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | MOB-28 | Recibir dinero | ux-fixes | 1: ux-fixes#7.2 | 2: 5522250 b79fd1e | mobile 4 |
 | MOB-29 | Búsqueda de beneficiarios | ux-fixes | 1: ux-fixes#8.3 | 2: 5522250 b79fd1e | mobile 7 |
 | MOB-30 | Registro en revisión al iniciar sesión | registration-review | 1: registration-review#5.1 | 4: e667fa6 4de4677 96e9f45 (+1) | mobile 1 |
-| MOB-31 | Un 429 no cierra la sesión ni se trata como falla del servidor | security-hardening | 1: security-hardening#5.1 | 6: d8accf3 b2eb142 4ecc6b1 (+3) | mobile 6 |
-| MOB-32 | La app se identifica con su User-Agent | security-hardening | 1: security-hardening#5.2 | 7: d8accf3 b2eb142 4ecc6b1 (+4) | mobile 6 |
+| MOB-31 | Un 429 no cierra la sesión ni se trata como falla del servidor | security-hardening | 1: security-hardening#5.1 | 7: 755b17c d8accf3 b2eb142 (+4) | mobile 6 |
+| MOB-32 | La app se identifica con su User-Agent | security-hardening | 1: security-hardening#5.2 | 8: 755b17c d8accf3 b2eb142 (+5) | mobile 6 |
 | PLT-01 | Formato de errores RFC 9457 | api-foundation | 1: api-foundation#3.3 | 1: ce43309 | api 7 |
 | PLT-02 | Validación de entrada contra el contrato | api-foundation | 1: api-foundation#3.4 | 1: 228b4a0 | api 8 |
 | PLT-03 | Errores internos sin detalles | api-foundation | 1: api-foundation#3.3 | 1: ce43309 | api 2 |
@@ -153,13 +153,13 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | PLT-11 | Documentación navegable del contrato | api-foundation | 1: api-foundation#3.9 | 1: 6857381 | api 5 |
 | PLT-12 | Conformidad de las respuestas con el contrato | api-foundation | 1: api-foundation#3.10 | 1: e853997 | api 6 |
 | PLT-13 | Entorno local reproducible | api-foundation, ux-fixes | 6: api-foundation#1.1 api-foundation#1.4 api-foundation#3.12 (+3) | 10: b211155 7663863 b79fd1e (+7) | api 13 |
-| PLT-14 | Roles de base de datos de privilegio mínimo | api-foundation, tooling-fixes | 4: api-foundation#2.1 api-foundation#2.9 tooling-fixes#1.1 (+1) | 8: 197606e 06c1f9f c9eb57f (+5) | api 25 |
+| PLT-14 | Roles de base de datos de privilegio mínimo | api-foundation, tooling-fixes | 4: api-foundation#2.1 api-foundation#2.9 tooling-fixes#1.1 (+1) | 10: 755b17c 3abf76d 197606e (+7) | api 25 |
 | PLT-15 | Esquema gestionado solo por migraciones reversibles | api-foundation | 3: api-foundation#2.2 api-foundation#2.9 api-foundation#9.1 | 4: a8230bd 3c1128f 2a0ebd5 (+1) | api 17 |
-| PLT-16 | Entrega de correo transaccional | api-foundation, security-hardening | 4: api-foundation#5.1 api-foundation#5.2 security-hardening#3.2 (+1) | 12: d8accf3 b2eb142 4ecc6b1 (+9) | api 31 |
+| PLT-16 | Entrega de correo transaccional | api-foundation, email-branding, security-hardening | 6: api-foundation#5.1 api-foundation#5.2 email-branding#1.1 (+3) | 17: 2464a4f 8874181 35fcdec (+14) | api 34 |
 | PLT-17 | Integración continua del proyecto | api-foundation | 2: api-foundation#9.1 api-foundation#9.2 | 3: 2bdbcc7 baa7583 a8230bd | — |
 | PLT-18 | Reglas de negocio independientes del transporte HTTP | api-foundation | 2: api-foundation#1.2 api-foundation#8.2 | 3: 8a6ce7b 1ee03e0 6abd830 | api 6 |
-| PLT-19 | Límites de tasa configurables | security-hardening | 4: security-hardening#2.1 security-hardening#2.2 security-hardening#2.3 (+1) | 9: d8accf3 b2eb142 4ecc6b1 (+6) | api 2 |
-| PLT-20 | Respuestas sin caché | security-hardening | 1: security-hardening#2.5 | 7: d8accf3 b2eb142 4ecc6b1 (+4) | api 6 |
+| PLT-19 | Límites de tasa configurables | security-hardening | 4: security-hardening#2.1 security-hardening#2.2 security-hardening#2.3 (+1) | 10: 755b17c d8accf3 b2eb142 (+7) | api 2 |
+| PLT-20 | Respuestas sin caché | security-hardening | 1: security-hardening#2.5 | 8: 755b17c d8accf3 b2eb142 (+5) | api 6 |
 | TRF-01 | Creación de una transferencia | api-ledger | 3: api-ledger#6.6 api-ledger#6.7 api-ledger#6.8 | 3: 945ad31 cd9d7bc 07e1a09 | api 8 |
 | TRF-02 | Llave de idempotencia obligatoria | api-ledger | 4: api-ledger#2.2 api-ledger#6.1 api-ledger#6.8 (+1) | 4: 7b10a6a 945ad31 a295ab9 (+1) | api 10 |
 | TRF-03 | Reintento con la misma llave devuelve el estado real | api-ledger | 6: api-ledger#6.3 api-ledger#6.9 api-ledger#12.1 (+3) | 9: bfc57a6 7b10a6a e140c54 (+6) | contract 5, api 18 |
@@ -174,7 +174,7 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | TRF-12 | Día del límite en la zona horaria de la Ciudad de México | api-ledger | 4: api-ledger#1.3 api-ledger#6.4 api-ledger#6.11 (+1) | 4: 2de587a 8b547ad 757af5f (+1) | api 13 |
 | TRF-13 | Límite diario consistente ante concurrencia | api-ledger | 4: api-ledger#2.6 api-ledger#6.4 api-ledger#10.4 (+1) | 4: 9d47e3a 174a816 757af5f (+1) | api 11 |
 | TRF-14 | OTP para montos mayores al umbral | api-ledger | 5: api-ledger#1.4 api-ledger#1.6 api-ledger#7.1 (+2) | 5: 21f79fa 2051b07 59dde1f (+2) | api 10 |
-| TRF-15 | Entrega del OTP por correo | api-ledger, security-hardening | 3: api-ledger#7.2 api-ledger#7.6 security-hardening#3.9 | 5: f76f47f 6d49730 ed14599 (+2) | api 14 |
+| TRF-15 | Entrega del OTP por correo | api-ledger, security-hardening | 3: api-ledger#7.2 api-ledger#7.6 security-hardening#3.9 | 6: 755b17c f76f47f 6d49730 (+3) | api 14 |
 | TRF-16 | Confirmación con OTP | api-ledger | 4: api-ledger#1.4 api-ledger#7.3 api-ledger#7.7 (+1) | 5: 7663863 ed14599 76d6bd5 (+2) | api 9 |
 | TRF-17 | Intentos del OTP | api-ledger | 3: api-ledger#1.4 api-ledger#7.3 api-ledger#7.7 | 3: 76d6bd5 8d6e752 ab3a33e | api 5 |
 | TRF-18 | Confirmación idempotente por estado | api-ledger | 3: api-ledger#1.4 api-ledger#7.3 api-ledger#7.7 | 3: 76d6bd5 8d6e752 ab3a33e | api 5 |
@@ -196,8 +196,8 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | TRF-34 | Estados de las programadas | scheduled-transfers | 4: domain-test-coverage#6.3 scheduled-transfers#2.1 scheduled-transfers#2.3 (+1) | 10: 9d47e3a 45d7e56 b6d5c26 (+7) | api 20 |
 | TRF-35 | Aviso de falla de una programada | scheduled-transfers, ux-fixes | 3: domain-test-coverage#2.6 scheduled-transfers#2.9 ux-fixes#10.2 | 4: 7663863 b759e87 36d047f (+1) | api 13 |
 | TRF-36 | Auditoría de las programadas | scheduled-transfers | 6: domain-test-coverage#2.5 scheduled-transfers#2.4 scheduled-transfers#2.6 (+3) | 8: e3e44a5 e93d5b4 7a4fee5 (+5) | api 11 |
-| TRF-37 | Límites de tasa de las transferencias | security-hardening | 3: security-hardening#2.1 security-hardening#2.3 security-hardening#2.4 | 8: d8accf3 b2eb142 4ecc6b1 (+5) | api 18 |
-| TRF-38 | Comprobante al remitente | security-hardening | 3: security-hardening#3.6 security-hardening#3.7 security-hardening#3.8 | 8: d8accf3 b2eb142 4ecc6b1 (+5) | api 25 |
+| TRF-37 | Límites de tasa de las transferencias | security-hardening | 3: security-hardening#2.1 security-hardening#2.3 security-hardening#2.4 | 9: 755b17c d8accf3 b2eb142 (+6) | api 18 |
+| TRF-38 | Comprobante al remitente | security-hardening | 3: security-hardening#3.6 security-hardening#3.7 security-hardening#3.8 | 9: 755b17c d8accf3 b2eb142 (+6) | api 25 |
 | WEB-01 | Los tokens nunca llegan al navegador | web-app | 4: web-app#2.4 web-app#3.2 web-app#4.1 (+1) | 4: 8077ffa db2c412 8701341 (+1) | web 10 |
 | WEB-02 | Atributos de la cookie de sesión | web-app | 2: web-app#2.2 web-app#10.3 | 3: 0cbf6ed 20c81c8 f5cff7c | web 5 |
 | WEB-03 | Expiración por inactividad | web-app | 3: web-app#2.1 web-redis-sessions#2.1 web-redis-sessions#2.2 | 5: 3b06a9d cef5421 c96751d (+2) | web 15 |
@@ -207,7 +207,7 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | WEB-07 | Validación y autorización en cada mutación | web-app | 4: scheduled-transfers#3.3 web-app#1.1 web-app#2.5 (+1) | 5: 433fa46 27509a1 1d400eb (+2) | web 20 |
 | WEB-08 | Resultado de las mutaciones como valor | web-app | 3: scheduled-transfers#3.3 web-app#2.5 web-app#5.1 | 5: 433fa46 27509a1 9635f0c (+2) | web 13 |
 | WEB-09 | Proxy de lecturas con lista blanca | web-app | 6: account-statements#2.1 scheduled-transfers#3.3 web-app#1.2 (+3) | 9: 6f63631 852e373 433fa46 (+6) | web 14 |
-| WEB-10 | Propagación de headers hacia la API | web-app, security-hardening | 3: web-app#2.3 web-app#8.1 security-hardening#4.1 | 5: 19cef68 4f135c6 0cbf6ed (+2) | web 22 |
+| WEB-10 | Propagación de headers hacia la API | web-app, security-hardening | 3: web-app#2.3 web-app#8.1 security-hardening#4.1 | 6: 755b17c 19cef68 4f135c6 (+3) | web 22 |
 | WEB-11 | Registro y verificación de correo | web-app, registration-birth-data, registration-review, ux-fixes | 10: redesign#6.2 web-app#4.2 web-app#4.4 (+7) | 21: e667fa6 c62b858 a4439ad (+18) | web 26 |
 | WEB-12 | Inicio de sesión | web-app, registration-review | 5: contract-v1-1#2.1 redesign#6.2 web-app#4.1 (+2) | 8: e667fa6 a4439ad 0f64221 (+5) | web 13 |
 | WEB-13 | Resumen de cuentas | web-app, ux-fixes | 2: web-app#6.1 ux-fixes#7.1 | 6: 64d86f3 d548eab 1f484b4 (+3) | web 9 |
@@ -235,10 +235,10 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | WEB-35 | Recibir dinero | ux-fixes | 1: ux-fixes#7.1 | 2: 64d86f3 b79fd1e | web 8 |
 | WEB-36 | Búsqueda de beneficiarios | ux-fixes | 1: ux-fixes#8.2 | 2: 64d86f3 b79fd1e | web 14 |
 | WEB-37 | Sesión que sobrevive al reinicio del servidor web | web-redis-sessions | 7: web-redis-sessions#1.1 web-redis-sessions#1.2 web-redis-sessions#2.2 (+4) | 17: c8268c5 3c08507 0a23acf (+14) | web 15 |
-| WEB-38 | Headers de seguridad en toda respuesta | security-hardening | 5: security-hardening#4.3 security-hardening#4.5 tooling-fixes#2.1 (+2) | 15: 197606e 06c1f9f c9eb57f (+12) | web 12 |
-| WEB-39 | Content-Security-Policy con nonce | security-hardening | 6: security-hardening#4.4 security-hardening#4.5 security-hardening#4.6 (+3) | 16: 197606e 06c1f9f c9eb57f (+13) | web 17 |
-| WEB-40 | Un 429 no cierra la sesión ni se reintenta | security-hardening | 1: security-hardening#4.2 | 6: d8accf3 b2eb142 4ecc6b1 (+3) | web 7 |
-| WEB-41 | Icono de la aplicación | tooling-fixes | 2: tooling-fixes#2.2 tooling-fixes#3.1 | 5: 197606e 06c1f9f c9eb57f (+2) | web 1 |
+| WEB-38 | Headers de seguridad en toda respuesta | security-hardening | 5: security-hardening#4.3 security-hardening#4.5 tooling-fixes#2.1 (+2) | 16: 755b17c 197606e 06c1f9f (+13) | web 12 |
+| WEB-39 | Content-Security-Policy con nonce | security-hardening | 6: security-hardening#4.4 security-hardening#4.5 security-hardening#4.6 (+3) | 17: 755b17c 197606e 06c1f9f (+14) | web 17 |
+| WEB-40 | Un 429 no cierra la sesión ni se reintenta | security-hardening | 1: security-hardening#4.2 | 7: 755b17c d8accf3 b2eb142 (+4) | web 7 |
+| WEB-41 | Icono de la aplicación | tooling-fixes | 2: tooling-fixes#2.2 tooling-fixes#3.1 | 7: 755b17c 3abf76d 197606e (+4) | web 1 |
 
 ## Huecos
 

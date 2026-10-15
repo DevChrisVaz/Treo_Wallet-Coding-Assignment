@@ -1,7 +1,13 @@
 import { formatMexicoCityDateTime, formatMXN } from '@devchrisvaz/wallet-contract';
 import type { NoticeDispatcher } from '../../../platform/mail/notice-dispatcher.js';
 import { deliverAfterCommit } from '../../../platform/mail/deliver.js';
-import { escapeHtml, layout } from '../../../platform/mail/html.js';
+import {
+  codeBlock,
+  detailRows,
+  layout,
+  noticeBox,
+  paragraph,
+} from '../../../platform/mail/html.js';
 import type { DeliveryStatus, Mailer } from '../../../platform/mail/mailer.js';
 import type { AppLogger } from '../../../shared/logger.js';
 import { Money } from '../../../shared/money.js';
@@ -52,11 +58,12 @@ export function transferOtpEmail(input: {
     ].join('\n'),
     html: layout(
       subject,
-      `<p>Tu código de confirmación es <strong style="font-size: 20px;">${escapeHtml(input.code)}</strong>.</p>` +
-        `<p>Transferencia de <strong>${escapeHtml(amount)}</strong> a ${escapeHtml(destination)}.</p>` +
-        (schedule ? `<p>${escapeHtml(schedule)}</p>` : '') +
-        `<p>${escapeHtml(expiry)}</p>` +
-        `<p>${escapeHtml(warning)}</p>`,
+      paragraph('Tu código de confirmación es:') +
+        codeBlock(input.code) +
+        paragraph(`Transferencia de ${amount} a ${destination}.`) +
+        (schedule ? paragraph(schedule) : '') +
+        paragraph(expiry) +
+        noticeBox('warning', warning),
     ),
   };
 }
@@ -113,10 +120,7 @@ export function scheduledFailureEmail(input: {
   return {
     subject,
     text: [what, why, next].join('\n'),
-    html: layout(
-      subject,
-      `<p>${escapeHtml(what)}</p><p><strong>${escapeHtml(why)}</strong></p><p>${escapeHtml(next)}</p>`,
-    ),
+    html: layout(subject, paragraph(what) + noticeBox('danger', why) + paragraph(next)),
   };
 }
 
@@ -175,20 +179,21 @@ export function transferReceiptEmail(input: {
   readonly at: Date;
 }): EmailContent {
   const subject = 'Transferencia realizada';
-  const lines = [
-    'Realizaste una transferencia desde TreoWallet.',
-    `Monto: ${input.amount.toDisplayString()}.`,
-    `Destino: ${input.destinationName} (CLABE con terminación ${input.clabeLast4}).`,
-    `Concepto: ${input.concept}.`,
-    ...(input.reference === null ? [] : [`Referencia: ${input.reference}.`]),
-    `Fecha y hora: ${formatMexicoCityDateTime(input.at)} (hora de la Ciudad de México).`,
-    `Número de transferencia: ${input.transferId}.`,
-    'Si no reconoces esta transferencia, responde este correo para que la revisemos contigo.',
+  const intro = 'Realizaste una transferencia desde TreoWallet.';
+  const outro =
+    'Si no reconoces esta transferencia, responde este correo para que la revisemos contigo.';
+  const rows: Array<readonly [string, string]> = [
+    ['Monto', input.amount.toDisplayString()],
+    ['Destino', `${input.destinationName} (CLABE con terminación ${input.clabeLast4})`],
+    ['Concepto', input.concept],
+    ...(input.reference === null ? [] : [['Referencia', String(input.reference)] as const]),
+    ['Fecha y hora', `${formatMexicoCityDateTime(input.at)} (hora de la Ciudad de México)`],
+    ['Número de transferencia', input.transferId],
   ];
   return {
     subject,
-    text: lines.join('\n'),
-    html: layout(subject, lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')),
+    text: [intro, ...rows.map(([label, value]) => `${label}: ${value}.`), outro].join('\n'),
+    html: layout(subject, paragraph(intro) + detailRows(rows) + paragraph(outro)),
   };
 }
 

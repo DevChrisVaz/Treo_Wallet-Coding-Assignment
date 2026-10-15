@@ -5,6 +5,13 @@ import {
   verificationCodeEmail,
 } from '../../../src/modules/identity/application/email-templates.js';
 import { deliverAfterCommit } from '../../../src/platform/mail/deliver.js';
+import {
+  codeBlock,
+  detailRows,
+  layout,
+  noticeBox,
+  paragraph,
+} from '../../../src/platform/mail/html.js';
 import type { MailMessage, Mailer } from '../../../src/platform/mail/mailer.js';
 import { captureLogger } from '../../helpers/logs.js';
 
@@ -104,5 +111,33 @@ describe('PLT-16 envío después del COMMIT', () => {
     });
     expect(entry).not.toHaveProperty('to');
     expect(logs.text()).not.toContain('ana.gomez@example.com');
+  });
+});
+
+describe('PLT-16 layout de marca', () => {
+  it('PLT-16 envuelve el cuerpo con la marca, el viewport y el pie de TreoWallet', () => {
+    const html = layout('Asunto', '<p>cuerpo</p>', 'vista previa');
+    expect(html).toContain('name="viewport"');
+    expect(html).toContain('Treo<span');
+    expect(html).toContain('>Wallet</span>');
+    expect(html).toContain('TreoWallet · Este es un correo automático.');
+    expect(html).toContain('<p>cuerpo</p>');
+    expect(html).toContain('vista previa');
+    expect(html).not.toContain('Billetera');
+  });
+
+  it('PLT-16 escapa el título, el preheader y los valores de los helpers', () => {
+    const html = layout(
+      '<b>t</b>',
+      codeBlock('<i>1</i>') +
+        detailRows([['<l>', '<v>']]) +
+        noticeBox('danger', '<n>') +
+        paragraph('<p>'),
+      '<h>',
+    );
+    for (const raw of ['<b>t</b>', '<i>1</i>', '<l>', '<v>', '<n>', '<h>']) {
+      expect(html).not.toContain(raw);
+    }
+    expect(html).toContain('&lt;v&gt;');
   });
 });

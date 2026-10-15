@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { formatMexicoCityDateTime } from '@devchrisvaz/wallet-contract';
-import { escapeHtml, layout } from '../../../platform/mail/html.js';
+import { layout, paragraph } from '../../../platform/mail/html.js';
 import type { AppLogger } from '../../../shared/logger.js';
 import type { NoticeDispatcher } from '../../../platform/mail/notice-dispatcher.js';
 import type { Clock } from '../../../shared/clock.js';
@@ -82,7 +82,7 @@ export function beneficiaryAddedEmail(input: {
   return {
     subject,
     text: lines.join('\n'),
-    html: layout(subject, lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')),
+    html: layout(subject, lines.map(paragraph).join('')),
   };
 }
 
