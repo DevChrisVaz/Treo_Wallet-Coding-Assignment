@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type { DataSource } from 'typeorm';
+import { curpBirthDate, curpBirthState } from '@devchrisvaz/wallet-contract';
 import { OpenDefaultAccounts } from '../modules/accounts/application/open-default-accounts.js';
 import { PgAccountRepository } from '../modules/accounts/infrastructure/pg-account-repository.js';
+import { composeFullName } from '../modules/identity/domain/full-name.js';
 import { Argon2PasswordHasher } from '../modules/identity/infrastructure/argon2-password-hasher.js';
 import { PgUserRepository } from '../modules/identity/infrastructure/pg-user-repository.js';
 import { systemClock } from '../platform/clock/system-clock.js';
@@ -17,7 +19,9 @@ export const DEMO_USERS: readonly SeedPerson[] = [
   {
     email: 'ana@example.com',
     password: 'Ana-demo-2026!',
-    fullName: 'Ana Gómez Cruz',
+    firstNames: 'Ana',
+    paternalSurname: 'Gómez',
+    maternalSurname: 'Cruz',
     curp: 'GOCA920315MDFMRN07',
     rfc: 'GOCA920315AB1',
     phone: '+525512345001',
@@ -25,7 +29,9 @@ export const DEMO_USERS: readonly SeedPerson[] = [
   {
     email: 'luis@example.com',
     password: 'Luis-demo-2026!',
-    fullName: 'Luis Pérez López',
+    firstNames: 'Luis',
+    paternalSurname: 'Pérez',
+    maternalSurname: 'López',
     curp: 'PELL900722HDFRPS04',
     rfc: 'PELL900722CD2',
     phone: '+525512345002',
@@ -80,7 +86,12 @@ export async function seedUsers(
         id: userId,
         email: demo.email,
         passwordHash,
-        fullName: demo.fullName,
+        fullName: composeFullName(demo),
+        firstNames: demo.firstNames,
+        paternalSurname: demo.paternalSurname,
+        maternalSurname: demo.maternalSurname,
+        birthDate: curpBirthDate(demo.curp) as string,
+        birthState: curpBirthState(demo.curp) as string,
         curp: demo.curp,
         rfc: demo.rfc,
         phone: demo.phone,

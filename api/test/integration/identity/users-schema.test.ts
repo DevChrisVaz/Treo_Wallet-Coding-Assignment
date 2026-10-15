@@ -10,13 +10,18 @@ const run = randomUUID().slice(0, 8).toUpperCase();
 let seq = 0;
 
 /** Datos de usuario únicos para esta corrida (la base no valida el formato de CURP ni RFC). */
-function userValues(overrides: Partial<Record<string, string>> = {}) {
+function userValues(overrides: Partial<Record<string, string | null>> = {}) {
   seq += 1;
   const n = String(seq).padStart(2, '0');
   return {
     id: randomUUID(),
     email: `user-${run.toLowerCase()}-${n}@example.com`,
     full_name: 'Ana Gómez',
+    first_names: 'Ana',
+    paternal_surname: 'Gómez',
+    maternal_surname: null as string | null,
+    birth_date: '1990-01-01',
+    birth_state: 'DF',
     curp: `C${run}${n}`.padEnd(18, 'X'),
     rfc: `R${run}${n}`.padEnd(13, 'X'),
     phone: `+5255${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`,
@@ -26,9 +31,22 @@ function userValues(overrides: Partial<Record<string, string>> = {}) {
 
 async function insertUser(values: ReturnType<typeof userValues>) {
   await app.query(
-    `INSERT INTO users (id, email, password_hash, full_name, curp, rfc, phone)
-     VALUES ($1, $2, 'argon2-hash', $3, $4, $5, $6)`,
-    [values.id, values.email, values.full_name, values.curp, values.rfc, values.phone],
+    `INSERT INTO users (id, email, password_hash, full_name, curp, rfc, phone,
+                        first_names, paternal_surname, maternal_surname, birth_date, birth_state)
+     VALUES ($1, $2, 'argon2-hash', $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [
+      values.id,
+      values.email,
+      values.full_name,
+      values.curp,
+      values.rfc,
+      values.phone,
+      values.first_names,
+      values.paternal_surname,
+      values.maternal_surname,
+      values.birth_date,
+      values.birth_state,
+    ],
   );
 }
 
@@ -92,6 +110,29 @@ describe('IDN-03 unicidad de los datos de identidad en la base', () => {
       'ck_users_full_name_length',
     );
     await insertUser(userValues({ full_name: 'Ñ'.repeat(100) }));
+  });
+
+  it('IDN-02 exige nombres y apellido paterno de 1 a 100 caracteres y un materno vacío es NULL', async () => {
+    expect(await constraintOf(insertUser(userValues({ first_names: '' })))).toBe(
+      'ck_users_first_names_length',
+    );
+    expect(await constraintOf(insertUser(userValues({ paternal_surname: 'Ñ'.repeat(101) })))).toBe(
+      'ck_users_paternal_surname_length',
+    );
+    expect(await constraintOf(insertUser(userValues({ maternal_surname: '' })))).toBe(
+      'ck_users_maternal_surname_length',
+    );
+    await insertUser(userValues({ maternal_surname: null }));
+  });
+
+  it('IDN-02 solo admite como entidad de nacimiento un código del catálogo, incluido NE', async () => {
+    expect(await constraintOf(insertUser(userValues({ birth_state: 'XX' })))).toBe(
+      'ck_users_birth_state',
+    );
+    expect(await constraintOf(insertUser(userValues({ birth_state: 'df' })))).toBe(
+      'ck_users_birth_state',
+    );
+    await insertUser(userValues({ birth_state: 'NE' }));
   });
 
   it('IDN-02 guarda el teléfono solo en formato E.164 de México', async () => {

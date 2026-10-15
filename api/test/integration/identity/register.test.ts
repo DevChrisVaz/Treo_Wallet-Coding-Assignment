@@ -31,15 +31,23 @@ function siblingCurp(curp: string): string {
 
 /** Datos de otra persona que repiten un solo dato único de `existing` y siguen siendo coherentes (RFC y CURP). */
 function sharing(field: 'curp' | 'rfc' | 'phone', existing: Registration) {
-  if (field === 'curp') return { curp: existing.curp, rfc: `${existing.rfc.slice(0, 10)}XY1` };
-  if (field === 'rfc') return { rfc: existing.rfc, curp: siblingCurp(existing.curp) };
+  const born = { birthDate: existing.birthDate, birthState: existing.birthState };
+  if (field === 'curp') {
+    return { curp: existing.curp, rfc: `${existing.rfc.slice(0, 10)}XY1`, ...born };
+  }
+  if (field === 'rfc') return { rfc: existing.rfc, curp: siblingCurp(existing.curp), ...born };
   return { phone: existing.phone };
 }
 
 /** CURP y RFC coherentes de alguien nacido en 20`yymmdd` (hoy del arnés: 13-oct-2026 en CDMX). */
 function bornOn(yymmdd: string) {
   const first17 = `GOMC${yymmdd}HDFNLRA`;
-  return { curp: `${first17}${curpCheckDigit(first17)}`, rfc: `GOMC${yymmdd}AB1` };
+  return {
+    curp: `${first17}${curpCheckDigit(first17)}`,
+    rfc: `GOMC${yymmdd}AB1`,
+    birthDate: `20${yymmdd.slice(0, 2)}-${yymmdd.slice(2, 4)}-${yymmdd.slice(4, 6)}`,
+    birthState: 'DF',
+  };
 }
 
 async function usersWith(field: 'email' | 'curp' | 'rfc' | 'phone', value: string) {
@@ -62,7 +70,10 @@ describe('IDN-01 registro con respuesta uniforme', () => {
     const res = await register(person);
     expect(res.status).toBe(202);
     const [user] = await usersWith('email', person.email);
-    expect(user).toMatchObject({ full_name: person.fullName, email_verified_at: null });
+    expect(user).toMatchObject({
+      full_name: `${person.firstNames} ${person.paternalSurname} ${person.maternalSurname}`,
+      email_verified_at: null,
+    });
     const mails = t.mailer.to(person.email);
     expect(mails).toHaveLength(1);
     expect(t.mailer.lastCode(person.email)).toMatch(/^[0-9]{6}$/);
@@ -88,7 +99,7 @@ describe('IDN-01 registro con respuesta uniforme', () => {
     const person = newRegistration();
     await register(person);
     const [before] = await usersWith('email', person.email);
-    const other = newRegistration({ email: person.email, fullName: 'Otro Nombre' });
+    const other = newRegistration({ email: person.email, firstNames: 'Otro' });
 
     const res = await register(other);
     expect(res.status).toBe(202);
@@ -211,10 +222,17 @@ describe('IDN-02 datos obligatorios del registro', () => {
     ['contraseña de 129 caracteres', { password: 'a1'.repeat(64) + 'b' }, '/password'],
     ['contraseña sin dígito', { password: 'solo letras largas' }, '/password'],
     ['contraseña sin letra', { password: '123456789012345' }, '/password'],
-    ['nombre con dígitos', { fullName: 'Ana 2 Gómez' }, '/fullName'],
-    ['nombre con símbolos', { fullName: 'Ana @ Gómez' }, '/fullName'],
-    ['nombre de una sola palabra', { fullName: 'Ana' }, '/fullName'],
-    ['nombre con espacios repetidos', { fullName: 'Ana  Gómez' }, '/fullName'],
+    ['nombres con dígitos', { firstNames: 'Ana2' }, '/firstNames'],
+    ['apellido paterno con símbolos', { paternalSurname: 'Gó@mez' }, '/paternalSurname'],
+    [
+      'apellido paterno con espacios repetidos',
+      { paternalSurname: 'Gómez  López' },
+      '/paternalSurname',
+    ],
+    ['nombres vacíos', { firstNames: '' }, '/firstNames'],
+    ['fecha distinta de la CURP', { birthDate: '1990-01-02' }, '/birthDate'],
+    ['entidad distinta de la CURP', { birthState: 'JC' }, '/birthState'],
+    ['entidad fuera del catálogo', { birthState: 'XX' }, '/birthState'],
     ['teléfono que empieza con 0', { phone: '0512345678' }, '/phone'],
     ['teléfono que empieza con 1', { phone: '1512345678' }, '/phone'],
     ['teléfono de 9 dígitos', { phone: '551234567' }, '/phone'],
@@ -234,12 +252,12 @@ describe('IDN-02 datos obligatorios del registro', () => {
     ]);
   });
 
-  it('IDN-02 quien cumple 18 mañana (en CDMX) se rechaza con DATE_OUT_OF_RANGE en /curp y no se guarda', async () => {
+  it('IDN-02 quien cumple 18 mañana (en CDMX) se rechaza con DATE_OUT_OF_RANGE en /birthDate y no se guarda', async () => {
     const person = newRegistration(bornOn('081014')); // cumple 18 el 14-oct-2026; hoy es el 13
     const res = await register(person);
     expect(res.status).toBe(422);
     expect(res.body.errors).toEqual([
-      expect.objectContaining({ pointer: '/curp', code: 'DATE_OUT_OF_RANGE' }),
+      expect.objectContaining({ pointer: '/birthDate', code: 'DATE_OUT_OF_RANGE' }),
     ]);
     expect(await usersWith('email', person.email)).toEqual([]);
   });
@@ -250,11 +268,11 @@ describe('IDN-02 datos obligatorios del registro', () => {
     expect(await usersWith('email', person.email)).toHaveLength(1);
   });
 
-  it('IDN-02 una CURP con fecha de nacimiento futura se rechaza con INVALID_DATE en /curp', async () => {
+  it('IDN-02 una CURP con fecha de nacimiento futura se rechaza con INVALID_DATE en /birthDate', async () => {
     const res = await register(newRegistration(bornOn('301013')));
     expect(res.status).toBe(422);
     expect(res.body.errors).toEqual([
-      expect.objectContaining({ pointer: '/curp', code: 'INVALID_DATE' }),
+      expect.objectContaining({ pointer: '/birthDate', code: 'INVALID_DATE' }),
     ]);
   });
 
@@ -265,7 +283,11 @@ describe('IDN-02 datos obligatorios del registro', () => {
   });
 
   it('IDN-02 datos válidos con nombre acentuado, ñ, apóstrofo y guion se registran', async () => {
-    const person = newRegistration({ fullName: "María-José O'Brien Ñuñez" });
+    const person = newRegistration({
+      firstNames: 'María-José',
+      paternalSurname: "O'Brien",
+      maternalSurname: 'Ñuñez',
+    });
     expect((await register(person)).status).toBe(202);
     const [user] = await usersWith('email', person.email);
     expect(user.full_name).toBe("María-José O'Brien Ñuñez");
@@ -424,5 +446,74 @@ describe('AUD-02 y PLT-06 datos personales fuera de auditoría y logs', () => {
       expect(output).not.toContain(value);
     }
     expect(output).toContain('request completed');
+  });
+});
+
+describe('IDN-02 nombre y datos de nacimiento', () => {
+  it('IDN-02 guarda nombres, apellidos, fecha y entidad, y compone full_name', async () => {
+    const person = newRegistration({
+      firstNames: 'José Luis',
+      paternalSurname: 'Gómez',
+      maternalSurname: 'Cruz',
+    });
+    expect((await register(person)).status).toBe(202);
+    const [user] = await harness.migrator.query(
+      `SELECT full_name, first_names, paternal_surname, maternal_surname,
+              birth_date::text AS birth_date, birth_state
+         FROM app.users WHERE email = $1`,
+      [person.email],
+    );
+    expect(user).toEqual({
+      full_name: 'José Luis Gómez Cruz',
+      first_names: 'José Luis',
+      paternal_surname: 'Gómez',
+      maternal_surname: 'Cruz',
+      birth_date: person.birthDate,
+      birth_state: 'DF',
+    });
+  });
+
+  it('IDN-02 sin apellido materno guarda NULL y full_name sin espacios sobrantes', async () => {
+    const { maternalSurname: _omitted, ...person } = newRegistration({
+      firstNames: 'Ana',
+      paternalSurname: 'Pérez',
+    });
+    expect((await register(person)).status).toBe(202);
+    const [user] = await harness.migrator.query(
+      `SELECT full_name, maternal_surname FROM app.users WHERE email = $1`,
+      [person.email],
+    );
+    expect(user).toEqual({ full_name: 'Ana Pérez', maternal_surname: null });
+  });
+
+  it('IDN-02 acepta nacido en el extranjero (NE)', async () => {
+    const first17 = 'GOMC900101HNENLR1';
+    const curp = `${first17}${curpCheckDigit(first17)}`;
+    const person = newRegistration({
+      curp,
+      rfc: 'GOMC900101XY1',
+      birthDate: '1990-01-01',
+      birthState: 'NE',
+    });
+    expect((await register(person)).status).toBe(202);
+    const [user] = await harness.migrator.query(
+      `SELECT birth_state FROM app.users WHERE email = $1`,
+      [person.email],
+    );
+    expect(user).toEqual({ birth_state: 'NE' });
+  });
+
+  it('IDN-02 un nombre completo de más de 100 caracteres da 422 en /firstNames y no crea nada', async () => {
+    const person = newRegistration({
+      firstNames: 'N'.repeat(50),
+      paternalSurname: 'P'.repeat(40),
+      maternalSurname: 'M'.repeat(20),
+    });
+    const res = await register(person);
+    expect(res.status).toBe(422);
+    expect(res.body.errors).toEqual([
+      expect.objectContaining({ pointer: '/firstNames', code: 'TOO_LONG' }),
+    ]);
+    expect(await usersWith('email', person.email)).toEqual([]);
   });
 });

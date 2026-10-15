@@ -30,8 +30,8 @@ async function registerUserWithAudit(context: { ip: string }) {
       runner.run(async (tx) => {
         await queryIn(
           tx,
-          `INSERT INTO users (id, email, password_hash, full_name, curp, rfc, phone)
-         VALUES ($1, $2, 'hash', 'Ana Gómez', $3, $4, $5)`,
+          `INSERT INTO users (id, email, password_hash, full_name, curp, rfc, phone, first_names, paternal_surname, birth_date, birth_state)
+         VALUES ($1, $2, 'hash', 'Ana Gómez', $3, $4, $5, 'Ana', 'Gómez', '1990-01-01', 'DF')`,
           [id, person.email, person.curp, person.rfc, person.phone],
         );
         await audit.record(tx, {

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { DeliveryStatus, Mailer } from '../../../platform/mail/mailer.js';
 import { deliverAfterCommit } from '../../../platform/mail/deliver.js';
 import { DomainError, type FieldError } from '../../../shared/errors.js';
+import { composeFullName } from '../domain/full-name.js';
 import type { Clock } from '../../../shared/clock.js';
 import type { AppLogger } from '../../../shared/logger.js';
 import type { TransactionRunner } from '../../../shared/transaction.js';
@@ -43,7 +44,13 @@ export interface RegisterUserInput {
   /** Ya normalizado (IDN-02). */
   readonly email: string;
   readonly password: string;
-  readonly fullName: string;
+  readonly firstNames: string;
+  readonly paternalSurname: string;
+  readonly maternalSurname?: string | undefined;
+  /** `YYYY-MM-DD`, igual a la fecha de la CURP. */
+  readonly birthDate: string;
+  /** Código de entidad, igual al de la CURP. */
+  readonly birthState: string;
   readonly curp: string;
   readonly rfc: string;
   /** Ya en E.164. */
@@ -126,11 +133,17 @@ export class RegisterUser {
       if (taken.length > 0) throw new IdentityAlreadyTaken(taken);
 
       const id = randomUUID();
+      const fullName = composeFullName(input);
       await users.insert(tx, {
         id,
         email: input.email,
         passwordHash,
-        fullName: input.fullName,
+        fullName,
+        firstNames: input.firstNames,
+        paternalSurname: input.paternalSurname,
+        maternalSurname: input.maternalSurname ?? null,
+        birthDate: input.birthDate,
+        birthState: input.birthState,
         curp: input.curp,
         rfc: input.rfc,
         phone: input.phone,
@@ -142,7 +155,7 @@ export class RegisterUser {
         actor: { type: 'ANONYMOUS' },
         entity: { type: 'user', id },
       });
-      return { kind: 'CODE', fullName: input.fullName, code: issued.code };
+      return { kind: 'CODE', fullName, code: issued.code };
     });
   }
 

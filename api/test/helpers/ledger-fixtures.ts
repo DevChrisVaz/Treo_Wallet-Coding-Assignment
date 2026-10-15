@@ -18,8 +18,8 @@ export async function insertUserWithAccounts(migrator: DataSource): Promise<Fixt
   const userId = randomUUID();
   const tag = userId.replace(/-/g, '').toUpperCase();
   await migrator.query(
-    `INSERT INTO app.users (id, email, password_hash, full_name, curp, rfc, phone, email_verified_at)
-     VALUES ($1, $2, 'hash', $3, $4, $5, $6, now())`,
+    `INSERT INTO app.users (id, email, password_hash, full_name, curp, rfc, phone, email_verified_at, first_names, paternal_surname, birth_date, birth_state)
+     VALUES ($1, $2, 'hash', $3, $4, $5, $6, now(), 'Ana', 'Gómez', '1990-01-01', 'DF')`,
     [
       userId,
       `fixture-${tag.toLowerCase().slice(0, 12)}@example.com`,

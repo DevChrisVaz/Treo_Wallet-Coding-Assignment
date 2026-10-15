@@ -15,9 +15,9 @@ const refreshToken = textField({ min: 32, max: 256 });
 /**
  * `RegisterRequest` del contrato (IDN-01, IDN-02), con "hoy" tomado de `now` (el
  * `Clock` de la API). Es el `registerFormAt` del paquete del contrato, sin reglas duplicadas:
- * nombre de persona, email recortado y en minúsculas, contraseña con letra y dígito, teléfono de 10
- * dígitos que no empieza con 0 ni 1, CURP de una persona mayor de edad con fecha real y no futura, y
- * RFC cuyos primeros 10 caracteres son los de la CURP. Entrega el teléfono ya en E.164.
+ * nombres y apellidos, email recortado y en minúsculas, contraseña con letra y dígito, teléfono de 10
+ * dígitos que no empieza con 0 ni 1, fecha de nacimiento real, no futura y de una persona mayor de edad, fecha y entidad iguales
+ * a las de la CURP, y RFC cuyos primeros 10 caracteres son los de la CURP. Entrega el teléfono ya en E.164.
  */
 export function registerRequestSchemaAt(now: Date) {
   return registerFormAt(now).transform((form) => ({

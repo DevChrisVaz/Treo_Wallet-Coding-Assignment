@@ -12,8 +12,9 @@ const harness = useIntegrationHarness();
 async function newUser(): Promise<string> {
   const id = randomUUID();
   await harness.migrator.query(
-    `INSERT INTO app.users (id, email, password_hash, full_name, curp, rfc, phone)
-     VALUES ($1, $2, 'h', 'Ana', $3, $4, $5)`,
+    `INSERT INTO app.users (id, email, password_hash, full_name, curp, rfc, phone,
+                          first_names, paternal_surname, birth_date, birth_state)
+     VALUES ($1, $2, 'h', 'Ana', $3, $4, $5, 'Ana', 'Gómez', '1990-01-01', 'DF')`,
     [
       id,
       `${id}@example.com`,

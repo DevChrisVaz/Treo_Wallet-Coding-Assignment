@@ -35,7 +35,11 @@ export function newRegistration(overrides: Partial<Record<string, unknown>> = {}
   return {
     email: `persona${n}.${run}@example.com`,
     password: 'contraseña muy segura 2026',
-    fullName: `Persona ${spelled(n)} Prueba`,
+    firstNames: 'Persona',
+    paternalSurname: spelled(n),
+    maternalSurname: 'Prueba',
+    birthDate: birth.toISOString().slice(0, 10),
+    birthState: 'DF',
     curp,
     rfc,
     phone,

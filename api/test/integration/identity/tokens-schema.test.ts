@@ -50,8 +50,8 @@ beforeAll(async () => {
   userId = randomUUID();
   const tag = userId.replace(/-/g, '').slice(0, 12).toUpperCase();
   await app.query(
-    `INSERT INTO users (id, email, password_hash, full_name, curp, rfc, phone)
-     VALUES ($1, $2, 'hash', 'Prueba', $3, $4, $5)`,
+    `INSERT INTO users (id, email, password_hash, full_name, curp, rfc, phone, first_names, paternal_surname, birth_date, birth_state)
+     VALUES ($1, $2, 'hash', 'Prueba', $3, $4, $5, 'Ana', 'Gómez', '1990-01-01', 'DF')`,
     [
       userId,
       `tok-${tag.toLowerCase()}@example.com`,

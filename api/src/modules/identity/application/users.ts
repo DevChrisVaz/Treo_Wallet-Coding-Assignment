@@ -5,6 +5,13 @@ export interface UserRecord {
   readonly email: string;
   readonly passwordHash: string;
   readonly fullName: string;
+  readonly firstNames: string;
+  readonly paternalSurname: string;
+  readonly maternalSurname: string | null;
+  /** `YYYY-MM-DD`. */
+  readonly birthDate: string;
+  /** Código de entidad de la CURP (`DF`, `JC`, … o `NE`). */
+  readonly birthState: string;
   readonly curp: string;
   readonly rfc: string;
   /** E.164 (`+52` + 10 dígitos). */

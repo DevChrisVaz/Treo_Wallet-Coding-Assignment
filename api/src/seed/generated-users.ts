@@ -4,7 +4,9 @@ import { curpCheckDigit } from '../modules/identity/domain/curp.js';
 export interface SeedPerson {
   readonly email: string;
   readonly password: string;
-  readonly fullName: string;
+  readonly firstNames: string;
+  readonly paternalSurname: string;
+  readonly maternalSurname: string | null;
   readonly curp: string;
   readonly rfc: string;
   readonly phone: string;
@@ -69,7 +71,9 @@ export function generatedPeople(count: number): SeedPerson[] {
     return {
       email: `usuario${String(n).padStart(2, '0')}@example.com`,
       password: GENERATED_PASSWORD,
-      fullName: `${first} ${last1} ${last2}`,
+      firstNames: first,
+      paternalSurname: last1,
+      maternalSurname: last2,
       curp: `${first17}${curpCheckDigit(first17)}`,
       rfc: `${initials}${yymmdd}SD${n % 10}`,
       phone: `+5255${String(20_000_000 + n).padStart(8, '0')}`,

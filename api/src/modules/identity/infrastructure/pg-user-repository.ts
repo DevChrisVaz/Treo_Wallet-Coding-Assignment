@@ -30,6 +30,11 @@ interface RawUser {
   email: string;
   password_hash: string;
   full_name: string;
+  first_names: string;
+  paternal_surname: string;
+  maternal_surname: string | null;
+  birth_date: string;
+  birth_state: string;
   curp: string;
   rfc: string;
   phone: string;
@@ -43,6 +48,11 @@ function fromRaw(row: RawUser): UserRecord {
     email: row.email,
     passwordHash: row.password_hash,
     fullName: row.full_name,
+    firstNames: row.first_names,
+    paternalSurname: row.paternal_surname,
+    maternalSurname: row.maternal_surname,
+    birthDate: row.birth_date,
+    birthState: row.birth_state,
     curp: row.curp,
     rfc: row.rfc,
     phone: row.phone,
@@ -66,7 +76,8 @@ export class PgUserRepository implements UserRepository {
   async findByEmailForUpdate(tx: Transaction, email: string): Promise<UserRecord | null> {
     const [row] = await queryForUpdate<RawUser>(
       tx,
-      `SELECT id, email, password_hash, full_name, curp, rfc, phone, email_verified_at, created_at
+      `SELECT id, email, password_hash, full_name, first_names, paternal_surname, maternal_surname,
+              birth_date::text AS birth_date, birth_state, curp, rfc, phone, email_verified_at, created_at
          FROM users WHERE email = $1 FOR UPDATE`,
       [email],
     );

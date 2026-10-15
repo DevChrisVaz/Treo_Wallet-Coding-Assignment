@@ -23,9 +23,9 @@ describe('PLT-13 arnés de integración', () => {
 
   it('PLT-13 deja datos de una prueba…', async () => {
     await harness.app.query(
-      `INSERT INTO users (id, email, password_hash, full_name, curp, rfc, phone)
+      `INSERT INTO users (id, email, password_hash, full_name, curp, rfc, phone, first_names, paternal_surname, birth_date, birth_state)
        VALUES ($1, 'harness@example.com', 'h', 'Arnés', 'HARN900101HDFNLR09', 'HARN900101AB1',
-               '+525500000001')`,
+               '+525500000001', 'Ana', 'Gómez', '1990-01-01', 'DF')`,
       [randomUUID()],
     );
     await harness.app.query(
