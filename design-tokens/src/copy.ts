@@ -12,6 +12,8 @@ export const problemMessages = {
   INVALID_CREDENTIALS: 'El correo o la contraseña no coinciden.',
   SESSION_REVOKED: 'Cerramos tu sesión por seguridad. Inicia sesión de nuevo.',
   EMAIL_NOT_VERIFIED: 'Confirma tu correo con el código que te enviamos.',
+  REGISTRATION_IN_REVIEW:
+    'Tu registro está en revisión. Te escribiremos a tu correo cuando terminemos.',
   NOT_FOUND: 'No encontramos lo que buscas.',
   BENEFICIARY_CONFLICT: 'Ya tienes un beneficiario con esa CLABE o con ese alias.',
   TRANSFER_NOT_PENDING: 'Esta transferencia ya no está pendiente.',

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { problemMessage, problemMessages } from '../src/index';
 
-/** Los 28 códigos de ProblemCode del contrato 1.2.0, escritos a mano. */
+/** Los 29 códigos de ProblemCode del contrato 1.5.0, escritos a mano. */
 const CONTRACT_CODES = [
   'MALFORMED_REQUEST',
   'IDEMPOTENCY_KEY_MISSING',
@@ -11,6 +11,7 @@ const CONTRACT_CODES = [
   'INVALID_CREDENTIALS',
   'SESSION_REVOKED',
   'EMAIL_NOT_VERIFIED',
+  'REGISTRATION_IN_REVIEW',
   'NOT_FOUND',
   'BENEFICIARY_CONFLICT',
   'TRANSFER_NOT_PENDING',
@@ -49,6 +50,12 @@ describe('problemMessage', () => {
   it('DSG-18 una transferencia que ya no se puede cancelar', () => {
     expect(problemMessage('TRANSFER_NOT_CANCELLABLE')).toBe(
       'Esta transferencia ya no se puede cancelar.',
+    );
+  });
+
+  it('DSG-12 registro en revisión usa el texto de la spec', () => {
+    expect(problemMessage('REGISTRATION_IN_REVIEW')).toBe(
+      'Tu registro está en revisión. Te escribiremos a tu correo cuando terminemos.',
     );
   });
 

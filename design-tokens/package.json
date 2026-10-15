@@ -1,6 +1,6 @@
 {
   "name": "@devchrisvaz/wallet-design-tokens",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Sistema de diseño de TreoWallet: tokens semánticos, salidas para Tailwind v4 y React Native, estados, movimientos y textos de la interfaz.",
   "license": "UNLICENSED",
   "private": true,
