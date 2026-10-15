@@ -3,7 +3,8 @@ import { amountInput } from './amount';
 import { clabe } from './clabe';
 import { curp, curpBirthDate, curpBirthState, hasReachedAge } from './curp';
 import { mexicoCityDate, scheduledInstant, scheduledInstantWithin } from './dates';
-import { addFieldIssue, textField } from './field-errors';
+import { addFieldIssue, textField, type FieldContext } from './field-errors';
+import type { FieldErrorCode, TransferDestination } from '../types';
 import {
   birthDate,
   birthState,
@@ -22,7 +23,9 @@ function codePointLength(value: string): number {
 
 const NO_EDGE_SPACES = /^\S(.*\S)?$/u;
 const emailFormat = z.email();
-const uuidFormat = z.uuid();
+// Mismo patrón que el formato `uuid` de JSON Schema (ajv-formats): ocho-cuatro-cuatro-cuatro-doce
+// dígitos hexadecimales, sin exigir versión ni variante, para aceptar lo mismo que `openapi.yaml`.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const email = textField('El correo es obligatorio', (value, ctx) => {
   if (value.length > 254 || !emailFormat.safeParse(value).success) {
@@ -64,7 +67,7 @@ const alias = textField('El alias es obligatorio', (value, ctx) => {
 });
 
 const uuid = textField('El identificador es obligatorio', (value, ctx) => {
-  if (!uuidFormat.safeParse(value).success) {
+  if (!UUID.test(value)) {
     addFieldIssue(ctx, 'INVALID_FORMAT', 'El identificador no es válido');
   }
 });
@@ -185,11 +188,59 @@ export const loginForm = z.strictObject({ email, password: loginPassword });
 /** Formulario de alta de beneficiario (`CreateBeneficiaryRequest`). */
 export const beneficiaryForm = z.strictObject({ name: fullName, alias, clabe });
 
-/** Destino de la transferencia (`TransferDestination`): cuenta propia o beneficiario. */
-export const transferDestination = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.literal('OWN_ACCOUNT'), accountId: uuid }),
-  z.strictObject({ type: z.literal('BENEFICIARY'), beneficiaryId: uuid }),
-]);
+function destinationIssue(
+  ctx: FieldContext,
+  path: string[],
+  fieldCode: FieldErrorCode,
+  message: string,
+) {
+  ctx.addIssue({ code: 'custom', message, path, params: { fieldCode } });
+}
+
+/**
+ * Destino de la transferencia (`TransferDestination`) como unión discriminada por `type` (`OWN_ACCOUNT` con `accountId`, `BENEFICIARY` con
+ * `beneficiaryId`), con un error determinista por campo: cada variante exige su id y rechaza el
+ * de la otra (`UNKNOWN_FIELD`).
+ */
+export const transferDestination = z
+  .unknown()
+  .superRefine((value, ctx) => {
+    if (value === undefined || value === null) {
+      return addFieldIssue(ctx, 'REQUIRED', 'El destino es obligatorio');
+    }
+    if (typeof value !== 'object' || Array.isArray(value)) {
+      return addFieldIssue(ctx, 'INVALID_TYPE', 'El destino debe ser un objeto');
+    }
+    const destination = value as Record<string, unknown>;
+    const idKey =
+      destination.type === 'OWN_ACCOUNT'
+        ? 'accountId'
+        : destination.type === 'BENEFICIARY'
+          ? 'beneficiaryId'
+          : undefined;
+    if (!idKey) {
+      return destinationIssue(
+        ctx,
+        ['type'],
+        destination.type === undefined ? 'REQUIRED' : 'INVALID_FORMAT',
+        'El tipo de destino debe ser OWN_ACCOUNT o BENEFICIARY',
+      );
+    }
+    for (const key of Object.keys(destination)) {
+      if (key !== 'type' && key !== idKey) {
+        destinationIssue(ctx, [key], 'UNKNOWN_FIELD', 'Campo no permitido');
+      }
+    }
+    const id = destination[idKey];
+    if (id === undefined || id === null) {
+      destinationIssue(ctx, [idKey], 'REQUIRED', 'Falta el id del destino');
+    } else if (typeof id !== 'string') {
+      destinationIssue(ctx, [idKey], 'INVALID_TYPE', 'Debe ser texto');
+    } else if (!UUID.test(id)) {
+      destinationIssue(ctx, [idKey], 'INVALID_FORMAT', 'El identificador no es válido');
+    }
+  })
+  .transform((value) => value as TransferDestination);
 
 /**
  * Formulario de transferencia (`CreateTransferRequest`). La referencia es opcional (cadena vacía =

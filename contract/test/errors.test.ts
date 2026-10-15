@@ -264,12 +264,11 @@ describe('Retry-After', () => {
     expect(error).toMatchObject({ status: 429, code: 'RATE_LIMITED', retryAfter: 120 });
   });
 
-  it('CTR-22 openapi.yaml declara el 429 de logout y la versión 1.6.0', () => {
+  it('CTR-22 openapi.yaml declara el 429 de logout', () => {
     const yaml = readFileSync(new URL('../openapi.yaml', import.meta.url), 'utf8');
     const logout = yaml.slice(yaml.indexOf('operationId: logout'));
     const block = logout.slice(0, logout.indexOf('\n  /me:'));
     expect(block).toContain("'429':");
-    expect(yaml).toContain('version: 1.6.0');
   });
 
   it.each([

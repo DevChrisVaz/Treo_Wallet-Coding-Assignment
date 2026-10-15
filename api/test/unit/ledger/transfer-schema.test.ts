@@ -1,9 +1,10 @@
+import { toFieldErrors as contractFieldErrors, transferForm } from '@devchrisvaz/wallet-contract';
 import { describe, expect, it } from 'vitest';
 import {
   createTransferRequestSchema,
   parseIdempotencyKey,
 } from '../../../src/modules/transfers/infrastructure/http/schemas.js';
-import { parseInput } from '../../../src/platform/http/validation.js';
+import { parseInput, toFieldErrors } from '../../../src/platform/http/validation.js';
 import { DomainError } from '../../../src/shared/errors.js';
 
 const FROM = '11111111-1111-4111-8111-111111111111';
@@ -166,6 +167,61 @@ describe('TRF-08 y TRF-09 esquema de CreateTransferRequest', () => {
       expect.objectContaining({ pointer: '/fromAccountId', code: 'INVALID_FORMAT' }),
     ]);
   });
+});
+
+const payloads: [string, unknown][] = [
+  ['válido', valid],
+  ['sin referencia', { ...valid, reference: undefined }],
+  ['referencia vacía', { ...valid, reference: '' }],
+  ['OWN_ACCOUNT', { ...valid, destination: { type: 'OWN_ACCOUNT', accountId: TO } }],
+  ['UUID en mayúsculas', { ...valid, fromAccountId: FROM.toUpperCase() }],
+  ['campo no declarado', { ...valid, extra: 1 }],
+  ['cuerpo vacío', {}],
+  ['fromAccountId vacío', { ...valid, fromAccountId: '' }],
+  ['fromAccountId numérico', { ...valid, fromAccountId: 5 }],
+  ['sin destino', { ...valid, destination: undefined }],
+  ['destino que no es objeto', { ...valid, destination: 'x' }],
+  ['destino sin tipo', { ...valid, destination: { beneficiaryId: TO } }],
+  ['destino con tipo desconocido', { ...valid, destination: { type: 'X', beneficiaryId: TO } }],
+  [
+    'OWN_ACCOUNT con beneficiaryId',
+    { ...valid, destination: { type: 'OWN_ACCOUNT', beneficiaryId: TO } },
+  ],
+  ['BENEFICIARY sin id', { ...valid, destination: { type: 'BENEFICIARY' } }],
+  [
+    'destino con id que no es UUID',
+    { ...valid, destination: { type: 'OWN_ACCOUNT', accountId: 'x' } },
+  ],
+  ['monto vacío', { ...valid, amount: '' }],
+  ['monto con 3 decimales', { ...valid, amount: '100.005' }],
+  ['monto cero', { ...valid, amount: '0' }],
+  ['monto enorme', { ...valid, amount: '1000000000000' }],
+  ['monto numérico', { ...valid, amount: 10 }],
+  ['concepto vacío', { ...valid, concept: '' }],
+  ['concepto largo', { ...valid, concept: 'a'.repeat(41) }],
+  ['concepto con espacios', { ...valid, concept: ' a ' }],
+  ['referencia larga', { ...valid, reference: '12345678' }],
+  ['referencia con letras', { ...valid, reference: '1a' }],
+  ['referencia nula', { ...valid, reference: null }],
+  ['scheduledFor válido', { ...valid, scheduledFor: '2026-10-20T14:30:00Z' }],
+  ['scheduledFor vacío', { ...valid, scheduledFor: '' }],
+  ['scheduledFor con segundos', { ...valid, scheduledFor: '2026-10-20T14:30:15Z' }],
+  ['scheduledFor inexistente', { ...valid, scheduledFor: '2026-02-30T14:30:00Z' }],
+];
+
+describe('TRF-08 y TRF-09 validación compartida con el contrato', () => {
+  it.each(payloads)(
+    'TRF-09 la API y transferForm del contrato aceptan o rechazan igual: %s',
+    (_case, body) => {
+      const shared = transferForm.safeParse(body);
+      const api = createTransferRequestSchema.safeParse(body);
+
+      expect(api.success).toBe(shared.success);
+      if (!shared.success && !api.success) {
+        expect(toFieldErrors(api.error)).toEqual(contractFieldErrors(shared.error));
+      }
+    },
+  );
 });
 
 describe('TRF-02 llave de idempotencia', () => {
