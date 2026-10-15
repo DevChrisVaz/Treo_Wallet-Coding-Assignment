@@ -91,10 +91,10 @@ Generada con `scripts/trace.sh`: 234 requisitos. Las columnas de tareas y commit
 | HIS-12 | Contenido y conciliación del estado de cuenta | account-statements, ux-fixes | 10: account-statements#1.2 account-statements#1.3 account-statements#1.4 (+7) | 13: 7663863 bfc57a6 0b9c0c9 (+10) | api 46 |
 | IDN-01 | Registro con respuesta uniforme | api-foundation | 5: api-foundation#7.3 domain-test-coverage#3.1 domain-test-coverage#3.5 (+2) | 12: 46d46aa a17006e fd33dde (+9) | api 7 |
 | IDN-02 | Datos obligatorios del registro | api-foundation, registration-birth-data, ux-fixes | 10: api-foundation#2.5 api-foundation#6.1 api-foundation#7.3 (+7) | 13: 3220257 1972769 cef2c5a (+10) | api 35 |
-| IDN-03 | Unicidad de los datos de identidad | api-foundation, registration-review | 9: api-foundation#2.5 api-foundation#7.3 domain-test-coverage#3.5 (+6) | 21: e667fa6 4de4677 c62b858 (+18) | api 15 |
+| IDN-03 | Unicidad de los datos de identidad | api-foundation, registration-review | 9: api-foundation#2.5 api-foundation#7.3 domain-test-coverage#3.5 (+6) | 22: d4a26ac e667fa6 4de4677 (+19) | api 15 |
 | IDN-04 | Almacenamiento seguro de contraseñas | api-foundation | 1: api-foundation#7.1 | 1: fed4b5e | api 5 |
 | IDN-05 | Código de verificación de correo | api-foundation | 4: api-foundation#2.8 api-foundation#7.2 domain-test-coverage#3.1 (+1) | 4: c51d653 a5fe8fb 6323e25 (+1) | api 15 |
-| IDN-06 | Verificación de correo | api-foundation, registration-review | 5: api-foundation#7.5 domain-test-coverage#3.6 ux-fixes#5.2 (+2) | 10: e667fa6 4de4677 c62b858 (+7) | api 10 |
+| IDN-06 | Verificación de correo | api-foundation, registration-review | 5: api-foundation#7.5 domain-test-coverage#3.6 ux-fixes#5.2 (+2) | 11: d4a26ac e667fa6 4de4677 (+8) | api 10 |
 | IDN-07 | Reenvío del código de verificación | api-foundation | 2: api-foundation#7.6 domain-test-coverage#3.5 | 2: 6d835e1 0c7d57c | api 5 |
 | IDN-08 | Inicio de sesión sin enumeración | api-foundation, registration-review | 4: api-foundation#7.9 domain-test-coverage#3.6 registration-review#1.1 (+1) | 8: e667fa6 4de4677 c62b858 (+5) | api 10 |
 | IDN-09 | Access token de vida corta | api-foundation | 1: api-foundation#7.7 | 1: 557d660 | api 5 |
@@ -104,7 +104,7 @@ Generada con `scripts/trace.sh`: 234 requisitos. Las columnas de tareas y commit
 | IDN-13 | Cierre de sesión | api-foundation | 2: api-foundation#7.10 domain-test-coverage#3.4 | 2: f7bee34 3b4e4d9 | api 6 |
 | IDN-14 | Datos del usuario autenticado | api-foundation | 1: api-foundation#7.11 | 1: 2d0c704 | api 2 |
 | IDN-15 | Límites de tasa en identidad | api-foundation | 1: api-foundation#7.12 | 1: 0e1fa0a | api 5 |
-| IDN-16 | Aviso al dueño de los datos de identidad | registration-review | 1: registration-review#3.3 | 5: e667fa6 4de4677 c62b858 (+2) | api 5 |
+| IDN-16 | Aviso al dueño de los datos de identidad | registration-review | 1: registration-review#3.3 | 6: d4a26ac e667fa6 4de4677 (+3) | api 5 |
 | IDN-17 | Límites de tasa de renovación y cierre de sesión | security-hardening | 2: security-hardening#1.1 security-hardening#2.2 | 4: b9e3516 7afab6b bf7c580 (+1) | api 7 |
 | IDN-18 | Aviso de inicio de sesión | security-hardening | 2: security-hardening#3.1 security-hardening#3.2 | 4: b9e3516 66c8525 ccd86ec (+1) | api 16 |
 | IDN-19 | Aviso de sesión cerrada por seguridad | security-hardening | 1: security-hardening#3.4 | 4: dca675e b9e3516 465d25f (+1) | api 7 |
@@ -235,7 +235,7 @@ Generada con `scripts/trace.sh`: 234 requisitos. Las columnas de tareas y commit
 | WEB-35 | Recibir dinero | ux-fixes | 1: ux-fixes#7.1 | 2: 64d86f3 b79fd1e | web 8 |
 | WEB-36 | Búsqueda de beneficiarios | ux-fixes | 1: ux-fixes#8.2 | 2: 64d86f3 b79fd1e | web 14 |
 | WEB-37 | Sesión que sobrevive al reinicio del servidor web | web-redis-sessions | 7: web-redis-sessions#1.1 web-redis-sessions#1.2 web-redis-sessions#2.2 (+4) | 17: c8268c5 3c08507 0a23acf (+14) | web 15 |
-| WEB-38 | Headers de seguridad en toda respuesta | security-hardening | 2: security-hardening#4.3 security-hardening#4.5 | 4: b9e3516 61b53f7 2b621c4 (+1) | web 10 |
+| WEB-38 | Headers de seguridad en toda respuesta | security-hardening | 2: security-hardening#4.3 security-hardening#4.5 | 6: c38ef24 08df35b b9e3516 (+3) | web 12 |
 | WEB-39 | Content-Security-Policy con nonce | security-hardening | 3: security-hardening#4.4 security-hardening#4.5 security-hardening#4.6 | 7: 00769f9 9ebe102 b9e3516 (+4) | web 17 |
 | WEB-40 | Un 429 no cierra la sesión ni se reintenta | security-hardening | 1: security-hardening#4.2 | 3: b9e3516 a01469c 4f135c6 | web 7 |
 
