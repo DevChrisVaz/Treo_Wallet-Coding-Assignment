@@ -99,7 +99,7 @@ flowchart LR
   - El servidor de la web, desde Node 20.9.
   - Los paquetes compartidos, desde Node 20; su CI lo comprueba en 20, 22 y 24.
 - **Docker** con Compose, para PostgreSQL 16 y Mailpit (`/api`) y para Redis 7, el de las sesiones de la web (`/web`).
-- `psql` es opcional: si no está instalado, `db:bootstrap` usa el de la imagen de PostgreSQL.
+- `psql` es opcional: si no está instalado, `db:bootstrap` usa el de la imagen de PostgreSQL de docker compose, pero solo si `BOOTSTRAP_DATABASE_URL` apunta a ese contenedor (ver la nota bajo "Puesta en marcha").
 - **Para la app móvil**, una de estas opciones:
   - **Expo Go** compatible con el SDK 57, en un teléfono en la **misma red Wi-Fi** que la computadora;
   - un emulador de Android;
@@ -204,6 +204,8 @@ npm run db:seed
 # API en http://localhost:4000 (escucha en 0.0.0.0 para la app móvil)
 npm run dev
 ```
+
+**`db:bootstrap` sin `psql`.** Con `psql` instalado, el script se conecta a `BOOTSTRAP_DATABASE_URL`. Sin él ejecuta el SQL dentro del contenedor `postgres` de docker compose, que no mira el host ni el puerto de la URL. Para que una URL equivocada no llegue a otro contenedor (por ejemplo, el de otra copia del repositorio con su propio `.env`), el script solo lo hace si el host de la URL es esta máquina (`localhost`, `127.0.0.1` o `::1`) y su puerto es uno de los que `docker compose port postgres 5432` publica. Si no, termina con error y sin ejecutar nada, y el mensaje dice qué puerto espera compose; instala `psql` o apunta la URL a ese puerto. Las contraseñas siguen yendo por variables de entorno (PLT-14).
 
 | URL                                | Qué es                                                                      |
 | ---------------------------------- | --------------------------------------------------------------------------- |
@@ -319,12 +321,12 @@ En todos los proyectos, el título de cada prueba empieza con el ID del requisit
 - **Programadas:** sus pruebas usan un reloj fijo, el 14 de octubre de 2026 a mediodía de la Ciudad de México, con `vi.useFakeTimers({ toFake: ['Date'] })`. Solo se falsea `Date`, así que user-event sigue funcionando. La fecha en palabras se prueba también con `TZ` al oeste y al este de UTC.
 - **Doble clic:** `user.dblClick` no basta para probar el candado del envío, porque user-event envuelve cada evento en `act` y React deshabilita el botón entre los dos clics. Por eso las pruebas del candado hacen los dos clics dentro de un mismo `act`.
 - **Diálogo de cancelación:** no usa `<dialog>` nativo porque jsdom no implementa `showModal()`. Sigue el patrón modal de WAI-ARIA (`role="dialog"`, `aria-modal`, foco atrapado y Escape), que sí se puede probar con el teclado en jsdom.
-- **Pruebas en navegador** (`npm run test:e2e`, Playwright 1.61.1, `web/e2e/`): lo que jsdom no puede medir. La configuración levanta `e2e/fake-api.mjs` en `127.0.0.1:4999`, una API simulada con los datos canónicos de las historias del rediseño, y `next dev` en `127.0.0.1:3101` apuntando a ella; no usa la API real ni los puertos 3000 y 4000. La primera vez, si falta el navegador, `npx playwright install chromium`; si Turbopack se detiene con "OS file watch limit reached", libera observadores de archivos (inotify) o sube `fs.inotify.max_user_watches`. El CI de la web las corre después del build (`npx playwright install --with-deps chromium` y `npm run test:e2e`).
+- **Pruebas en navegador** (`npm run test:e2e`, Playwright 1.61.1, `web/e2e/`): lo que jsdom no puede medir. La configuración levanta `e2e/fake-api.mjs` en `127.0.0.1:4999`, una API simulada con los datos canónicos de las historias del rediseño, y `next dev` en `127.0.0.1:3101` apuntando a ella; no usa la API real ni los puertos 3000 y 4000. La primera vez, si falta el navegador, `npx playwright install chromium`; si Turbopack se detiene con "OS file watch limit reached", libera observadores de archivos (inotify) o sube `fs.inotify.max_user_watches`. El CI de la web las corre después del build (`npx playwright install --with-deps chromium` y `npm run test:e2e`) y, a continuación, `npm run test:e2e:prod`.
   - **Layout:** sin desplazamiento horizontal de 320 a 1920 px (también con barras de desplazamiento clásicas), un solo `h1` visible por pantalla, las dos formas y el texto al 200 %.
   - **Teclado:** la transferencia hasta el comprobante solo con el teclado, a 390 y a 1280 px.
   - **Hojas y diálogos:** foco atrapado, Escape y foco de regreso.
   - **Accesibilidad:** axe con el CSS real, incluido el contraste, en cada pantalla y con las hojas abiertas.
-  - **Seguridad (`security-headers.spec.ts`):** falla ante cualquier violación de la política de contenido en las pantallas públicas, las autenticadas y el flujo de transferir; comprueba que cada página trae un nonce distinto, que un manejador en línea sin nonce no corre, que las páginas, `/bff` y `/_next` llevan los headers y que la web no se incrusta en un `iframe`. `npm run test:e2e:prod` repite esa prueba contra `next build` y `next start` (sin la excepción de las herramientas de desarrollo de Next.js).
+  - **Seguridad (`security-headers.spec.ts`):** falla ante cualquier violación de la política de contenido en las pantallas públicas, las autenticadas y el flujo de transferir; comprueba que cada página trae un nonce distinto, que un manejador en línea sin nonce no corre, que las páginas, `/bff` y `/_next` llevan los headers y que la web no se incrusta en un `iframe`. `npm run test:e2e:prod` repite esa prueba contra `next build` y `next start` (sin la excepción de las herramientas de desarrollo de Next.js) y también corre en el CI. Falla ante un recurso del mismo origen que responda 400 o más, y comprueba que el icono (`/favicon.ico` e `/icon.svg`) responde 200 con los headers de seguridad (WEB-41).
 
 ### App móvil
 
@@ -348,7 +350,8 @@ Hay un workflow por proyecto en `.github/workflows/`: `api`, `web`, `mobile`, `c
 
 - **Paquetes compartidos:** los workflows de la API, la web y la app también corren cuando cambian `contract/**` o `design-tokens/**`, porque instalan esos paquetes como copia.
 - **Pasos:** lint, typecheck, formato y pruebas.
-- **API:** además levanta PostgreSQL y Mailpit como servicios del CI.
+- **API:** además levanta PostgreSQL y Mailpit como servicios del CI. Como el runner tiene `psql`, `db:bootstrap` se conecta a la URL tal cual.
+- **Web:** además de las pruebas en navegador sobre `next dev`, corre `npm run test:e2e:prod`: la prueba de seguridad contra `next build` y `next start`, que construye de nuevo sin `SESSION_COOKIE_SECURE` (WEB-38, WEB-39).
 - **Paquetes:** además verifican los tipos o las salidas generadas, las rutas, la compatibilidad con Hermes, la instalación como copia y una prueba de humo en Node 20, 22 y 24.
 - **Infraestructura:** `terraform fmt`, `validate` y `terraform test` con proveedores simulados para cada ambiente, sin credenciales de AWS ([detalle](infrastructure/README.md#verificar-sin-una-cuenta-de-aws)).
 
@@ -376,7 +379,7 @@ Hay un workflow por proyecto en `.github/workflows/`: `api`, `web`, `mobile`, `c
 | `build` / `start`         | Build de producción y servidor                                                                |
 | `test`                    | Vitest (`test:watch` en modo observación)                                                     |
 | `test:e2e`                | Playwright en Chromium contra la API simulada de `e2e/fake-api.mjs`                           |
-| `test:e2e:prod`           | La prueba de la política de contenido contra la compilación de producción (puertos 3105 y 4995) |
+| `test:e2e:prod`           | La prueba de la política de contenido contra la compilación de producción (puertos 3105 y 4995); también corre en el CI |
 | `typecheck`               | `next typegen` y `tsc --noEmit`                                                               |
 | `lint`                    | ESLint sin advertencias permitidas; incluye la regla que prohíbe `parseFloat` y `Number(...)` |
 | `format` / `format:check` | Prettier                                                                                      |
@@ -1089,6 +1092,7 @@ Así se rastrea cada requisito en el código:
 | `web-redis-sessions`                                      | web                             | WEB-37                                                  | Completo                                                    |
 | `registration-review`                                     | contract, design-tokens, api, web, mobile | IDN-16, MOB-30 y cambios a IDN-03, IDN-06, IDN-08, AUD-01, DSG-12, WEB-11 y WEB-12| Completo                                                    |
 | `security-hardening`                                      | contract, api, web, mobile, docs | PLT-19, PLT-20, IDN-17 a IDN-19, BEN-12, TRF-37, TRF-38, CTR-22, WEB-38 a WEB-40, MOB-31 y MOB-32; cambios a PLT-16, TRF-15 y WEB-10 | Completo; falta ver llegar el `User-Agent` de la app desde un teléfono |
+| `tooling-fixes`                                           | api, web, docs                  | WEB-41 y cambio a PLT-14                                | Completo                                                    |
 | `delivery`                                                | docs                            | Sin requisitos nuevos                                   | Completo                                  |
 
 ### Mapa de la especificación
@@ -1123,6 +1127,7 @@ Cada historia de usuario del enunciado (HU1 a HU6) se traza a sus requisitos, al
 - **Sistema de diseño y rediseño:** DSG-01 a DSG-18, WEB-24 a WEB-31 y MOB-18 a MOB-22 (`design-system`, `redesign`).
 - **Ajustes de uso:** `ux-fixes` (registro, montos, referencia opcional, códigos, perfil, Recibir, búsqueda, meses del estado de cuenta y programadas con hora; WEB-35, WEB-36, MOB-28, MOB-29 y CTR-20 son requisitos nuevos).
 - **Seguridad:** `security-hardening` (límites de tasa de `refresh`, `logout` y transferencias, `no-store`, headers y CSP de la web, avisos por correo; PLT-19, PLT-20, IDN-17 a IDN-19, BEN-12, TRF-37, TRF-38, CTR-22, WEB-38 a WEB-40, MOB-31 y MOB-32, y modifica PLT-16, TRF-15 y WEB-10).
+- **Herramientas:** `tooling-fixes` (`db:bootstrap` que solo actúa sobre el servidor de su URL, la prueba de producción en el CI de la web y el icono de la web; WEB-41 y modifica PLT-14).
 - **Cobertura de pruebas del dominio:** `domain-test-coverage` (solo pruebas, sin requisitos nuevos).
 
 Los huecos que hoy tiene la matriz (cuatro requisitos que se verifican en el CI y no con una prueba) están explicados al final de [`docs/traceability.md`](docs/traceability.md).
@@ -1149,6 +1154,7 @@ Cada change tiene un `design.md` con las decisiones y las alternativas descartad
 | [`web-redis-sessions`](openspec/changes/archive/2026-10-14-web-redis-sessions/design.md) | Sesiones en Redis con `REDIS_URL` y en un `Map` sin ella; un hash por sesión con TTL; renovación del plazo atómica en Lua; conexión que falla rápido; la misma suite de pruebas para las dos implementaciones |
 | [`registration-review`](openspec/changes/archive/2026-10-15-registration-review/design.md) | Un registro con datos de otra cuenta sigue el mismo camino hasta verificar el correo y queda en revisión, sin cuentas; el dueño de los datos recibe un aviso; la resolución la hace soporte |
 | [`security-hardening`](openspec/changes/security-hardening/design.md) | Solo el tope de cada límite es configurable y los de transferencias son por usuario; `no-store` en toda la API; CSP con nonce en `proxy.ts` y `Referrer-Policy` que no rompe el `Origin` de las Server Actions; avisos que no hacen esperar la respuesta, con un `drain()` de 5 s al apagar; el `User-Agent` descrito sin dependencias |
+| [`tooling-fixes`](openspec/changes/tooling-fixes/design.md) | Una guarda en el respaldo de `db:bootstrap` (host local y puerto que publica compose) en vez de un contenedor de `psql` aparte; el `next build` extra en el CI de la web se acepta; icono SVG escrito a mano y `.ico` generado desde él |
 | [`delivery`](openspec/changes/archive/2026-10-15-delivery/design.md) | Propuesta de AWS ([`docs/aws-deploy.md`](docs/aws-deploy.md)), trazabilidad generada, guion del video |
 
 La [bitácora de AI](docs/ai-log.md) registra qué propuso la AI, qué acepté, qué rechacé o cambié, y dónde se equivocó y se corrigió.

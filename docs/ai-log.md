@@ -708,6 +708,23 @@ El prompt con el que empezó el rediseño no quedó registrado textualmente. La 
 - `test:e2e:prod` no corre en el CI.
 - `/favicon.ico` responde 404 (ya pasaba antes de la rama).
 
+## Sesión 13 — 2026-10-15 · Ajustes de herramientas (`tooling-fixes`)
+
+**Prompt clave:** "3: procede", sobre tres mejoras que la sesión 12 dejó fuera de su rama: que `db:bootstrap` no alcance otro servidor, correr la prueba de producción en el CI y el ícono de la web.
+
+**Quién:** Claude Code con Claude Opus 5.5 como orquestador y revisor, y un subagente con Sonnet en `dev/tooling-fixes`.
+
+**Qué se hizo:**
+- **`db:bootstrap` con guarda (PLT-14).** Sin `psql`, el respaldo con `docker compose exec` solo corre si la URL apunta a esta máquina y a un puerto que publica el servicio `postgres` de compose. Si no, termina con error y no ejecuta nada. La causa del incidente: el `name: treo-api` del archivo de compose es el mismo en cualquier copia del repositorio. Se descartó correr `psql` en un contenedor desechable contra la URL, porque `localhost` dentro del contenedor no es el equipo y obliga a usar `--network host`, que se comporta distinto en Docker Desktop.
+- **La prueba de producción en el CI de la web.** `test:e2e:prod` corre después de las pruebas en navegador, con su propio build sin `SESSION_COOKIE_SECURE`. Reutilizar el build anterior ataría esa propiedad al orden de los pasos.
+- **Ícono (WEB-41).** `app/icon.svg` y `app/favicon.ico`, con las convenciones de Next.js 16: una "T" blanca sobre el verde `action.primary` de los tokens. El `.ico` se generó con `sharp`, que ya estaba en las dependencias.
+
+**Corrección a la AI:** el diseño suponía que la revisión de errores de consola de las pruebas e2e detectaría un `404` de `/favicon.ico`. El subagente lo comprobó quitando el ícono, y no lo detectaba: Chromium sin interfaz no pide el favicon por su cuenta. La prueba ahora pide el ícono de forma explícita.
+
+**Cómo se comprobó:**
+- **La guarda:** sus 12 pruebas nuevas se vieron fallar antes de la implementación. La AI repitió el caso real del incidente: `npm run db:bootstrap` desde el worktree, con la URL en el 5443 y el compose del usuario en el 5433, terminó con error y no ejecutó nada.
+- **Suites:** API, 618 unitarias; web, 854 unitarias, 62 e2e y 9 contra la compilación de producción.
+
 ## Correcciones a la AI, en conjunto
 
 Índice de lo que la AI propuso mal o dejó inseguro, ordenado por lo que importa en un sistema de dinero. Cada punto está explicado en la sesión que se indica.
@@ -764,7 +781,8 @@ El prompt con el que empezó el rediseño no quedó registrado textualmente. La 
 - **`FLUSHDB` en pruebas que corren en paralelo** sobre la misma base de Redis (sesión 9).
 - **Un ID de requisito tomado a la vez por dos sesiones** (WEB-35, sesión 9): un ID libre en la base de una rama puede estar ocupado en el trabajo sin commit de otra sesión.
 - **Una prueba de producción con el mismo entorno en el build y en el arranque** no detecta lo que se decide al compilar (HSTS, sesión 12).
-- **`db:bootstrap` en un worktree alcanzó el contenedor principal** sin `psql` instalado (sesiones 6 y 12).
+- **`db:bootstrap` en un worktree alcanzó el contenedor principal** sin `psql` instalado (sesiones 6 y 12). Desde la sesión 13 el script lo impide.
+- **Una prueba que se supone que detecta algo sin haberla visto fallar** (el `404` del favicon, sesión 13): Chromium sin interfaz no pide el favicon.
 
 ## Resumen del flujo spec-first
 

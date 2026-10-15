@@ -8,7 +8,7 @@ El contrato es [`contract/openapi.yaml`](../contract/openapi.yaml) (paquete `@de
 
 - **Node.js 24** para desarrollo y pruebas (Vitest 5 pide Node ≥ 22). El build corre en Node ≥ 20.
 - **Docker** con Compose (PostgreSQL 16 y Mailpit).
-- `psql` es opcional: si no está instalado, `db:bootstrap` usa el de la imagen de PostgreSQL.
+- `psql` es opcional: si no está instalado, `db:bootstrap` usa el de la imagen de PostgreSQL de docker compose, pero solo si `BOOTSTRAP_DATABASE_URL` apunta a ese contenedor (ver abajo).
 
 ## Puesta en marcha
 
@@ -41,6 +41,12 @@ npm run dev
 | http://localhost:4000/docs         | Swagger UI del contrato (fuera de producción)                       |
 | http://localhost:4000/openapi.yaml | El contrato tal cual (fuera de producción)                          |
 | http://localhost:8025              | Bandeja de Mailpit: códigos de verificación y OTP de transferencias |
+
+### `db:bootstrap` sin `psql`
+
+Con `psql` instalado, el script se conecta a `BOOTSTRAP_DATABASE_URL`. Sin él ejecuta el SQL dentro del contenedor `postgres` de docker compose, que no mira el host ni el puerto de la URL, y el proyecto de compose se llama `treo-api` en cualquier copia del repositorio. Por eso, desde otra copia (un worktree con su propio `.env` y otro puerto) el script podía reafirmar los roles y las contraseñas en el contenedor de la copia principal.
+
+Ahora lo decide `scripts/bootstrap-plan.ts`, con pruebas unitarias (`test/unit/project/bootstrap-plan.test.ts`): sin `psql` solo ejecuta en el contenedor si el host de la URL es `localhost`, `127.0.0.1` o `::1` y su puerto es uno de los que publica `docker compose port postgres 5432`. En cualquier otro caso termina con código 1 y sin ejecutar nada, con un mensaje que nombra la URL (sin su contraseña) y el puerto que publica compose. Para seguir, instala `psql` o apunta `BOOTSTRAP_DATABASE_URL` a ese puerto. Las contraseñas de los roles siguen llegando por variables de entorno, nunca como argumentos (PLT-14).
 
 ### Credenciales demo
 
@@ -102,17 +108,17 @@ El aviso de inicio de sesión describe al cliente con el `User-Agent` (`client-d
 
 ## Scripts
 
-| Script                                  | Qué hace                                                                                                                                                                                                                      |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dev`                                   | API con recarga (tsx) leyendo `.env`                                                                                                                                                                                          |
-| `build` / `start`                       | Compila a `dist/` y lo ejecuta con Node                                                                                                                                                                                       |
-| `db:bootstrap`                          | `db/bootstrap.sql` con psql como superusuario (`BOOTSTRAP_DATABASE_URL`): roles `wallet_migrator` y `wallet_app`, bases `wallet` y `wallet_test`, esquema `app`. Las contraseñas de los roles llegan por variables de entorno |
-| `db:migrate`                            | Aplica migraciones pendientes con el rol dueño (`MIGRATION_DATABASE_URL`)                                                                                                                                                     |
-| `db:revert`                             | Revierte la última migración; `npm run db:revert -- --all` revierte todas                                                                                                                                                     |
-| `db:seed`                               | Datos de desarrollo con volumen (ver abajo). Idempotente y termina verificando las invariantes del ledger                                                                                                                     |
-| `db:fund`                               | Fondea una cuenta desde la Tesorería: `npm run db:fund -- --account <id o CLABE> --amount 1000.00`                                                                                                                            |
-| `lint`, `typecheck`, `format:check`     | ESLint (incluye la regla de capas), TypeScript, Prettier                                                                                                                                                                      |
-| `test`, `test:unit`, `test:integration` | Vitest                                                                                                                                                                                                                        |
+| Script                                  | Qué hace                                                                                                                                                                                                                                                                                                                            |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dev`                                   | API con recarga (tsx) leyendo `.env`                                                                                                                                                                                                                                                                                                |
+| `build` / `start`                       | Compila a `dist/` y lo ejecuta con Node                                                                                                                                                                                                                                                                                             |
+| `db:bootstrap`                          | `db/bootstrap.sql` con psql como superusuario (`BOOTSTRAP_DATABASE_URL`): roles `wallet_migrator` y `wallet_app`, bases `wallet` y `wallet_test`, esquema `app`. Las contraseñas de los roles llegan por variables de entorno. Sin `psql` solo usa el contenedor de compose si la URL apunta a él (ver "`db:bootstrap` sin `psql`") |
+| `db:migrate`                            | Aplica migraciones pendientes con el rol dueño (`MIGRATION_DATABASE_URL`)                                                                                                                                                                                                                                                           |
+| `db:revert`                             | Revierte la última migración; `npm run db:revert -- --all` revierte todas                                                                                                                                                                                                                                                           |
+| `db:seed`                               | Datos de desarrollo con volumen (ver abajo). Idempotente y termina verificando las invariantes del ledger                                                                                                                                                                                                                           |
+| `db:fund`                               | Fondea una cuenta desde la Tesorería: `npm run db:fund -- --account <id o CLABE> --amount 1000.00`                                                                                                                                                                                                                                  |
+| `lint`, `typecheck`, `format:check`     | ESLint (incluye la regla de capas), TypeScript, Prettier                                                                                                                                                                                                                                                                            |
+| `test`, `test:unit`, `test:integration` | Vitest                                                                                                                                                                                                                                                                                                                              |
 
 ## Datos de desarrollo (`db:seed`)
 

@@ -77,6 +77,7 @@ npm ci
 - **Zod sin compilador:** `instrumentation-client.ts` fija `jitless` antes de que se construya un esquema. Sin eso, la prueba de `Function("")` de Zod se reporta como violación de la política.
 - **Futuro CAPTCHA de AWS WAF:** cuando se cargue su script en `/register` ([propuesta de AWS](../docs/aws-deploy.md#6-servicios-de-soporte)), `script-src` y `connect-src` necesitarán el origen que indique AWS.
 - **User-Agent:** el BFF reenvía el del navegador en cada llamada a la API, para el aviso de inicio de sesión y para `audit_log.user_agent`.
+- **Icono (WEB-41):** `app/icon.svg` (la "T" blanca sobre un cuadrado redondeado de `action.primary`, `#1C4B42`, escrita a mano) y `app/favicon.ico` (16, 32 y 48 px, generado desde el SVG). Next.js los declara en el `<head>` y el navegador deja de recibir un 404 en `/favicon.ico`. El `matcher` de `proxy.ts` los excluye, como al BFF y a `_next/`; los headers de `next.config.ts` sí los cubren y `img-src 'self'` permite el SVG. Chromium sin interfaz no pide el favicon por su cuenta, así que lo comprueba una prueba que lo pide (`security-headers.spec.ts`).
 
 ## Variables de entorno
 
@@ -107,16 +108,16 @@ Para probar el build de producción por `http` en local: `npm run build` y luego
 
 ## Scripts
 
-| Script                            | Qué hace                                                                                       |
-| --------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `npm run dev`                     | Servidor de desarrollo                                                                         |
-| `npm run build` / `npm start`     | Build de producción y servidor                                                                 |
-| `npm test`                        | Pruebas con Vitest (`npm run test:watch` en modo observación)                                  |
-| `npm run test:e2e`                | Pruebas en navegador con Playwright, contra una API simulada (ver "Pruebas en navegador")      |
-| `npm run test:e2e:prod`           | La prueba de la política de contenido contra `next build` y `next start`                       |
-| `npm run typecheck`               | `next typegen` y `tsc --noEmit`                                                                |
-| `npm run lint`                    | ESLint, sin advertencias permitidas; incluye la regla que prohíbe `parseFloat` y `Number(...)` |
-| `npm run format` / `format:check` | Prettier                                                                                       |
+| Script                            | Qué hace                                                                                         |
+| --------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `npm run dev`                     | Servidor de desarrollo                                                                           |
+| `npm run build` / `npm start`     | Build de producción y servidor                                                                   |
+| `npm test`                        | Pruebas con Vitest (`npm run test:watch` en modo observación)                                    |
+| `npm run test:e2e`                | Pruebas en navegador con Playwright, contra una API simulada (ver "Pruebas en navegador")        |
+| `npm run test:e2e:prod`           | La prueba de la política de contenido contra `next build` y `next start`; también corre en el CI |
+| `npm run typecheck`               | `next typegen` y `tsc --noEmit`                                                                  |
+| `npm run lint`                    | ESLint, sin advertencias permitidas; incluye la regla que prohíbe `parseFloat` y `Number(...)`   |
+| `npm run format` / `format:check` | Prettier                                                                                         |
 
 ## Pruebas
 
@@ -149,15 +150,15 @@ La pantalla de programadas no usa `<dialog>` nativo porque jsdom no implementa `
 npm run test:e2e
 ```
 
-Lo que jsdom no puede medir (layout, `display: none`, el CSS real) se prueba en Chromium con Playwright 1.61.1 (`e2e/`, `playwright.config.ts`). La configuración levanta dos servidores y los detiene al terminar: `e2e/fake-api.mjs` en `127.0.0.1:4999`, una API simulada con los datos canónicos de las historias del rediseño y las formas del contrato, y `next dev` en `127.0.0.1:3101` apuntando a ella. No usa la API real, PostgreSQL ni los puertos 3000 y 4000. Si falta el navegador, la primera vez corre `npx playwright install chromium`. `next dev` usa Turbopack, que necesita observadores de archivos (inotify): si se detiene con "OS file watch limit reached", libera observadores (otros editores o servidores que vigilan carpetas) o sube `fs.inotify.max_user_watches`. El CI de la web las corre después del build, con `npx playwright install --with-deps chromium` y `npm run test:e2e`.
+Lo que jsdom no puede medir (layout, `display: none`, el CSS real) se prueba en Chromium con Playwright 1.61.1 (`e2e/`, `playwright.config.ts`). La configuración levanta dos servidores y los detiene al terminar: `e2e/fake-api.mjs` en `127.0.0.1:4999`, una API simulada con los datos canónicos de las historias del rediseño y las formas del contrato, y `next dev` en `127.0.0.1:3101` apuntando a ella. No usa la API real, PostgreSQL ni los puertos 3000 y 4000. Si falta el navegador, la primera vez corre `npx playwright install chromium`. `next dev` usa Turbopack, que necesita observadores de archivos (inotify): si se detiene con "OS file watch limit reached", libera observadores (otros editores o servidores que vigilan carpetas) o sube `fs.inotify.max_user_watches`. El CI de la web las corre después del build, con `npx playwright install --with-deps chromium` y `npm run test:e2e`, y a continuación `npm run test:e2e:prod`.
 
 - **Layout** (`layout.spec.ts`, `scrollbars.spec.ts`): sin desplazamiento horizontal de 320 a 1920 px, también con barras de desplazamiento clásicas; un solo `h1` visible, un solo `main` y un solo "Saltar al contenido" por pantalla; las dos formas; el texto al 200 %; el pie fijo de los pasos y la barra de pestañas a 20 px de lo último, como en la app móvil.
 - **Teclado** (`keyboard.spec.ts`): la transferencia hasta el comprobante solo con el teclado, a 390 y a 1280 px.
 - **Hojas y diálogos** (`overlays.spec.ts`): foco atrapado, Escape, foco de regreso y la página de fondo sin desplazarse.
 - **Accesibilidad** (`a11y.spec.ts`): axe con el CSS real (incluido el contraste) en cada pantalla, en los pasos del flujo y con las hojas abiertas.
 - **Programadas** (`scheduled.spec.ts`): programar, cancelar y el `409` de una que ya no se puede cancelar.
-- **Seguridad** (`security-headers.spec.ts`): ninguna violación de la política de contenido en las pantallas públicas, las autenticadas y el flujo de transferir; un nonce distinto por página, un manejador en línea sin nonce que no corre, los headers en páginas, `/bff` y `/_next`, y la web que no se incrusta en un `iframe`. `layout.spec.ts` y `overlays.spec.ts` inyectan estilos con `addStyleTag`, así que corren con `bypassCSP`.
-- **Compilación de producción** (`npm run test:e2e:prod`, `playwright.prod.config.ts`): la misma prueba de seguridad contra `next build` y `next start` (web en 3105, API simulada en 4995), sin la excepción de las herramientas de desarrollo de Next.js. `next dev` y producción difieren, y esta corrida encontró dos problemas que el desarrollo ocultaba (una página prerenderizada sin nonce y la prueba de `eval` de Zod).
+- **Seguridad** (`security-headers.spec.ts`): en las pantallas públicas, las autenticadas y el flujo de transferir, ninguna violación de la política de contenido, ningún recurso del mismo origen con respuesta de 400 o más y ningún error de consola; además, el icono (`/favicon.ico` e `/icon.svg`) responde 200 con los headers de seguridad (WEB-41); un nonce distinto por página, un manejador en línea sin nonce que no corre, los headers en páginas, `/bff` y `/_next`, y la web que no se incrusta en un `iframe`. `layout.spec.ts` y `overlays.spec.ts` inyectan estilos con `addStyleTag`, así que corren con `bypassCSP`.
+- **Compilación de producción** (`npm run test:e2e:prod`, `playwright.prod.config.ts`): la misma prueba de seguridad contra `next build` y `next start` (web en 3105, API simulada en 4995; también corre en el CI, WEB-38 y WEB-39), sin la excepción de las herramientas de desarrollo de Next.js. `next dev` y producción difieren, y esta corrida encontró dos problemas que el desarrollo ocultaba (una página prerenderizada sin nonce y la prueba de `eval` de Zod).
 
 ## Avisos conocidos
 
