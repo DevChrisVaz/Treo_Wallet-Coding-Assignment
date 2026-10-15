@@ -3,7 +3,7 @@
 ### Requirement: IDN-02 Datos obligatorios del registro
 El registro SHALL exigir email, contraseña, nombres, apellido paterno, fecha de nacimiento, entidad de nacimiento, CURP, RFC y teléfono; el apellido materno es opcional. La API MUST normalizar el email (sin espacios al inicio o al final y en minúsculas, a lo más 254 caracteres). Con `422 VALIDATION_FAILED` y el `pointer` de cada campo, MUST rechazar:
 - una contraseña de menos de 12 o más de 128 caracteres, o sin al menos una letra y un dígito;
-- nombres, apellido paterno o apellido materno (si se envía) que no sean de 1 a 100 caracteres, sin espacios al inicio, al final ni repetidos, y solo con letras (con acentos y ñ), apóstrofo, guion y punto; los nombres y el apellido paterno MUST NOT estar vacíos y el apellido materno vacío se trata como omitido;
+- nombres, apellido paterno o apellido materno (si se envía) que no sean de 1 a 100 caracteres, sin espacios al inicio, al final ni repetidos, y solo con letras (con acentos y ñ), apóstrofo, guion y punto; los nombres y el apellido paterno MUST NOT estar vacíos y el apellido materno vacío se trata como omitido, y cuya unión con espacios no pase de 100 caracteres (`TOO_LONG` en `/firstNames`);
 - una CURP con estructura o dígito verificador inválidos, o con fecha de nacimiento inexistente (`INVALID_DATE`);
 - una fecha de nacimiento (`birthDate`, `YYYY-MM-DD`) con formato inválido, distinta de la que codifica la CURP (`INVALID_FORMAT`, "La fecha no coincide con tu CURP"), futura (`INVALID_DATE`) o de una persona menor de 18 años al día de hoy en `America/Mexico_City` (`DATE_OUT_OF_RANGE`);
 - una entidad de nacimiento (`birthState`) que no sea uno de los 33 códigos de la CURP, incluido `NE` para nacido en el extranjero, o que sea distinta de la que codifica la CURP (`INVALID_FORMAT`, "La entidad no coincide con tu CURP");
@@ -49,6 +49,11 @@ El teléfono válido MUST guardarse en formato E.164 (`+52` seguido de los 10 d�
 #### Scenario: Nombre con acentos, ñ, apóstrofo y guion
 - **WHEN** se registra `firstNames` `"María-José"`, `paternalSurname` `"O'Brien"` y `maternalSurname` `"Ñ."` con los demás datos válidos
 - **THEN** la API acepta el registro
+
+#### Scenario: Nombre completo demasiado largo
+- **WHEN** se registra `firstNames` de 50 caracteres, `paternalSurname` de 40 y `maternalSurname` de 20
+- **THEN** la API responde `422 VALIDATION_FAILED` con `pointer` igual a `/firstNames` y `code` `TOO_LONG`
+- **AND** no se crea ningún usuario
 
 #### Scenario: Apellido materno ausente
 - **WHEN** se registra `firstNames` `"Ana"`, `paternalSurname` `"Pérez"` sin `maternalSurname` y con una CURP cuya posición 3 es `X`

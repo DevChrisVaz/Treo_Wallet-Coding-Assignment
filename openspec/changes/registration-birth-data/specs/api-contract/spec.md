@@ -6,6 +6,7 @@ El paquete SHALL exportar esquemas de validación reutilizables en el cliente y 
 El esquema del formulario de registro SHALL aplicar además las reglas que JSON Schema no expresa, con un error por campo:
 - el correo se recorta y se pasa a minúsculas antes de validarlo;
 - `firstNames`, `paternalSurname` y `maternalSurname` (opcional; vacío equivale a omitido) son de 1 a 100 caracteres, sin espacios en los extremos ni repetidos, y solo con letras (con acentos y ñ), apóstrofo, guion y punto;
+- el nombre completo que resulta de unir `firstNames`, `paternalSurname` y `maternalSurname` con un espacio no pasa de 100 caracteres (`TOO_LONG`, en `/firstNames`);
 - la contraseña tiene de 12 a 128 caracteres, con al menos una letra y un dígito;
 - `birthDate` tiene la forma `YYYY-MM-DD`, existe en el calendario y es igual a la fecha que codifica la CURP (`INVALID_FORMAT`, en `/birthDate`); una fecha futura se rechaza con `INVALID_DATE` y la de una persona menor de 18 años al día de hoy en `America/Mexico_City` con `DATE_OUT_OF_RANGE`, ambas en `/birthDate`;
 - `birthState` es un código del catálogo de CTR-21 e igual a la entidad que codifica la CURP (`INVALID_FORMAT`, en `/birthState`);
@@ -48,6 +49,10 @@ El esquema del formulario de transferencia MUST tener una variante que, dado el 
 #### Scenario: Nombre con dígitos
 - **WHEN** el formulario de registro trae `firstNames` `"Ana2"`
 - **THEN** el esquema lo rechaza en `/firstNames`
+
+#### Scenario: Nombre completo demasiado largo
+- **WHEN** el formulario de registro trae `firstNames` de 50 caracteres, `paternalSurname` de 40 y `maternalSurname` de 20
+- **THEN** el esquema lo rechaza en `/firstNames` con `TOO_LONG`
 
 #### Scenario: Apellido materno omitido
 - **WHEN** el formulario de registro no trae `maternalSurname` o lo trae vacío
