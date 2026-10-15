@@ -56,5 +56,8 @@ const styles = StyleSheet.create({
     ...theme.typography.caption,
     fontFamily: theme.typography.label.fontFamily,
     color: theme.colors.text.onInverse,
+    // Android calcula el ancho del texto sin contar el `letterSpacing` de `caption` (0.1) y la última
+    // letra de "Transferir" saltaba a una segunda línea que no se ve. Sin interletraje no hay salto.
+    letterSpacing: 0,
   },
 });
