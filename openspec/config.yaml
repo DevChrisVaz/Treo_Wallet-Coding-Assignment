@@ -15,15 +15,17 @@ context: |
       desactivado y migraciones TypeORM (SQL crudo donde TypeORM no alcanza), Zod para la entrada,
       argon2id, JWT HS256, logs JSON con pino, correo por SMTP (Mailpit en local, SES en AWS).
     - /web: Next.js (App Router) como BFF. Componentes cliente con TanStack Query; mutaciones con
-      Server Actions; lecturas con un proxy GET con lista blanca; sesión guardada en el servidor
-      (Map en local, Redis en AWS). Los tokens nunca llegan al navegador.
+      Server Actions; lecturas con un proxy GET con lista blanca; sesión guardada en el servidor:
+      en Redis cuando hay REDIS_URL (en local, el docker-compose.yml de /web; en AWS, ElastiCache)
+      y en un Map en memoria sin ella. Los tokens nunca llegan al navegador.
     - /mobile: Expo (React Native) con TypeScript; tokens en expo-secure-store, nunca en AsyncStorage.
     - /design-tokens: paquete @devchrisvaz/wallet-design-tokens, sistema de diseño de TreoWallet
       (identidad de treo.mx con ajustes WCAG AA): tokens semánticos del tema claro, salidas para
       Tailwind v4 (web) y React Native (móvil), estados, movimientos y textos de error en es-MX.
       Se consume igual que el contrato, con "file:../design-tokens" e install-links=true.
 
-  Puertos locales: API 4000, web 3000, PostgreSQL de docker compose 5433, Mailpit 1025 y 8025.
+  Puertos locales: API 4000, web 3000, PostgreSQL de docker compose 5433, Mailpit 1025 y 8025,
+  Redis de la web 6379 (solo en 127.0.0.1).
 
   Dinero: BIGINT en centavos en la base; value object Money con BigInt en el dominio; strings
   decimales en JSON (entrada con 0 a 2 decimales, salida siempre con 2); nunca floats; nunca se
