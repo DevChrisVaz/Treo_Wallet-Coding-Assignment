@@ -1,6 +1,6 @@
 # Matriz de trazabilidad
 
-Generada con `scripts/trace.sh`: 217 requisitos. Las columnas de tareas y commits muestran el total y los primeros; los commits son los que citan el ID en `Refs:` o los que ligan una tarea que lo nombra con `Task:`. En `Pruebas` se cuentan las pruebas cuyo título empieza con el ID, por proyecto.
+Generada con `scripts/trace.sh`: 218 requisitos. Las columnas de tareas y commits muestran el total y los primeros; los commits son los que citan el ID en `Refs:` o los que ligan una tarea que lo nombra con `Task:`. En `Pruebas` se cuentan las pruebas cuyo título empieza con el ID, por proyecto.
 
 | ID | Requisito | Change | Tareas | Commits | Pruebas |
 |---|---|---|---|---|---|
@@ -37,7 +37,7 @@ Generada con `scripts/trace.sh`: 217 requisitos. Las columnas de tareas y commit
 | BEN-10 | Límite de altas de beneficiarios | api-ledger | 2: api-ledger#5.4 api-ledger#5.6 | 2: c076f67 605ed26 | api 1 |
 | BEN-11 | Auditoría del alta de beneficiarios | api-ledger | 3: api-ledger#5.3 api-ledger#5.6 domain-test-coverage#4.2 | 3: b347718 c076f67 e3e5f28 | api 4 |
 | CTR-01 | Contrato OpenAPI como fuente de verdad | contract-v1 | 2: contract-v1#1.2 contract-v1#6.1 | 2: b2f920a 25ea459 | — |
-| CTR-02 | Versionado semántico del contrato | contract-v1 | 6: contract-v1#1.3 contract-v1#6.2 contract-v1-1#1.3 (+3) | 12: 3df47c3 b211155 8721244 (+9) | contract 3 |
+| CTR-02 | Versionado semántico del contrato | contract-v1 | 7: contract-v1#1.3 contract-v1#6.2 contract-v1-1#1.3 (+4) | 12: 3df47c3 b211155 8721244 (+9) | contract 3 |
 | CTR-03 | Tipos generados desde el contrato | contract-v1 | 3: contract-v1#2.1 contract-v1#2.2 contract-v1#6.1 | 3: b2f920a cdb92c8 cd24bec | — |
 | CTR-04 | Cliente HTTP tipado por rutas | contract-v1 | 1: contract-v1#2.3 | 1: 8e1a0da | contract 8 |
 | CTR-05 | Request ID en cada petición | contract-v1 | 1: contract-v1#2.4 | 1: 24b5d02 | contract 3 |
@@ -48,7 +48,7 @@ Generada con `scripts/trace.sh`: 217 requisitos. Las columnas de tareas y commit
 | CTR-10 | Validación de CURP con dígito verificador | contract-v1 | 4: contract-v1#3.1 contract-v1#3.4 domain-test-coverage#7.1 (+1) | 4: befd9dd 39512bb 3c59b09 (+1) | api 1 |
 | CTR-11 | Validación de RFC de persona física | contract-v1, ux-fixes | 5: contract-v1#3.1 contract-v1#3.5 domain-test-coverage#7.1 (+2) | 6: 8721244 b79fd1e befd9dd (+3) | contract 3 |
 | CTR-12 | Validación de teléfono, concepto, referencia y códigos | contract-v1, ux-fixes | 6: contract-v1#3.1 contract-v1#3.6 domain-test-coverage#7.2 (+3) | 5: 8721244 b79fd1e 0dcce09 (+2) | contract 8 |
-| CTR-13 | Esquemas de formularios alineados con el contrato | contract-v1, contract-v1-2, ux-fixes | 9: contract-v1#3.7 contract-v1#3.8 contract-v1-2#1.2 (+6) | 9: 8721244 b79fd1e 0dcce09 (+6) | contract 14 |
+| CTR-13 | Esquemas de formularios alineados con el contrato | contract-v1, contract-v1-2, registration-birth-data, ux-fixes | 11: contract-v1#3.7 contract-v1#3.8 contract-v1-2#1.2 (+8) | 9: 8721244 b79fd1e 0dcce09 (+6) | contract 24 |
 | CTR-14 | Formato de montos en es-MX sin floats | contract-v1 | 2: contract-v1#4.1 contract-v1#4.2 | 2: 3f8a98b 00bafd9 | contract 2 |
 | CTR-15 | Paquete agnóstico de entorno | contract-v1, contract-v1-1 | 5: contract-v1#1.1 contract-v1#5.1 contract-v1#5.2 (+2) | 7: 6f0a8a7 18354b0 f486d8d (+4) | contract 6 |
 | CTR-16 | Distribución como artefacto, sin dependencias de código | contract-v1 | 3: contract-v1#5.1 contract-v1#5.3 contract-v1#6.2 | 4: f909af3 b859bf3 75f61c2 (+1) | contract 1 |
@@ -56,6 +56,7 @@ Generada con `scripts/trace.sh`: 217 requisitos. Las columnas de tareas y commit
 | CTR-18 | Calendario de la Ciudad de México en el paquete | contract-v1-2, ux-fixes | 2: contract-v1-2#1.3 ux-fixes#10.1 | 4: 8721244 b79fd1e 5963992 (+1) | contract 3 |
 | CTR-19 | Descarga de documentos binarios | contract-v1-2 | 1: contract-v1-2#1.1 | 2: f415c27 ad628da | contract 3 |
 | CTR-20 | Utilidades de captura y búsqueda de texto | ux-fixes | 3: ux-fixes#3.1 ux-fixes#5.1 ux-fixes#8.1 | 2: 8721244 b79fd1e | contract 10 |
+| CTR-21 | Catálogo de entidades de nacimiento | registration-birth-data | 1: registration-birth-data#1.2 | — | contract 2 |
 | DSG-01 | Paquete de tokens como fuente única | design-system | 8: design-system#1.1 design-system#5.1 design-system#5.2 (+5) | 11: b1ea000 f251908 e174ed1 (+8) | web 2, mobile 4, design-tokens 7 |
 | DSG-02 | Identidad visual basada en Treo | design-system | 2: design-system#2.1 web-app#1.3 | 4: 9e12634 715b4b1 7b6e740 (+1) | web 2, mobile 2, design-tokens 3 |
 | DSG-03 | Tokens semánticos | design-system | 3: design-system#2.1 mobile-app#1.7 web-app#1.5 | 8: f3f3e97 c3af92d 21b249b (+5) | mobile 2, design-tokens 2 |
@@ -87,8 +88,8 @@ Generada con `scripts/trace.sh`: 217 requisitos. Las columnas de tareas y commit
 | HIS-11 | Estado de cuenta mensual en PDF | account-statements, ux-fixes | 6: account-statements#1.1 account-statements#1.2 account-statements#1.8 (+3) | 12: 7663863 b79fd1e 0b9c0c9 (+9) | contract 9, api 29 |
 | HIS-12 | Contenido y conciliación del estado de cuenta | account-statements, ux-fixes | 10: account-statements#1.2 account-statements#1.3 account-statements#1.4 (+7) | 13: 7663863 bfc57a6 0b9c0c9 (+10) | api 46 |
 | IDN-01 | Registro con respuesta uniforme | api-foundation, ux-fixes | 4: api-foundation#7.3 domain-test-coverage#3.1 domain-test-coverage#3.5 (+1) | 7: 2ee4d6c 26fd371 1b4375a (+4) | api 7 |
-| IDN-02 | Datos obligatorios del registro | api-foundation, ux-fixes | 6: api-foundation#2.5 api-foundation#6.1 api-foundation#7.3 (+3) | 8: 7663863 b79fd1e c51d653 (+5) | api 25 |
-| IDN-03 | Unicidad de los datos de identidad | api-foundation, ux-fixes | 5: api-foundation#2.5 api-foundation#7.3 domain-test-coverage#3.5 (+2) | 8: 2ee4d6c 26fd371 e45deb4 (+5) | api 9 |
+| IDN-02 | Datos obligatorios del registro | api-foundation, registration-birth-data, ux-fixes | 10: api-foundation#2.5 api-foundation#6.1 api-foundation#7.3 (+7) | 8: 7663863 b79fd1e c51d653 (+5) | api 35 |
+| IDN-03 | Unicidad de los datos de identidad | api-foundation, ux-fixes | 5: api-foundation#2.5 api-foundation#7.3 domain-test-coverage#3.5 (+2) | 9: 0a1afee 2ee4d6c 26fd371 (+6) | api 9 |
 | IDN-04 | Almacenamiento seguro de contraseñas | api-foundation | 1: api-foundation#7.1 | 1: fed4b5e | api 5 |
 | IDN-05 | Código de verificación de correo | api-foundation | 4: api-foundation#2.8 api-foundation#7.2 domain-test-coverage#3.1 (+1) | 4: c51d653 a5fe8fb 6323e25 (+1) | api 15 |
 | IDN-06 | Verificación de correo | api-foundation | 3: api-foundation#7.5 domain-test-coverage#3.6 ux-fixes#5.2 | 4: 7663863 fb2e70e 2bdbcc7 (+1) | api 7 |
@@ -194,8 +195,8 @@ Generada con `scripts/trace.sh`: 217 requisitos. Las columnas de tareas y commit
 | WEB-08 | Resultado de las mutaciones como valor | web-app | 3: scheduled-transfers#3.3 web-app#2.5 web-app#5.1 | 5: 433fa46 27509a1 9635f0c (+2) | web 13 |
 | WEB-09 | Proxy de lecturas con lista blanca | web-app | 5: account-statements#2.1 scheduled-transfers#3.3 web-app#1.2 (+2) | 8: 852e373 433fa46 27509a1 (+5) | web 14 |
 | WEB-10 | Propagación de headers hacia la API | web-app | 2: web-app#2.3 web-app#8.1 | 3: 0cbf6ed d3ba0b9 05aa965 | web 14 |
-| WEB-11 | Registro y verificación de correo | ux-fixes, web-app | 6: redesign#6.2 ux-fixes#2.3 ux-fixes#2.6 (+3) | 8: 2ee4d6c 9925197 1b4375a (+5) | web 20 |
-| WEB-12 | Inicio de sesión | web-app | 4: contract-v1-1#2.1 redesign#6.2 web-app#4.1 (+1) | 4: 2712c63 af02f36 1627708 (+1) | web 11 |
+| WEB-11 | Registro y verificación de correo | registration-birth-data, ux-fixes, web-app | 8: redesign#6.2 registration-birth-data#3.1 registration-birth-data#3.2 (+5) | 8: 2ee4d6c 9925197 1b4375a (+5) | web 25 |
+| WEB-12 | Inicio de sesión | web-app | 4: contract-v1-1#2.1 redesign#6.2 web-app#4.1 (+1) | 5: b63ce47 2712c63 af02f36 (+2) | web 11 |
 | WEB-13 | Resumen de cuentas | ux-fixes, web-app | 2: ux-fixes#7.1 web-app#6.1 | 6: 64d86f3 d548eab 1f484b4 (+3) | web 9 |
 | WEB-14 | Historial de movimientos | web-app | 4: account-statements#2.3 redesign#6.4 web-app#6.2 (+1) | 7: b9aeea0 db1bffd 5719ece (+4) | web 15 |
 | WEB-15 | Beneficiarios | web-app | 2: web-app#7.1 web-app#7.2 | 4: 221a143 af02f36 05aa62c (+1) | web 9 |
@@ -220,7 +221,7 @@ Generada con `scripts/trace.sh`: 217 requisitos. Las columnas de tareas y commit
 | WEB-34 | Página de transferencias programadas | scheduled-transfers, ux-fixes | 8: redesign#P1 redesign#P2 scheduled-transfers#3.1 (+5) | 43: 64d86f3 b1ea000 048ca0b (+40) | web 31 |
 | WEB-35 | Recibir dinero | ux-fixes | 1: ux-fixes#7.1 | 2: 64d86f3 b79fd1e | web 8 |
 | WEB-36 | Búsqueda de beneficiarios | ux-fixes | 1: ux-fixes#8.2 | 2: 64d86f3 b79fd1e | web 14 |
-| WEB-37 | Sesión que sobrevive al reinicio del servidor web | web-redis-sessions | 7: web-redis-sessions#1.1 web-redis-sessions#1.2 web-redis-sessions#2.2 (+4) | 12: 3805fb2 48964c7 25006f2 (+9) | web 15 |
+| WEB-37 | Sesión que sobrevive al reinicio del servidor web | web-redis-sessions | 7: web-redis-sessions#1.1 web-redis-sessions#1.2 web-redis-sessions#2.2 (+4) | 13: 0d71975 3805fb2 48964c7 (+10) | web 15 |
 
 ## Huecos
 
@@ -228,9 +229,9 @@ Generada con `scripts/trace.sh`: 217 requisitos. Las columnas de tareas y commit
 
 Ninguno.
 
-### Requisitos sin commit (0)
+### Requisitos sin commit (1)
 
-Ninguno.
+- `CTR-21` Catálogo de entidades de nacimiento
 
 ### Requisitos sin prueba cuyo título empiece con su ID (4)
 
