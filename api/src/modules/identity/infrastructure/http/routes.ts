@@ -114,7 +114,9 @@ export function identityRoutes(
 
   routes.public.post('/auth/login', loginByIp, loginByIpAndEmail, async (req, res) => {
     const input = parseBody(loginRequestSchema, req.body);
-    res.status(200).json(await handlers.login.execute(input));
+    res
+      .status(200)
+      .json(await handlers.login.execute(input, { ip: req.ip, userAgent: req.get('User-Agent') }));
   });
 
   routes.public.post('/auth/logout', logoutByIp, async (req, res) => {

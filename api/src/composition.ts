@@ -40,6 +40,7 @@ import { docsRouter } from './platform/http/docs.js';
 import { healthRouter } from './platform/http/health.js';
 import { createLogger, type Logger } from './platform/logging/logger.js';
 import type { Mailer } from './platform/mail/mailer.js';
+import { NoticeDispatcher } from './platform/mail/notice-dispatcher.js';
 import { SmtpMailer } from './platform/mail/smtp-mailer.js';
 import { createAppDataSource } from './platform/persistence/data-sources.js';
 import { PgErrorTranslator } from './platform/persistence/pg-errors.js';
@@ -100,6 +101,8 @@ export interface Container {
   readonly clock: Clock;
   readonly logger: Logger;
   readonly mailer: Mailer;
+  /** Avisos por correo que no hacen esperar la respuesta (D8 de security-hardening). */
+  readonly notices: NoticeDispatcher;
   readonly transactions: TransactionRunner;
   readonly audit: AuditWriter;
   readonly errors: PgErrorTranslator;
@@ -158,6 +161,7 @@ export async function createContainer(
   const clock = overrides.clock ?? systemClock;
   const dataSource = overrides.dataSource ?? createAppDataSource(config.databaseUrl);
   const mailer = overrides.mailer ?? new SmtpMailer(config.smtp);
+  const notices = new NoticeDispatcher(mailer, logger);
   const hasher = overrides.hasher ?? (await Argon2PasswordHasher.create());
   const audit = overrides.audit ?? new PgAuditWriter(dataSource, clock);
   const transactions = new TypeormTransactionRunner(dataSource);
@@ -198,6 +202,7 @@ export async function createContainer(
     clock,
     logger,
     mailer,
+    notices,
     transactions,
     audit,
     errors,
@@ -241,7 +246,16 @@ export async function createContainer(
         audit,
         clock,
       }),
-      login: new Login({ transactions, users, hasher, sessions, accessTokens, audit, clock }),
+      login: new Login({
+        transactions,
+        users,
+        hasher,
+        sessions,
+        accessTokens,
+        audit,
+        notices,
+        clock,
+      }),
       logout: new Logout({ transactions, store: refreshTokens, audit, clock }),
       getCurrentUser: new GetCurrentUser(users),
     },

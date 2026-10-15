@@ -2,7 +2,11 @@ import type { AuthSession } from '@devchrisvaz/wallet-contract';
 import type { Clock } from '../../../shared/clock.js';
 import { DomainError } from '../../../shared/errors.js';
 import type { TransactionRunner } from '../../../shared/transaction.js';
+import { maskIp } from '../../../shared/masking.js';
+import type { NoticeDispatcher } from '../../../platform/mail/notice-dispatcher.js';
 import type { AuditWriter } from '../../audit/application/audit-writer.js';
+import { describeClient } from './client-description.js';
+import { loginNoticeEmail } from './email-templates.js';
 import type { PasswordHasher } from './ports.js';
 import type { SessionService } from './sessions.js';
 import type { AccessTokens } from './tokens.js';
@@ -16,7 +20,15 @@ export interface LoginDeps {
   readonly sessions: SessionService;
   readonly accessTokens: AccessTokens;
   readonly audit: AuditWriter;
+  /** Avisos que no hacen esperar la respuesta (IDN-18). */
+  readonly notices: NoticeDispatcher;
   readonly clock: Clock;
+}
+
+/** Lo que la petición sabe del cliente: la IP según `trust proxy` y su `User-Agent`. */
+export interface LoginClient {
+  readonly ip?: string | undefined;
+  readonly userAgent?: string | undefined;
 }
 
 function invalidCredentials(): DomainError {
@@ -28,15 +40,19 @@ function invalidCredentials(): DomainError {
  * 401 y ambos verifican un hash argon2id (el ficticio cuando el email no existe), para que tarden
  * lo mismo. Con contraseña correcta y correo sin verificar responde 403. Los fallos se auditan por
  * separado (`LOGIN_FAILED`, sin cambio de negocio); el éxito crea la familia de refresh y audita
- * `LOGIN_SUCCEEDED` en la misma transacción.
+ * `LOGIN_SUCCEEDED` en la misma transacción y, después, avisa por correo sin hacer esperar la
+ * respuesta (IDN-18).
  */
 export class Login {
   constructor(private readonly deps: LoginDeps) {}
 
-  async execute(input: {
-    readonly email: string;
-    readonly password: string;
-  }): Promise<AuthSession> {
+  async execute(
+    input: {
+      readonly email: string;
+      readonly password: string;
+    },
+    client: LoginClient = {},
+  ): Promise<AuthSession> {
     const { users, hasher, audit, transactions, sessions, clock } = this.deps;
     const user = await users.findByEmail(input.email);
     if (!user) {
@@ -87,6 +103,18 @@ export class Login {
       return started;
     });
     const access = await this.deps.accessTokens.issue(user.id, clock.now());
+    // Después del COMMIT y sin esperar al servidor de correo (IDN-18, PLT-16).
+    this.deps.notices.send(
+      {
+        to: user.email,
+        ...loginNoticeEmail({
+          at: clock.now(),
+          client: describeClient(client.userAgent).text,
+          maskedIp: maskIp(client.ip),
+        }),
+      },
+      'login-notice',
+    );
     return toAuthSession(user, access, session);
   }
 }
