@@ -102,3 +102,30 @@ export const rfcVectors: Vector[] = [
   { input: 'gomc900101ab1', valid: false, code: 'INVALID_FORMAT' },
   { input: '', valid: false, code: 'REQUIRED' },
 ];
+
+/** Esquema `BirthDate` del contrato: que exista en el calendario se valida fuera del schema. */
+export const birthDateVectors: Vector[] = [
+  { input: '1990-01-01', valid: true },
+  { input: '2008-02-29', valid: true, note: 'año bisiesto' },
+  {
+    input: '1990-02-30',
+    valid: false,
+    contractValid: true,
+    code: 'INVALID_DATE',
+    note: 'no existe',
+  },
+  { input: '1990-1-1', valid: false, code: 'INVALID_FORMAT' },
+  { input: '1990-01-01T00:00:00Z', valid: false, code: 'INVALID_FORMAT' },
+  { input: '01/01/1990', valid: false, code: 'INVALID_FORMAT' },
+  { input: '1990-13-01', valid: false, code: 'INVALID_FORMAT' },
+];
+
+/** Esquema `BirthState` del contrato: los 33 códigos de la CURP, en mayúsculas. */
+export const birthStateVectors: Vector[] = [
+  { input: 'DF', valid: true },
+  { input: 'NE', valid: true, note: 'nacido en el extranjero' },
+  { input: 'df', valid: false, code: 'INVALID_FORMAT' },
+  { input: 'XX', valid: false, code: 'INVALID_FORMAT' },
+  { input: 'DFX', valid: false, code: 'INVALID_FORMAT' },
+  { input: '', valid: false, code: 'REQUIRED' },
+];

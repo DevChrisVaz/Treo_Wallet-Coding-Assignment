@@ -1,10 +1,19 @@
 import * as z from 'zod';
 import { amountInput } from './amount';
 import { clabe } from './clabe';
-import { curp, curpBirthDate, hasReachedAge } from './curp';
+import { curp, curpBirthDate, curpBirthState, hasReachedAge } from './curp';
 import { mexicoCityDate, scheduledInstant, scheduledInstantWithin } from './dates';
 import { addFieldIssue, textField } from './field-errors';
-import { concept, optionalReference, otpCode, phone } from './fields';
+import {
+  birthDate,
+  birthState,
+  concept,
+  namePart,
+  optionalNamePart,
+  optionalReference,
+  otpCode,
+  phone,
+} from './fields';
 import { rfc, rfcMatchesCurp } from './rfc';
 
 function codePointLength(value: string): number {
@@ -46,33 +55,6 @@ const fullName = textField('El nombre es obligatorio', (value, ctx) => {
   if (codePointLength(value) > 100) addFieldIssue(ctx, 'TOO_LONG', 'Máximo 100 caracteres');
 });
 
-const PERSON_NAME = /^\p{L}[\p{L}\p{M}'.-]*( \p{L}[\p{L}\p{M}'.-]*)+$/u;
-
-/** Nombre del titular al registrarse (`PersonName`): dos palabras o más, solo letras y `' . -`. */
-export const personName = textField('El nombre es obligatorio', (value, ctx) => {
-  if (value.trim() === '') return addFieldIssue(ctx, 'REQUIRED', 'El nombre es obligatorio');
-  const length = codePointLength(value);
-  if (length < 2) return addFieldIssue(ctx, 'TOO_SHORT', 'Escribe al menos 2 caracteres');
-  if (length > 100) return addFieldIssue(ctx, 'TOO_LONG', 'Máximo 100 caracteres');
-  if (/[^\p{L}\p{M}'. -]/u.test(value)) {
-    return addFieldIssue(
-      ctx,
-      'INVALID_FORMAT',
-      'Solo letras, espacios, apóstrofo, guion y punto; sin números ni símbolos',
-    );
-  }
-  if (/^ | $| {2}/.test(value)) {
-    return addFieldIssue(
-      ctx,
-      'INVALID_FORMAT',
-      'Sin espacios al inicio, al final ni repetidos entre palabras',
-    );
-  }
-  if (!PERSON_NAME.test(value)) {
-    addFieldIssue(ctx, 'INVALID_FORMAT', 'Escribe tu nombre y al menos un apellido');
-  }
-});
-
 const alias = textField('El alias es obligatorio', (value, ctx) => {
   if (value.trim() === '') return addFieldIssue(ctx, 'REQUIRED', 'El alias es obligatorio');
   if (codePointLength(value) > 30) return addFieldIssue(ctx, 'TOO_LONG', 'Máximo 30 caracteres');
@@ -90,7 +72,11 @@ const uuid = textField('El identificador es obligatorio', (value, ctx) => {
 const registerShape = {
   email: normalizedEmail,
   password: newPassword,
-  fullName: personName,
+  firstNames: namePart,
+  paternalSurname: namePart,
+  maternalSurname: optionalNamePart,
+  birthDate,
+  birthState,
   curp,
   rfc,
   phone,
@@ -102,27 +88,64 @@ export const MINIMUM_AGE = 18;
 function registerFormWith(today: () => string) {
   return z.strictObject(registerShape).superRefine((form, ctx) => {
     // Las reglas entre campos solo aplican cuando cada campo, por separado, ya es válido.
+    if (
+      namePart.safeParse(form.firstNames).success &&
+      namePart.safeParse(form.paternalSurname).success &&
+      [form.firstNames, form.paternalSurname, form.maternalSurname]
+        .filter((part) => part !== undefined && part !== '')
+        .join(' ').length > 100
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['firstNames'],
+        message: 'El nombre completo no puede pasar de 100 caracteres',
+        params: { fieldCode: 'TOO_LONG' },
+      });
+    }
+
     const curpValue = curp.safeParse(form.curp).success ? form.curp : undefined;
-    if (curpValue !== undefined) {
-      const birthDate = curpBirthDate(curpValue);
-      if (birthDate !== null) {
+    const dateValue = birthDate.safeParse(form.birthDate).success ? form.birthDate : undefined;
+    const stateValue = birthState.safeParse(form.birthState).success ? form.birthState : undefined;
+
+    if (dateValue !== undefined) {
+      const curpDate = curpValue === undefined ? null : curpBirthDate(curpValue);
+      if (curpDate !== null && dateValue !== curpDate) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['birthDate'],
+          message: 'La fecha no coincide con tu CURP',
+          params: { fieldCode: 'INVALID_FORMAT' },
+        });
+      } else {
         const now = today();
-        if (birthDate > now) {
+        if (dateValue > now) {
           ctx.addIssue({
             code: 'custom',
-            path: ['curp'],
-            message: 'La fecha de nacimiento de la CURP está en el futuro',
+            path: ['birthDate'],
+            message: 'La fecha de nacimiento está en el futuro',
             params: { fieldCode: 'INVALID_DATE' },
           });
-        } else if (!hasReachedAge(birthDate, now, MINIMUM_AGE)) {
+        } else if (!hasReachedAge(dateValue, now, MINIMUM_AGE)) {
           ctx.addIssue({
             code: 'custom',
-            path: ['curp'],
+            path: ['birthDate'],
             message: 'Debes tener al menos 18 años para registrarte',
             params: { fieldCode: 'DATE_OUT_OF_RANGE' },
           });
         }
       }
+    }
+    if (
+      curpValue !== undefined &&
+      stateValue !== undefined &&
+      curpBirthState(curpValue) !== stateValue
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['birthState'],
+        message: 'La entidad no coincide con tu CURP',
+        params: { fieldCode: 'INVALID_FORMAT' },
+      });
     }
     if (
       curpValue !== undefined &&
@@ -141,8 +164,8 @@ function registerFormWith(today: () => string) {
 
 /**
  * Formulario de registro (`RegisterRequest`). Además de cada campo, revisa que el RFC coincida con
- * la CURP (primeros 10 caracteres, error en `/rfc`) y que la CURP corresponda a una persona de 18
- * años o más hoy en la Ciudad de México (error en `/curp`). «Hoy» se lee del reloj en cada
+ * la CURP (primeros 10 caracteres, error en `/rfc`) y que la fecha de nacimiento, igual a la de la CURP, sea de una persona de
+ * 18 años o más hoy en la Ciudad de México (error en `/birthDate`) y que la entidad sea la de la CURP (`/birthState`). «Hoy» se lee del reloj en cada
  * validación; con un instante fijo, usa `registerFormAt`.
  */
 export const registerForm = registerFormWith(() => mexicoCityDate(new Date()));

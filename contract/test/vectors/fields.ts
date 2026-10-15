@@ -71,29 +71,6 @@ export const passwordVectors: Vector[] = [
   { input: '', valid: false, code: 'REQUIRED' },
 ];
 
-/** Esquema `PersonName` del contrato: nombre del titular al registrarse (CTR-13). */
-export const personNameVectors: Vector[] = [
-  { input: 'Ana Gómez', valid: true },
-  { input: 'Ana Gómez Núñez', valid: true },
-  { input: 'María José Peña-Ortiz', valid: true, note: 'guion' },
-  { input: "Luis D'Angelo", valid: true, note: 'apóstrofo' },
-  { input: 'Juan Pérez Jr.', valid: true, note: 'punto' },
-  { input: 'Ñandú Ibáñez', valid: true },
-  { input: 'Ana Gómez ', valid: false, code: 'INVALID_FORMAT', note: 'espacio al final' },
-  { input: ' Ana Gómez', valid: false, code: 'INVALID_FORMAT', note: 'espacio al inicio' },
-  { input: 'Ana  Gómez', valid: false, code: 'INVALID_FORMAT', note: 'espacios repetidos' },
-  { input: 'Ana', valid: false, code: 'INVALID_FORMAT', note: 'una sola palabra' },
-  { input: 'Ana Gómez2', valid: false, code: 'INVALID_FORMAT', note: 'dígito' },
-  { input: 'Ana G@mez', valid: false, code: 'INVALID_FORMAT', note: 'símbolo' },
-  { input: 'Ana\nGómez', valid: false, code: 'INVALID_FORMAT', note: 'salto de línea' },
-  { input: '-Ana Gómez', valid: false, code: 'INVALID_FORMAT', note: 'empieza con guion' },
-  { input: `${'N'.repeat(50)} ${'N'.repeat(50)}`, valid: false, code: 'TOO_LONG', note: '101' },
-  { input: `${'N'.repeat(49)} ${'N'.repeat(50)}`, valid: true, note: '100' },
-  { input: 'A', valid: false, code: 'TOO_SHORT', note: '1 carácter' },
-  { input: 123, valid: false, code: 'INVALID_TYPE' },
-  { input: '', valid: false, code: 'REQUIRED' },
-];
-
 /**
  * Esquema `ScheduledInstant` del contrato (TRF-27). El patrón exige minutos exactos y desfase; no sabe
  * de calendario: un día que no existe pasa el patrón y solo el paquete lo rechaza.
@@ -113,4 +90,19 @@ export const scheduledInstantVectors: Vector[] = [
   { input: '2026-10-20T10:61:00Z', valid: false, code: 'INVALID_FORMAT', contractValid: true },
   { input: 1792000000000, valid: false, code: 'INVALID_TYPE' },
   { input: '', valid: false, code: 'REQUIRED' },
+];
+
+/** Esquema `NamePart` del contrato: nombres y apellidos del registro (CTR-13). */
+export const namePartVectors: Vector[] = [
+  { input: 'Ana', valid: true },
+  { input: 'José Luis', valid: true, note: 'nombre compuesto' },
+  { input: "O'Brien", valid: true, note: 'apóstrofo' },
+  { input: 'María-José Ñ.', valid: true, note: 'guion, ñ y punto' },
+  { input: 'N'.repeat(100), valid: true, note: '100 caracteres' },
+  { input: '', valid: false, code: 'REQUIRED' },
+  { input: ' Ana', valid: false, code: 'INVALID_FORMAT', note: 'espacio al inicio' },
+  { input: 'Ana ', valid: false, code: 'INVALID_FORMAT', note: 'espacio al final' },
+  { input: 'Ana  Luz', valid: false, code: 'INVALID_FORMAT', note: 'espacios repetidos' },
+  { input: 'Ana2', valid: false, code: 'INVALID_FORMAT', note: 'dígito' },
+  { input: 'N'.repeat(101), valid: false, code: 'TOO_LONG' },
 ];

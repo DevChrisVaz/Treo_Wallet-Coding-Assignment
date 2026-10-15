@@ -4,7 +4,6 @@ import {
   newPassword,
   optionalReference,
   otpCode,
-  personName,
   phone,
   reference,
   scheduledInstant,
@@ -17,7 +16,6 @@ import {
   referenceVectors,
   scheduledInstantVectors,
   passwordVectors,
-  personNameVectors,
 } from '../vectors/fields';
 import type { Vector } from '../vectors/types';
 
@@ -28,7 +26,6 @@ const cases: [string, { safeParse: (input: unknown) => unknown }, Vector[]][] = 
   ['otpCode', otpCode, otpVectors],
   ['scheduledInstant', scheduledInstant, scheduledInstantVectors],
   ['newPassword', newPassword, passwordVectors],
-  ['personName', personName, personNameVectors],
 ];
 
 describe.each(cases)('%s', (_name, schema, vectors) => {

@@ -2,14 +2,16 @@ import { Ajv2020 } from 'ajv/dist/2020';
 import { describe, expect, it } from 'vitest';
 import {
   amountInput,
+  birthDate,
+  birthState,
   clabe,
   concept,
   curp,
   otpCode,
   phone,
   reference,
+  namePart,
   newPassword,
-  personName,
   rfc,
   scheduledInstant,
 } from '../../src/index';
@@ -17,14 +19,20 @@ import { contract } from '../support/contract';
 import { amountVectors } from '../vectors/amount';
 import {
   conceptVectors,
+  namePartVectors,
   otpVectors,
   phoneVectors,
   passwordVectors,
-  personNameVectors,
   referenceVectors,
   scheduledInstantVectors,
 } from '../vectors/fields';
-import { clabeVectors, curpVectors, rfcVectors } from '../vectors/identity';
+import {
+  birthDateVectors,
+  birthStateVectors,
+  clabeVectors,
+  curpVectors,
+  rfcVectors,
+} from '../vectors/identity';
 import { contractExpectation, type Vector } from '../vectors/types';
 
 // JSON Schema 2020-12 es el dialecto de OpenAPI 3.1. `strict` se relaja solo para las palabras
@@ -42,7 +50,9 @@ const parity: [string, { safeParse: (input: unknown) => { success: boolean } }, 
   ['SixDigitCode', otpCode, otpVectors],
   ['ScheduledInstant', scheduledInstant, scheduledInstantVectors],
   ['Password', newPassword, passwordVectors],
-  ['PersonName', personName, personNameVectors],
+  ['NamePart', namePart, namePartVectors],
+  ['BirthDate', birthDate, birthDateVectors],
+  ['BirthState', birthState, birthStateVectors],
 ];
 
 describe.each(parity)('paridad con el esquema %s del contrato', (schemaName, schema, vectors) => {

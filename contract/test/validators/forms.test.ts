@@ -26,7 +26,11 @@ function withCheckDigit(first17: string): string {
 const validRegister = {
   email: 'ana@example.com',
   password: 'una-contraseña-1',
-  fullName: 'Ana Gómez Núñez',
+  firstNames: 'Ana',
+  paternalSurname: 'Gómez',
+  maternalSurname: 'Núñez',
+  birthDate: '1990-01-01',
+  birthState: 'DF',
   curp: 'GOMC900101HDFNLR09',
   rfc: 'GOMC900101AB1',
   phone: '5512345678',
@@ -150,16 +154,21 @@ describe('longitudes y formato de los campos de los formularios', () => {
     expect(errorsOf(loginForm, { ...login, password: `${'x'.repeat(127)}1` })).toEqual([]);
   });
 
-  it('CTR-12 el nombre completo en blanco es REQUIRED y de más de 100 caracteres es TOO_LONG', () => {
-    expect(errorsOf(registerForm, { ...validRegister, fullName: '   ' })).toEqual([
-      expect.objectContaining({ pointer: '/fullName', code: 'REQUIRED' }),
+  it('CTR-12 el nombre vacío es REQUIRED y una parte de más de 100 caracteres es TOO_LONG', () => {
+    expect(errorsOf(registerForm, { ...validRegister, firstNames: '' })).toEqual([
+      expect.objectContaining({ pointer: '/firstNames', code: 'REQUIRED' }),
     ]);
     expect(
-      errorsOf(registerForm, { ...validRegister, fullName: `${'N'.repeat(49)} ${'N'.repeat(50)}` }),
-    ).toEqual([]);
-    expect(
-      errorsOf(registerForm, { ...validRegister, fullName: `${'N'.repeat(50)} ${'N'.repeat(50)}` }),
-    ).toEqual([expect.objectContaining({ pointer: '/fullName', code: 'TOO_LONG' })]);
+      errorsOf(registerForm, {
+        ...validRegister,
+        firstNames: 'N'.repeat(100),
+        paternalSurname: 'P',
+        maternalSurname: '',
+      }),
+    ).toEqual([expect.objectContaining({ pointer: '/firstNames', code: 'TOO_LONG' })]);
+    expect(errorsOf(registerForm, { ...validRegister, firstNames: 'N'.repeat(101) })).toEqual([
+      expect.objectContaining({ pointer: '/firstNames', code: 'TOO_LONG' }),
+    ]);
   });
 
   it('CTR-12 el alias del beneficiario es obligatorio, también en blanco', () => {
@@ -346,13 +355,18 @@ describe('reglas de registro entre campos (CTR-13)', () => {
     ['nació hace 17 años', 'GOMC091014HDFNLRA', '2009-10-14', false],
   ])(
     'CTR-13 la mayoría de edad se calcula con el día de la Ciudad de México: %s',
-    (_n, prefix, _d, ok) => {
+    (_n, prefix, birthDate, ok) => {
       const code = withCheckDigit(prefix);
       const rfcValue = `${code.slice(0, 10)}AB1`;
-      const errors = errorsOf(register, { ...validRegister, curp: code, rfc: rfcValue });
+      const errors = errorsOf(register, {
+        ...validRegister,
+        curp: code,
+        rfc: rfcValue,
+        birthDate,
+      });
 
       expect(errors).toEqual(
-        ok ? [] : [expect.objectContaining({ pointer: '/curp', code: 'DATE_OUT_OF_RANGE' })],
+        ok ? [] : [expect.objectContaining({ pointer: '/birthDate', code: 'DATE_OUT_OF_RANGE' })],
       );
     },
   );
@@ -361,27 +375,42 @@ describe('reglas de registro entre campos (CTR-13)', () => {
     // 2026-10-15 03:00Z sigue siendo 14 de octubre en la Ciudad de México.
     const nearMidnight = registerFormAt(new Date('2026-10-15T03:00:00Z'));
     const code = withCheckDigit('GOMC081015HDFNLRA');
-    const input = { ...validRegister, curp: code, rfc: `${code.slice(0, 10)}AB1` };
+    const input = {
+      ...validRegister,
+      curp: code,
+      rfc: `${code.slice(0, 10)}AB1`,
+      birthDate: '2008-10-15',
+    };
 
     expect(errorsOf(nearMidnight, input)).toEqual([
-      expect.objectContaining({ pointer: '/curp', code: 'DATE_OUT_OF_RANGE' }),
+      expect.objectContaining({ pointer: '/birthDate', code: 'DATE_OUT_OF_RANGE' }),
     ]);
     expect(errorsOf(registerFormAt(new Date('2026-10-15T06:00:00Z')), input)).toEqual([]);
   });
 
-  it('CTR-13 una CURP con fecha de nacimiento futura da INVALID_DATE', () => {
+  it('CTR-13 una fecha de nacimiento futura igual a la de la CURP da INVALID_DATE en /birthDate', () => {
     // El carácter 17 es una letra: nació en 20AA.
     const code = withCheckDigit('GOMC351014HDFNLRA');
-    const input = { ...validRegister, curp: code, rfc: `${code.slice(0, 10)}AB1` };
+    const input = {
+      ...validRegister,
+      curp: code,
+      rfc: `${code.slice(0, 10)}AB1`,
+      birthDate: '2035-10-14',
+    };
 
     expect(errorsOf(register, input)).toEqual([
-      expect.objectContaining({ pointer: '/curp', code: 'INVALID_DATE' }),
+      expect.objectContaining({ pointer: '/birthDate', code: 'INVALID_DATE' }),
     ]);
   });
 
   it('CTR-13 quien nació un 29 de febrero cumple 18 el 1 de marzo en un año no bisiesto', () => {
     const code = withCheckDigit('GOMC080229HDFNLRA');
-    const input = { ...validRegister, curp: code, rfc: `${code.slice(0, 10)}AB1` };
+    const input = {
+      ...validRegister,
+      curp: code,
+      rfc: `${code.slice(0, 10)}AB1`,
+      birthDate: '2008-02-29',
+    };
 
     expect(errorsOf(registerFormAt(new Date('2026-02-28T18:00:00Z')), input)).toHaveLength(1);
     expect(errorsOf(registerFormAt(new Date('2026-03-01T18:00:00Z')), input)).toEqual([]);
@@ -403,12 +432,12 @@ describe('reglas de registro entre campos (CTR-13)', () => {
   });
 
   it.each([
-    ['Ana', 'una palabra'],
-    ['Ana Gómez3', 'con dígito'],
-    ['Ana  Gómez', 'espacios repetidos'],
-  ])('CTR-13 registerForm rechaza el nombre %s (%s)', (fullName) => {
-    expect(errorsOf(register, { ...validRegister, fullName })).toEqual([
-      expect.objectContaining({ pointer: '/fullName', code: 'INVALID_FORMAT' }),
+    ['Ana3', 'con dígito'],
+    ['Ana  Luz', 'espacios repetidos'],
+    ['Ana@', 'con símbolo'],
+  ])('CTR-13 registerForm rechaza los nombres %s (%s)', (firstNames) => {
+    expect(errorsOf(register, { ...validRegister, firstNames })).toEqual([
+      expect.objectContaining({ pointer: '/firstNames', code: 'INVALID_FORMAT' }),
     ]);
   });
 
@@ -416,5 +445,116 @@ describe('reglas de registro entre campos (CTR-13)', () => {
     expect(errorsOf(register, { ...validRegister, password: 'solo-letras-largas' })).toEqual([
       expect.objectContaining({ pointer: '/password', code: 'INVALID_FORMAT' }),
     ]);
+  });
+});
+
+describe('registerForm con datos de nacimiento', () => {
+  it('CTR-13 acepta el formulario sin apellido materno o con uno vacío', () => {
+    const without: Record<string, unknown> = { ...validRegister };
+    delete without.maternalSurname;
+    expect(errorsOf(registerForm, without)).toEqual([]);
+    expect(errorsOf(registerForm, { ...validRegister, maternalSurname: '' })).toEqual([]);
+  });
+
+  it('CTR-13 un apellido materno de solo espacios es inválido, no omitido', () => {
+    expect(errorsOf(registerForm, { ...validRegister, maternalSurname: '   ' })).toEqual([
+      expect.objectContaining({ pointer: '/maternalSurname', code: 'INVALID_FORMAT' }),
+    ]);
+  });
+
+  it.each([
+    ['firstNames', ''],
+    ['firstNames', 'Ana2'],
+    ['firstNames', ' Ana'],
+    ['paternalSurname', 'Gómez  López'],
+    ['paternalSurname', 'Gó@mez'],
+  ])('CTR-13 rechaza %s = %j', (field, value) => {
+    const errors = errorsOf(registerForm, { ...validRegister, [field]: value });
+    expect(errors).toEqual([expect.objectContaining({ pointer: `/${field}` })]);
+  });
+
+  it('CTR-13 acepta nombres compuestos, acentos, ñ, apóstrofo, guion y punto', () => {
+    expect(
+      errorsOf(registerForm, {
+        ...validRegister,
+        firstNames: 'María-José Ñ.',
+        paternalSurname: "O'Brien",
+        maternalSurname: 'de la Cruz',
+      }),
+    ).toEqual([]);
+  });
+
+  it('CTR-13 rechaza un nombre completo de más de 100 caracteres, en /firstNames', () => {
+    const errors = errorsOf(registerForm, {
+      ...validRegister,
+      firstNames: 'N'.repeat(50),
+      paternalSurname: 'P'.repeat(40),
+      maternalSurname: 'M'.repeat(20),
+    });
+    expect(errors).toEqual([expect.objectContaining({ pointer: '/firstNames', code: 'TOO_LONG' })]);
+  });
+
+  it.each(['1990-1-1', '1990-01-01T00:00:00Z', '01/01/1990', ' 1990-01-01', 'hoy'])(
+    'CTR-13 la fecha %j da INVALID_FORMAT en /birthDate',
+    (birthDate) => {
+      expect(errorsOf(registerForm, { ...validRegister, birthDate })).toEqual([
+        expect.objectContaining({ pointer: '/birthDate', code: 'INVALID_FORMAT' }),
+      ]);
+    },
+  );
+
+  it('CTR-13 una fecha inexistente da INVALID_DATE en /birthDate', () => {
+    expect(errorsOf(registerForm, { ...validRegister, birthDate: '1990-02-30' })).toEqual([
+      expect.objectContaining({ pointer: '/birthDate', code: 'INVALID_DATE' }),
+    ]);
+  });
+
+  it('CTR-13 una fecha distinta de la de la CURP da INVALID_FORMAT en /birthDate', () => {
+    expect(errorsOf(registerForm, { ...validRegister, birthDate: '1990-01-02' })).toEqual([
+      expect.objectContaining({
+        pointer: '/birthDate',
+        code: 'INVALID_FORMAT',
+        message: 'La fecha no coincide con tu CURP',
+      }),
+    ]);
+  });
+
+  it.each(['df', ' DF', 'XX', 'DFX'])(
+    'CTR-13 la entidad %j da INVALID_FORMAT en /birthState',
+    (birthState) => {
+      expect(errorsOf(registerForm, { ...validRegister, birthState })).toEqual([
+        expect.objectContaining({ pointer: '/birthState', code: 'INVALID_FORMAT' }),
+      ]);
+    },
+  );
+
+  it('CTR-13 una entidad distinta de la de la CURP da INVALID_FORMAT en /birthState', () => {
+    expect(errorsOf(registerForm, { ...validRegister, birthState: 'JC' })).toEqual([
+      expect.objectContaining({
+        pointer: '/birthState',
+        code: 'INVALID_FORMAT',
+        message: 'La entidad no coincide con tu CURP',
+      }),
+    ]);
+  });
+
+  it('CTR-13 fecha y entidad distintas de la CURP se reportan juntas', () => {
+    expect(
+      errorsOf(registerForm, { ...validRegister, birthDate: '1990-01-02', birthState: 'JC' }),
+    ).toEqual([
+      expect.objectContaining({ pointer: '/birthDate' }),
+      expect.objectContaining({ pointer: '/birthState' }),
+    ]);
+  });
+
+  it('CTR-13 acepta NE cuando la CURP codifica NE', () => {
+    const curp = withCheckDigit('GOMC900101HNENLR0');
+    expect(errorsOf(registerForm, { ...validRegister, curp, birthState: 'NE' })).toEqual([]);
+  });
+
+  it('CTR-13 nacida en 2000 o después: la letra del carácter 17 da el siglo', () => {
+    const curp = withCheckDigit('GOMC080315HDFNLRA');
+    const form = { ...validRegister, curp, rfc: 'GOMC080315AB1', birthDate: '2008-03-15' };
+    expect(errorsOf(registerFormAt(new Date('2026-10-14T18:00:00Z')), form)).toEqual([]);
   });
 });

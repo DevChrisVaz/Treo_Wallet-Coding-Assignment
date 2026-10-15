@@ -477,11 +477,19 @@ export interface components {
          */
         Password: string;
         /**
-         * @description Nombre del titular al registrarse: de 2 a 100 caracteres (puntos de código), al menos dos
+         * @description Nombres, apellido paterno o apellido materno del registro: de 1 a 100 caracteres, una o más
          *     palabras separadas por un solo espacio, sin espacios al inicio ni al final. Solo admite letras
          *     (con acentos y ñ), apóstrofo, guion y punto; sin dígitos ni otros símbolos.
          */
-        PersonName: string;
+        NamePart: string;
+        /** @description Fecha de nacimiento `YYYY-MM-DD`. Que exista en el calendario se valida fuera del schema. */
+        BirthDate: string;
+        /**
+         * @description Entidad de nacimiento: código de dos letras de la CURP (las 32 entidades federativas) o `NE`
+         *     para nacido en el extranjero.
+         * @enum {string}
+         */
+        BirthState: "AS" | "BC" | "BS" | "CC" | "CL" | "CM" | "CS" | "CH" | "DF" | "DG" | "GT" | "GR" | "HG" | "JC" | "MC" | "MN" | "MS" | "NT" | "NL" | "OC" | "PL" | "QT" | "QR" | "SP" | "SL" | "SR" | "TC" | "TS" | "TL" | "VZ" | "YN" | "ZS" | "NE";
         FullName: string;
         /** @description Concepto de la transferencia, sin espacios al inicio ni al final. */
         Concept: string;
@@ -505,16 +513,25 @@ export interface components {
          *     `422 VALIDATION_FAILED` y error por campo):
          *
          *     - **Correo:** se recorta y se pasa a minúsculas antes de validarlo y guardarlo.
+         *     - **Nombre:** `firstNames`, `paternalSurname` y `maternalSurname` (opcional); la unión de las tres
+         *       con espacios no puede pasar de 100 caracteres (`TOO_LONG` en `/firstNames`).
          *     - **CURP:** el dígito verificador debe ser válido y su fecha de nacimiento (el carácter 17 indica
-         *       el siglo: dígito antes de 2000, letra desde 2000) debe existir, no estar en el futuro y
-         *       corresponder a una persona de **18 años o más** al día de hoy en America/Mexico_City.
+         *       el siglo: dígito antes de 2000, letra desde 2000) debe existir.
+         *     - **Fecha y entidad de nacimiento:** deben ser las que codifica la CURP; si no, `INVALID_FORMAT`
+         *       en `/birthDate` («La fecha no coincide con tu CURP») o en `/birthState` («La entidad no
+         *       coincide con tu CURP»). Una fecha futura da `INVALID_DATE` y la de una persona menor de
+         *       **18 años** al día de hoy en America/Mexico_City `DATE_OUT_OF_RANGE`, ambas en `/birthDate`.
          *     - **RFC:** sus primeros 10 caracteres deben ser iguales a los primeros 10 de la CURP. Si no
          *       coinciden, el error va en `/rfc` con `INVALID_FORMAT` y el mensaje «El RFC no coincide con tu CURP».
          */
         RegisterRequest: {
             email: components["schemas"]["Email"];
             password: components["schemas"]["Password"];
-            fullName: components["schemas"]["PersonName"];
+            firstNames: components["schemas"]["NamePart"];
+            paternalSurname: components["schemas"]["NamePart"];
+            maternalSurname?: components["schemas"]["NamePart"];
+            birthDate: components["schemas"]["BirthDate"];
+            birthState: components["schemas"]["BirthState"];
             curp: components["schemas"]["Curp"];
             rfc: components["schemas"]["Rfc"];
             phone: components["schemas"]["PhoneInput"];

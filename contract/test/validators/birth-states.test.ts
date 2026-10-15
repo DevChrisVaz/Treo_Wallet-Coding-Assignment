@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  BIRTH_STATES,
-  BIRTH_STATE_CODES,
-  curpBirthState,
-  isBirthStateCode,
-} from '../../src/index';
+import { BIRTH_STATES, BIRTH_STATE_CODES, curpBirthState, isBirthStateCode } from '../../src/index';
 
 const CURP_WITH = (state: string) => `GOMC900101H${state}NLR09`;
 
