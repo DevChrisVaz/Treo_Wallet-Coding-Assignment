@@ -214,9 +214,6 @@ function overview() {
   };
 }
 
-/** Datos que la API simulada trata como ya registrados en otra cuenta (`POST /auth/register`). */
-const TAKEN = { curp: 'SEPB851121HDFRRL08', rfc: 'SEPB851121SD2', phone: '5520000042' };
-
 function send(res, status, body, problem = false) {
   const headers = { 'X-Request-Id': randomUUID(), 'Cache-Control': 'no-store' };
   if (body === undefined) {
@@ -268,18 +265,6 @@ createServer(async (req, res) => {
     return send(res, 200, { user, tokens: tokens() });
   if (route === 'POST /auth/refresh') return send(res, 200, tokens());
   if (route === 'POST /auth/logout') return send(res, 204);
-  if (route === 'POST /auth/register') {
-    // La CURP y el teléfono de la historia `RegisterRejected` ya son de otra cuenta: 422 por campo.
-    const body = await readBody(req);
-    const errors = [
-      body.curp === TAKEN.curp && ['/curp', 'Esta CURP ya está registrada en otra cuenta.'],
-      body.rfc === TAKEN.rfc && ['/rfc', 'Este RFC ya está registrado en otra cuenta.'],
-      body.phone === TAKEN.phone && ['/phone', 'Este teléfono ya está registrado en otra cuenta.'],
-    ]
-      .filter(Boolean)
-      .map(([pointer, message]) => ({ pointer, code: 'ALREADY_REGISTERED', message }));
-    if (errors.length > 0) return fail(res, 422, 'VALIDATION_FAILED', { errors });
-  }
   if (route === 'POST /auth/register' || route === 'POST /auth/verify-email/resend')
     return send(res, 202, {
       message: 'Si los datos son correctos, recibirás un correo con las instrucciones.',

@@ -22,9 +22,8 @@ export async function login(input: unknown): Promise<ActionResult<{ user: User }
 }
 
 /**
- * Registro (WEB-11). Con un correo ya registrado la API responde 202 con el mismo mensaje que con uno
- * nuevo, y la interfaz pasa a la verificación. Si la CURP, el RFC o el teléfono son de otra cuenta
- * responde 422 `VALIDATION_FAILED` con un `ALREADY_REGISTERED` por campo, que se devuelve tal cual.
+ * Registro (WEB-11). La API responde 202 con el mismo mensaje exista o no el correo; la interfaz
+ * muestra siempre el mismo texto y pasa a la verificación.
  */
 export async function register(input: unknown): Promise<ActionResult<{ message: string }>> {
   return publicAction(registerForm, input, async ({ data, api }) => {

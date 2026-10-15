@@ -44,3 +44,20 @@ export function registrationAttemptEmail(): EmailContent {
     html: layout(subject, lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')),
   };
 }
+
+/**
+ * Aviso genérico cuando un registro choca con datos de identidad de otra persona (IDN-03). No dice
+ * qué dato chocó, para no confirmar a quien controla el email que ese dato existe.
+ */
+export function registrationNotCompletedEmail(): EmailContent {
+  const subject = 'No pudimos completar tu registro';
+  const lines = [
+    'Recibimos una solicitud de registro con este correo, pero no pudimos completarla.',
+    'Revisa tus datos y vuelve a intentarlo, o contacta a soporte si el problema continúa.',
+  ];
+  return {
+    subject,
+    text: lines.join('\n'),
+    html: layout(subject, lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')),
+  };
+}

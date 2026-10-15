@@ -12,6 +12,9 @@ Requiere `contract-v1-2` y `scheduled-transfers`. La tarea 1.1 va antes de que c
 - [x] 2.4 [contract] `ALREADY_REGISTERED` en `FieldErrorCode` y descripción de `POST /auth/register` con el 422 por datos de otra cuenta (IDN-03)
 - [x] 2.5 [api] CURP, RFC o teléfono de otra cuenta en 422 `ALREADY_REGISTERED` por campo, también desde la constraint única, sin crear ni enviar correo; se retira el aviso "No pudimos completar tu registro"; pruebas de integración (IDN-01, IDN-03)
 - [x] 2.6 [web] Estado del registro con datos de otra cuenta en el lienzo y luego en la app; pruebas de componentes y e2e (WEB-11)
+- [x] 2.7 [contract] Revertir 2.4: `ALREADY_REGISTERED` sale de `FieldErrorCode` y `POST /auth/register` vuelve a responder 202 en todos los casos (IDN-03, D14)
+- [x] 2.8 [api] Revertir 2.5: datos de otra cuenta responden 202 sin crear nada y con el aviso "No pudimos completar tu registro"; pruebas de integración (IDN-01, IDN-03, D14)
+- [x] 2.9 [web] Revertir 2.6: sin el estado de datos de otra cuenta en el lienzo, la app y las pruebas (WEB-11, D14)
 
 ## 3. Monto
 
