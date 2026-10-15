@@ -12,6 +12,8 @@ export default defineConfig({
     },
   },
   test: {
+    // Sesiones en memoria aunque el entorno traiga REDIS_URL; las de Redis usan TEST_REDIS_URL.
+    env: { REDIS_URL: '' },
     restoreMocks: true,
     unstubEnvs: true,
     unstubGlobals: true,

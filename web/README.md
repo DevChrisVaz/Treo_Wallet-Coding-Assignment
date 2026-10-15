@@ -18,7 +18,7 @@ flowchart LR
 - **Mutaciones** con Server Actions (`app/actions/`): validan con los esquemas del contrato, exigen la sesión y devuelven `{ ok, data }` o `{ ok: false, problem }`. Next.js rechaza las que llegan de otro `Origin`.
 - **Lecturas** por el proxy `GET /bff/api/[...path]`, con lista blanca de rutas y destino fijo en `API_BASE_URL`. `GET /bff/api/session` responde con el usuario de la sesión sin llamar a la API.
 - **Estado de cuenta** (WEB-32): en la pantalla de movimientos, un selector que va del mes en que se abrió la cuenta (`Account.createdAt`, mes de la Ciudad de México) al mes en curso ("(en curso)"), el más reciente primero y con el anterior por defecto, y el botón "Descargar PDF". Un mes anterior a la apertura lo rechaza la API (`422`, `DATE_OUT_OF_RANGE` en `/period`) y se muestra "Ese mes es anterior a la apertura de tu cuenta". La descarga pasa por el mismo proxy (`accounts/<id>/statements/<AAAA-MM>`, solo GET): para esa ruta el proxy pide `application/pdf`, entrega el cuerpo de la API sin tocar sus bytes y copia `Content-Type`, `Content-Disposition`, `Content-Length` y `Retry-After`. El navegador guarda el archivo con el nombre que propone la API (`estado-de-cuenta-2026-09-0015.pdf`). Mientras descarga, el botón queda ocupado y no acepta otro clic; un error muestra el mensaje de su `code` sin salir de la pantalla (en `RATE_LIMITED`, con la espera). El control es un componente aparte (`components/accounts/StatementDownload.tsx`); el rediseño lo pone en su propia tarjeta, "Estado de cuenta", después del historial.
-- **Sesión** en un `Map` en memoria (en AWS, Redis): expira tras `SESSION_IDLE_MINUTES` sin actividad o al vencer el refresh token; el access token se renueva una sola vez por sesión aunque lleguen peticiones simultáneas.
+- **Sesión** en Redis cuando hay `REDIS_URL` (en local, el `docker-compose.yml` de esta carpeta; en AWS, ElastiCache) y sobrevive al reinicio del servidor; sin `REDIS_URL`, en un `Map` en memoria (WEB-37). Expira tras `SESSION_IDLE_MINUTES` sin actividad o al vencer el refresh token; el access token se renueva una sola vez por sesión aunque lleguen peticiones simultáneas.
 - **Transferencias**: la llave de idempotencia se genera en el navegador al pasar a la confirmación y se reutiliza solo al reintentar tras un fallo de red o un `5xx`; el botón se bloquea desde el primer clic.
 - **Transferencias programadas** (WEB-33): el paso de monto del flujo tiene "Cuándo", con "Ahora" (por defecto) o "Programar". "Programar" muestra fecha y hora (hora de la Ciudad de México, a minutos), obligatorias las dos; se combinan con `mexicoCityToInstant` en un instante. El formulario valida con `transferFormAt(ahora)` (de 10 minutos a 90 días después de ahora), así que lo que queda fuera de rango se marca junto a la fecha.
   - **Revisión:** la fila "Cuándo" dice "Se enviará el 20 de octubre de 2026, 14:30"; en el dashboard, también el resumen lateral.
@@ -56,6 +56,7 @@ flowchart LR
 - Node 24 para las herramientas (el servidor funciona desde Node 20.9).
 - `/contract` y `/design-tokens` compilados (la web los instala como copia).
 - Para usar la web: la API en `http://localhost:4000`, con PostgreSQL y Mailpit de su `docker compose` (ver el README de `/api`).
+- Para que las sesiones sobrevivan al reinicio del servidor: Redis del `docker compose` de esta carpeta (opcional; sin `REDIS_URL` las sesiones viven en memoria).
 
 ## Instalación
 
@@ -71,26 +72,28 @@ npm ci
 
 Todas son del servidor (ninguna lleva `NEXT_PUBLIC_`) y se validan con Zod al arrancar: una inválida detiene `next dev` o `next start` con un error que la nombra. Copia `.env.example` a `.env.local`.
 
-| Variable                | Por defecto                                                            | Uso                                                                                                                                                                     |
-| ----------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `API_BASE_URL`          | `http://localhost:4000` en desarrollo; **obligatoria** en `next start` | Origen de la API, sin ruta. El destino de todas las llamadas; nunca se toma de la petición                                                                              |
-| `ALLOWED_ORIGINS`       | vacío (solo el propio origen)                                          | Orígenes adicionales, separados por comas, desde los que se aceptan Server Actions (la web detrás de un proxy con otro dominio). Se aplica al arrancar                  |
-| `SESSION_COOKIE_SECURE` | `true` en producción, `false` en desarrollo                            | `true` detrás de HTTPS: la cookie se llama `__Host-sid` y lleva `Secure`. Safari rechaza cookies `Secure` en `http://localhost`, por eso en local es `sid` sin `Secure` |
-| `SESSION_IDLE_MINUTES`  | `15`                                                                   | Minutos de inactividad tras los que expira la sesión                                                                                                                    |
+| Variable                | Por defecto                                                            | Uso                                                                                                                                                                                                                                   |
+| ----------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `API_BASE_URL`          | `http://localhost:4000` en desarrollo; **obligatoria** en `next start` | Origen de la API, sin ruta. El destino de todas las llamadas; nunca se toma de la petición                                                                                                                                            |
+| `ALLOWED_ORIGINS`       | vacío (solo el propio origen)                                          | Orígenes adicionales, separados por comas, desde los que se aceptan Server Actions (la web detrás de un proxy con otro dominio). Se aplica al arrancar                                                                                |
+| `SESSION_COOKIE_SECURE` | `true` en producción, `false` en desarrollo                            | `true` detrás de HTTPS: la cookie se llama `__Host-sid` y lleva `Secure`. Safari rechaza cookies `Secure` en `http://localhost`, por eso en local es `sid` sin `Secure`                                                               |
+| `SESSION_IDLE_MINUTES`  | `15`                                                                   | Minutos de inactividad tras los que expira la sesión                                                                                                                                                                                  |
+| `REDIS_URL`             | vacía (sesiones en memoria)                                            | `redis://` o `rediss://` (TLS) del Redis de sesiones; en local, `redis://localhost:6379`. Con ella las sesiones sobreviven al reinicio del servidor; si Redis no responde, las páginas con sesión fallan con error en vez de cerrarla |
 
 El build (`next build`) no necesita `API_BASE_URL`: el servidor la lee en cada petición.
 
 ## Correr en local
 
 1. Levanta la API en el puerto 4000 con su base de datos y Mailpit.
-2. `npm run dev` y abre `http://localhost:3000`. Si el puerto 3000 está ocupado: `npm run dev -- -p 3100`.
-3. Regístrate en `/register`; el código de verificación llega a Mailpit (`http://localhost:8025`). Al verificar el correo se abren las cuentas Principal y Ahorro en $0.00; para tener saldo, usa el fondeo de la API (`db:fund`).
-4. Las transferencias de más de $10,000.00 piden un código que también llega a Mailpit.
-5. Para programar una transferencia, elige "Programar" en "Cuándo" y una fecha y una hora (al menos 10 minutos después de ahora). Aparece en "Programadas" hasta que se ejecuta o la cancelas. Para verla ejecutarse sin esperar a su hora, sigue "Verlas ejecutarse en local" del README de `/api`, que adelanta su instante en la base. Al ejecutarse, sale de "Programadas" y aparece en el historial; si falla, el aviso llega a Mailpit.
+2. Levanta Redis con `docker compose up -d --wait` (en esta carpeta; queda en `127.0.0.1:6379`) y deja `REDIS_URL=redis://localhost:6379` en `.env.local`, como en `.env.example`.
+3. `npm run dev` y abre `http://localhost:3000`. Si el puerto 3000 está ocupado: `npm run dev -- -p 3100`.
+4. Regístrate en `/register`; el código de verificación llega a Mailpit (`http://localhost:8025`). Al verificar el correo se abren las cuentas Principal y Ahorro en $0.00; para tener saldo, usa el fondeo de la API (`db:fund`).
+5. Las transferencias de más de $10,000.00 piden un código que también llega a Mailpit.
+6. Para programar una transferencia, elige "Programar" en "Cuándo" y una fecha y una hora (al menos 10 minutos después de ahora). Aparece en "Programadas" hasta que se ejecuta o la cancelas. Para verla ejecutarse sin esperar a su hora, sigue "Verlas ejecutarse en local" del README de `/api`, que adelanta su instante en la base. Al ejecutarse, sale de "Programadas" y aparece en el historial; si falla, el aviso llega a Mailpit.
 
-Para probar el build de producción por `http` en local: `npm run build` y luego `API_BASE_URL=http://localhost:4000 SESSION_COOKIE_SECURE=false npm start`.
+Para probar el build de producción por `http` en local: `npm run build` y luego `API_BASE_URL=http://localhost:4000 SESSION_COOKIE_SECURE=false REDIS_URL=redis://localhost:6379 npm start`.
 
-La sesión vive en la memoria del proceso: reiniciar el servidor cierra todas las sesiones.
+**Dónde vive la sesión.** Con `REDIS_URL`, en Redis: sobrevive al reinicio del servidor (un `next build` + `next start`, un cambio de `.env.local`) y, por el AOF del contenedor, también a recrearlo. Sin `REDIS_URL`, en la memoria del proceso: reiniciar el servidor cierra todas las sesiones. Si Redis no está levantado, las páginas con sesión responden con error sin cerrar la sesión: levántalo o quita `REDIS_URL`.
 
 ## Scripts
 
@@ -111,6 +114,15 @@ npm test
 ```
 
 Ninguna prueba necesita la API: el BFF se prueba con `fetch` simulado (`test/support/fake-api.ts`) y sustitutos de `next/headers`, y las pantallas con el módulo de acciones y las lecturas simulados. Hay dos proyectos de Vitest: `*.test.ts` corre en Node (BFF, configuración y lógica) y `*.test.tsx` en jsdom con Testing Library y `vitest-axe`. El título de cada prueba empieza con el ID del requisito que verifica (`WEB-17 …`, `DSG-09 …`).
+
+Las pruebas del almacén en Redis (`lib/server/redis-session-store.test.ts` y `app/(app)/layout.redis.test.ts`) corren contra un Redis real cuando hay `TEST_REDIS_URL`:
+
+```bash
+docker compose up -d --wait
+TEST_REDIS_URL=redis://localhost:6379/15 npm test
+```
+
+Sin la variable se saltan, salvo en CI, donde es obligatoria y la da un servicio Redis del job. No puede ser la base 0, la de las sesiones de desarrollo. Las de inactividad corren la misma suite que la implementación en memoria (`test/support/session-store-contract.ts`), con tiempo real y un plazo de 1 s, así que tardan unos 4 s. Las demás pruebas usan el almacén en memoria aunque el entorno traiga `REDIS_URL`.
 
 El contraste no se puede medir en jsdom; se verificó con Lighthouse (ver abajo) y, desde el rediseño, lo mide axe en las pruebas en navegador.
 

@@ -68,6 +68,25 @@ describe('parseServerEnv', () => {
     expect(() => parseServerEnv({ SESSION_COOKIE_SECURE: 'yes' })).toThrow(/SESSION_COOKIE_SECURE/);
   });
 
+  it('WEB-37 sin REDIS_URL, o con REDIS_URL vacía, no hay almacén externo', () => {
+    expect(parseServerEnv({}).redisUrl).toBeUndefined();
+    expect(parseServerEnv({ REDIS_URL: '  ' }).redisUrl).toBeUndefined();
+  });
+
+  it.each(['redis://localhost:6379', 'redis://localhost:6379/2', 'rediss://:token@cache.aws:6379'])(
+    'WEB-37 acepta REDIS_URL %s',
+    (value) => {
+      expect(parseServerEnv({ REDIS_URL: ` ${value} ` }).redisUrl).toBe(value);
+    },
+  );
+
+  it.each(['http://localhost:6379', 'localhost:6379', 'redis://', 'no-es-url'])(
+    'WEB-37 rechaza REDIS_URL %s (solo redis:// o rediss:// con host)',
+    (value) => {
+      expect(() => parseServerEnv({ REDIS_URL: value })).toThrow(/REDIS_URL/);
+    },
+  );
+
   it('WEB-09 nombra todas las variables inválidas en un solo error', () => {
     let message = '';
     try {

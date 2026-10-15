@@ -13,6 +13,8 @@ export interface ServerEnv {
   sessionCookieSecure: boolean;
   /** Minutos de inactividad tras los que expira la sesión. */
   sessionIdleMinutes: number;
+  /** Redis para las sesiones (WEB-37). Sin ella, las sesiones viven en la memoria del proceso. */
+  redisUrl: string | undefined;
 }
 
 const LOCAL_API_BASE_URL = 'http://localhost:4000';
@@ -33,6 +35,17 @@ function isBareHttpOrigin(value: string): boolean {
     url.username === '' &&
     url.password === ''
   );
+}
+
+/** `redis://` o `rediss://` (TLS) con host; puede llevar credenciales y número de base. */
+function isRedisUrl(value: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  return (url.protocol === 'redis:' || url.protocol === 'rediss:') && url.hostname !== '';
 }
 
 const origin = z
@@ -68,6 +81,15 @@ function schemaFor(production: boolean, requireApiBaseUrl: boolean) {
       .regex(/^[1-9][0-9]{0,3}$/, 'debe ser un entero de minutos mayor que 0')
       .default('15')
       .transform((value) => Number.parseInt(value, 10)),
+    REDIS_URL: z
+      .string()
+      .trim()
+      .optional()
+      .transform((value) => (value === '' ? undefined : value))
+      .refine(
+        (value) => value === undefined || isRedisUrl(value),
+        'debe ser una URL redis:// o rediss:// con host, como redis://localhost:6379',
+      ),
   });
 }
 
@@ -95,6 +117,7 @@ export function parseServerEnv(
     allowedOrigins: data.ALLOWED_ORIGINS,
     sessionCookieSecure: data.SESSION_COOKIE_SECURE,
     sessionIdleMinutes: data.SESSION_IDLE_MINUTES,
+    redisUrl: data.REDIS_URL,
   };
 }
 

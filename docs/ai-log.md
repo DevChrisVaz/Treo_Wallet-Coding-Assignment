@@ -616,6 +616,31 @@ El prompt con el que empezó el rediseño no quedó registrado textualmente. La 
 - **Se comprobaron dos supuestos en la fuente original** antes de documentarlos: en el código del proveedor, que con `secret_string_wo` el valor del secreto no se lee de vuelta al estado; en la guía de CloudFront, que la lista de prefijos de CloudFront sirve para los VPC origins. La guía mostró además que los VPC origins no funcionan en algunas zonas (`use1-az3` en us-east-1), y el módulo de red las excluye.
 - **Las pruebas se probaron a sí mismas.** Al dar a la API el secreto de `wallet_migrator`, la prueba de separación de credenciales falló, como se esperaba.
 
+## Sesión 9 — 2026-10-14 · Sesiones de la web en Redis
+
+**Quién:** Claude Code (Claude Opus 5.5) conmigo, en la sesión principal, mientras otras cuatro sesiones trabajaban en la misma copia del repositorio. Por eso el change se hizo en un worktree propio (`dev/web-redis-sessions`, desde `release`).
+
+**Prompt clave:** "Mi sesión en el navegador se cerró, ¿por qué? ¿No funcionó el refresh token?" y, después de la explicación, "Configura Redis también para desarrollo y agrégalo a los servicios de Docker".
+
+**El diagnóstico, con evidencia y no con una suposición.** Antes de proponer nada, la AI cruzó la tabla `app.refresh_tokens` y `app.audit_log` con los procesos del sistema. La sesión de las 16:16 tenía un refresh token **nunca usado ni revocado**; a las 16:23 otra sesión de trabajo había hecho `next build` y levantado de nuevo `next start`. El `Map` de sesiones murió con el proceso anterior: la cookie seguía apuntando a un id que el proceso nuevo no conocía. El refresh token no falló; nunca llegó a usarse. No había ningún `REUSE_DETECTED` en el día.
+
+**Decisiones (`openspec/changes/web-redis-sessions`):**
+- **Dónde va Redis:** la AI preguntó en lugar de suponer, porque mi pedido ("los servicios de Docker") apuntaba al `docker-compose.yml` de `/api`, pero eso rompe la regla de proyectos independientes. Elegí un `docker-compose.yml` propio de `/web`.
+- **`REDIS_URL` opcional:** sin ella sigue el `Map`, así que las pruebas unitarias, el build del CI y el e2e con la API simulada no necesitan Docker.
+- **`touch` atómico en Lua.** La AI señaló el riesgo antes de escribir código: un `touch` que lee y reescribe la sesión completa podría devolverle un refresh token ya rotado por una renovación concurrente; la siguiente renovación sería reuso y la API revocaría la familia. Con un hash por sesión, `touch` solo cambia `lastSeenAt` y el TTL, y no revive una sesión cerrada.
+- **Fallar rápido.** La AI probó node-redis 5.12 antes de diseñar la conexión: con la estrategia por defecto, `connect()` queda pendiente para siempre si Redis no está, y las páginas se habrían quedado colgadas. La conexión se rinde tras dos reintentos al arrancar, `disableOfflineQueue` hace fallar los comandos sin conexión, y no se cae al `Map` en silencio.
+
+**Cómo se comprobó:**
+- **Mutaciones:** un `touch` que reescribe la sesión hace fallar las dos pruebas concurrentes (con `set` y con `delete`). Un `HSET` + `PEXPIRE` sin comprobar la llave sobrevivió a las primeras pruebas; se agregaron dos (`touch` tras cerrar la sesión y TTL tope en la vigencia absoluta) y se vio fallar el mutante antes de restaurar el archivo desde una copia.
+- **La misma suite en las dos implementaciones:** el comportamiento de WEB-03 pasó a `test/support/session-store-contract.ts`; memoria con reloj falso y Redis con tiempo real.
+- **A mano contra la API real:** inicio de sesión de Ana en un build de la rama con `REDIS_URL`, reinicio del proceso de Next.js y la pantalla de cuentas siguió cargando; luego, con el access token marcado como vencido en Redis, la siguiente carga rotó el par por la API (token usado, sucesor emitido, sin revocación) y lo guardó de vuelta.
+
+**Corrección a la AI:** la suite completa falló de forma intermitente en una prueba de Redis que pasaba sola. La AI no la reintentó ni subió los márgenes de tiempo: grabó los comandos con `redis-cli MONITOR` y encontró la causa. Los dos archivos de pruebas de Redis hacían `FLUSHDB` en `beforeEach` y, al correr en paralelo, uno borraba la sesión que el otro esperaba. Cada archivo borra ahora solo sus llaves; tres corridas completas pasaron.
+
+**Al integrar, un ID repetido.** Mientras esta rama estaba abierta, `ux-fixes` llegó a `release` con su propio WEB-35 ("Recibir dinero") y WEB-36. El ID se había elegido libre en la base de la rama, pero `ux-fixes` vivía en cambios sin commit de otra sesión. Los IDs no se reutilizan, así que este requisito pasó a **WEB-37**. Los trailers `Refs:` de los commits decían WEB-35 y `trace.sh` los habría acreditado a "Recibir dinero". Por eso la rama se rehízo en `dev/web-redis-sessions-v2`, con el ID corregido en el contenido y en los mensajes, y se comprobó que la única diferencia con la original es el ID. Reescribir la rama en el lugar (`filter-branch`) lo bloqueó el modo automático; la rama original quedó intacta.
+
+**Pendiente:** el *single-flight* de la renovación sigue siendo por proceso (aceptado en D2 de `web-app`), y el rate limiting de la API sigue en memoria.
+
 ## Correcciones a la AI, en conjunto
 
 Índice de lo que la AI propuso mal o dejó inseguro, ordenado por lo que importa en un sistema de dinero. Cada punto está explicado en la sesión que se indica.
@@ -666,6 +691,8 @@ El prompt con el que empezó el rediseño no quedó registrado textualmente. La 
 - **Formato sin revisar y previews que rompían Prettier en el CI** (sesión 7): desde entonces cada tarea corre `format:check` antes del commit.
 - **Una corrección escrita antes que su prueba** y un reporte sin la evidencia de rojo y verde (sesión 7).
 - **Dos sesiones sobre el mismo producto a la vez** (sesión 7): la rama principal cambió de nombre y de historia mientras el rediseño trabajaba, y un `pkill -f vitest` de otra sesión mató corridas ajenas.
+- **`FLUSHDB` en pruebas que corren en paralelo** sobre la misma base de Redis (sesión 9).
+- **Un ID de requisito tomado a la vez por dos sesiones** (WEB-35, sesión 9): un ID libre en la base de una rama puede estar ocupado en el trabajo sin commit de otra sesión.
 
 ## Resumen del flujo spec-first
 
