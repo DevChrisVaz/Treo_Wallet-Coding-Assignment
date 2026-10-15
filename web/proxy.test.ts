@@ -43,6 +43,12 @@ describe('proxy · Content-Security-Policy', () => {
     vi.unstubAllEnvs();
   });
 
+  it('WEB-39 el nonce son 16 bytes aleatorios en base64', () => {
+    const nonce = noncesOf(policyOf(proxy(page())))[0] ?? '';
+    expect(Buffer.from(nonce, 'base64')).toHaveLength(16);
+    expect(nonce).toMatch(/^[A-Za-z0-9+/]{22}==$/);
+  });
+
   it('WEB-39 SESSION_COOKIE_SECURE se lee una sola vez, no en cada petición', async () => {
     const fresh = await freshProxy();
     vi.stubEnv('SESSION_COOKIE_SECURE', 'false');

@@ -32,7 +32,7 @@ export function contentSecurityPolicy({ nonce, development, secure }: CspOptions
   return directives.join('; ');
 }
 
-/** Nonce de una petición: 16 bytes aleatorios en base64 (la guía de Next.js usa un UUID en base64). */
+/** Nonce de una petición: 16 bytes aleatorios del generador criptográfico, en base64. */
 export function newNonce(): string {
-  return Buffer.from(crypto.randomUUID()).toString('base64');
+  return Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString('base64');
 }
