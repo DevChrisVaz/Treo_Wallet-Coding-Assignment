@@ -124,6 +124,67 @@ describe('sessionApi', () => {
   });
 });
 
+describe('429 al renovar el access token', () => {
+  const expiredSession = (now: Date) =>
+    sessionData({ accessTokenExpiresAt: new Date(now.getTime() - 1000).toISOString() }, now);
+
+  it('WEB-40 un 429 al renovar no borra la sesión y la petición falla con RATE_LIMITED y su espera', async () => {
+    const now = new Date();
+    await sessionStore().set(SESSION_ID, expiredSession(now));
+    const api = fakeApi().on('POST', '/auth/refresh', () =>
+      problemResponse(429, { code: 'RATE_LIMITED', requestId: 'r1' }, { 'Retry-After': '45' }),
+    );
+
+    const error = await sessionApi(SESSION_ID, CONTEXT)
+      .GET('/accounts')
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ProblemError);
+    expect(error).toMatchObject({ status: 429, code: 'RATE_LIMITED', retryAfter: 45 });
+    expect(error).not.toBeInstanceOf(SessionEndedError);
+    expect(await sessionStore().get(SESSION_ID)).not.toBeNull();
+    expect(api.callsTo('POST', '/auth/refresh')).toHaveLength(1);
+  });
+
+  it('WEB-40 la sesión conservada renueva después, cuando la API ya acepta la renovación', async () => {
+    const now = new Date();
+    await sessionStore().set(SESSION_ID, expiredSession(now));
+    let allowed = false;
+    const api = fakeApi()
+      .on('POST', '/auth/refresh', () =>
+        allowed
+          ? jsonResponse(200, tokenPair('2', now))
+          : problemResponse(429, { code: 'RATE_LIMITED', requestId: 'r1' }, { 'Retry-After': '1' }),
+      )
+      .on('GET', '/accounts', () => jsonResponse(200, OVERVIEW));
+
+    await sessionApi(SESSION_ID, CONTEXT)
+      .GET('/accounts')
+      .catch(() => undefined);
+    allowed = true;
+    const { data } = await sessionApi(SESSION_ID, CONTEXT).GET('/accounts');
+
+    expect(data).toEqual(OVERVIEW);
+    expect(api.callsTo('POST', '/auth/refresh')).toHaveLength(2);
+    expect((await sessionStore().get(SESSION_ID))?.refreshToken).toBe(tokenPair('2').refreshToken);
+  });
+
+  it('WEB-04 WEB-40 en cambio, un 401 SESSION_REVOKED sí borra la sesión', async () => {
+    const now = new Date();
+    await sessionStore().set(SESSION_ID, expiredSession(now));
+    fakeApi().on('POST', '/auth/refresh', () =>
+      problemResponse(401, { code: 'SESSION_REVOKED', requestId: 'r1' }),
+    );
+
+    const error = await sessionApi(SESSION_ID, CONTEXT)
+      .GET('/accounts')
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(SessionEndedError);
+    expect(await sessionStore().get(SESSION_ID)).toBeNull();
+  });
+});
+
 describe('User-Agent hacia la API', () => {
   const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Version/17.6 Safari/605.1.15';
   const WITH_UA = { ...CONTEXT, userAgent: BROWSER_UA };

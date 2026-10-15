@@ -89,6 +89,25 @@ describe('TransferFlow · confirmación', () => {
     expect(keysSent()[1]).toBe(keysSent()[0]);
   });
 
+  it('WEB-40 ante un 429 al enviar muestra el mensaje con la espera, no reintenta sola y no la marca como enviada', async () => {
+    createMock.mockResolvedValue({
+      ok: false,
+      problem: problem('RATE_LIMITED', { status: 429, retryAfter: 30 }),
+    });
+    const user = userEvent.setup();
+    renderWithClient(<TransferFlow />);
+    await fillTransfer(user);
+
+    await user.click(await screen.findByRole('button', { name: 'Enviar' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(problemMessage('RATE_LIMITED'));
+    expect(alert).toHaveTextContent('Intenta de nuevo en 1 minuto.');
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/Transferencia realizada|Ya habíamos recibido/)).toBeNull();
+  });
+
   it('WEB-17 ante un 5xx reintenta con la misma llave y, si la API responde 200 con Idempotent-Replayed, muestra el estado actual', async () => {
     createMock.mockResolvedValueOnce({
       ok: false,
