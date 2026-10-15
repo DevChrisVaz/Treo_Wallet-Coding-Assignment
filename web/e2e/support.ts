@@ -47,7 +47,7 @@ export async function login(page: Page) {
   await page.clock.setFixedTime(NOW);
   await page.goto('/login');
   await page.getByLabel('Correo').fill('ana@example.com');
-  await page.getByLabel('Contraseña').fill('Ana-demo-2026!');
+  await page.getByLabel('Contraseña', { exact: true }).fill('Ana-demo-2026!');
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
   await page.waitForURL((url) => url.pathname === '/');
 }
