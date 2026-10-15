@@ -124,6 +124,47 @@ describe('sessionApi', () => {
   });
 });
 
+describe('User-Agent hacia la API', () => {
+  const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Version/17.6 Safari/605.1.15';
+  const WITH_UA = { ...CONTEXT, userAgent: BROWSER_UA };
+
+  it('WEB-10 una llamada pública (login) lleva el User-Agent del navegador', async () => {
+    const api = fakeApi().on('POST', '/auth/verify-email/resend', () =>
+      jsonResponse(202, { message: 'ok' }),
+    );
+    await publicApi(WITH_UA).POST('/auth/verify-email/resend', {
+      body: { email: 'ana@example.com' },
+    });
+    expect(api.calls[0]?.headers.get('user-agent')).toBe(BROWSER_UA);
+  });
+
+  it('WEB-10 las lecturas de la sesión y la renovación del access token también lo llevan', async () => {
+    const now = new Date();
+    await sessionStore().set(
+      SESSION_ID,
+      sessionData({ accessTokenExpiresAt: new Date(now.getTime() - 1000).toISOString() }, now),
+    );
+    const api = fakeApi()
+      .on('POST', '/auth/refresh', () => jsonResponse(200, tokenPair('2', now)))
+      .on('GET', '/accounts', () => jsonResponse(200, OVERVIEW));
+
+    await sessionApi(SESSION_ID, WITH_UA).GET('/accounts');
+
+    expect(api.callsTo('POST', '/auth/refresh')[0]?.headers.get('user-agent')).toBe(BROWSER_UA);
+    expect(api.callsTo('GET', '/accounts')[0]?.headers.get('user-agent')).toBe(BROWSER_UA);
+  });
+
+  it('WEB-10 sin User-Agent en la petición, la web no pone uno suyo', async () => {
+    const api = fakeApi().on('POST', '/auth/verify-email/resend', () =>
+      jsonResponse(202, { message: 'ok' }),
+    );
+    await publicApi(CONTEXT).POST('/auth/verify-email/resend', {
+      body: { email: 'ana@example.com' },
+    });
+    expect(api.calls[0]?.headers.has('user-agent')).toBe(false);
+  });
+});
+
 describe('publicApi', () => {
   it('WEB-10 envía la IP del cliente y el request id, sin Authorization', async () => {
     const api = fakeApi().on('POST', '/auth/verify-email/resend', () =>

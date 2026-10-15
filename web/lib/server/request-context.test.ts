@@ -45,6 +45,34 @@ describe('requestContextFrom', () => {
   });
 });
 
+describe('User-Agent del navegador', () => {
+  const CHROME = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/129.0.0.0 Safari/537.36';
+
+  it('WEB-10 toma el User-Agent tal como lo envió el navegador', () => {
+    const context = requestContextFrom(new Headers({ 'user-agent': CHROME }));
+    expect(context.userAgent).toBe(CHROME);
+  });
+
+  it('WEB-10 sin User-Agent no inventa uno', () => {
+    expect(requestContextFrom(new Headers()).userAgent).toBeUndefined();
+    expect(requestContextFrom(new Headers({ 'user-agent': '  ' })).userAgent).toBeUndefined();
+    expect(forwardHeaders({ requestId: 'r', clientIp: '203.0.113.7' })).not.toHaveProperty(
+      'User-Agent',
+    );
+  });
+
+  it('WEB-10 un User-Agent enorme se recorta a 512 caracteres', () => {
+    const context = requestContextFrom(new Headers({ 'user-agent': 'A'.repeat(5_000) }));
+    expect(context.userAgent).toHaveLength(512);
+  });
+
+  it('WEB-10 lo reenvía en los headers hacia la API', () => {
+    expect(
+      forwardHeaders({ requestId: 'r', clientIp: '203.0.113.7', userAgent: CHROME }),
+    ).toMatchObject({ 'User-Agent': CHROME });
+  });
+});
+
 describe('forwardHeaders', () => {
   it('WEB-10 arma los headers hacia la API con la IP del cliente y el request id', () => {
     expect(forwardHeaders({ requestId: 'bff-123', clientIp: '203.0.113.7' })).toEqual({

@@ -18,11 +18,15 @@ const REFRESH_MARGIN_MS = 30_000;
 
 type Middleware = Parameters<ApiClient['use']>[0];
 
-/** Agrega `X-Forwarded-For` (el cliente del contrato ya agrega `X-Request-Id`). */
+/**
+ * Agrega `X-Forwarded-For` y el `User-Agent` del navegador (el cliente del contrato ya agrega
+ * `X-Request-Id`), para que la API vea y audite al cliente real (WEB-10).
+ */
 function forwardedForMiddleware(context: RequestContext): Middleware {
   return {
     onRequest({ request }) {
       request.headers.set('X-Forwarded-For', context.clientIp);
+      if (context.userAgent) request.headers.set('User-Agent', context.userAgent);
       return request;
     },
   };

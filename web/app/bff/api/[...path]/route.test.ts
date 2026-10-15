@@ -64,6 +64,16 @@ describe('GET /bff/api/[...path]', () => {
     expect(api.calls[0]?.headers.get('x-forwarded-for')).toBe('203.0.113.7');
   });
 
+  it('WEB-10 reenvía el User-Agent del navegador en las lecturas', async () => {
+    const api = fakeApi().on('GET', '/beneficiaries', () => jsonResponse(200, { items: [] }));
+    const headers = { ...BROWSER, 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) Firefox/131.0' };
+    resetRequest({ headers, cookies: { sid: SESSION_ID } });
+    await get(['beneficiaries'], '', headers);
+    expect(api.calls[0]?.headers.get('user-agent')).toBe(
+      'Mozilla/5.0 (X11; Linux x86_64) Firefox/131.0',
+    );
+  });
+
   it.each([[['accounts', PRINCIPAL.id]], [['transfers', '4f1b0d9c-8a7f-4e6d-9c5b-0d9c8b7a6f5e']]])(
     'WEB-09 permite el detalle %j',
     async (path) => {
