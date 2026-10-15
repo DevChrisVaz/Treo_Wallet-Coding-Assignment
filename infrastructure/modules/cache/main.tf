@@ -1,9 +1,9 @@
 # ElastiCache for Redis (docs/aws-deploy.md, sección 6): sesiones del BFF y contadores de rate
 # limiting de la API, cifrado en tránsito y en reposo.
 #
-# Hoy ninguno de los dos proyectos lee REDIS_URL: la sesión vive en un Map y el rate limiting cuenta
-# en memoria de cada tarea. El clúster queda listo para el cambio de código, y la URL ya llega a las
-# tareas como secreto.
+# La web lee REDIS_URL (WEB-37): con ella, las sesiones del BFF viven en este clúster. La API todavía
+# no la lee: el rate limiting cuenta en memoria de cada tarea. La URL llega a las dos tareas como
+# secreto.
 
 ephemeral "random_password" "auth_token" {
   length = 64
