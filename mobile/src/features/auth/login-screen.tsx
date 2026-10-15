@@ -88,6 +88,9 @@ function alertFor(error: unknown): Alert {
           tone: 'warning',
           message: `${problemMessage('EMAIL_NOT_VERIFIED')} La verificación se completa en la web de TreoWallet.`,
         };
+      // MOB-30: el registro quedó en revisión; no hay sesión que guardar.
+      case 'REGISTRATION_IN_REVIEW':
+        return { tone: 'info', message: errorMessage(error) };
       case 'RATE_LIMITED':
         return { tone: 'warning', message: errorMessage(error) };
       default:
