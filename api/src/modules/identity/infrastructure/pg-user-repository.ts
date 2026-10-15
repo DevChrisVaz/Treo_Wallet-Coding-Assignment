@@ -9,11 +9,21 @@ import type { Transaction } from '../../../shared/transaction.js';
 import {
   EmailAlreadyTaken,
   IdentityAlreadyTaken,
+  type IdentityField,
   type NewUser,
   type UserRecord,
   type UserRepository,
 } from '../application/users.js';
 import { UserEntity, type UserRow } from './entities.js';
+
+const IDENTITY_FIELDS: readonly IdentityField[] = ['curp', 'rfc', 'phone'];
+
+/** Constraint única que protege cada dato de identidad. */
+const IDENTITY_CONSTRAINTS: Record<IdentityField, string> = {
+  curp: 'uq_users_curp',
+  rfc: 'uq_users_rfc',
+  phone: 'uq_users_phone',
+};
 
 interface RawUser {
   id: string;
@@ -66,13 +76,17 @@ export class PgUserRepository implements UserRepository {
   async identityInUse(
     tx: Transaction,
     identity: { curp: string; rfc: string; phone: string },
-  ): Promise<boolean> {
+  ): Promise<readonly IdentityField[]> {
     const rows = await queryIn(
       tx,
-      `SELECT 1 FROM users WHERE curp = $1 OR rfc = $2 OR phone = $3 LIMIT 1`,
+      `SELECT coalesce(bool_or(curp = $1), false) AS curp,
+              coalesce(bool_or(rfc = $2), false) AS rfc,
+              coalesce(bool_or(phone = $3), false) AS phone
+         FROM users WHERE curp = $1 OR rfc = $2 OR phone = $3`,
       [identity.curp, identity.rfc, identity.phone],
     );
-    return rows.length > 0;
+    const found = (rows[0] ?? {}) as Record<IdentityField, boolean>;
+    return IDENTITY_FIELDS.filter((field) => found[field]);
   }
 
   async insert(tx: Transaction, user: NewUser): Promise<void> {
@@ -81,8 +95,10 @@ export class PgUserRepository implements UserRepository {
       await queryRunnerOf(tx).manager.insert(UserEntity, row);
     } catch (error) {
       if (isUniqueViolation(error, ['uq_users_email'])) throw new EmailAlreadyTaken();
-      if (isUniqueViolation(error, ['uq_users_curp', 'uq_users_rfc', 'uq_users_phone'])) {
-        throw new IdentityAlreadyTaken();
+      for (const [field, constraint] of Object.entries(IDENTITY_CONSTRAINTS)) {
+        if (isUniqueViolation(error, [constraint])) {
+          throw new IdentityAlreadyTaken([field as IdentityField]);
+        }
       }
       throw error;
     }
