@@ -9,7 +9,7 @@ Las decisiones de fondo están en [`openspec/changes/delivery/design.md`](../ope
 ## Cómo leer este documento
 
 - **Lo que el repositorio ya hace** se afirma como hecho y se enlaza al código, a las pruebas o a la especificación.
-- **Lo que se propone para AWS** va en tiempo condicional o marcado como propuesta. En particular, hoy **no existe** en el repositorio: un `Dockerfile` de la API o de la web, el colector de OpenTelemetry, los contadores de rate limiting en Redis, ni `lock_timeout` o `statement_timeout`. La API usa un pool de 20 conexiones para `wallet_app` y 5 para `wallet_migrator` (`api/src/platform/persistence/data-sources.ts`); la sesión de la web vive en Redis cuando hay `REDIS_URL` (`web/lib/server/redis-session-store.ts`, WEB-37) y, sin ella, en un `Map`; el rate limiting cuenta en memoria de cada instancia.
+- **Lo que se propone para AWS** va en tiempo condicional o marcado como propuesta. En particular, hoy **no existe** en el repositorio: un `Dockerfile` de la API o de la web, el colector de OpenTelemetry, los contadores de rate limiting en Redis, ni `lock_timeout` o `statement_timeout`. La API usa un pool de 20 conexiones para `wallet_app` y 5 para `wallet_migrator` (`api/src/platform/persistence/data-sources.ts`); la sesión de la web vive en Redis cuando hay `REDIS_URL` (`web/lib/server/redis-session-store.ts`, WEB-37) y, sin ella, en un `Map`; el rate limiting cuenta en memoria de cada instancia (el login, el registro, los estados de cuenta, `refresh`, `logout` y las operaciones de transferencias; sus topes son variables de entorno, `RATE_LIMIT_*_MAX`).
 - **Los objetivos de RPO y RTO y los plazos de retención son supuestos** que deben validar riesgo y cumplimiento antes de comprometerse.
 
 ## Diagrama de arquitectura
@@ -135,7 +135,7 @@ El enunciado sugiere S3 + CloudFront o Amplify Hosting. **Aquí no aplica S3 + C
 
 **Por qué Fargate, en orden de peso:**
 
-1. **Confianza en la IP del cliente.** El rate limiting del login es por IP y correo. La IP real del navegador solo la conoce el BFF, que la reenvía en `X-Forwarded-For`. Con el BFF en subredes privadas de la misma VPC, la API confía en ese header solo si la petición viene del CIDR de las subredes del BFF o del ALB: `TRUSTED_PROXIES` de la API contiene esos CIDR. Un BFF fuera de la VPC llamaría a la API por internet, sin IP de salida fija, y su header no se distinguiría de uno falsificado.
+1. **Confianza en la IP del cliente.** El rate limiting del login es por IP y correo, y el de `refresh` y `logout`, por IP. Si el BFF no está en `TRUSTED_PROXIES`, todas las personas de la web comparten la IP del BFF y un solo contador. La IP real del navegador solo la conoce el BFF, que la reenvía en `X-Forwarded-For`. Con el BFF en subredes privadas de la misma VPC, la API confía en ese header solo si la petición viene del CIDR de las subredes del BFF o del ALB: `TRUSTED_PROXIES` de la API contiene esos CIDR. Un BFF fuera de la VPC llamaría a la API por internet, sin IP de salida fija, y su header no se distinguiría de uno falsificado.
 2. **Versión de Next.js.** La web usa Next.js 16 (App Router y Server Actions). En Fargate corre cualquier versión. La documentación de Amplify Hosting declara soporte de SSR para Next.js 12 a 15.
 3. **Una sola plataforma operativa.** La API ya necesita ECS, ALB, autoescalado, ECR y su pipeline. El BFF es un segundo servicio con el mismo modelo de despliegue, observabilidad y red.
 4. **Postura de red.** El BFF y la API comparten subredes privadas, grupos de seguridad y ElastiCache (sesiones del BFF y contadores de rate limiting de la API).
@@ -150,7 +150,9 @@ El enunciado sugiere S3 + CloudFront o Amplify Hosting. **Aquí no aplica S3 + C
 **Configuración específica:**
 
 - **`ALLOWED_ORIGINS`** (que alimenta `serverActions.allowedOrigins` en `web/next.config.ts`) incluye el dominio público. CloudFront cambia el `Host` hacia el origen, y sin esto Next rechaza las Server Actions por considerarlas de otro origen.
-- **`SESSION_COOKIE_SECURE=true`** (valor por defecto en producción): la cookie se llama `__Host-sid` y lleva `Secure`.
+- **`SESSION_COOKIE_SECURE=true`** (valor por defecto en producción): la cookie se llama `__Host-sid` y lleva `Secure`. Con ese valor la web también envía `Strict-Transport-Security` (dos años, con subdominios, sin `preload`) y `upgrade-insecure-requests` en la política de contenido.
+- **Headers de seguridad.** La web envía `Content-Security-Policy` con un nonce por petición (en `proxy.ts`) y, en toda respuesta, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` y `Permissions-Policy`. Como el nonce cambia en cada petición, CloudFront no debe guardar el HTML de la web en caché ni reescribir esos headers con una *response headers policy* que los duplique o los contradiga. Los archivos de `_next/static` sí son cacheables.
+- **Respuestas de la API sin caché.** Toda respuesta de la API lleva `Cache-Control: no-store`, así que la distribución de CloudFront de la API no debe forzar una política de caché sobre ellas (con la política administrada *CachingDisabled* basta).
 - **Costo aceptado:** al menos dos tareas encendidas y sin entornos de vista previa por PR.
 - **Sesiones en ElastiCache** (ver [soporte](#6-servicios-de-soporte)): el almacén en Redis ya existe y se elige con `REDIS_URL` (`rediss://` para ElastiCache con cifrado en tránsito), así que escalar a más de una tarea es configuración. La renovación única del access token sigue siendo por proceso; con varias tareas, la ventana de gracia de 30 s de la API absorbe dos renovaciones simultáneas (D2 de `web-app`).
 
@@ -186,6 +188,7 @@ El enunciado sugiere S3 + CloudFront o Amplify Hosting. **Aquí no aplica S3 + C
   - **La regla valida el token en CloudFront.** Una regla con acción CAPTCHA para `POST /register` en `web.dominio` deja pasar las peticiones con token válido y detiene las demás antes de llegar al BFF. Ni el BFF ni la API cambian: no verifican nada.
   - **Sin atajo por la API.** El BFF llama a la API por el ALB interno, así que WAF solo ve el tráfico público. Hoy ningún cliente público se registra directo en la API (la app móvil no tiene registro), así que una regla bloquea `POST /auth/register` en `api.dominio`. Si la app agrega registro, ese bloqueo se cambia por el SDK móvil de WAF (token por desafío silencioso) y el acertijo en una vista web.
   - **Local y pruebas.** Sin la URL de integración ni la llave configuradas, la página no carga el acertijo; en local no hay WAF, así que las pruebas e2e no cambian.
+  - **Política de contenido.** La web envía una `Content-Security-Policy` con nonce que solo permite scripts propios y `connect-src 'self'`. Al cargar el script de CAPTCHA de WAF en `/register`, hay que agregar a `script-src` y a `connect-src` el origen que indique la documentación de AWS en ese momento (en `web/lib/csp.ts`); sin eso, el navegador bloquearía el acertijo. La prueba `security-headers.spec.ts` lo detectaría como una violación.
   - **Costo:** WAF cobra por cada intento de CAPTCHA, además de la regla. Las métricas de intentos y resoluciones van a CloudWatch.
 
   Alternativa descartada: Cloudflare Turnstile o reCAPTCHA. Son gratuitos o más baratos, pero mandan datos del navegador a un tercero fuera de la cuenta (el mismo criterio que en observabilidad), y WAF ya está en el camino de cada petición.
@@ -229,7 +232,7 @@ El repositorio ya tiene un workflow por proyecto en `.github/workflows/` (`contr
 | Idempotencia | Hoy la llave es una columna única de `transfers`. Se agrega una tabla genérica `idempotency_keys` con la respuesta guardada, TTL y purga, para extender la idempotencia a otras mutaciones |
 | Programadas | El ejecutor sale de las tareas de la API a un worker propio o a EventBridge Scheduler, con el mismo caso de uso |
 | Base de datos | Migración a Aurora PostgreSQL; si una sola instancia escritora no alcanza, evaluar particionar por usuario |
-| Borde | Reglas de WAF más finas, rate limiting en CloudFront y caché de lo que sea público |
+| Borde | Reglas de WAF más finas, rate limiting en CloudFront y caché de lo que sea público (las respuestas de la API llevan `no-store`; solo se cachearía lo que se marque a propósito) |
 
 Antes de cualquiera de estos cambios, la regla es medir: el `EXPLAIN ANALYZE` del historial con 120k asientos y las pruebas de concurrencia son la línea base contra la que se comparan.
 

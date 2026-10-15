@@ -72,6 +72,34 @@ SELECT u.id, u.created_at, u.email_verified_at,
  ORDER BY u.created_at;
 ```
 
+### Límites de tasa, caché y avisos
+
+Cada límite responde `429 RATE_LIMITED` con `Retry-After`. El tope de cada uno se cambia con una variable de entorno (entero de 1 a 10000); la ventana es fija.
+
+| Ruta                              | Llave   | Ventana | Tope por defecto | Variable                          |
+| --------------------------------- | ------- | ------- | ---------------- | --------------------------------- |
+| `POST /auth/refresh`              | IP      | 15 min  | 120              | `RATE_LIMIT_REFRESH_MAX`          |
+| `POST /auth/logout`               | IP      | 15 min  | 60               | `RATE_LIMIT_LOGOUT_MAX`           |
+| `POST /transfers`                 | usuario | 10 min  | 30               | `RATE_LIMIT_TRANSFER_CREATE_MAX`  |
+| `POST /transfers/{id}/confirm`    | usuario | 15 min  | 15               | `RATE_LIMIT_TRANSFER_CONFIRM_MAX` |
+| `POST /transfers/{id}/otp/resend` | usuario | 15 min  | 6                | `RATE_LIMIT_TRANSFER_RESEND_MAX`  |
+| `POST /transfers/{id}/cancel`     | usuario | 10 min  | 20               | `RATE_LIMIT_TRANSFER_CANCEL_MAX`  |
+
+- **Qué cuenta:** toda petición que llega al límite, también la rechazada por validación y la repetición de una `Idempotency-Key`. Una petición sin access token no gasta el cupo de nadie. Los topes dejan espacio a los cinco reintentos de la app (seis peticiones con la misma llave).
+- **IP compartida:** `refresh` y `logout` cuentan por la IP que resuelve `TRUSTED_PROXIES`. Si el BFF no está en esa lista, todas las personas de la web comparten una llave.
+- **En las pruebas:** `testConfig` sube los cuatro topes de transferencias a 10000 para que las suites de concurrencia (~100 transferencias de un usuario) afirmen lo suyo; cada prueba de un límite pasa el suyo.
+- **Sin caché:** toda respuesta lleva `Cache-Control: no-store`, también los problem+json, los 404, los 429 y `GET /health`. `/docs` y `/openapi.yaml` (fuera de producción) quedan fuera.
+- **Avisos por correo:** salen después del `COMMIT` por un `NoticeDispatcher` que no hace esperar la respuesta. Cada envío tiene su propio `catch`, y una falla solo queda en el log con el destinatario enmascarado. En el apagado ordenado, `drain()` espera hasta 5 s los que van en vuelo.
+
+| Aviso                                   | Sale cuando                                                                                    | No sale cuando                                                                                                            |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| "Iniciaste sesión en TreoWallet"        | `POST /auth/login` responde `200`                                                              | `401`, `403`, `429`, `refresh`, verificación del correo                                                                   |
+| "Cerramos una sesión por seguridad"     | Un refresh token ya usado revoca su familia                                                    | Token desconocido o vencido, reintento dentro de la ventana de gracia, la misma familia otra vez                          |
+| "Agregaste a <alias> como beneficiario" | `POST /beneficiaries` responde `201`                                                           | La repetición idéntica (`200`), `409`, `422`                                                                              |
+| "Transferencia realizada"               | Una transferencia a un tercero llega a `COMPLETED` (al crear, al confirmar, o por el ejecutor) | Repetición de la llave, confirmación repetida, traspaso entre cuentas propias, fondeo (seed y `db:fund`), el destinatario |
+
+El aviso de inicio de sesión describe al cliente con el `User-Agent` (`client-description.ts`): la app dice `TreoWallet-App/<versión> (<ios|android>)`, un navegador se reconoce por su marca y su sistema ("Chrome en Windows"), y todo lo demás es "un dispositivo". La IP sale con el último octeto oculto (`203.0.113.*`). Ningún aviso lleva la CLABE completa, contraseñas, tokens ni códigos.
+
 ## Scripts
 
 | Script                                  | Qué hace                                                                                                                                                                                                                      |
