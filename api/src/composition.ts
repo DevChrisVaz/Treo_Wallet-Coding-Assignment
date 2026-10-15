@@ -244,6 +244,8 @@ export async function createContainer(
         sessions,
         accessTokens,
         audit,
+        users,
+        notices,
         clock,
       }),
       login: new Login({

@@ -1,8 +1,10 @@
 import type { TokenPair } from '@devchrisvaz/wallet-contract';
 import type { Clock } from '../../../shared/clock.js';
+import type { NoticeDispatcher } from '../../../platform/mail/notice-dispatcher.js';
 import { DomainError } from '../../../shared/errors.js';
 import type { TransactionRunner } from '../../../shared/transaction.js';
 import type { AuditWriter } from '../../audit/application/audit-writer.js';
+import { sessionClosedEmail } from './email-templates.js';
 import {
   hashRefreshToken,
   type IssuedRefreshToken,
@@ -11,6 +13,7 @@ import {
 } from './sessions.js';
 import type { AccessTokens } from './tokens.js';
 import { toTokenPair } from './user-view.js';
+import type { UserRepository } from './users.js';
 
 /** Ventana para tolerar el reintento de un cliente que perdió la respuesta (IDN-12). */
 export const REFRESH_GRACE_MS = 30_000;
@@ -21,12 +24,15 @@ export interface RefreshSessionDeps {
   readonly sessions: SessionService;
   readonly accessTokens: AccessTokens;
   readonly audit: AuditWriter;
+  /** Para avisar al dueño de la sesión cuando se detecta un reuso (IDN-19). */
+  readonly users: UserRepository;
+  readonly notices: NoticeDispatcher;
   readonly clock: Clock;
 }
 
 type Outcome =
   | { readonly kind: 'ROTATED'; readonly userId: string; readonly next: IssuedRefreshToken }
-  | { readonly kind: 'REVOKED' };
+  | { readonly kind: 'REVOKED'; readonly reusedBy?: string };
 
 function sessionRevoked(): DomainError {
   return new DomainError('SESSION_REVOKED', 'La sesión ya no es válida; inicia sesión de nuevo');
@@ -93,11 +99,29 @@ export class RefreshSession {
         entity: { type: 'user', id: token.userId },
         metadata: { familyId: token.familyId },
       });
-      return { kind: 'REVOKED' };
+      return { kind: 'REVOKED', reusedBy: token.userId };
     });
 
-    if (outcome.kind === 'REVOKED') throw sessionRevoked();
+    if (outcome.kind === 'REVOKED') {
+      if (outcome.reusedBy) await this.notifyReuse(outcome.reusedBy);
+      throw sessionRevoked();
+    }
     const access = await this.deps.accessTokens.issue(outcome.userId, clock.now());
     return toTokenPair(access, outcome.next);
+  }
+
+  /**
+   * Avisa al dueño después del COMMIT (IDN-19). Solo llega aquí el primer reuso: con la familia
+   * revocada, el mismo token cae en la rama de "revocado" y no vuelve a avisar. Nada de esto cambia
+   * el 401 que recibe quien presentó el token (PLT-16).
+   */
+  private async notifyReuse(userId: string): Promise<void> {
+    const { users, notices, clock } = this.deps;
+    const user = await users.findById(userId);
+    if (!user) return;
+    notices.send(
+      { to: user.email, ...sessionClosedEmail({ at: clock.now() }) },
+      'session-closed-notice',
+    );
   }
 }
