@@ -161,7 +161,7 @@ No hay `Dockerfile` en el repositorio. La configuración asume que las imágenes
 - **Zonas excluidas:** CloudFront no admite VPC origins en algunas zonas (por ejemplo `use1-az3` en us-east-1), así que el módulo de red las descarta por ID. mx-central-1 sí admite VPC origins, por si se prefiere mantener los datos en México; falta confirmar ahí la disponibilidad de RDS Proxy y de SES.
 - **`TRUSTED_PROXIES`** de la API son los rangos de las subredes privadas, donde están el ALB, las interfaces del VPC origin y el BFF.
 - **Tres capas de subredes:** RDS y ElastiCache están en subredes sin ruta a internet.
-- **Redis lo usa la web, todavía no la API.** Con `REDIS_URL`, el BFF guarda sus sesiones en ElastiCache (WEB-37, `web/lib/server/redis-session-store.ts`), así que cualquier tarea del BFF atiende cualquier sesión y la afinidad por cookie del ALB (`web_sticky_sessions`) ya no hace falta para las sesiones. El rate limiting de la API sigue contando en memoria: el límite de intentos de login es por tarea y, con dos tareas, el límite efectivo se duplica. La primera barrera sigue siendo la regla por tasa de WAF.
+- **Redis lo usa la web, todavía no la API.** Con `REDIS_URL`, el BFF guarda sus sesiones en ElastiCache (WEB-37, `web/lib/server/redis-session-store.ts`), así que cualquier tarea del BFF atiende cualquier sesión. La afinidad por cookie del ALB (`web_sticky_sessions`) queda apagada por defecto; solo hace falta si el BFF corre sin `REDIS_URL`. El rate limiting de la API sigue contando en memoria: el límite de intentos de login es por tarea y, con dos tareas, el límite efectivo se duplica. La primera barrera sigue siendo la regla por tasa de WAF.
 - **WAF:** límite por IP en `/auth/*` y `/login` (100 en 5 minutos), límite general (2,000 en 5 minutos) y los grupos administrados de reputación de IP, reglas comunes y entradas maliciosas. Los logs ocultan `authorization` y `cookie`.
 - **`audit_log` a S3:** RDS tiene asociado un rol para `aws_s3.query_export_to_s3` con permiso solo sobre `audit-log/` del bucket de auditoría. El job periódico que la invoca no está escrito.
 - **Trail de la cuenta,** no de organización: el de organización vive en la cuenta de administración.
@@ -175,3 +175,6 @@ No hay `Dockerfile` en el repositorio. La configuración asume que las imágenes
 - Sacar la credencial SMTP del estado: crear la llave de acceso fuera de Terraform (o rotarla con una Lambda) y que Terraform solo cree el usuario, su política y el secreto vacío.
 - La rotación automática de las contraseñas de la base con Secrets Manager: el secreto lleva la URL completa y la rotación administrada solo cambiaría `password`.
 - El colector de OpenTelemetry (ADOT) como sidecar, cuando la API y el BFF tengan instrumentación.
+- El rate limiting de la API en ElastiCache: el clúster y `REDIS_URL` ya están, falta que la API los use.
+- El job periódico que exporta `audit_log` a S3 con `aws_s3.query_export_to_s3`.
+- La regla CAPTCHA de WAF para el registro que propone [`docs/aws-deploy.md`](../docs/aws-deploy.md#6-servicios-de-soporte): necesita que la página de registro integre el acertijo, así que no está en el web ACL.

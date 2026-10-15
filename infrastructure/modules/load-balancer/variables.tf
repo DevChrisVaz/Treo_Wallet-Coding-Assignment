@@ -44,9 +44,9 @@ variable "web_port" {
 }
 
 variable "web_sticky_sessions" {
-  description = "Afinidad por cookie hacia el BFF mientras la sesión viva en memoria de cada tarea."
+  description = "Afinidad por cookie hacia el BFF. Solo hace falta si el BFF corre sin REDIS_URL (sesión en memoria de cada tarea)."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "idle_timeout_seconds" {

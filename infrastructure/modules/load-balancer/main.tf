@@ -160,8 +160,9 @@ resource "aws_lb_target_group" "web" {
     unhealthy_threshold = 3
   }
 
-  # Provisional: la sesión del BFF vive en un Map en memoria de cada tarea. Mientras no se use
-  # ElastiCache como SessionStore, la cookie de afinidad mantiene a cada navegador en su tarea.
+  # Con REDIS_URL, la sesión del BFF vive en ElastiCache (WEB-37) y cualquier tarea atiende a
+  # cualquier navegador. La afinidad por cookie solo hace falta si el BFF corre sin REDIS_URL, con
+  # la sesión en un Map en memoria de cada tarea.
   stickiness {
     type            = "lb_cookie"
     enabled         = var.web_sticky_sessions
