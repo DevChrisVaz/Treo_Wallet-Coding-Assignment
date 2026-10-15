@@ -3,9 +3,7 @@
 ## Purpose
 
 Define el comportamiento transversal de la API de la billetera: formato de errores, trazabilidad de peticiones, logs con datos sensibles enmascarados, configuración segura, límites de tasa, documentación navegable, entorno local reproducible, roles de base de datos de privilegio mínimo e integración continua.
-
 ## Requirements
-
 ### Requirement: PLT-01 Formato de errores RFC 9457
 La API SHALL responder todo error con `Content-Type: application/problem+json` y un cuerpo que cumpla RFC 9457 (compatible con RFC 7807) con los campos `type`, `title`, `status`, `code` y `requestId`, más `detail` e `instance` cuando aplique. El campo `code` MUST pertenecer al catálogo cerrado `ProblemCode` de `contract/openapi.yaml`, y `title` y `detail` MUST estar en español. Las extensiones específicas (`errors`, `transferId`, `transferStatus`, `remaining`, `attemptsRemaining`) MUST usarse solo en los códigos que el contrato indica.
 
@@ -162,7 +160,7 @@ El proyecto `/api` SHALL poder levantarse en local siguiendo su README con: un c
 - **THEN** los correos recibidos antes del reinicio siguen en la bandeja web
 
 ### Requirement: PLT-14 Roles de base de datos de privilegio mínimo
-La base de datos SHALL tener dos roles: uno dueño del esquema, que ejecuta migraciones y seed, y uno de ejecución, que usa la API. El rol de ejecución MUST NOT ser dueño de ningún objeto, MUST NOT poder crear ni alterar objetos del esquema y MUST tener solo los privilegios que cada migración le otorga explícitamente tabla por tabla. Ninguna tabla MUST otorgarle `DELETE` ni `TRUNCATE`. Los roles MUST crearse con un script de arranque ejecutado por un superusuario, no desde las migraciones, y sus contraseñas MUST venir de variables de entorno.
+La base de datos SHALL tener dos roles: uno dueño del esquema, que ejecuta migraciones y seed, y uno de ejecución, que usa la API. El rol de ejecución MUST NOT ser dueño de ningún objeto, MUST NOT poder crear ni alterar objetos del esquema y MUST tener solo los privilegios que cada migración le otorga explícitamente tabla por tabla. Ninguna tabla MUST otorgarle `DELETE` ni `TRUNCATE`. Los roles MUST crearse con un script de arranque ejecutado por un superusuario, no desde las migraciones, y sus contraseñas MUST venir de variables de entorno. El script de arranque MUST ejecutarse únicamente en el servidor que indica la URL del superusuario: si no puede garantizarlo, MUST terminar con un error que diga qué URL y qué servicio no coinciden, sin ejecutar nada, y MUST NOT pasar las contraseñas como argumentos del proceso.
 
 #### Scenario: El rol de ejecución no puede alterar el esquema
 - **WHEN** el rol de ejecución intenta crear o alterar una tabla
@@ -171,6 +169,28 @@ La base de datos SHALL tener dos roles: uno dueño del esquema, que ejecuta migr
 #### Scenario: Sin DELETE ni TRUNCATE para el rol de ejecución
 - **WHEN** se consultan los privilegios del rol de ejecución sobre todas las tablas del esquema
 - **THEN** ninguna tabla le otorga `DELETE` ni `TRUNCATE`
+
+#### Scenario: Con psql instalado
+- **WHEN** se ejecuta el script de arranque en una máquina con `psql`
+- **THEN** se conecta a la URL del superusuario, sea cual sea su host y su puerto
+
+#### Scenario: Sin psql y con la URL del contenedor local
+- **WHEN** se ejecuta el script de arranque sin `psql`, con una URL en `localhost` cuyo puerto es el que publica el servicio de PostgreSQL de compose
+- **THEN** el script se ejecuta dentro de ese contenedor
+
+#### Scenario: Sin psql y con un puerto distinto al del contenedor
+- **WHEN** se ejecuta el script de arranque sin `psql`, con una URL en `localhost` cuyo puerto no es el que publica el servicio de compose
+- **THEN** el script termina con error sin ejecutar nada
+- **AND** el mensaje nombra la URL, el puerto que publica compose y qué hacer (instalar `psql` o apuntar la URL a ese puerto)
+
+#### Scenario: Sin psql y con un servidor remoto
+- **WHEN** se ejecuta el script de arranque sin `psql`, con una URL cuyo host no es de esta máquina
+- **THEN** el script termina con error sin ejecutar nada
+
+#### Scenario: Sin psql y con el servicio de compose apagado
+- **WHEN** se ejecuta el script de arranque sin `psql` y el servicio de PostgreSQL de compose no está en marcha
+- **THEN** el script termina con error sin ejecutar nada
+- **AND** el mensaje dice que hay que levantar compose o instalar `psql`
 
 ### Requirement: PLT-15 Esquema gestionado solo por migraciones reversibles
 El esquema SHALL cambiar únicamente mediante migraciones versionadas; la API MUST NOT sincronizar ni modificar el esquema al arrancar. Cada migración MUST tener su reversión, y aplicar todas las migraciones, revertirlas todas y volver a aplicarlas MUST terminar sin errores.
@@ -184,13 +204,18 @@ El esquema SHALL cambiar únicamente mediante migraciones versionadas; la API MU
 - **THEN** la segunda ejecución no aplica cambios y termina sin errores
 
 ### Requirement: PLT-16 Entrega de correo transaccional
-La API SHALL enviar los correos transaccionales (códigos de verificación, avisos de registro y, en `api-ledger`, códigos de confirmación de transferencias) por SMTP después de confirmar la transacción de la operación que los origina. Una falla al enviar MUST NOT revertir la operación ya confirmada, MUST registrarse en el log sin exponer el código ni el destinatario completo, y MUST dejar al usuario la posibilidad de pedir un reenvío.
+La API SHALL enviar los correos transaccionales (códigos de verificación, avisos de registro, códigos de confirmación de transferencias, avisos de seguridad y comprobantes de transferencias) por SMTP después de confirmar la transacción de la operación que los origina. Una falla al enviar MUST NOT revertir la operación ya confirmada, MUST registrarse en el log sin exponer el código ni el destinatario completo, y MUST dejar al usuario la posibilidad de pedir un reenvío cuando el correo sea un código. Un aviso o un comprobante (IDN-18, IDN-19, BEN-12, TRF-38) MUST NOT cambiar el código, el cuerpo ni los headers de la respuesta de la operación que lo origina, ni retrasarla mientras se envía.
 
 #### Scenario: Servidor de correo caído durante el registro
 - **WHEN** un usuario se registra mientras el servidor SMTP no responde
 - **THEN** la API responde `202` igual que siempre
 - **AND** el usuario queda registrado sin verificar
 - **AND** puede pedir el reenvío del código cuando el servidor vuelva
+
+#### Scenario: Servidor de correo caído durante un inicio de sesión
+- **WHEN** un usuario inicia sesión con su contraseña correcta mientras el servidor SMTP no responde
+- **THEN** la API responde `200` con los mismos tokens que respondería con el servidor disponible
+- **AND** el log registra la falla con el destinatario enmascarado y sin el cuerpo del correo
 
 ### Requirement: PLT-17 Integración continua del proyecto
 El proyecto `/api` SHALL tener su propio pipeline de CI que se ejecute ante cambios en `api/**` o en `contract/**` y que corra lint, verificación de tipos, pruebas unitarias y pruebas de integración contra un PostgreSQL real con los roles creados por el script de arranque. El pipeline MUST fallar si cualquiera de esos pasos falla.
@@ -213,3 +238,42 @@ Las reglas de negocio de la API SHALL vivir fuera de los handlers HTTP y MUST po
 #### Scenario: Dominio que importa el framework
 - **WHEN** un archivo de dominio importa el framework HTTP o el ORM
 - **THEN** el lint del proyecto falla
+
+### Requirement: PLT-19 Límites de tasa configurables
+Los topes de los límites de tasa de `POST /auth/refresh`, `POST /auth/logout`, `POST /transfers`, `POST /transfers/{transferId}/confirm`, `POST /transfers/{transferId}/otp/resend` y `POST /transfers/{transferId}/cancel` SHALL poder cambiarse con variables de entorno, cada una con un valor por defecto y validada al arrancar (PLT-08). Un valor que no sea un entero entre 1 y 10000 MUST impedir el arranque y el error MUST nombrar la variable sin mostrar su valor. Los límites MUST responder como indica PLT-09.
+
+#### Scenario: Valores por defecto
+- **WHEN** la API arranca sin ninguna de las variables de los límites nuevos
+- **THEN** arranca con los topes por defecto documentados en la configuración
+
+#### Scenario: Tope configurado
+- **WHEN** la API arranca con el tope de `confirm` igual a 2
+- **THEN** la tercera confirmación de un usuario dentro de la ventana responde `429 RATE_LIMITED`
+
+#### Scenario: Valor inválido
+- **WHEN** la API arranca con un tope igual a `0` o a `abc`
+- **THEN** el arranque falla con un error que nombra la variable y no incluye el valor
+
+### Requirement: PLT-20 Respuestas sin caché
+La API SHALL enviar `Cache-Control: no-store` en todas sus respuestas, incluidas las de error (`application/problem+json`), las de rutas inexistentes, las `429` y `GET /health`. La única excepción MUST ser la documentación navegable del contrato (`GET /docs` y `GET /openapi.yaml`, PLT-11).
+
+#### Scenario: Respuesta con tokens
+- **WHEN** un usuario inicia sesión con éxito
+- **THEN** la respuesta `200` lleva `Cache-Control: no-store`
+
+#### Scenario: Respuesta autenticada
+- **WHEN** un usuario autenticado llama a `GET /me`
+- **THEN** la respuesta lleva `Cache-Control: no-store`
+
+#### Scenario: Respuesta de error
+- **WHEN** una petición responde `401 UNAUTHENTICATED`, `404 NOT_FOUND`, `422 VALIDATION_FAILED` o `429 RATE_LIMITED`
+- **THEN** la respuesta lleva `Cache-Control: no-store`
+
+#### Scenario: Salud del servicio
+- **WHEN** se llama a `GET /health`
+- **THEN** la respuesta lleva `Cache-Control: no-store`
+
+#### Scenario: Documentación fuera de producción
+- **WHEN** se llama a `GET /openapi.yaml` fuera de producción
+- **THEN** la respuesta no lleva `Cache-Control: no-store`
+

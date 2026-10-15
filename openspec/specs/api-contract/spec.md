@@ -3,9 +3,7 @@
 ## Purpose
 
 Define el contrato OpenAPI de la billetera como única fuente de verdad compartida por la API, la web y la app móvil, y el paquete que lo distribuye con tipos, cliente tipado, validadores de entrada y formato de montos, sin crear dependencias de código entre proyectos.
-
 ## Requirements
-
 ### Requirement: CTR-01 Contrato OpenAPI como fuente de verdad
 El paquete SHALL incluir el archivo `openapi.yaml` en formato OpenAPI 3.1 como única definición de las rutas, esquemas, códigos de error y headers de la API. El archivo MUST pasar el lint del contrato sin errores, y cada operación MUST declarar un `operationId` único y sus respuestas de error como `application/problem+json`.
 
@@ -417,3 +415,19 @@ El paquete SHALL exportar el catálogo de entidades de nacimiento: los 33 códig
 #### Scenario: Entidad de una CURP
 - **WHEN** se pide la entidad de una CURP válida con los caracteres 12 y 13 iguales a `DF`
 - **THEN** la función devuelve `"DF"`
+
+### Requirement: CTR-22 Respuesta 429 en el cierre de sesión
+El contrato SHALL declarar la respuesta `429` con `code` `RATE_LIMITED` y el header `Retry-After` en `logout`, con la misma definición que usan las demás operaciones limitadas (PLT-09, IDN-17), y SHALL publicarse como versión menor `1.6.0`. El cliente tipado MUST entregar ese error como el error tipado de CTR-07.
+
+#### Scenario: Logout limitado en el documento
+- **WHEN** se lee `openapi.yaml`
+- **THEN** la operación `logout` declara la respuesta `429` con `Retry-After`
+
+#### Scenario: Error tipado
+- **WHEN** la API responde `429 RATE_LIMITED` a `logout`
+- **THEN** el consumidor recibe un error tipado con `code === "RATE_LIMITED"`
+
+#### Scenario: Versión del paquete
+- **WHEN** se publica este cambio del contrato
+- **THEN** la versión del paquete es `1.6.0`
+
