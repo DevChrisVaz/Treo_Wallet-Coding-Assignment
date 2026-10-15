@@ -61,3 +61,9 @@ ds-bundle/
 **/.design-sync/.cache/
 **/.design-sync/learnings/
 **/.design-sync/node_modules
+
+# Guion del video: material local de la entrega, no se versiona
+docs/video-script.md
+
+# Material local del video demo (audio, capturas, render)
+video/
