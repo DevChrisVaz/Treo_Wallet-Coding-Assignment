@@ -54,6 +54,13 @@ export interface Connectivity {
   subscribe(listener: (connected: boolean) => void): () => void;
 }
 
+/** Dónde sobrevive el intento a que la app se cierre (almacenamiento seguro; MOB-11). */
+export interface PendingStore {
+  save(frozen: Frozen): Promise<void>;
+  load(): Promise<Frozen | null>;
+  clear(): Promise<void>;
+}
+
 interface Frozen {
   key: string;
   payload: string;
@@ -90,6 +97,8 @@ export type ReviewResult = { ok: true } | { ok: false; errors: Record<string, st
 export interface TransferAttemptOptions {
   transport: TransferTransport;
   connectivity: Connectivity;
+  /** Persistencia del intento en vuelo; sin ella, la llave solo vive en memoria. */
+  pending?: PendingStore;
   /** Generador de la llave; por defecto, UUID v4 de expo-crypto (Hermes no tiene crypto.randomUUID). */
   generateKey?: () => string;
   /** Fuente de la variación de la espera; por defecto, `Math.random`. */
@@ -138,12 +147,15 @@ export class TransferAttempt {
   private readonly generateKey: () => string;
   private readonly random: () => number;
   private readonly connectivity: Connectivity;
+  private readonly pending: PendingStore | undefined;
+  private resuming = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private stopListening: (() => void) | undefined;
 
   constructor(options: TransferAttemptOptions) {
     this.transport = options.transport;
     this.connectivity = options.connectivity;
+    this.pending = options.pending;
     this.generateKey = options.generateKey ?? (() => createIdempotencyKey(randomUUID));
     this.random = options.random ?? Math.random;
   }
@@ -208,6 +220,7 @@ export class TransferAttempt {
   edit(): void {
     const { status } = this.state;
     if (status === 'reviewing' || status === 'rejected' || status === 'error') {
+      void this.pending?.clear();
       this.setState({ status: 'editing' });
     }
   }
@@ -216,7 +229,24 @@ export class TransferAttempt {
   async submit(): Promise<void> {
     const current = this.state;
     if (current.status !== 'reviewing') return;
-    await this.send(frozenOf(current), 0);
+    await this.send(frozenOf(current), 0, true);
+  }
+
+  /**
+   * Retoma un intento guardado tras cerrar la app (MOB-11): repite la misma llave y los mismos
+   * bytes, y la API responde con el estado real (`Idempotent-Replayed`). Solo actúa desde la
+   * captura y una vez a la vez.
+   */
+  async resume(): Promise<void> {
+    if (!this.pending || this.resuming || this.state.status !== 'editing') return;
+    this.resuming = true;
+    try {
+      const frozen = await this.pending.load();
+      if (!frozen || this.state.status !== 'editing') return;
+      await this.send(frozenOf(frozen), 0);
+    } finally {
+      this.resuming = false;
+    }
   }
 
   /**
@@ -310,9 +340,12 @@ export class TransferAttempt {
     }
   }
 
-  private async send(frozen: Frozen, retries: number): Promise<void> {
+  private async send(frozen: Frozen, retries: number, persist = false): Promise<void> {
     this.dispose();
+    // Primero el estado: mientras se guarda, un segundo toque ya encuentra "enviando" y se ignora.
     this.setState({ status: 'sending', retries, ...frozen });
+    // La llave queda guardada antes de salir la petición: si matan la app, se puede retomar.
+    if (persist) await this.pending?.save(frozen);
     try {
       const { transfer, replayed } = await this.transport.create(frozen.key, frozen.payload);
       this.settle(transfer, replayed);
@@ -329,6 +362,10 @@ export class TransferAttempt {
   }
 
   private settle(transfer: Transfer, replayed: boolean): void {
+    // La API ya creó la transferencia: la llave dejó de hacer falta (el OTP sigue por su id).
+    if (this.state.status === 'sending' || this.state.status === 'waitingRetry') {
+      void this.pending?.clear();
+    }
     if (transfer.status === 'PENDING_OTP') {
       this.setState({ status: 'pendingOtp', transfer });
     } else {
@@ -348,8 +385,10 @@ export class TransferAttempt {
         ...frozen,
       });
     } else if (REJECTION_CODES.has(error.code)) {
+      void this.pending?.clear();
       this.setState({ status: 'rejected', error, ...frozen });
     } else {
+      void this.pending?.clear();
       this.setState({ status: 'error', error, ...frozen });
     }
   }

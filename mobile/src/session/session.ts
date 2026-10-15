@@ -7,6 +7,7 @@
 import type { TokenPair } from '@devchrisvaz/wallet-contract';
 import * as SecureStore from 'expo-secure-store';
 
+import { clearPendingTransfer } from './pending-transfer';
 import { clearUnlockPreference } from './unlock-preference';
 
 export const REFRESH_TOKEN_KEY = 'treowallet.refreshToken';
@@ -55,6 +56,8 @@ export class Session {
 
   /** Inicio de sesión exitoso. */
   async start(tokens: TokenPair): Promise<void> {
+    // Una sesión nueva no hereda la transferencia en vuelo de la anterior (MOB-11).
+    await clearPendingTransfer();
     await this.replaceTokens(tokens);
     this.setSnapshot({ status: 'signedIn' });
   }
@@ -79,7 +82,7 @@ export class Session {
   /**
    * Borra los tokens locales (memoria y almacenamiento seguro) y la preferencia del desbloqueo
    * biométrico, incluida la respuesta "Ahora no" (MOB-27): el siguiente inicio de sesión con
-   * contraseña vuelve a ofrecerlo.
+   * contraseña vuelve a ofrecerlo. También borra la transferencia en vuelo guardada (MOB-11).
    */
   async clear(reason: SignOutReason): Promise<void> {
     this.accessToken = undefined;
@@ -90,6 +93,7 @@ export class Session {
       console.warn('No se pudo borrar la sesión del almacenamiento seguro.');
     }
     await clearUnlockPreference();
+    await clearPendingTransfer();
     this.setSnapshot({ status: 'signedOut', reason });
   }
 

@@ -99,7 +99,7 @@ function ReviewAlert({ state }: { state: ReviewState }) {
         <InlineAlert
           tone="warning"
           title={UNCERTAIN_TITLE}
-          message="Puede que se haya realizado. Reintenta para conocer el resultado: no se enviará dos veces."
+          message="Puede que se haya realizado. Reintenta para conocer el resultado: no se enviará dos veces. Si cierras la app, guardamos este envío de forma segura en tu teléfono y lo retomamos al abrirla (hasta 24 horas)."
         />
       );
     case 'rejected':
