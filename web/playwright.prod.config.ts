@@ -32,14 +32,17 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
-      command: 'npm run build && npx next start --port 3105 --hostname 127.0.0.1',
+      // El build NO recibe SESSION_COOKIE_SECURE (en producción el valor por defecto es true) y el
+      // servidor arranca con false: así la prueba detecta cualquier header que se decida en el build
+      // en lugar de en ejecución (HSTS).
+      command:
+        'env -u SESSION_COOKIE_SECURE npm run build && SESSION_COOKIE_SECURE=false npx next start --port 3105 --hostname 127.0.0.1',
       url: 'http://127.0.0.1:3105/login',
       reuseExistingServer: false,
       timeout: 300_000,
-      // HTTP en local: con HTTPS la política agrega upgrade-insecure-requests y la cookie es Secure.
+      // HTTP en local (SESSION_COOKIE_SECURE=false se pasa solo a `next start`, ver el comando).
       env: {
         API_BASE_URL: 'http://127.0.0.1:4995',
-        SESSION_COOKIE_SECURE: 'false',
         REDIS_URL: '',
       },
     },

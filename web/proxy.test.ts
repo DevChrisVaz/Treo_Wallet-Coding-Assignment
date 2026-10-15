@@ -99,6 +99,17 @@ describe('proxy · Content-Security-Policy', () => {
     expect(policyOf((await freshProxy())(page()))).not.toContain('upgrade-insecure-requests');
   });
 
+  it('WEB-38 el proxy envía HSTS solo cuando SESSION_COOKIE_SECURE es verdadero al arrancar', async () => {
+    vi.stubEnv('SESSION_COOKIE_SECURE', 'true');
+    const secure = (await freshProxy())(page());
+    expect(secure.headers.get('strict-transport-security')).toBe(
+      'max-age=63072000; includeSubDomains',
+    );
+    vi.stubEnv('SESSION_COOKIE_SECURE', 'false');
+    const plain = (await freshProxy())(page());
+    expect(plain.headers.has('strict-transport-security')).toBe(false);
+  });
+
   it('WEB-39 la política fija el resto de las directivas', () => {
     const directives = policyOf(proxy(page())).split('; ');
     expect(directives).toEqual(

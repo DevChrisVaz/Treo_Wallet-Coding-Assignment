@@ -14,7 +14,6 @@ const PRODUCTION = process.env.E2E_PROD === '1';
 const DEV_TOOLS = PRODUCTION ? /^(?!)/ : /next-devtools/;
 
 const CSP_MESSAGE = /Content[- ]Security[- ]Policy|Refused to|violates the following/i;
-
 interface Collected {
   messages: string[];
   violations: () => Promise<string[]>;
@@ -29,7 +28,9 @@ async function collectViolations(page: Page): Promise<Collected> {
     }
   });
   page.on('pageerror', (error) => {
-    if (CSP_MESSAGE.test(error.message)) messages.push(error.message);
+    if (CSP_MESSAGE.test(error.message)) {
+      messages.push(error.message);
+    }
   });
   await page.addInitScript(() => {
     const store: string[] = [];
@@ -136,6 +137,8 @@ test('WEB-38 las páginas, las rutas del BFF y los archivos de _next llevan los 
       expect(headers[name], `${name} en ${label}`).toBe(value);
     }
     expect(headers['permissions-policy'], `permissions-policy en ${label}`).toContain('camera=()');
+    // Con SESSION_COOKIE_SECURE=false al arrancar no hay HSTS, aunque el build use el valor por
+    // defecto de producción (true): lo decide el proxy en ejecución, no `headers()` en el build.
     expect(headers['strict-transport-security'], `HSTS en ${label}`).toBeUndefined();
   };
 

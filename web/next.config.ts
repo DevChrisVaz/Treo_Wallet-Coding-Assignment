@@ -21,9 +21,10 @@ export default function nextConfig(phase: string): NextConfig {
     // OTP y montos terminarían en los logs.
     logging: { serverFunctions: false },
     // Headers de seguridad en toda respuesta, también `/bff/*` y `/_next/*`, que el proxy no toca
-    // (WEB-38). La política de contenido depende de la petición y vive en `proxy.ts` (WEB-39).
+    // (WEB-38). La política de contenido (WEB-39) y HSTS dependen de la petición o de la configuración en
+    // ejecución, y viven en `proxy.ts`: `headers()` se evalúa en el build.
     async headers() {
-      return [{ source: '/:path*', headers: securityHeaders({ secure: env.sessionCookieSecure }) }];
+      return [{ source: '/:path*', headers: securityHeaders() }];
     },
     experimental: {
       serverActions: {

@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import nextConfig from '@/next.config';
-import { securityHeaders } from './security-headers';
+import { securityHeaders, STRICT_TRANSPORT_SECURITY } from './security-headers';
 
 const asMap = (headers: { key: string; value: string }[]) =>
   Object.fromEntries(headers.map(({ key, value }) => [key, value]));
 
 describe('securityHeaders', () => {
-  it('WEB-38 sin HTTPS declara los cuatro headers y no HSTS', () => {
-    const headers = asMap(securityHeaders({ secure: false }));
+  it('WEB-38 declara los cuatro headers y nunca HSTS, que depende de la configuración en ejecución', () => {
+    const headers = asMap(securityHeaders());
     expect(headers).toEqual({
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
@@ -16,21 +16,20 @@ describe('securityHeaders', () => {
     });
   });
 
-  it('WEB-38 con HTTPS agrega Strict-Transport-Security de dos años con subdominios y sin preload', () => {
-    const headers = asMap(securityHeaders({ secure: true }));
-    expect(headers['Strict-Transport-Security']).toBe('max-age=63072000; includeSubDomains');
-    expect(headers['Strict-Transport-Security']).not.toContain('preload');
+  it('WEB-38 el valor de HSTS es de dos años, con subdominios y sin preload', () => {
+    expect(STRICT_TRANSPORT_SECURITY).toBe('max-age=63072000; includeSubDomains');
+    expect(STRICT_TRANSPORT_SECURITY).not.toContain('preload');
   });
 
   it('WEB-38 el Permissions-Policy deshabilita cámara, micrófono, geolocalización y pagos', () => {
-    const policy = asMap(securityHeaders({ secure: false }))['Permissions-Policy'] ?? '';
+    const policy = asMap(securityHeaders())['Permissions-Policy'] ?? '';
     for (const feature of ['camera', 'microphone', 'geolocation', 'payment']) {
       expect(policy).toContain(`${feature}=()`);
     }
   });
 
   it('WEB-38 el Referrer-Policy no es no-referrer, que rompería el Origin de las Server Actions (WEB-06)', () => {
-    const policy = asMap(securityHeaders({ secure: false }))['Referrer-Policy'];
+    const policy = asMap(securityHeaders())['Referrer-Policy'];
     expect(policy).not.toBe('no-referrer');
     expect(policy).toBe('strict-origin-when-cross-origin');
   });
@@ -58,13 +57,14 @@ describe('next.config headers()', () => {
     expect(asMap(rules[0]?.headers ?? [])).toHaveProperty('X-Frame-Options', 'DENY');
   });
 
-  it('WEB-38 HSTS solo cuando SESSION_COOKIE_SECURE es verdadero', async () => {
-    process.env.SESSION_COOKIE_SECURE = 'true';
-    expect(asMap((await declared())[0]?.headers ?? [])).toHaveProperty('Strict-Transport-Security');
-    process.env.SESSION_COOKIE_SECURE = 'false';
-    expect(asMap((await declared())[0]?.headers ?? [])).not.toHaveProperty(
-      'Strict-Transport-Security',
-    );
+  it('WEB-38 el build no decide HSTS: headers() nunca lo emite, con o sin SESSION_COOKIE_SECURE', async () => {
+    for (const value of ['true', 'false', undefined]) {
+      if (value === undefined) delete process.env.SESSION_COOKIE_SECURE;
+      else process.env.SESSION_COOKIE_SECURE = value;
+      expect(asMap((await declared())[0]?.headers ?? [])).not.toHaveProperty(
+        'Strict-Transport-Security',
+      );
+    }
   });
 
   it('WEB-38 sigue sin anunciar X-Powered-By', () => {
