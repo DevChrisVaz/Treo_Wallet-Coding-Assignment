@@ -4,7 +4,7 @@ Este documento explica cómo llevaría TreoWallet a producción en AWS para una 
 
 **No se despliega nada.** La propuesta también está escrita como Terraform en [`infrastructure/`](../infrastructure/README.md): valida y sus pruebas pasan con proveedores simulados, pero nunca se ha aplicado contra una cuenta de AWS. Donde el código precisa algo de este documento, aquí se indica.
 
-Las decisiones de fondo están en [`openspec/changes/delivery/design.md`](../openspec/changes/delivery/design.md) (D1 a D12); aquí se desarrollan.
+Las decisiones de fondo están en [`openspec/changes/archive/2026-10-15-delivery/design.md`](../openspec/changes/archive/2026-10-15-delivery/design.md) (D1 a D12); aquí se desarrollan.
 
 ## Cómo leer este documento
 

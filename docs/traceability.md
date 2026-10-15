@@ -17,7 +17,7 @@ Generada con `scripts/trace.sh`: 220 requisitos. Las columnas de tareas y commit
 | ACC-14 | Conciliación entre saldos y asientos | api-ledger | 4: api-ledger#3.4 api-ledger#10.1 api-ledger#11.3 (+1) | 6: 2019ab8 8f0eada fc5307d (+3) | api 3 |
 | ACC-15 | Fondeo desde la Tesorería | api-ledger | 5: api-ledger#3.2 api-ledger#3.3 api-ledger#3.5 (+2) | 5: 8f0eada 56a27d7 a421efd (+2) | api 11 |
 | ACC-16 | La Tesorería no participa en operaciones de usuario | api-ledger | 3: api-ledger#4.3 api-ledger#6.2 api-ledger#6.10 | 3: 6ef5fea 89ddb7f ad14fbf | api 3 |
-| AUD-01 | Catálogo de eventos auditados | api-foundation, registration-review | 6: api-foundation#2.3 api-foundation#4.1 domain-test-coverage#3.2 (+3) | 9: 7266ea7 6a86b5f 9584844 (+6) | api 22 |
+| AUD-01 | Catálogo de eventos auditados | api-foundation, registration-review | 6: api-foundation#2.3 api-foundation#4.1 domain-test-coverage#3.2 (+3) | 10: e667fa6 7266ea7 6a86b5f (+7) | api 22 |
 | AUD-02 | Sin datos personales en la auditoría | api-foundation | 2: api-foundation#4.2 domain-test-coverage#4.4 | 2: 61d5af0 7412958 | api 4 |
 | AUD-03 | Escritura atómica con la operación | api-foundation | 3: api-foundation#4.1 api-foundation#4.2 api-foundation#7.5 | 3: 59b0f0e 7412958 b566a41 | api 6 |
 | AUD-04 | Inmutabilidad garantizada por permisos | api-foundation | 3: api-foundation#2.3 api-foundation#2.4 domain-test-coverage#6.4 | 3: 20a2ea5 8dcd57a aaffc66 | api 5 |
@@ -68,7 +68,7 @@ Generada con `scripts/trace.sh`: 220 requisitos. Las columnas de tareas y commit
 | DSG-09 | Convenciones de dinero | design-system | 7: design-system#3.1 web-app#1.5 web-app#6.1 (+4) | 12: f3f3e97 c3af92d 21b249b (+9) | web 4, mobile 5, design-tokens 4 |
 | DSG-10 | Estados de transferencia y tipos de movimiento | design-system | 7: design-system#3.1 web-app#1.5 web-app#6.2 (+4) | 12: f3f3e97 c3af92d 21b249b (+9) | web 2, mobile 5 |
 | DSG-11 | Inventario de componentes | design-system | 9: design-system#4.3 design-system#5.3 web-app#1.5 (+6) | 16: e79868c f3f3e97 c3af92d (+13) | web 16, mobile 15, design-tokens 2 |
-| DSG-12 | Textos de la interfaz | design-system, registration-review | 4: design-system#3.2 web-app#5.1 mobile-app#2.6 (+1) | 7: 516d96c 0f64221 85a9feb (+4) | web 4, design-tokens 4 |
+| DSG-12 | Textos de la interfaz | design-system, registration-review | 4: design-system#3.2 web-app#5.1 mobile-app#2.6 (+1) | 8: e667fa6 516d96c 0f64221 (+5) | web 4, design-tokens 4 |
 | DSG-13 | Lenguaje visual elevado de la marca | redesign | 6: redesign#2.1 redesign#3.2 redesign#4.2 (+3) | 24: 482b0aa 4d9569e d301828 (+21) | web 3, mobile 3, design-tokens 2 |
 | DSG-14 | Lima solo sobre superficies oscuras | redesign | 1: redesign#2.2 | 2: f52d371 f9d0256 | web 3, design-tokens 3 |
 | DSG-15 | Iconografía compartida | redesign | 4: redesign#2.3 redesign#3.1 redesign#4.1 (+1) | 22: 5522250 64d86f3 e0be490 (+19) | web 4, mobile 5, design-tokens 5 |
@@ -89,12 +89,12 @@ Generada con `scripts/trace.sh`: 220 requisitos. Las columnas de tareas y commit
 | HIS-12 | Contenido y conciliación del estado de cuenta | account-statements, ux-fixes | 10: account-statements#1.2 account-statements#1.3 account-statements#1.4 (+7) | 13: 7663863 bfc57a6 0b9c0c9 (+10) | api 46 |
 | IDN-01 | Registro con respuesta uniforme | api-foundation | 5: api-foundation#7.3 domain-test-coverage#3.1 domain-test-coverage#3.5 (+2) | 12: 46d46aa a17006e fd33dde (+9) | api 7 |
 | IDN-02 | Datos obligatorios del registro | api-foundation, registration-birth-data, ux-fixes | 10: api-foundation#2.5 api-foundation#6.1 api-foundation#7.3 (+7) | 13: 3220257 1972769 cef2c5a (+10) | api 35 |
-| IDN-03 | Unicidad de los datos de identidad | api-foundation, registration-review | 9: api-foundation#2.5 api-foundation#7.3 domain-test-coverage#3.5 (+6) | 19: c62b858 94b8160 9584844 (+16) | api 15 |
+| IDN-03 | Unicidad de los datos de identidad | api-foundation, registration-review | 9: api-foundation#2.5 api-foundation#7.3 domain-test-coverage#3.5 (+6) | 21: e667fa6 4de4677 c62b858 (+18) | api 15 |
 | IDN-04 | Almacenamiento seguro de contraseñas | api-foundation | 1: api-foundation#7.1 | 1: fed4b5e | api 5 |
 | IDN-05 | Código de verificación de correo | api-foundation | 4: api-foundation#2.8 api-foundation#7.2 domain-test-coverage#3.1 (+1) | 4: c51d653 a5fe8fb 6323e25 (+1) | api 15 |
-| IDN-06 | Verificación de correo | api-foundation, registration-review | 5: api-foundation#7.5 domain-test-coverage#3.6 ux-fixes#5.2 (+2) | 8: c62b858 6a86b5f f98fbb6 (+5) | api 10 |
+| IDN-06 | Verificación de correo | api-foundation, registration-review | 5: api-foundation#7.5 domain-test-coverage#3.6 ux-fixes#5.2 (+2) | 10: e667fa6 4de4677 c62b858 (+7) | api 10 |
 | IDN-07 | Reenvío del código de verificación | api-foundation | 2: api-foundation#7.6 domain-test-coverage#3.5 | 2: 6d835e1 0c7d57c | api 5 |
-| IDN-08 | Inicio de sesión sin enumeración | api-foundation, registration-review | 4: api-foundation#7.9 domain-test-coverage#3.6 registration-review#1.1 (+1) | 6: c62b858 7266ea7 f98fbb6 (+3) | api 10 |
+| IDN-08 | Inicio de sesión sin enumeración | api-foundation, registration-review | 4: api-foundation#7.9 domain-test-coverage#3.6 registration-review#1.1 (+1) | 8: e667fa6 4de4677 c62b858 (+5) | api 10 |
 | IDN-09 | Access token de vida corta | api-foundation | 1: api-foundation#7.7 | 1: 557d660 | api 5 |
 | IDN-10 | Rutas protegidas por defecto | api-foundation | 2: api-foundation#7.7 domain-test-coverage#3.4 | 3: f7bee34 2bdbcc7 557d660 | api 8 |
 | IDN-11 | Refresh token opaco con rotación | api-foundation | 3: api-foundation#2.8 api-foundation#3.11 api-foundation#7.8 | 3: cbe5bd4 a8c3f69 d878630 | api 14 |
@@ -102,7 +102,7 @@ Generada con `scripts/trace.sh`: 220 requisitos. Las columnas de tareas y commit
 | IDN-13 | Cierre de sesión | api-foundation | 2: api-foundation#7.10 domain-test-coverage#3.4 | 2: f7bee34 3b4e4d9 | api 6 |
 | IDN-14 | Datos del usuario autenticado | api-foundation | 1: api-foundation#7.11 | 1: 2d0c704 | api 2 |
 | IDN-15 | Límites de tasa en identidad | api-foundation | 1: api-foundation#7.12 | 1: 0e1fa0a | api 5 |
-| IDN-16 | Aviso al dueño de los datos de identidad | registration-review | 1: registration-review#3.3 | 3: c62b858 6a86b5f 0f64221 | api 5 |
+| IDN-16 | Aviso al dueño de los datos de identidad | registration-review | 1: registration-review#3.3 | 5: e667fa6 4de4677 c62b858 (+2) | api 5 |
 | MOB-01 | Inicio de sesión | mobile-app | 5: contract-v1-1#3.1 redesign#7.2 mobile-app#3.1 (+2) | 4: 54aea3e dd44998 4cac987 (+1) | mobile 7 |
 | MOB-02 | Almacenamiento seguro de tokens | mobile-app | 5: biometric-unlock#2.1 mobile-app#1.3 mobile-app#1.5 (+2) | 6: 946a9af 4cac987 285efd1 (+3) | mobile 15 |
 | MOB-03 | Renovación de la sesión de una sola vez | mobile-app | 3: mobile-app#2.2 mobile-app#2.3 mobile-app#2.4 | 4: 4cac987 285efd1 a6c0e55 (+1) | mobile 10 |
@@ -132,7 +132,7 @@ Generada con `scripts/trace.sh`: 220 requisitos. Las columnas de tareas y commit
 | MOB-27 | Desactivación del desbloqueo | biometric-unlock | 4: biometric-unlock#1.2 biometric-unlock#2.4 biometric-unlock#3.2 (+1) | 8: fa94051 f251908 1e9565c (+5) | mobile 8 |
 | MOB-28 | Recibir dinero | ux-fixes | 1: ux-fixes#7.2 | 2: 5522250 b79fd1e | mobile 4 |
 | MOB-29 | Búsqueda de beneficiarios | ux-fixes | 1: ux-fixes#8.3 | 2: 5522250 b79fd1e | mobile 7 |
-| MOB-30 | Registro en revisión al iniciar sesión | registration-review | 1: registration-review#5.1 | 2: 96e9f45 0f64221 | mobile 1 |
+| MOB-30 | Registro en revisión al iniciar sesión | registration-review | 1: registration-review#5.1 | 4: e667fa6 4de4677 96e9f45 (+1) | mobile 1 |
 | PLT-01 | Formato de errores RFC 9457 | api-foundation | 1: api-foundation#3.3 | 1: ce43309 | api 7 |
 | PLT-02 | Validación de entrada contra el contrato | api-foundation | 1: api-foundation#3.4 | 1: 228b4a0 | api 8 |
 | PLT-03 | Errores internos sin detalles | api-foundation | 1: api-foundation#3.3 | 1: ce43309 | api 2 |
@@ -197,8 +197,8 @@ Generada con `scripts/trace.sh`: 220 requisitos. Las columnas de tareas y commit
 | WEB-08 | Resultado de las mutaciones como valor | web-app | 3: scheduled-transfers#3.3 web-app#2.5 web-app#5.1 | 5: 433fa46 27509a1 9635f0c (+2) | web 13 |
 | WEB-09 | Proxy de lecturas con lista blanca | web-app | 5: account-statements#2.1 scheduled-transfers#3.3 web-app#1.2 (+2) | 8: 852e373 433fa46 27509a1 (+5) | web 14 |
 | WEB-10 | Propagación de headers hacia la API | web-app | 2: web-app#2.3 web-app#8.1 | 3: 0cbf6ed d3ba0b9 05aa965 | web 14 |
-| WEB-11 | Registro y verificación de correo | web-app, registration-birth-data, ux-fixes, registration-review | 10: redesign#6.2 web-app#4.2 web-app#4.4 (+7) | 20: c62b858 a4439ad 0f64221 (+17) | web 26 |
-| WEB-12 | Inicio de sesión | web-app, registration-review | 5: contract-v1-1#2.1 redesign#6.2 web-app#4.1 (+2) | 7: a4439ad 0f64221 b63ce47 (+4) | web 13 |
+| WEB-11 | Registro y verificación de correo | web-app, registration-birth-data, ux-fixes, registration-review | 10: redesign#6.2 web-app#4.2 web-app#4.4 (+7) | 21: e667fa6 c62b858 a4439ad (+18) | web 26 |
+| WEB-12 | Inicio de sesión | web-app, registration-review | 5: contract-v1-1#2.1 redesign#6.2 web-app#4.1 (+2) | 8: e667fa6 a4439ad 0f64221 (+5) | web 13 |
 | WEB-13 | Resumen de cuentas | web-app, ux-fixes | 2: web-app#6.1 ux-fixes#7.1 | 6: 64d86f3 d548eab 1f484b4 (+3) | web 9 |
 | WEB-14 | Historial de movimientos | web-app | 4: account-statements#2.3 redesign#6.4 web-app#6.2 (+1) | 7: b9aeea0 db1bffd 5719ece (+4) | web 15 |
 | WEB-15 | Beneficiarios | web-app | 2: web-app#7.1 web-app#7.2 | 4: 221a143 af02f36 05aa62c (+1) | web 9 |

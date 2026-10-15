@@ -1,6 +1,6 @@
 ## 1. Propuesta de despliegue en AWS (`/docs/aws-deploy.md`)
 
-- [ ] 1.1 [docs] Revisar con el usuario las decisiones D1–D12 de design.md y registrar en el ai-log cualquier cambio respecto a lo propuesto (Fase 4)
+- [x] 1.1 [docs] Revisar con el usuario las decisiones D1–D12 de design.md y registrar en el ai-log cualquier cambio respecto a lo propuesto (Fase 4)
 - [x] 1.2 [docs] Escribir el diagrama de arquitectura en Mermaid: CloudFront + WAF, ALB, ECS Fargate (API y BFF), RDS Multi-AZ, RDS Proxy, ElastiCache, SES, S3 con Object Lock, CloudTrail, CloudWatch/X-Ray, Secrets Manager/KMS, subredes públicas y privadas (Fase 4: diagrama)
 - [x] 1.3 [docs] Redactar la sección de cómputo de la API (ECS Fargate frente a App Runner, EKS y Lambda + API Gateway) y la ejecución de migraciones como tarea puntual con `wallet_migrator` (Fase 4: Cómputo de la API; AUD)
 - [x] 1.4 [docs] Redactar la sección de base de datos: RDS for PostgreSQL Multi-AZ frente a Aurora, PITR, copia de backups entre regiones y tabla de RPO/RTO como objetivos a validar (Fase 4: Base de datos)
@@ -33,7 +33,7 @@
 
 - [x] 4.1 [docs] Completar `docs/ai-log.md` con una entrada por sesión de implementación, las correcciones hechas a la AI (destacando cualquier propuesta insegura o incorrecta con el dinero) y un resumen final del flujo spec-first
 - [x] 4.2 [docs] Escribir el guion del video en `docs/video-script.md` según D15, incluido el intento con saldo insuficiente, la bandeja de Mailpit y la pérdida de red en móvil (TRF, WEB, MOB)
-- [ ] 4.3 [docs] Grabar el video (≤ 5 min) siguiendo el guion y enlazarlo en el README
+- [x] 4.3 [docs] Grabar el video (≤ 5 min) siguiendo el guion y enlazarlo en el README
 
 ## 5. Verificación final
 
