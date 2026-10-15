@@ -32,6 +32,29 @@ describe('TRF-28 correo del OTP de una programada', () => {
   });
 });
 
+describe('TRF-15 guía del correo del código', () => {
+  const email = transferOtpEmail({
+    code: '123456',
+    amount: Money.parse('15000.00'),
+    destinationName: 'Luis',
+    clabeLast4: '0031',
+    minutes: 5,
+  });
+
+  it('TRF-15 pide no compartir el código y responder el correo si no fue la persona', () => {
+    for (const body of [email.text, email.html]) {
+      expect(body).toContain('no compartas este código con nadie');
+      expect(body).toContain('responde este correo');
+    }
+  });
+
+  it('TRF-15 no pide cambiar la contraseña, porque el producto no tiene ese flujo', () => {
+    for (const body of [email.text, email.html, email.subject]) {
+      expect(body).not.toMatch(/contraseña/i);
+    }
+  });
+});
+
 describe('TRF-35 aviso de falla de una programada', () => {
   const base = {
     amount: Money.parse('1000.00'),

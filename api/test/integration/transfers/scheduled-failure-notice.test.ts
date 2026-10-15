@@ -144,8 +144,10 @@ describe('TRF-35 aviso de falla de una programada', () => {
     const t = await runnerWith(mailer);
 
     await t.container.scheduler.runner.runOnce();
+    await t.container.notices.drain(2_000);
 
-    expect(mailer.sent).toEqual([]);
+    // Completarse no envía el aviso de falla; el comprobante de TRF-38 es otro correo.
+    expect(mailer.sent.filter((mail) => mail.subject === SUBJECT)).toEqual([]);
   });
 
   it('TRF-35 en Mailpit: el buzón de Ana recibe el aviso con el detalle', async () => {

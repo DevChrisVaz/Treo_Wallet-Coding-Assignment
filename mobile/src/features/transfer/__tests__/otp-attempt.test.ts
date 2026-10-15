@@ -127,6 +127,31 @@ describe('transferAttempt: confirmación con OTP', () => {
     expect(state.status === 'pendingOtp' && state.transfer.otp?.resendsRemaining).toBe(0);
   });
 
+  test('MOB-31 un 429 al confirmar deja la transferencia pendiente, sin reintento automático ni intento gastado', async () => {
+    const { attempt, transport, onConfirm } = await atOtp();
+    onConfirm(rejects(problemError(429, 'RATE_LIMITED')));
+    await attempt.confirmOtp('123456');
+    expect(attempt.getState()).toMatchObject({
+      status: 'pendingOtp',
+      otpError: { code: 'RATE_LIMITED', status: 429 },
+    });
+    await jest.advanceTimersByTimeAsync(60_000);
+    expect(transport.confirm).toHaveBeenCalledTimes(1);
+  });
+
+  test('MOB-31 un 429 al reenviar deja el error del reenvío, conserva los reenvíos y no reintenta sola', async () => {
+    const { attempt, transport } = await atOtp();
+    transport.resend = jest.fn().mockRejectedValue(problemError(429, 'RATE_LIMITED'));
+    await attempt.resendOtp();
+    const state = attempt.getState();
+    expect(state).toMatchObject({ status: 'pendingOtp', resendError: { code: 'RATE_LIMITED' } });
+    expect(state.status === 'pendingOtp' && state.transfer.otp?.resendsRemaining).toBe(
+      pendingOtp().otp?.resendsRemaining,
+    );
+    await jest.advanceTimersByTimeAsync(60_000);
+    expect(transport.resend).toHaveBeenCalledTimes(1);
+  });
+
   test('MOB-12 un doble toque en Confirmar hace una sola petición', async () => {
     const { attempt, transport, onConfirm } = await atOtp();
     onConfirm(() => new Promise(() => {}));

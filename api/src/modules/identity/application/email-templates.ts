@@ -1,3 +1,4 @@
+import { formatMexicoCityDateTime } from '@devchrisvaz/wallet-contract';
 import { escapeHtml, layout } from '../../../platform/mail/html.js';
 
 export interface EmailContent {
@@ -55,6 +56,53 @@ export function registrationAttemptEmail(): EmailContent {
     'Recibimos una solicitud de registro con este correo, que ya tiene una cuenta verificada.',
     'No se creó ni modificó nada. Si fuiste tú, inicia sesión con tu contraseña.',
     'Si no fuiste tú, puedes ignorar este mensaje.',
+  ];
+  return {
+    subject,
+    text: lines.join('\n'),
+    html: layout(subject, lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')),
+  };
+}
+
+/**
+ * Aviso de un inicio de sesión con contraseña (IDN-18): cuándo (hora de la Ciudad de México), desde
+ * qué cliente (ya descrito en palabras) y la IP con su último octeto oculto. No lleva la contraseña,
+ * los tokens ni el `User-Agent` tal como llegó. Dice qué hacer si no fue la persona.
+ */
+export function loginNoticeEmail(input: {
+  readonly at: Date;
+  readonly client: string;
+  readonly maskedIp: string;
+}): EmailContent {
+  const subject = 'Iniciaste sesión en TreoWallet';
+  const lines = [
+    'Iniciaste sesión en TreoWallet.',
+    `Fecha y hora: ${formatMexicoCityDateTime(input.at)} (hora de la Ciudad de México).`,
+    `Desde: ${input.client}.`,
+    `IP: ${input.maskedIp}.`,
+    'Si fuiste tú, no tienes que hacer nada.',
+    'Si no fuiste tú, responde este correo para que lo revisemos contigo.',
+  ];
+  return {
+    subject,
+    text: lines.join('\n'),
+    html: layout(subject, lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')),
+  };
+}
+
+/**
+ * Aviso de que se cerró una sesión porque se presentó un refresh token ya usado (IDN-19). Dice
+ * cuándo (hora de la Ciudad de México), que hay que iniciar sesión de nuevo y qué hacer si la
+ * persona no reconoce lo ocurrido. No lleva tokens.
+ */
+export function sessionClosedEmail(input: { readonly at: Date }): EmailContent {
+  const subject = 'Cerramos una sesión por seguridad';
+  const lines = [
+    'Cerramos una sesión de tu cuenta de TreoWallet por seguridad.',
+    `Fecha y hora: ${formatMexicoCityDateTime(input.at)} (hora de la Ciudad de México).`,
+    'Alguien presentó una credencial de sesión que ya se había usado, y por precaución cerramos todas las sesiones que venían de ese inicio de sesión. No se movió dinero.',
+    'Para seguir usando TreoWallet, inicia sesión de nuevo.',
+    'Si no reconoces lo ocurrido, responde este correo para que lo revisemos contigo.',
   ];
   return {
     subject,

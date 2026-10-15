@@ -156,6 +156,7 @@ Al separar los repositorios, el contrato y los tokens se publicarán en GitHub P
 | `TRUSTED_PROXIES`                                                                                 | Proxies cuyo `X-Forwarded-For` se respeta (`loopback` en local, donde el BFF corre en la misma máquina)                          |
 | `DAILY_TRANSFER_LIMIT`, `OTP_THRESHOLD`, `OTP_TTL_SECONDS`, `OTP_MAX_ATTEMPTS`, `OTP_MAX_RESENDS` | 50,000.00, 10,000.00, 300 s, 3 intentos y 3 reenvíos                                                                             |
 | `SCHEDULER_ENABLED`, `SCHEDULER_INTERVAL_MS`, `SCHEDULER_BATCH_SIZE`                              | Ejecutor de transferencias programadas ([El ejecutor](#el-ejecutor))                                                             |
+| `RATE_LIMIT_REFRESH_MAX`, `RATE_LIMIT_LOGOUT_MAX`, `RATE_LIMIT_TRANSFER_CREATE_MAX`, `RATE_LIMIT_TRANSFER_CONFIRM_MAX`, `RATE_LIMIT_TRANSFER_RESEND_MAX`, `RATE_LIMIT_TRANSFER_CANCEL_MAX` | Peticiones permitidas por ventana (enteros de 1 a 10000): 120 y 60 por IP en 15 min (refresh y logout); 30 y 20 por usuario en 10 min (crear y cancelar una transferencia); 15 y 6 por usuario en 15 min (confirmar y reenviar el código). Las ventanas son fijas ([límites y avisos](api/README.md#límites-de-tasa-caché-y-avisos)) |
 
 ### Web (`web/.env.local`)
 
@@ -260,7 +261,7 @@ Todos están verificados y tienen sus cuentas "Principal" y "Ahorro". Sus CURP, 
 
 ### Códigos por correo
 
-- **Registro:** `POST /auth/register` responde 202 exista o no el correo; si la CURP, el RFC o el teléfono ya son de otro usuario, responde 422 en ese campo y no envía correo. El código de 6 dígitos llega a Mailpit y se confirma con `POST /auth/verify-email`, que devuelve la sesión y abre las dos cuentas.
+- **Registro:** `POST /auth/register` responde 202 igual con datos nuevos que con la CURP, el RFC o el teléfono de otro usuario, y envía el mismo correo con código. El código de 6 dígitos llega a Mailpit y se confirma con `POST /auth/verify-email`, que devuelve la sesión y abre las dos cuentas. Si los datos eran de otro usuario, la verificación responde `403 REGISTRATION_IN_REVIEW` (sin cuentas ni sesión), el registro queda en revisión y el dueño de los datos recibe el aviso "Alguien intentó registrarse con tus datos" ([registros en revisión](api/README.md#registros-en-revisión)).
 - **OTP de transferencias** (mayores a $10,000.00): llega a Mailpit, vence en 5 minutos y se puede reenviar hasta 3 veces desde la web o la app.
 
 ### Fondear una cuenta
@@ -282,7 +283,8 @@ Es la única forma de meter dinero: no hay endpoint que lo cree. Valida el monto
 | `api`           | `npm run test:unit`        | Solo unitarias, sin base de datos                                                    |
 | `api`           | `npm run test:integration` | Solo integración (`wallet_test`)                                                     |
 | `web`           | `npm test`                 | Vitest: BFF, configuración y lógica en Node, y pantallas en jsdom                    |
-| `web`           | `npm run test:e2e`         | Playwright en Chromium contra una API simulada: layout, teclado, hojas y axe         |
+| `web`           | `npm run test:e2e`         | Playwright en Chromium contra una API simulada: layout, teclado, hojas, axe y la política de contenido |
+| `web`           | `npm run test:e2e:prod`    | La prueba de la política de contenido contra `next build` y `next start`             |
 | `mobile`        | `npm test`                 | jest-expo y Testing Library                                                          |
 
 En todos los proyectos, el título de cada prueba empieza con el ID del requisito que verifica, por ejemplo `TRF-03 …`, `WEB-17 …` o `MOB-25 …`.
@@ -322,6 +324,7 @@ En todos los proyectos, el título de cada prueba empieza con el ID del requisit
   - **Teclado:** la transferencia hasta el comprobante solo con el teclado, a 390 y a 1280 px.
   - **Hojas y diálogos:** foco atrapado, Escape y foco de regreso.
   - **Accesibilidad:** axe con el CSS real, incluido el contraste, en cada pantalla y con las hojas abiertas.
+  - **Seguridad (`security-headers.spec.ts`):** falla ante cualquier violación de la política de contenido en las pantallas públicas, las autenticadas y el flujo de transferir; comprueba que cada página trae un nonce distinto, que un manejador en línea sin nonce no corre, que las páginas, `/bff` y `/_next` llevan los headers y que la web no se incrusta en un `iframe`. `npm run test:e2e:prod` repite esa prueba contra `next build` y `next start` (sin la excepción de las herramientas de desarrollo de Next.js).
 
 ### App móvil
 
@@ -373,6 +376,7 @@ Hay un workflow por proyecto en `.github/workflows/`: `api`, `web`, `mobile`, `c
 | `build` / `start`         | Build de producción y servidor                                                                |
 | `test`                    | Vitest (`test:watch` en modo observación)                                                     |
 | `test:e2e`                | Playwright en Chromium contra la API simulada de `e2e/fake-api.mjs`                           |
+| `test:e2e:prod`           | La prueba de la política de contenido contra la compilación de producción (puertos 3105 y 4995) |
 | `typecheck`               | `next typegen` y `tsc --noEmit`                                                               |
 | `lint`                    | ESLint sin advertencias permitidas; incluye la regla que prohíbe `parseFloat` y `Number(...)` |
 | `format` / `format:check` | Prettier                                                                                      |
@@ -423,6 +427,10 @@ Backend de la billetera:
 - **Transferencias:** ledger de partida doble con idempotencia, límite diario y OTP por correo; también programadas con fecha y hora futuras.
 - **Consultas:** historial con paginación por cursor y estado de cuenta mensual en PDF.
 - **Auditoría:** bitácora inmutable.
+- **Límites de tasa, sin caché y avisos (`security-hardening`):**
+  - **Límites:** además del login, el registro y los estados de cuenta, `refresh` y `logout` se limitan por IP, y crear, confirmar, reenviar el código y cancelar una transferencia, por usuario. Al excederlos responden `429 RATE_LIMITED` con `Retry-After`. Las repeticiones de una `Idempotency-Key` cuentan, y los topes por defecto dejan espacio a los cinco reintentos de la app.
+  - **Sin caché:** toda respuesta de la API lleva `Cache-Control: no-store`, también los errores y los 404. Solo la documentación del contrato (`/docs` y `/openapi.yaml`, fuera de producción) queda fuera.
+  - **Avisos por correo:** cada inicio de sesión con contraseña ("Iniciaste sesión en TreoWallet", con la hora, el navegador o la app y la IP con el último octeto oculto), el cierre de una sesión por reuso de un refresh token, el alta de un beneficiario y cada transferencia a un tercero completada (comprobante para quien la envía, nunca para el destinatario). Salen después del `COMMIT` y sin que la respuesta los espere; una falla solo se registra. El apagado ordenado espera hasta 5 s los que van en vuelo. Si no fuiste tú, el correo pide responderlo: todavía no hay recuperación de contraseña.
 
 El stack es Express 5 con TypeScript estricto y PostgreSQL 16 con TypeORM: sin `synchronize`, con migraciones de SQL explícito.
 
@@ -708,6 +716,8 @@ Panel web con Next.js (App Router) como BFF (_Backend for Frontend_) de la API. 
 - **Sesión:** vive en Redis cuando hay `REDIS_URL` (en local, el `docker-compose.yml` de `/web`; en AWS, ElastiCache), así que sobrevive al reinicio del servidor; sin `REDIS_URL`, en un `Map` en memoria (WEB-37). Expira tras `SESSION_IDLE_MINUTES` sin actividad o al vencer el refresh token. El access token se renueva una sola vez por sesión aunque lleguen peticiones simultáneas.
   - **Renovar el plazo es atómico:** un script Lua cambia solo la hora de la última petición y el TTL, así que nunca devuelve a la sesión un refresh token ya rotado (la siguiente renovación sería reuso y la API revocaría la sesión) ni revive una sesión cerrada.
   - **Falla rápido:** con Redis caído, las páginas con sesión responden con error en vez de quedarse esperando, y no se cambia en silencio al almacén en memoria.
+- **Headers de seguridad y política de contenido (WEB-38, WEB-39):** `next.config.ts` pone `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` y un `Permissions-Policy` restrictivo en toda respuesta, también en `/bff/*` y `/_next/*`; con HTTPS (`SESSION_COOKIE_SECURE=true` al arrancar, no al compilar) `proxy.ts` agrega `Strict-Transport-Security` a las páginas. `proxy.ts` genera un nonce por petición y envía la `Content-Security-Policy` (`script-src` con el nonce y `strict-dynamic`, sin `unsafe-inline`; `unsafe-eval` solo en desarrollo). Por eso todas las páginas se renderizan por petición (el layout raíz espera `connection()`), y Zod trabaja sin compilador (`instrumentation-client.ts`) para que el navegador no reporte su prueba de `eval`.
+- **Cliente real hasta la API (WEB-10):** el BFF reenvía el `User-Agent` del navegador, además de la IP y el `X-Request-Id`, así que el aviso de inicio de sesión y `audit_log.user_agent` hablan del cliente real.
 - **Transferencias:** la llave de idempotencia se genera en el navegador al pasar a la confirmación, y se reutiliza solo al reintentar tras un fallo de red o un `5xx`. El botón se bloquea desde el primer clic.
 - **Campos que no admiten lo inválido (WEB-11, WEB-16, WEB-18, WEB-21):** el monto acepta solo dígitos y un punto (2 decimales como máximo) y se muestra con comas de miles (`12,345.67`) pero viaja como `12345.67`; la referencia ("Referencia (opcional)", se omite si está vacía), los códigos de 6 dígitos y el teléfono admiten solo dígitos, también al pegar; la CURP y el RFC quedan en mayúsculas alfanuméricas. Todo con las utilidades del contrato (`sanitizeAmountTyping`, `digitsOnly`, `uppercaseAlphanumeric`). El registro valida al salir de cada campo y tiene "Confirmar contraseña", que es solo de la interfaz y no se envía. Tras enviarlo pasa siempre a la verificación con el mismo mensaje. Si la CURP, el RFC o el teléfono ya son de otra cuenta, el registro queda en revisión: llega el mismo código, pero al verificar la pantalla dice "Tu registro está en revisión" en lugar de abrir las cuentas (WEB-11).
 - **Navegación y Inicio (WEB-26, WEB-35, WEB-36):** en escritorio, el perfil de la barra lateral es un solo botón con un menú que contiene "Cerrar sesión". "Recibir" abre una hoja con Titular, Banco, Cuenta y la CLABE completa ("Copiar CLABE"); es el único lugar donde se ve completa, y las tarjetas muestran los últimos 4 dígitos. Beneficiarios y el paso de destinatario tienen un buscador que filtra en el cliente, sin acentos, por nombre, alias o CLABE.
@@ -771,6 +781,7 @@ Como la web, la app no admite lo inválido al escribir (monto con comas de miles
   - **Reintentos:** ante falta de red, tiempo agotado o `5xx`, con espera de 1 a 16 s (±20 %) y máximo 5, con la misma llave y los mismos bytes.
   - **Al volver la red:** reintento inmediato cuando NetInfo lo avisa.
   - **Estado incierto:** si se agotan los reintentos, la app lo muestra y ofrece un reintento manual. La confirmación del OTP sigue la misma política.
+- **User-Agent y límites (MOB-31, MOB-32):** cada petición lleva `TreoWallet-App/<versión> (<ios|android>)` (`src/api/user-agent.ts`), sin datos del dispositivo; la API lo usa para decir "la app de TreoWallet en Android" en el aviso de inicio de sesión. Que el valor llegue a la API desde un dispositivo real queda pendiente de comprobar. Un `429` no cierra la sesión: al renovar conserva el refresh token, y al crear, confirmar o reenviar la transferencia muestra la espera sin reintentar sola.
 - **Errores y montos:** los mensajes salen por `code` (RFC 9457) con `problemMessage` del sistema de diseño. Los montos siempre se construyen desde strings con `formatMXN`, sin floats.
 - **Privacidad:** una pantalla de privacidad cubre la app al pasar a segundo plano, y `expo-screen-capture` bloquea las capturas mientras hay sesión.
 
@@ -885,6 +896,7 @@ La `version` del paquete es igual a `info.version` del contrato, con semver:
 | 1.3.0   | Registro más estricto (`PersonName`, `Password` con letra y dígito, teléfono que empieza con 2 a 9, RFC igual a la CURP, mayoría de edad); `FieldErrorCode` agrega `ALREADY_REGISTERED` (se retira en 1.4.0); `reference` opcional en `CreateTransferRequest` y nula en `Transfer` y `Movement`; `scheduledFor` pasa a instante `date-time` (`ScheduledInstant`, de 10 minutos a 90 días, minutos exactos) y se retiran `scheduledDate` y `schedulableRange`; el estado de cuenta anterior a la creación de la cuenta responde `DATE_OUT_OF_RANGE` en `/period` |
 | 1.4.0   | `RegisterRequest` pide `firstNames`, `paternalSurname`, `maternalSurname` (opcional), `birthDate` y `birthState` en lugar de `fullName`; fecha y entidad deben ser las de la CURP (`curpBirthState`, catálogo `BIRTH_STATES`); la mayoría de edad se mide sobre `birthDate` (`/birthDate`); se retiran `PersonName` y `personName`; `FieldErrorCode` pierde `ALREADY_REGISTERED`: una CURP, un RFC o un teléfono de otro usuario vuelven a responder 202 con aviso por correo (D14 de `ux-fixes`, revertida) |
 | 1.5.0   | `ProblemCode` agrega `REGISTRATION_IN_REVIEW`: un registro cuya CURP, RFC o teléfono ya eran de otra cuenta queda en revisión y responde `403` al verificar el correo y al iniciar sesión (`verifyEmail` y `login`) |
+| 1.6.0   | `logout` declara la respuesta `429` (`RATE_LIMITED` con `Retry-After`): `refresh`, `logout` y las operaciones de transferencias tienen límite de tasa (`security-hardening`) |
 | 1.2.0   | Estado de cuenta en PDF (`getAccountStatement`) y descarga binaria. Transferencias programadas: `scheduledFor`, `cancelledAt`, estados `SCHEDULED` y `CANCELLED`, `listScheduledTransfers`, `cancelTransfer`, códigos `TRANSFER_NOT_CANCELLABLE`, `SCHEDULED_LIMIT_REACHED` y `DATE_OUT_OF_RANGE`. `mexicoCityDate`, `schedulableRange`, `scheduledDate` y `transferFormAt` |
 | 1.1.0   | `ProblemError.retryAfter` y salida CommonJS funcional                                                                                                                                                                                                                                                                                                                       |
 | 1.0.1   | Primera versión consumida por la API, la web y la app                                                                                                                                                                                                                                                                                                                       |
@@ -1076,6 +1088,7 @@ Así se rastrea cada requisito en el código:
 | `ux-fixes`                                                | contract, api, web, mobile, docs | Cambios a CTR-11 a CTR-13, CTR-18, IDN-02, TRF-09, TRF-27 a TRF-30, HIS-11, WEB-11 a WEB-34 y MOB-06 a MOB-23; nuevos CTR-20, WEB-35, WEB-36, MOB-28 y MOB-29 | Completo                                                    |
 | `web-redis-sessions`                                      | web                             | WEB-37                                                  | Completo                                                    |
 | `registration-review`                                     | contract, design-tokens, api, web, mobile | IDN-16, MOB-30 y cambios a IDN-03, IDN-06, IDN-08, AUD-01, DSG-12, WEB-11 y WEB-12| Completo                                                    |
+| `security-hardening`                                      | contract, api, web, mobile, docs | PLT-19, PLT-20, IDN-17 a IDN-19, BEN-12, TRF-37, TRF-38, CTR-22, WEB-38 a WEB-40, MOB-31 y MOB-32; cambios a PLT-16, TRF-15 y WEB-10 | Completo; falta ver llegar el `User-Agent` de la app desde un teléfono |
 | `delivery`                                                | docs                            | Sin requisitos nuevos                                   | Completo                                  |
 
 ### Mapa de la especificación
@@ -1109,6 +1122,7 @@ Cada historia de usuario del enunciado (HU1 a HU6) se traza a sus requisitos, al
 - **Contrato:** CTR-01 a CTR-17 (`openspec/specs/api-contract/`), más CTR-07 y CTR-15 (`contract-v1-1`), CTR-13, CTR-18 y CTR-19 (`contract-v1-2`) y CTR-20 (`ux-fixes`, que también modifica CTR-11, CTR-12, CTR-13 y CTR-18).
 - **Sistema de diseño y rediseño:** DSG-01 a DSG-18, WEB-24 a WEB-31 y MOB-18 a MOB-22 (`design-system`, `redesign`).
 - **Ajustes de uso:** `ux-fixes` (registro, montos, referencia opcional, códigos, perfil, Recibir, búsqueda, meses del estado de cuenta y programadas con hora; WEB-35, WEB-36, MOB-28, MOB-29 y CTR-20 son requisitos nuevos).
+- **Seguridad:** `security-hardening` (límites de tasa de `refresh`, `logout` y transferencias, `no-store`, headers y CSP de la web, avisos por correo; PLT-19, PLT-20, IDN-17 a IDN-19, BEN-12, TRF-37, TRF-38, CTR-22, WEB-38 a WEB-40, MOB-31 y MOB-32, y modifica PLT-16, TRF-15 y WEB-10).
 - **Cobertura de pruebas del dominio:** `domain-test-coverage` (solo pruebas, sin requisitos nuevos).
 
 Los huecos que hoy tiene la matriz (cuatro requisitos que se verifican en el CI y no con una prueba) están explicados al final de [`docs/traceability.md`](docs/traceability.md).
@@ -1134,6 +1148,7 @@ Cada change tiene un `design.md` con las decisiones y las alternativas descartad
 | [`domain-test-coverage`](openspec/changes/archive/2026-10-14-domain-test-coverage/design.md) | Cada prueba escrita después del código se demuestra rompiendo la regla; una base de datos por línea de trabajo |
 | [`web-redis-sessions`](openspec/changes/archive/2026-10-14-web-redis-sessions/design.md) | Sesiones en Redis con `REDIS_URL` y en un `Map` sin ella; un hash por sesión con TTL; renovación del plazo atómica en Lua; conexión que falla rápido; la misma suite de pruebas para las dos implementaciones |
 | [`registration-review`](openspec/changes/archive/2026-10-15-registration-review/design.md) | Un registro con datos de otra cuenta sigue el mismo camino hasta verificar el correo y queda en revisión, sin cuentas; el dueño de los datos recibe un aviso; la resolución la hace soporte |
+| [`security-hardening`](openspec/changes/security-hardening/design.md) | Solo el tope de cada límite es configurable y los de transferencias son por usuario; `no-store` en toda la API; CSP con nonce en `proxy.ts` y `Referrer-Policy` que no rompe el `Origin` de las Server Actions; avisos que no hacen esperar la respuesta, con un `drain()` de 5 s al apagar; el `User-Agent` descrito sin dependencias |
 | [`delivery`](openspec/changes/archive/2026-10-15-delivery/design.md) | Propuesta de AWS ([`docs/aws-deploy.md`](docs/aws-deploy.md)), trazabilidad generada, guion del video |
 
 La [bitácora de AI](docs/ai-log.md) registra qué propuso la AI, qué acepté, qué rechacé o cambié, y dónde se equivocó y se corrigió.
@@ -1198,8 +1213,9 @@ Dónde está cada punto de la lista de entregables y su estado.
 
 - **Outbox transaccional para los correos:** OTP, avisos de fallas de programadas y avisos de registro. Así se reintentan los envíos fallidos, en lugar de solo registrarlos en el log.
 - **Guardar el estado de entrega del OTP.** Hoy las lecturas siempre informan `SENT`, aunque el envío haya fallado.
-- **Límites de tasa compartidos entre instancias,** con Redis o reglas de AWS WAF. Hoy cada instancia cuenta por su lado.
+- **Límites de tasa compartidos entre instancias,** con Redis o reglas de AWS WAF. Hoy cada instancia cuenta por su lado, en todos los límites (login, registro, `refresh`, `logout`, beneficiarios, estados de cuenta y transferencias).
 - **El ejecutor de programadas como proceso aparte,** o invocado por EventBridge Scheduler, en lugar de correr dentro de cada instancia de la API.
+- **`lock_timeout`, `statement_timeout` e `idle_in_transaction_session_timeout`,** ordenados para que lo primero que falle sea lo más fácil de reintentar: primero la espera de un bloqueo, después la consulta lenta y al final la transacción abierta sin actividad. Hoy no están configurados, así que una transacción que espera un bloqueo espera sin límite ([propuesta de AWS](docs/aws-deploy.md), pregunta 1).
 
 **Seguridad y cumplimiento:**
 
@@ -1227,6 +1243,20 @@ Dónde está cada punto de la lista de entregables y su estado.
 - **Atar el refresh token a la biometría** con `requireAuthentication` de `expo-secure-store`. Necesita un development build en iOS y un flujo de recuperación para cuando cambian las huellas registradas.
 - **Entrar con la huella después de cerrar sesión,** con una credencial del dispositivo. Hoy cerrar sesión desactiva el desbloqueo (MOB-27); cambiarlo es una decisión de producto y de seguridad.
 - **Certificate pinning y App Attest o Play Integrity** en la app móvil.
+- **Rotar `JWT_SECRET` sin cortes:** un `kid` en el token y dos secretos válidos, uno para firmar y los dos para verificar. Hoy la API usa un solo secreto, así que rotarlo cierra todas las sesiones ([propuesta de AWS](docs/aws-deploy.md#6-servicios-de-soporte)).
+- **Revocación inmediata del access token,** con una lista de `jti` revocados (por ejemplo en Redis) que la API consulta al verificar. Hoy el access token sigue válido hasta 10 minutos después de cerrar sesión; solo el refresh token se revoca (Riesgos de `api-foundation`).
+- **Confiar en dos saltos de proxy** (CloudFront y el ALB) cuando la web lee la IP del cliente. Hoy toma la última dirección de `X-Forwarded-For`, la que agrega el proxy delante de ella; con CloudFront delante, la del cliente es la anterior (D19 de `web-app`).
+- **Un candado en Redis (`SET NX PX`) para que dos instancias de la web nunca renueven la misma sesión a la vez.** Hoy lo absorbe la ventana de gracia de 30 s de la API (IDN-12): la segunda renovación recibe un par nuevo y revoca el sucesor perdido (diseño de `web-app`).
+- **Un rol de soporte** con un endpoint o una pantalla para resolver los registros en revisión, y la retención y el borrado de esos registros. Hoy soporte los consulta con SQL y los resuelve fuera del producto ([registros en revisión](api/README.md#registros-en-revisión), D6 y Riesgos de `registration-review`).
+- **El periodo legal de retención de `audit_log`,** pendiente con cumplimiento. Hoy la bitácora no se purga ni se archiva ([propuesta de AWS](docs/aws-deploy.md#5-observabilidad-y-auditoría)).
+- **Segundo factor al iniciar sesión** (TOTP o _passkeys_ con WebAuthn) y **reautenticación en acciones sensibles.** Hoy el inicio de sesión es solo con contraseña, y el OTP por correo solo cubre las transferencias mayores a $10,000.00.
+- **Revisar la contraseña contra filtraciones al registrarse** (Have I Been Pwned con k-anonimato, como pide NIST SP 800-63B), además de la regla de 12 caracteres con letra y dígito.
+- **Escaneo de seguridad en el CI:** Dependabot o Renovate, `npm audit --omit=dev` como compuerta, CodeQL o Semgrep y gitleaks; Trivy y un SBOM cuando existan los `Dockerfile`. Hoy el CI corre lint, tipos y pruebas, y `npm audit` se revisa a mano ([avisos conocidos](#avisos-conocidos)).
+- **Vida máxima de la sesión web** (por ejemplo, de 8 a 12 horas). Hoy solo termina tras 15 minutos sin actividad o cuando vence la familia del refresh token (30 días): una sesión usada a diario no vuelve a pedir la contraseña.
+- **Monitoreo de fraude:** reglas de velocidad, montos inusuales, la primera transferencia a un beneficiario nuevo y alertas de prevención de lavado de dinero. Complementa el periodo de espera al dar de alta un beneficiario, que ya está en esta lista.
+- **Derechos ARCO y retención de datos** según la LFPDPPP (acceso, rectificación, cancelación y oposición), con una política de borrado o anonimización compatible con un ledger inmutable. Hoy no hay forma de pedir el borrado de una cuenta.
+- **Modelo de amenazas** (STRIDE por flujo), correspondencia con OWASP ASVS nivel 2 (MASVS en la app), DAST con OWASP ZAP en el CI y una prueba de penetración antes de producción. Hasta hoy hubo una revisión de seguridad del código, no un análisis formal.
+- **Aviso de inicio de sesión solo desde un dispositivo nuevo,** en lugar de en cada inicio. Pide un identificador de dispositivo y una tabla de dispositivos conocidos. Hoy se avisa en cada inicio de sesión con contraseña (IDN-18).
 
 **App móvil:**
 

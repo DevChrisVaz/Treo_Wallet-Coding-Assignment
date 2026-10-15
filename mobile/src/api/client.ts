@@ -41,6 +41,15 @@ export function withTimeout(fetchImpl: FetchFn, timeoutMs: number): FetchFn {
   };
 }
 
+/** Pone el `User-Agent` de la app en cada intento (MOB-32); sin valor, no toca la petición. */
+export function withUserAgent(fetchImpl: FetchFn, userAgent: string | undefined): FetchFn {
+  if (!userAgent) return fetchImpl;
+  return (request) => {
+    request.headers.set('User-Agent', userAgent);
+    return fetchImpl(request);
+  };
+}
+
 export interface TokenRefresher {
   /** Access token nuevo, o `null` si la sesión quedó revocada (y ya se limpió). */
   refresh(): Promise<string | null>;
@@ -87,6 +96,8 @@ export interface WalletApiOptions {
   session: Session;
   fetch?: FetchFn;
   timeoutMs?: number;
+  /** `User-Agent` de la app (MOB-32). */
+  userAgent?: string | undefined;
 }
 
 const globalFetch: FetchFn = (request) => globalThis.fetch(request);
@@ -102,8 +113,12 @@ export function createSessionRefresher({
   session,
   fetch = globalFetch,
   timeoutMs = REQUEST_TIMEOUT_MS,
+  userAgent,
 }: WalletApiOptions): TokenRefresher {
-  const bare = createApiClient({ baseUrl, fetch: withTimeout(fetch, timeoutMs) });
+  const bare = createApiClient({
+    baseUrl,
+    fetch: withUserAgent(withTimeout(fetch, timeoutMs), userAgent),
+  });
   let inflight: Promise<string | null> | null = null;
 
   async function run(): Promise<string | null> {
@@ -141,9 +156,10 @@ export function createWalletApi({
   session,
   fetch = globalFetch,
   timeoutMs = REQUEST_TIMEOUT_MS,
+  userAgent,
   refresher,
 }: WalletApiOptions & { refresher?: TokenRefresher }): ApiClient {
-  const attempt = withTimeout(fetch, timeoutMs);
+  const attempt = withUserAgent(withTimeout(fetch, timeoutMs), userAgent);
   return createApiClient({
     baseUrl,
     getAccessToken: () => session.getAccessToken(),

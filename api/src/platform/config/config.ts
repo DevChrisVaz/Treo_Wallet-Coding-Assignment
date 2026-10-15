@@ -40,6 +40,15 @@ export interface AppConfig {
   };
   /** Firma HMAC de los cursores de paginación (HIS-05). */
   readonly cursorSigningSecret: Buffer;
+  /** Topes de los límites de tasa de refresh, logout y transferencias (PLT-19); las ventanas son fijas. */
+  readonly rateLimits: {
+    readonly refreshMax: number;
+    readonly logoutMax: number;
+    readonly transferCreateMax: number;
+    readonly transferConfirmMax: number;
+    readonly transferResendMax: number;
+    readonly transferCancelMax: number;
+  };
   /** Ejecutor de transferencias programadas (TRF-30, D6). */
   readonly scheduler: {
     /** `false` en pruebas, que llaman a `runOnce()` directamente. */
@@ -179,6 +188,12 @@ const envSchema = z.object({
   OTP_MAX_ATTEMPTS: boundedInt('OTP_MAX_ATTEMPTS', 3, 1, 3),
   OTP_MAX_RESENDS: boundedInt('OTP_MAX_RESENDS', 3, 0, 3),
   CURSOR_SIGNING_SECRET: secret('CURSOR_SIGNING_SECRET'),
+  RATE_LIMIT_REFRESH_MAX: boundedInt('RATE_LIMIT_REFRESH_MAX', 120, 1, 10_000),
+  RATE_LIMIT_LOGOUT_MAX: boundedInt('RATE_LIMIT_LOGOUT_MAX', 60, 1, 10_000),
+  RATE_LIMIT_TRANSFER_CREATE_MAX: boundedInt('RATE_LIMIT_TRANSFER_CREATE_MAX', 30, 1, 10_000),
+  RATE_LIMIT_TRANSFER_CONFIRM_MAX: boundedInt('RATE_LIMIT_TRANSFER_CONFIRM_MAX', 15, 1, 10_000),
+  RATE_LIMIT_TRANSFER_RESEND_MAX: boundedInt('RATE_LIMIT_TRANSFER_RESEND_MAX', 6, 1, 10_000),
+  RATE_LIMIT_TRANSFER_CANCEL_MAX: boundedInt('RATE_LIMIT_TRANSFER_CANCEL_MAX', 20, 1, 10_000),
   SCHEDULER_ENABLED: z
     .enum(['true', 'false'], { error: 'SCHEDULER_ENABLED debe ser true o false' })
     .default('true')
@@ -233,6 +248,14 @@ export function loadConfig(env: Record<string, string | undefined>): AppConfig {
       otpMaxResends: e.OTP_MAX_RESENDS,
     },
     cursorSigningSecret: e.CURSOR_SIGNING_SECRET,
+    rateLimits: {
+      refreshMax: e.RATE_LIMIT_REFRESH_MAX,
+      logoutMax: e.RATE_LIMIT_LOGOUT_MAX,
+      transferCreateMax: e.RATE_LIMIT_TRANSFER_CREATE_MAX,
+      transferConfirmMax: e.RATE_LIMIT_TRANSFER_CONFIRM_MAX,
+      transferResendMax: e.RATE_LIMIT_TRANSFER_RESEND_MAX,
+      transferCancelMax: e.RATE_LIMIT_TRANSFER_CANCEL_MAX,
+    },
     scheduler: {
       enabled: e.SCHEDULER_ENABLED,
       intervalMs: e.SCHEDULER_INTERVAL_MS,

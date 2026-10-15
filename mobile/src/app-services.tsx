@@ -4,6 +4,8 @@
  */
 import type { ApiClient } from '@devchrisvaz/wallet-contract';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { createContext, useContext, useState, useSyncExternalStore, type ReactNode } from 'react';
 
 import {
@@ -12,6 +14,7 @@ import {
   type FetchFn,
   type TokenRefresher,
 } from '@/api/client';
+import { appUserAgent } from '@/api/user-agent';
 import { AccountSelectionProvider } from '@/features/accounts/selection';
 import { Session, type SessionSnapshot } from '@/session/session';
 import { UnlockPreferenceStore } from '@/session/unlock-preference';
@@ -50,7 +53,8 @@ export function createServices(
   { testing = false }: ServiceOptions = {},
 ): AppServices {
   const session = new Session();
-  const options = { baseUrl, session, ...(fetch ? { fetch } : {}) };
+  const userAgent = appUserAgent(Constants.expoConfig?.version, Platform.OS);
+  const options = { baseUrl, session, userAgent, ...(fetch ? { fetch } : {}) };
   const refresher = createSessionRefresher(options);
   const queryClient = new QueryClient({
     defaultOptions: {

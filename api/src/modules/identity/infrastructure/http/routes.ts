@@ -4,6 +4,7 @@ import { byIp, rateLimit } from '../../../../platform/http/rate-limit.js';
 import type { Clock } from '../../../../shared/clock.js';
 import { normalizeEmail } from '../../../../shared/email.js';
 import { parseBody } from '../../../../platform/http/validation.js';
+import type { AppConfig } from '../../../../platform/config/config.js';
 import type { GetCurrentUser } from '../../application/get-current-user.js';
 import type { Login } from '../../application/login.js';
 import type { Logout } from '../../application/logout.js';
@@ -51,6 +52,7 @@ export function identityRoutes(
   handlers: IdentityHandlers,
   authenticateRequest: RequestHandler,
   clock: Clock,
+  limits: Pick<AppConfig['rateLimits'], 'refreshMax' | 'logoutMax'>,
 ) {
   const routes = routeTable(authenticateRequest);
   // Límites de identidad (IDN-15): por IP y, en el login, por IP + email. Nunca bloquean la cuenta:
@@ -72,6 +74,22 @@ export function identityRoutes(
   const perIpHourly = (name: string) =>
     rateLimit({ name, windowMs: 60 * MINUTE, limit: 10, key: byIp, clock });
 
+  // Refresh y logout son públicos (el token va en el cuerpo): se limitan por IP (IDN-17, PLT-19).
+  const refreshByIp = rateLimit({
+    name: 'refresh',
+    windowMs: 15 * MINUTE,
+    limit: limits.refreshMax,
+    key: byIp,
+    clock,
+  });
+  const logoutByIp = rateLimit({
+    name: 'logout',
+    windowMs: 15 * MINUTE,
+    limit: limits.logoutMax,
+    key: byIp,
+    clock,
+  });
+
   routes.public.post('/auth/register', perIpHourly('register'), async (req, res) => {
     const input = parseBody(registerRequestSchemaAt(clock.now()), req.body);
     await handlers.registerUser.execute(input);
@@ -89,17 +107,19 @@ export function identityRoutes(
     res.status(202).json(ACCEPTED_BODY);
   });
 
-  routes.public.post('/auth/refresh', async (req, res) => {
+  routes.public.post('/auth/refresh', refreshByIp, async (req, res) => {
     const input = parseBody(refreshRequestSchema, req.body);
     res.status(200).json(await handlers.refreshSession.execute(input));
   });
 
   routes.public.post('/auth/login', loginByIp, loginByIpAndEmail, async (req, res) => {
     const input = parseBody(loginRequestSchema, req.body);
-    res.status(200).json(await handlers.login.execute(input));
+    res
+      .status(200)
+      .json(await handlers.login.execute(input, { ip: req.ip, userAgent: req.get('User-Agent') }));
   });
 
-  routes.public.post('/auth/logout', async (req, res) => {
+  routes.public.post('/auth/logout', logoutByIp, async (req, res) => {
     const input = parseBody(logoutRequestSchema, req.body);
     await handlers.logout.execute(input);
     res.status(204).end();

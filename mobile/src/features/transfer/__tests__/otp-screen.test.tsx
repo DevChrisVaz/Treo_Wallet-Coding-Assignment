@@ -1,3 +1,4 @@
+import { problemMessage } from '@devchrisvaz/wallet-design-tokens';
 import { act, screen, userEvent } from '@testing-library/react-native';
 
 import { createFakeApi, json, problem, type FakeApi, type FakeReply } from '@/test-utils/fake-api';
@@ -88,6 +89,30 @@ describe('confirmación con OTP', () => {
     ).toBeOnTheScreen();
     expect(screen.getByText('Te queda 1 intento.')).toBeOnTheScreen();
     expect(screen.getByLabelText('Código de 6 dígitos')).toBeOnTheScreen();
+  });
+
+  test('MOB-31 con un 429 al confirmar muestra el mensaje de límite y conserva la pantalla del código', async () => {
+    const fake = apiWith(pendingOtp(), problem(429, 'RATE_LIMITED', {}, { 'Retry-After': '30' }));
+    const user = await reachOtp(fake);
+    await confirm(user, '482913');
+    expect(await screen.findByText(problemMessage('RATE_LIMITED'))).toBeOnTheScreen();
+    expect(screen.getByLabelText('Código de 6 dígitos')).toBeOnTheScreen();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(fake.requestsTo('POST', CONFIRM_PATH)).toHaveLength(1);
+  });
+
+  test('MOB-31 con un 429 al reenviar muestra el mensaje de límite y no reenvía sola', async () => {
+    const fake = apiWith();
+    fake.on('POST', RESEND_PATH, problem(429, 'RATE_LIMITED', {}, { 'Retry-After': '30' }));
+    const user = await reachOtp(fake);
+    await user.press(screen.getByRole('button', { name: 'Reenviar código' }));
+    expect(await screen.findByText(problemMessage('RATE_LIMITED'))).toBeOnTheScreen();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(fake.requestsTo('POST', RESEND_PATH)).toHaveLength(1);
   });
 
   test('MOB-12 con los intentos agotados indica que la transferencia no se realizó', async () => {

@@ -117,6 +117,53 @@ describe('PLT-08 configuración validada al arrancar', () => {
     ]);
   });
 
+  it('PLT-19 los límites de tasa nuevos tienen topes por defecto', () => {
+    expect(loadConfig(validEnv).rateLimits).toEqual({
+      refreshMax: 120,
+      logoutMax: 60,
+      transferCreateMax: 30,
+      transferConfirmMax: 15,
+      transferResendMax: 6,
+      transferCancelMax: 20,
+    });
+  });
+
+  it('PLT-19 cada tope se ajusta con su variable', () => {
+    const config = loadConfig({
+      ...validEnv,
+      RATE_LIMIT_REFRESH_MAX: '5',
+      RATE_LIMIT_LOGOUT_MAX: '6',
+      RATE_LIMIT_TRANSFER_CREATE_MAX: '7',
+      RATE_LIMIT_TRANSFER_CONFIRM_MAX: '8',
+      RATE_LIMIT_TRANSFER_RESEND_MAX: '9',
+      RATE_LIMIT_TRANSFER_CANCEL_MAX: '10000',
+    });
+    expect(config.rateLimits).toEqual({
+      refreshMax: 5,
+      logoutMax: 6,
+      transferCreateMax: 7,
+      transferConfirmMax: 8,
+      transferResendMax: 9,
+      transferCancelMax: 10_000,
+    });
+  });
+
+  it.each([
+    'RATE_LIMIT_REFRESH_MAX',
+    'RATE_LIMIT_LOGOUT_MAX',
+    'RATE_LIMIT_TRANSFER_CREATE_MAX',
+    'RATE_LIMIT_TRANSFER_CONFIRM_MAX',
+    'RATE_LIMIT_TRANSFER_RESEND_MAX',
+    'RATE_LIMIT_TRANSFER_CANCEL_MAX',
+  ])('PLT-19 %s rechaza 0, 10001 y texto, y el error nombra la variable sin su valor', (name) => {
+    for (const value of ['0', '10001', 'abc', '1.5']) {
+      const error = errorOf({ ...validEnv, [name]: value });
+      expect(error.variables).toEqual([name]);
+      expect(error.message).toContain(name);
+      if (value === 'abc') expect(error.message).not.toContain('abc');
+    }
+  });
+
   it('HIS-05 exige el secreto de firma de cursores', () => {
     const { CURSOR_SIGNING_SECRET: _omitted, ...env } = validEnv;
     expect(errorOf(env).variables).toEqual(['CURSOR_SIGNING_SECRET']);

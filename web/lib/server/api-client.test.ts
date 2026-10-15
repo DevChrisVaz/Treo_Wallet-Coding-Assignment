@@ -124,6 +124,108 @@ describe('sessionApi', () => {
   });
 });
 
+describe('429 al renovar el access token', () => {
+  const expiredSession = (now: Date) =>
+    sessionData({ accessTokenExpiresAt: new Date(now.getTime() - 1000).toISOString() }, now);
+
+  it('WEB-40 un 429 al renovar no borra la sesión y la petición falla con RATE_LIMITED y su espera', async () => {
+    const now = new Date();
+    await sessionStore().set(SESSION_ID, expiredSession(now));
+    const api = fakeApi().on('POST', '/auth/refresh', () =>
+      problemResponse(429, { code: 'RATE_LIMITED', requestId: 'r1' }, { 'Retry-After': '45' }),
+    );
+
+    const error = await sessionApi(SESSION_ID, CONTEXT)
+      .GET('/accounts')
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ProblemError);
+    expect(error).toMatchObject({ status: 429, code: 'RATE_LIMITED', retryAfter: 45 });
+    expect(error).not.toBeInstanceOf(SessionEndedError);
+    expect(await sessionStore().get(SESSION_ID)).not.toBeNull();
+    expect(api.callsTo('POST', '/auth/refresh')).toHaveLength(1);
+  });
+
+  it('WEB-40 la sesión conservada renueva después, cuando la API ya acepta la renovación', async () => {
+    const now = new Date();
+    await sessionStore().set(SESSION_ID, expiredSession(now));
+    let allowed = false;
+    const api = fakeApi()
+      .on('POST', '/auth/refresh', () =>
+        allowed
+          ? jsonResponse(200, tokenPair('2', now))
+          : problemResponse(429, { code: 'RATE_LIMITED', requestId: 'r1' }, { 'Retry-After': '1' }),
+      )
+      .on('GET', '/accounts', () => jsonResponse(200, OVERVIEW));
+
+    await sessionApi(SESSION_ID, CONTEXT)
+      .GET('/accounts')
+      .catch(() => undefined);
+    allowed = true;
+    const { data } = await sessionApi(SESSION_ID, CONTEXT).GET('/accounts');
+
+    expect(data).toEqual(OVERVIEW);
+    expect(api.callsTo('POST', '/auth/refresh')).toHaveLength(2);
+    expect((await sessionStore().get(SESSION_ID))?.refreshToken).toBe(tokenPair('2').refreshToken);
+  });
+
+  it('WEB-04 WEB-40 en cambio, un 401 SESSION_REVOKED sí borra la sesión', async () => {
+    const now = new Date();
+    await sessionStore().set(SESSION_ID, expiredSession(now));
+    fakeApi().on('POST', '/auth/refresh', () =>
+      problemResponse(401, { code: 'SESSION_REVOKED', requestId: 'r1' }),
+    );
+
+    const error = await sessionApi(SESSION_ID, CONTEXT)
+      .GET('/accounts')
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(SessionEndedError);
+    expect(await sessionStore().get(SESSION_ID)).toBeNull();
+  });
+});
+
+describe('User-Agent hacia la API', () => {
+  const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Version/17.6 Safari/605.1.15';
+  const WITH_UA = { ...CONTEXT, userAgent: BROWSER_UA };
+
+  it('WEB-10 una llamada pública (login) lleva el User-Agent del navegador', async () => {
+    const api = fakeApi().on('POST', '/auth/verify-email/resend', () =>
+      jsonResponse(202, { message: 'ok' }),
+    );
+    await publicApi(WITH_UA).POST('/auth/verify-email/resend', {
+      body: { email: 'ana@example.com' },
+    });
+    expect(api.calls[0]?.headers.get('user-agent')).toBe(BROWSER_UA);
+  });
+
+  it('WEB-10 las lecturas de la sesión y la renovación del access token también lo llevan', async () => {
+    const now = new Date();
+    await sessionStore().set(
+      SESSION_ID,
+      sessionData({ accessTokenExpiresAt: new Date(now.getTime() - 1000).toISOString() }, now),
+    );
+    const api = fakeApi()
+      .on('POST', '/auth/refresh', () => jsonResponse(200, tokenPair('2', now)))
+      .on('GET', '/accounts', () => jsonResponse(200, OVERVIEW));
+
+    await sessionApi(SESSION_ID, WITH_UA).GET('/accounts');
+
+    expect(api.callsTo('POST', '/auth/refresh')[0]?.headers.get('user-agent')).toBe(BROWSER_UA);
+    expect(api.callsTo('GET', '/accounts')[0]?.headers.get('user-agent')).toBe(BROWSER_UA);
+  });
+
+  it('WEB-10 sin User-Agent en la petición, la web no pone uno suyo', async () => {
+    const api = fakeApi().on('POST', '/auth/verify-email/resend', () =>
+      jsonResponse(202, { message: 'ok' }),
+    );
+    await publicApi(CONTEXT).POST('/auth/verify-email/resend', {
+      body: { email: 'ana@example.com' },
+    });
+    expect(api.calls[0]?.headers.has('user-agent')).toBe(false);
+  });
+});
+
 describe('publicApi', () => {
   it('WEB-10 envía la IP del cliente y el request id, sin Authorization', async () => {
     const api = fakeApi().on('POST', '/auth/verify-email/resend', () =>

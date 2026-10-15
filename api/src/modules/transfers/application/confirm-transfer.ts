@@ -15,6 +15,7 @@ import type { LockedTransferExecutor } from './locked-transfer-executor.js';
 import type { TransferStore } from './ports.js';
 import { balanceOrLimitError, transferExpired, transferNotPending } from './transfer-errors.js';
 import { DayChangedWhileWaiting, type TransferLocker } from './transfer-locker.js';
+import type { TransferReceiptMailer } from './transfer-emails.js';
 import { toTransferView, type TransferDetailsReader } from './transfer-view.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -30,10 +31,14 @@ export interface ConfirmTransferDeps {
   readonly audit: AuditWriter;
   readonly clock: Clock;
   readonly details: TransferDetailsReader;
+  /** Comprobante al remitente cuando esta confirmación completó la transferencia (TRF-38). */
+  readonly receipts: TransferReceiptMailer;
 }
 
 /** Resultado de la transacción: un error de negocio se lanza después del COMMIT. */
-type AttemptResult = { readonly kind: 'OK' } | { readonly kind: 'ERROR'; error: DomainError };
+type AttemptResult =
+  | { readonly kind: 'OK'; readonly completedNow?: true }
+  | { readonly kind: 'ERROR'; error: DomainError };
 
 /**
  * `POST /transfers/{transferId}/confirm` (TRF-16 a TRF-19, TRF-25, TRF-28). Es idempotente por
@@ -77,6 +82,9 @@ export class ConfirmTransfer {
     if (result.kind === 'ERROR') throw result.error;
     const details = await this.deps.details.find(id);
     if (!details) throw new Error('La transferencia confirmada no existe');
+    // Solo la ejecución que la completó comprueba: una confirmación repetida, o la que perdió la
+    // carrera, encontró la transferencia ya COMPLETED y no llega aquí con `completedNow` (TRF-38).
+    if (result.completedNow) this.deps.receipts.send(details);
     return toTransferView(details, this.deps.clock.now(), this.deps.otpPolicy);
   }
 
@@ -127,7 +135,7 @@ export class ConfirmTransfer {
         entity,
         metadata: { kind: route.kind, amount: amount.toDecimalString() },
       });
-      return { kind: 'OK' };
+      return { kind: 'OK', completedNow: true };
     });
   }
 

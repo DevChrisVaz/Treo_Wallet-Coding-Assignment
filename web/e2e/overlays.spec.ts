@@ -7,6 +7,11 @@ import { PRINCIPAL_ID, login, scenario } from './support';
  */
 test.use({ launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] } });
 
+// Estas pruebas inyectan estilos con `addStyleTag` (ocultar el indicador de Next, escalar el texto),
+// que la política de contenido bloquearía. La política se prueba en `security-headers.spec.ts`, sin
+// esta excepción.
+test.use({ bypassCSP: true });
+
 test.beforeEach(async ({ page }) => {
   await scenario(page, {});
   await page.setViewportSize({ width: 390, height: 844 });

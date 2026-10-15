@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
+import { connection } from 'next/server';
 import { QueryProvider } from '@/components/providers/QueryProvider';
 import './globals.css';
 
@@ -20,7 +21,11 @@ export const metadata: Metadata = {
   description: 'Tu billetera digital en pesos mexicanos.',
 };
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+export default async function RootLayout({ children }: LayoutProps<'/'>) {
+  // El nonce de la política de contenido (WEB-39) lo pone Next.js al renderizar con la petición; una
+  // página prerenderizada en el build, como /register, saldría sin él y el navegador bloquearía sus
+  // scripts. Esperar la conexión hace dinámicas todas las páginas desde la raíz.
+  await connection();
   return (
     <html lang="es-MX" className={workSans.variable}>
       <body className="min-h-dvh bg-surface font-sans text-body text-fg antialiased">

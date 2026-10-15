@@ -281,3 +281,38 @@ describe('resendTransferOtp', () => {
     });
   });
 });
+
+describe('WEB-40 un 429 en las acciones de transferencias', () => {
+  const limited = () =>
+    problemResponse(429, { code: 'RATE_LIMITED', requestId: 'api-1' }, { 'Retry-After': '30' });
+
+  it.each([
+    ['createTransfer', 'POST', '/transfers', () => createTransfer(INPUT, KEY)],
+    [
+      'confirmTransfer',
+      'POST',
+      `/transfers/${TRANSFER_ID}/confirm`,
+      () => confirmTransfer({ transferId: TRANSFER_ID, otp: '123456' }),
+    ],
+    [
+      'resendTransferOtp',
+      'POST',
+      `/transfers/${TRANSFER_ID}/otp/resend`,
+      () => resendTransferOtp({ transferId: TRANSFER_ID }),
+    ],
+  ])(
+    'WEB-40 %s devuelve RATE_LIMITED con la espera, hace una sola llamada y conserva la sesión',
+    async (_name, method, path, run) => {
+      const api = fakeApi().on(method, path, limited);
+
+      const result = await run();
+
+      expect(result).toMatchObject({
+        ok: false,
+        problem: { code: 'RATE_LIMITED', status: 429, retryAfter: 30 },
+      });
+      expect(api.calls).toHaveLength(1);
+      expect(await sessionStore().get(SESSION_ID)).not.toBeNull();
+    },
+  );
+});

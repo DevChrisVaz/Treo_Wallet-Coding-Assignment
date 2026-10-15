@@ -67,6 +67,39 @@ describe('OtpStep', () => {
     expect(screen.getByRole('button', { name: 'Confirmando…' })).toBeDisabled();
   });
 
+  it('WEB-40 ante un 429 al confirmar muestra el mensaje con la espera y la transferencia sigue pendiente', async () => {
+    confirmMock.mockResolvedValue({
+      ok: false,
+      problem: problem('RATE_LIMITED', { status: 429, retryAfter: 120 }),
+    });
+    const { user, onEnded, onConfirmed } = renderStep();
+
+    await submitCode(user);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(problemMessage('RATE_LIMITED'));
+    expect(alert).toHaveTextContent('Intenta de nuevo en 2 minutos.');
+    expect(confirmMock).toHaveBeenCalledTimes(1);
+    expect(onEnded).not.toHaveBeenCalled();
+    expect(onConfirmed).not.toHaveBeenCalled();
+  });
+
+  it('WEB-40 ante un 429 al reenviar el código muestra el mensaje con la espera y no reenvía sola', async () => {
+    resendMock.mockResolvedValue({
+      ok: false,
+      problem: problem('RATE_LIMITED', { status: 429, retryAfter: 60 }),
+    });
+    const { user, onEnded } = renderStep();
+
+    await user.click(screen.getByRole('button', { name: /Reenviar/ }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(problemMessage('RATE_LIMITED'));
+    expect(alert).toHaveTextContent('Intenta de nuevo en 1 minuto.');
+    expect(resendMock).toHaveBeenCalledTimes(1);
+    expect(onEnded).not.toHaveBeenCalled();
+  });
+
   it('WEB-18 un código incorrecto muestra los intentos restantes', async () => {
     confirmMock.mockResolvedValue({
       ok: false,

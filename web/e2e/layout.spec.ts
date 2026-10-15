@@ -14,6 +14,11 @@ const WIDTHS = [320, 390, 768, 1024, 1440, 1920] as const;
 /** El indicador de desarrollo de Next tapa la esquina inferior izquierda; no es de la app. */
 const HIDE_DEV_INDICATOR = 'nextjs-portal { display: none !important; }';
 
+// Estas pruebas inyectan estilos con `addStyleTag` (ocultar el indicador de Next, escalar el texto),
+// que la política de contenido bloquearía. La política se prueba en `security-headers.spec.ts`, sin
+// esta excepción.
+test.use({ bypassCSP: true });
+
 test.beforeEach(async ({ page }) => {
   await scenario(page, {});
 });

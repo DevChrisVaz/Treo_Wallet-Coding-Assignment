@@ -7,6 +7,8 @@ import { headers } from 'next/headers';
 export interface RequestContext {
   requestId: string;
   clientIp: string;
+  /** `User-Agent` del navegador, tal como llegó; ausente si la petición no trae uno (WEB-10). */
+  userAgent?: string;
 }
 
 export interface HeaderReader {
@@ -16,6 +18,8 @@ export interface HeaderReader {
 /** Un request id ajeno solo se reutiliza si es corto y sin caracteres que ensucien los logs. */
 const SAFE_REQUEST_ID = /^[A-Za-z0-9._:-]{1,128}$/;
 const LOOPBACK = '127.0.0.1';
+/** Los navegadores envían ~200 caracteres; más que esto no es un cliente real. */
+const MAX_USER_AGENT = 512;
 
 /**
  * La IP del cliente es la última de `X-Forwarded-For`: la que agrega el proxy inmediatamente
@@ -29,9 +33,11 @@ function clientIpFrom(forwardedFor: string | null): string {
 
 export function requestContextFrom(source: HeaderReader): RequestContext {
   const incoming = source.get('x-request-id');
+  const userAgent = source.get('user-agent')?.trim().slice(0, MAX_USER_AGENT);
   return {
     requestId: incoming && SAFE_REQUEST_ID.test(incoming) ? incoming : randomUUID(),
     clientIp: clientIpFrom(source.get('x-forwarded-for')),
+    ...(userAgent ? { userAgent } : {}),
   };
 }
 
@@ -45,5 +51,6 @@ export function forwardHeaders(context: RequestContext): Record<string, string> 
   return {
     'X-Request-Id': context.requestId,
     'X-Forwarded-For': context.clientIp,
+    ...(context.userAgent ? { 'User-Agent': context.userAgent } : {}),
   };
 }

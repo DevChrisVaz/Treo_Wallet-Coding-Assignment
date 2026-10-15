@@ -68,6 +68,16 @@ npm ci
 
 **`install-links`.** `.npmrc` tiene `install-links=true`: npm instala `file:../contract` y `file:../design-tokens` como copia de lo que cada paquete publica (su `dist`), con sus dependencias, igual que si vinieran de un registro. Por eso hay que compilarlos antes, y **un cambio en `/contract` o en `/design-tokens` no llega solo**: vuelve a compilar el paquete y corre `npm install` aquí. Sin `install-links`, npm crearía un enlace simbólico y no instalaría las dependencias del paquete.
 
+### Headers de seguridad y política de contenido
+
+- **Todas las respuestas** (`next.config.ts`, `lib/security-headers.ts`): `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` y un `Permissions-Policy` que deshabilita cámara, micrófono, geolocalización, pagos y otras capacidades que la web no usa. Con `SESSION_COOKIE_SECURE=true` al arrancar, `proxy.ts` agrega a las páginas `Strict-Transport-Security: max-age=63072000; includeSubDomains`; no sale de `next.config.ts` porque `headers()` se evalúa en el build y quedaría fijo. El `Permissions-Policy` solo lista funciones que Chromium reconoce (sin `bluetooth`).
+- **`Referrer-Policy`:** no es `no-referrer`, porque el navegador mandaría `Origin: null` en los `POST` del mismo origen y las Server Actions rechazarían toda mutación (WEB-06).
+- **Páginas** (`proxy.ts`, `lib/csp.ts`): `Content-Security-Policy` con un nonce por petición, `default-src 'self'`, `script-src 'self' 'nonce-…' 'strict-dynamic'` (sin `unsafe-inline`), `style-src 'self' 'nonce-…'`, `img-src 'self' data: blob:`, `connect-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'` y, solo con HTTPS, `upgrade-insecure-requests`. `unsafe-eval` aparece solo en desarrollo.
+- **Renderizado por petición:** el nonce solo existe al renderizar con la petición, así que el layout raíz espera `connection()` y ninguna página es estática.
+- **Zod sin compilador:** `instrumentation-client.ts` fija `jitless` antes de que se construya un esquema. Sin eso, la prueba de `Function("")` de Zod se reporta como violación de la política.
+- **Futuro CAPTCHA de AWS WAF:** cuando se cargue su script en `/register` ([propuesta de AWS](../docs/aws-deploy.md#6-servicios-de-soporte)), `script-src` y `connect-src` necesitarán el origen que indique AWS.
+- **User-Agent:** el BFF reenvía el del navegador en cada llamada a la API, para el aviso de inicio de sesión y para `audit_log.user_agent`.
+
 ## Variables de entorno
 
 Todas son del servidor (ninguna lleva `NEXT_PUBLIC_`) y se validan con Zod al arrancar: una inválida detiene `next dev` o `next start` con un error que la nombra. Copia `.env.example` a `.env.local`.
@@ -103,6 +113,7 @@ Para probar el build de producción por `http` en local: `npm run build` y luego
 | `npm run build` / `npm start`     | Build de producción y servidor                                                                 |
 | `npm test`                        | Pruebas con Vitest (`npm run test:watch` en modo observación)                                  |
 | `npm run test:e2e`                | Pruebas en navegador con Playwright, contra una API simulada (ver "Pruebas en navegador")      |
+| `npm run test:e2e:prod`           | La prueba de la política de contenido contra `next build` y `next start`                       |
 | `npm run typecheck`               | `next typegen` y `tsc --noEmit`                                                                |
 | `npm run lint`                    | ESLint, sin advertencias permitidas; incluye la regla que prohíbe `parseFloat` y `Number(...)` |
 | `npm run format` / `format:check` | Prettier                                                                                       |
@@ -145,6 +156,8 @@ Lo que jsdom no puede medir (layout, `display: none`, el CSS real) se prueba en 
 - **Hojas y diálogos** (`overlays.spec.ts`): foco atrapado, Escape, foco de regreso y la página de fondo sin desplazarse.
 - **Accesibilidad** (`a11y.spec.ts`): axe con el CSS real (incluido el contraste) en cada pantalla, en los pasos del flujo y con las hojas abiertas.
 - **Programadas** (`scheduled.spec.ts`): programar, cancelar y el `409` de una que ya no se puede cancelar.
+- **Seguridad** (`security-headers.spec.ts`): ninguna violación de la política de contenido en las pantallas públicas, las autenticadas y el flujo de transferir; un nonce distinto por página, un manejador en línea sin nonce que no corre, los headers en páginas, `/bff` y `/_next`, y la web que no se incrusta en un `iframe`. `layout.spec.ts` y `overlays.spec.ts` inyectan estilos con `addStyleTag`, así que corren con `bypassCSP`.
+- **Compilación de producción** (`npm run test:e2e:prod`, `playwright.prod.config.ts`): la misma prueba de seguridad contra `next build` y `next start` (web en 3105, API simulada en 4995), sin la excepción de las herramientas de desarrollo de Next.js. `next dev` y producción difieren, y esta corrida encontró dos problemas que el desarrollo ocultaba (una página prerenderizada sin nonce y la prueba de `eval` de Zod).
 
 ## Avisos conocidos
 

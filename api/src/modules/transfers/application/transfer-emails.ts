@@ -1,4 +1,5 @@
 import { formatMexicoCityDateTime, formatMXN } from '@devchrisvaz/wallet-contract';
+import type { NoticeDispatcher } from '../../../platform/mail/notice-dispatcher.js';
 import { deliverAfterCommit } from '../../../platform/mail/deliver.js';
 import { escapeHtml, layout } from '../../../platform/mail/html.js';
 import type { DeliveryStatus, Mailer } from '../../../platform/mail/mailer.js';
@@ -37,7 +38,8 @@ export function transferOtpEmail(input: {
     ? `Programada para el ${formatMexicoCityDateTime(input.scheduledFor)} (hora de la Ciudad de México).`
     : null;
   const expiry = `Vence en ${minutesText(input.minutes)}.`;
-  const warning = 'Si no fuiste tú, no compartas este código con nadie y cambia tu contraseña.';
+  const warning =
+    'Si no fuiste tú, no compartas este código con nadie y responde este correo para que lo revisemos contigo.';
   return {
     subject,
     text: [
@@ -155,5 +157,66 @@ export class ScheduledFailureMailer implements ScheduledFailureNotifier {
       'scheduled-transfer-failed',
       { level: 'warn', context: { transferId } },
     );
+  }
+}
+
+/**
+ * Comprobante al remitente de una transferencia a un tercero que llegó a `COMPLETED` (TRF-38): el
+ * monto en es-MX, el nombre del destino, solo los últimos 4 dígitos de su CLABE, el concepto, la
+ * referencia si la hay, la fecha y hora de la Ciudad de México y el id de la transferencia.
+ */
+export function transferReceiptEmail(input: {
+  readonly transferId: string;
+  readonly amount: Money;
+  readonly destinationName: string;
+  readonly clabeLast4: string;
+  readonly concept: string;
+  readonly reference: number | null;
+  readonly at: Date;
+}): EmailContent {
+  const subject = 'Transferencia realizada';
+  const lines = [
+    'Realizaste una transferencia desde TreoWallet.',
+    `Monto: ${input.amount.toDisplayString()}.`,
+    `Destino: ${input.destinationName} (CLABE con terminación ${input.clabeLast4}).`,
+    `Concepto: ${input.concept}.`,
+    ...(input.reference === null ? [] : [`Referencia: ${input.reference}.`]),
+    `Fecha y hora: ${formatMexicoCityDateTime(input.at)} (hora de la Ciudad de México).`,
+    `Número de transferencia: ${input.transferId}.`,
+    'Si no reconoces esta transferencia, responde este correo para que la revisemos contigo.',
+  ];
+  return {
+    subject,
+    text: lines.join('\n'),
+    html: layout(subject, lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')),
+  };
+}
+
+/**
+ * Envía el comprobante después del COMMIT de la ejecución que dejó la transferencia `COMPLETED`,
+ * sin que la respuesta espere al servidor de correo (TRF-38, D8). Solo a un tercero: los traspasos
+ * entre cuentas propias y los fondeos no tienen comprobante. Quien llama decide cuándo (una sola
+ * vez por transferencia); aquí solo se descarta lo que no corresponde.
+ */
+export class TransferReceiptMailer {
+  constructor(
+    private readonly notices: NoticeDispatcher,
+    private readonly clock: { now(): Date },
+  ) {}
+
+  send(details: TransferDetails): void {
+    if (details.kind !== 'THIRD_PARTY' || details.status !== 'COMPLETED') return;
+    const content = transferReceiptEmail({
+      transferId: details.id,
+      amount: Money.fromCents(details.amountCents),
+      destinationName: details.destinationName,
+      clabeLast4: details.destinationClabe.slice(-4),
+      concept: details.concept,
+      reference: details.reference,
+      at: details.completedAt ?? this.clock.now(),
+    });
+    this.notices.send({ to: details.ownerEmail, ...content }, 'transfer-receipt', {
+      context: { transferId: details.id },
+    });
   }
 }

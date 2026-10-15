@@ -7,8 +7,9 @@ import type { AuditWriter } from '../../audit/application/audit-writer.js';
 import type { ResolvedRoute } from './destination-resolver.js';
 import type { LockedTransferExecutor } from './locked-transfer-executor.js';
 import type { DueTransfer, RejectionReason, ScheduledQueue, TransferStore } from './ports.js';
-import type { ScheduledFailureNotifier } from './transfer-emails.js';
+import type { ScheduledFailureNotifier, TransferReceiptMailer } from './transfer-emails.js';
 import { DayChangedWhileWaiting, type TransferLocker } from './transfer-locker.js';
+import type { TransferDetailsReader } from './transfer-view.js';
 
 export interface ScheduledTransferRunnerDeps {
   readonly transactions: TransactionRunner;
@@ -19,6 +20,9 @@ export interface ScheduledTransferRunnerDeps {
   readonly audit: AuditWriter;
   /** Aviso al dueño de una programada que quedó FAILED, después del COMMIT (TRF-35). */
   readonly notifier: ScheduledFailureNotifier;
+  /** Comprobante al dueño de una programada a un tercero que quedó COMPLETED (TRF-38). */
+  readonly receipts: TransferReceiptMailer;
+  readonly details: TransferDetailsReader;
   readonly clock: Clock;
   readonly logger: AppLogger;
   /** Candidatas por lote (D6: 100). */
@@ -104,7 +108,22 @@ export class ScheduledTransferRunner {
     }
     // Después del COMMIT: el aviso nunca revierte ni repite la ejecución (TRF-35, D10).
     if (outcome.kind === 'FAILED') await this.notifyFailure(candidate.id, outcome.reason);
+    if (outcome.kind === 'COMPLETED') await this.sendReceipt(candidate.id);
     return outcome;
+  }
+
+  /**
+   * Comprobante de una programada ejecutada (TRF-38). Una sola vez: solo la pasada que la completó
+   * llega aquí (las demás la encuentran fuera de SCHEDULED y la omiten). Una falla al leerla solo se
+   * registra; la transferencia ya está COMPLETED y no se repite.
+   */
+  private async sendReceipt(transferId: string): Promise<void> {
+    try {
+      const details = await this.deps.details.find(transferId);
+      if (details) this.deps.receipts.send(details);
+    } catch (error) {
+      this.deps.logger.warn({ transferId, err: error }, 'scheduled transfer receipt failed');
+    }
   }
 
   private async notifyFailure(transferId: string, reason: RejectionReason): Promise<void> {

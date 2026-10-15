@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
-export const API = 'http://127.0.0.1:4999';
+export const API = `http://127.0.0.1:${process.env.E2E_API_PORT ?? '4999'}`;
 /** 12:00 en Ciudad de México, el "ahora" de las historias. */
 export const NOW = new Date('2026-10-13T18:00:00Z');
 export const PRINCIPAL_ID = '0b9a4f8e-1c2d-4e5f-8a9b-0c1d2e3f4a51';

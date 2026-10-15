@@ -40,6 +40,7 @@ import { docsRouter } from './platform/http/docs.js';
 import { healthRouter } from './platform/http/health.js';
 import { createLogger, type Logger } from './platform/logging/logger.js';
 import type { Mailer } from './platform/mail/mailer.js';
+import { NoticeDispatcher } from './platform/mail/notice-dispatcher.js';
 import { SmtpMailer } from './platform/mail/smtp-mailer.js';
 import { createAppDataSource } from './platform/persistence/data-sources.js';
 import { PgErrorTranslator } from './platform/persistence/pg-errors.js';
@@ -65,6 +66,7 @@ import { TransferLocker } from './modules/transfers/application/transfer-locker.
 import {
   ScheduledFailureMailer,
   TransferOtpMailer,
+  TransferReceiptMailer,
 } from './modules/transfers/application/transfer-emails.js';
 import { PgTransferDetails } from './modules/transfers/infrastructure/pg-transfer-details.js';
 import { transferRoutes } from './modules/transfers/infrastructure/http/routes.js';
@@ -100,6 +102,8 @@ export interface Container {
   readonly clock: Clock;
   readonly logger: Logger;
   readonly mailer: Mailer;
+  /** Avisos por correo que no hacen esperar la respuesta (D8 de security-hardening). */
+  readonly notices: NoticeDispatcher;
   readonly transactions: TransactionRunner;
   readonly audit: AuditWriter;
   readonly errors: PgErrorTranslator;
@@ -158,6 +162,7 @@ export async function createContainer(
   const clock = overrides.clock ?? systemClock;
   const dataSource = overrides.dataSource ?? createAppDataSource(config.databaseUrl);
   const mailer = overrides.mailer ?? new SmtpMailer(config.smtp);
+  const notices = new NoticeDispatcher(mailer, logger);
   const hasher = overrides.hasher ?? (await Argon2PasswordHasher.create());
   const audit = overrides.audit ?? new PgAuditWriter(dataSource, clock);
   const transactions = new TypeormTransactionRunner(dataSource);
@@ -183,6 +188,7 @@ export async function createContainer(
     maxResends: config.transfers.otpMaxResends,
   };
   const otpMail = new TransferOtpMailer(mailer, logger, otpPolicy.ttlMs);
+  const receipts = new TransferReceiptMailer(notices, clock);
   const locker = new TransferLocker(dailyUsage, accountLocks, clock, config.transfers.dailyLimit);
   const refreshTokens = new PgRefreshTokenStore();
   const sessions = new SessionService(refreshTokens, clock);
@@ -198,6 +204,7 @@ export async function createContainer(
     clock,
     logger,
     mailer,
+    notices,
     transactions,
     audit,
     errors,
@@ -239,9 +246,21 @@ export async function createContainer(
         sessions,
         accessTokens,
         audit,
+        users,
+        notices,
+        logger,
         clock,
       }),
-      login: new Login({ transactions, users, hasher, sessions, accessTokens, audit, clock }),
+      login: new Login({
+        transactions,
+        users,
+        hasher,
+        sessions,
+        accessTokens,
+        audit,
+        notices,
+        clock,
+      }),
       logout: new Logout({ transactions, store: refreshTokens, audit, clock }),
       getCurrentUser: new GetCurrentUser(users),
     },
@@ -277,6 +296,9 @@ export async function createContainer(
         store: beneficiaryStore,
         resolver: new BeneficiaryClabeResolver(beneficiaryStore, config.clabe.bankCode),
         audit,
+        users,
+        notices,
+        logger,
         clock,
       }),
     },
@@ -298,6 +320,7 @@ export async function createContainer(
         executor,
         details: transferDetails,
         otpMail,
+        receipts,
         remainingToday: async (userId) => {
           const today = await dailyUsage.usage(userId, businessDayOf(clock.now()));
           const limit = today?.limit ?? config.transfers.dailyLimit;
@@ -315,6 +338,7 @@ export async function createContainer(
         audit,
         clock,
         details: transferDetails,
+        receipts,
       }),
       resendTransferOtp: new ResendTransferOtp({
         transactions,
@@ -360,6 +384,8 @@ export async function createContainer(
         store: transferStore,
         audit,
         notifier: new ScheduledFailureMailer(mailer, logger, transferDetails),
+        receipts,
+        details: transferDetails,
         clock,
         logger,
         batchSize: config.scheduler.batchSize,
@@ -372,12 +398,22 @@ export async function createContainer(
 export function createApp(container: Container): Express {
   const authenticateRequest = authenticate(container.accessTokens, container.clock);
   const tables = [
-    identityRoutes(container.identity, authenticateRequest, container.clock),
+    identityRoutes(
+      container.identity,
+      authenticateRequest,
+      container.clock,
+      container.config.rateLimits,
+    ),
     accountRoutes(container.accounts, authenticateRequest),
     movementRoutes(container.movements, authenticateRequest),
     statementRoutes(container.statements, authenticateRequest, container.clock),
     beneficiaryRoutes(container.beneficiaries, authenticateRequest, container.clock),
-    transferRoutes(container.transfers, authenticateRequest),
+    transferRoutes(
+      container.transfers,
+      authenticateRequest,
+      container.clock,
+      container.config.rateLimits,
+    ),
   ];
   for (const table of tables) assertPublicRoutesAllowed(table.table);
   return createHttpApp({
