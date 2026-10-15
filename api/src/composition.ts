@@ -382,6 +382,8 @@ export async function createContainer(
         store: transferStore,
         audit,
         notifier: new ScheduledFailureMailer(mailer, logger, transferDetails),
+        receipts,
+        details: transferDetails,
         clock,
         logger,
         batchSize: config.scheduler.batchSize,

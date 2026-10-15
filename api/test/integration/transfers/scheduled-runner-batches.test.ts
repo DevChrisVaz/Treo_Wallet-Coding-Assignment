@@ -94,7 +94,12 @@ describe('TRF-30 y TRF-31 un lote entero que no se ejecuta', () => {
       );
       expect(failures).toHaveLength(1);
     }
-    expect(t.mailer.to(ana.person.email)).toHaveLength(2);
+    // Un aviso de falla por cada fallida (los comprobantes de las completadas son TRF-38).
+    await t.container.notices.drain(2_000);
+    const failureNotices = t.mailer
+      .to(ana.person.email)
+      .filter((mail) => mail.subject === 'Tu transferencia programada no se realizó');
+    expect(failureNotices).toHaveLength(2);
   });
 
   it('TRF-36 si todo un lote se revierte y sigue SCHEDULED, la pasada termina, ejecuta las siguientes y no repite las revertidas', async () => {
