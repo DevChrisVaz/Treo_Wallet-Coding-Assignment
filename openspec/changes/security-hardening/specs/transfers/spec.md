@@ -1,3 +1,22 @@
+## MODIFIED Requirements
+
+### Requirement: TRF-15 Entrega del OTP por correo
+El sistema SHALL enviar el código de 6 dígitos al correo verificado del usuario después de confirmar la transacción, incluyendo en el mensaje el monto, el nombre del destino y los últimos 4 dígitos de su CLABE. El código MUST NOT aparecer en la respuesta HTTP, en los logs ni en la auditoría, y MUST guardarse solo como hash. Si el envío falla, la API MUST responder igualmente 201 con `otp.deliveryStatus` `FAILED`. El mensaje MUST pedir no compartir el código y, si la persona no inició la operación, responder ese correo, y MUST NOT pedir cambiar la contraseña mientras el producto no tenga ese flujo.
+
+#### Scenario: Correo con el detalle de la operación
+- **WHEN** se crea una transferencia de 15000.00 a Luis
+- **THEN** el buzón del usuario recibe un correo con el código, "$15,000.00", "Luis" y los últimos 4 dígitos de la CLABE
+- **AND** ni la respuesta ni los logs contienen el código
+
+#### Scenario: Falla el envío del correo
+- **WHEN** el servidor de correo no está disponible al crear una transferencia que requiere OTP
+- **THEN** la API responde 201 con `status` `PENDING_OTP` y `otp.deliveryStatus` `FAILED`
+
+#### Scenario: Guía si no fue la persona
+- **WHEN** llega el correo con el código
+- **THEN** pide no compartir el código y responder el correo si no fue la persona
+- **AND** no menciona cambiar la contraseña
+
 ## ADDED Requirements
 
 ### Requirement: TRF-37 Límites de tasa de las transferencias

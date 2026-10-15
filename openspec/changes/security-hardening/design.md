@@ -117,7 +117,7 @@ El proxy no corre en `bff/` ni en `_next/`, así que los headers que no dependen
 - _Alternativa descartada:_ poner estos headers también en el proxy. Duplica la fuente de verdad y no cubre `bff/` ni `_next/`.
 
 ### D8. Los avisos salen después del COMMIT y la respuesta no los espera
-Un `NoticeDispatcher` recibe el correo ya compuesto y lo envía con `deliverAfterCommit` **sin que el caso de uso espere el resultado**: lanza el envío, guarda la promesa en un conjunto y la quita al terminar. Una falla solo se registra con el destinatario enmascarado (PLT-16), nunca llega a la respuesta. Para las pruebas y el apagado ordenado expone `drain()`, que espera los envíos pendientes. Los correos de hoy (código de verificación, OTP) sí se esperan, porque la respuesta informa su estado de entrega o porque la persona los necesita para seguir; un aviso no.
+Un `NoticeDispatcher` recibe el correo ya compuesto y lo envía con `deliverAfterCommit` **sin que el caso de uso espere el resultado**: lanza el envío, guarda la promesa en un conjunto y la quita al terminar. Cada promesa lleva su propio `catch` que registra la falla con el destinatario enmascarado (PLT-16), así que ningún envío puede terminar en un `unhandledRejection` ni llegar a la respuesta; una prueba con un `Mailer` que rechaza lo comprueba. Para las pruebas y el apagado ordenado expone `drain()`, que espera los envíos pendientes. Los correos de hoy (código de verificación, OTP) sí se esperan, porque la respuesta informa su estado de entrega o porque la persona los necesita para seguir; un aviso no.
 
 ```mermaid
 sequenceDiagram
@@ -136,7 +136,8 @@ sequenceDiagram
 
 - _Alternativa descartada:_ esperar el envío como el OTP. Con el SMTP caído, cada inicio de sesión, comprobante y alta de beneficiario tardaría hasta 15 segundos más (5 de conexión, 5 de saludo y 10 de socket) por un correo que no cambia el resultado.
 - _Alternativa descartada:_ outbox transaccional. Es la solución correcta (reintentos), pero ya está en "qué haría con más tiempo" para todos los correos y pide una tabla, un proceso y su monitoreo.
-- **Costo.** Un envío en vuelo al apagar el proceso se pierde. `drain()` con un tope de espera lo reduce en el cierre ordenado; un `SIGKILL` lo pierde, como cualquier correo sin outbox.
+- **Apagado ordenado.** `main.ts` agrega `drain()` al paso `stopWork` del apagado existente (`gracefulShutdown`), con una espera máxima de **5 segundos**: el envío más lento tarda 5 s en conectar y 5 s en saludar, pero un aviso que no sale en 5 s ya está fallando, y el orquestador (ECS) da 30 s entre `SIGTERM` y `SIGKILL`, de los que el servidor y el pool también necesitan. Si se agota, se registra cuántos envíos quedaron y el apagado sigue. `drain()` corre en paralelo con el cierre del servidor, antes de cerrar el pool. Se prueba como el apagado actual, con una prueba unitaria del orden y del tope.
+- **Costo.** Un envío en vuelo al apagar el proceso se pierde si pasan los 5 s o si llega un `SIGKILL`, como cualquier correo sin outbox.
 
 ### D9. Qué dice cada aviso y cuándo sale
 Todos usan la plantilla común (`layout`), texto y HTML escapado, fecha y hora de la Ciudad de México, montos en es-MX con `Money`, y nunca llevan la CLABE completa, contraseñas, tokens ni códigos. Los que preguntan "¿fuiste tú?" dicen que, si no, la persona responda el correo (no hay recuperación de contraseña ni canal de soporte propio todavía; es lo que ya hace IDN-16).
@@ -156,8 +157,10 @@ Todos usan la plantilla común (`layout`), texto y HTML escapado, fecha y hora d
 - _Alternativa descartada:_ avisar también del `403` de correo sin verificar o de registro en revisión. Quien llegó ahí conoce la contraseña, pero no entró; el aviso diría "iniciaste sesión" sin que fuera cierto.
 - _Alternativa descartada:_ comprobante también al destinatario. No es lo que se pidió; además, el destinatario puede ser de otra institución o no tener cuenta aquí.
 
+**Texto del código de transferencias.** El correo del OTP (TRF-15) decía "cambia tu contraseña", pero no hay cambio de contraseña. Se reemplaza por la misma guía que los avisos: no compartir el código y, si no fue la persona, responder el correo.
+
 ### D10. Qué cliente inició la sesión: el `User-Agent`, descrito sin tocar el valor
-La API ya guarda el `User-Agent` de cada petición en el contexto (PLT-05) y en la auditoría (AUD-01). Para que describa al cliente real, el BFF de la web lo **reenvía** tal como lo envió el navegador (`web/lib/server/request-context.ts` y el cliente de la API); hoy la API ve el de Node, así que `audit_log.user_agent` de las acciones web es incorrecto. La app lo fija ella misma (MOB-32) con un token propio: `TreoWallet-App/<versión> (<ios|android>)`.
+La API ya guarda el `User-Agent` de cada petición en el contexto (PLT-05) y en la auditoría (AUD-01). Para que describa al cliente real, el BFF de la web lo **reenvía** tal como lo envió el navegador (`web/lib/server/request-context.ts` y el cliente de la API); hoy la API ve el de Node, así que `audit_log.user_agent` de las acciones web es incorrecto. La app lo fija ella misma (MOB-32) con un token propio: `TreoWallet-App/<versión> (<ios|android>)`. React Native no tiene una lista de headers prohibidos en `fetch` (la guía de red de su documentación acepta cualquier header; no hay equivalente a la restricción de los navegadores), así que se envía en el cliente de la app. Si en algún sistema el valor no llegara, la API ve otro `User-Agent` y `describeClient` responde "un dispositivo"; no se reconoce la app por el de `okhttp` ni `CFNetwork`. Que el valor llega en un dispositivo real no se pudo comprobar en este entorno.
 
 `describeClient(userAgent)` es una función pura de unas 30 líneas, sin dependencias, con reglas en orden:
 - con el token `TreoWallet-App/` → app, con el sistema (`iOS` o `Android`);
@@ -195,4 +198,3 @@ El README gana quince puntos en "¿Qué haría con más tiempo?", cada uno con s
 - **Un aviso en vuelo puede perderse** (D8). Aceptado hasta que exista el outbox.
 - **Un aviso por cada inicio de sesión cansa** (D9). Es la decisión del usuario; el punto "solo desde un dispositivo nuevo" está en el README como mejora.
 - **El correo de inicio de sesión puede usarse para molestar a alguien con su propia contraseña.** Solo sale con la contraseña correcta, y el login ya está limitado a 5 intentos por IP y email y a 20 por IP cada 15 minutos.
-- **El texto del OTP de transferencias ya dice "cambia tu contraseña"** (TRF-15), aunque todavía no hay cambio de contraseña. No se toca aquí; queda anotado.

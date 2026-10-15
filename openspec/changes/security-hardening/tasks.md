@@ -13,12 +13,14 @@
 ## 3. API: avisos por correo
 
 - [ ] 3.1 [api] `describeClient` (navegador y sistema, app o "un dispositivo") y `maskIp`; pruebas unitarias con `User-Agent` de Chrome, Firefox, Safari, Edge, Opera, Android, iOS, la app, vacío y enorme (IDN-18)
-- [ ] 3.2 [api] `NoticeDispatcher` (envío después del COMMIT sin esperar, falla solo en el log con el destinatario enmascarado, `drain()`) y aviso "Iniciaste sesión en TreoWallet" en el login; pruebas: se envía una vez con el contenido esperado, no en `401`, `403` ni `refresh`, y el correo caído no cambia la respuesta (IDN-18, PLT-16)
-- [ ] 3.3 [api] Aviso "Cerramos una sesión por seguridad" al detectar el reuso de un refresh token; pruebas: una vez por familia, no con token desconocido ni en la ventana de gracia (IDN-19)
-- [ ] 3.4 [api] Aviso "Agregaste a <alias> como beneficiario" en el `201`; pruebas: no en la repetición `200` ni en `409`, sin la CLABE completa (BEN-12)
-- [ ] 3.5 [api] Comprobante al remitente al crear una transferencia a un beneficiario que queda `COMPLETED`; pruebas: contenido, no en la repetición de la llave, no en un traspaso entre cuentas propias, no en un rechazo (TRF-38)
-- [ ] 3.6 [api] Comprobante al confirmar con el código; pruebas: una vez, no en la confirmación repetida ni en el código incorrecto, con dos confirmaciones simultáneas solo uno (TRF-38)
-- [ ] 3.7 [api] Comprobante cuando el ejecutor de programadas la completa; pruebas: una vez, no en una programada `FAILED`, y `db:seed` y `db:fund` no envían correos (TRF-38)
+- [ ] 3.2 [api] `NoticeDispatcher` (envío después del COMMIT sin esperar, cada promesa con su `catch` que registra con el destinatario enmascarado, `drain()`) y aviso "Iniciaste sesión en TreoWallet" en el login; pruebas: se envía una vez con el contenido esperado, no en `401`, `403` ni `refresh`, el correo caído y un `Mailer` que rechaza no cambian la respuesta ni producen un `unhandledRejection` (IDN-18, PLT-16)
+- [ ] 3.3 [api] `drain()` en el apagado ordenado de `main.ts` con espera máxima de 5 s; pruebas del orden y del tope como las del apagado actual (PLT-16)
+- [ ] 3.4 [api] Aviso "Cerramos una sesión por seguridad" al detectar el reuso de un refresh token; pruebas: una vez por familia, no con token desconocido ni en la ventana de gracia (IDN-19)
+- [ ] 3.5 [api] Aviso "Agregaste a <alias> como beneficiario" en el `201`; pruebas: no en la repetición `200` ni en `409`, sin la CLABE completa (BEN-12)
+- [ ] 3.6 [api] Comprobante al remitente al crear una transferencia a un beneficiario que queda `COMPLETED`; pruebas: contenido, no en la repetición de la llave, no en un traspaso entre cuentas propias, no en un rechazo (TRF-38)
+- [ ] 3.7 [api] Comprobante al confirmar con el código; pruebas: una vez, no en la confirmación repetida ni en el código incorrecto, con dos confirmaciones simultáneas solo uno (TRF-38)
+- [ ] 3.8 [api] Comprobante cuando el ejecutor de programadas la completa; pruebas: una vez, no en una programada `FAILED`, y `db:seed` y `db:fund` no envían correos (TRF-38)
+- [ ] 3.9 [api] El correo del código de una transferencia ya no dice "cambia tu contraseña": pide no compartir el código y responder el correo si no fue la persona; prueba (TRF-15)
 
 ## 4. Web
 
