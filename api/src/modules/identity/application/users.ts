@@ -46,6 +46,15 @@ export class IdentityAlreadyTaken extends Error {
   }
 }
 
+/** Dato de identidad único entre los usuarios que no están en revisión (IDN-03). */
+export type IdentityField = 'curp' | 'rfc' | 'phone';
+
+/** Usuario activo que comparte datos de identidad con un registro en revisión (IDN-16). */
+export interface IdentityOwner {
+  readonly email: string;
+  readonly fields: readonly IdentityField[];
+}
+
 /** Persistencia de usuarios. */
 export interface UserRepository {
   findByEmail(email: string): Promise<UserRecord | null>;
@@ -57,6 +66,11 @@ export interface UserRepository {
     tx: Transaction,
     identity: { readonly curp: string; readonly rfc: string; readonly phone: string },
   ): Promise<boolean>;
+  /** Usuarios que no están en revisión con la CURP, el RFC o el teléfono dados, y cuáles comparten. */
+  activeOwnersOf(
+    tx: Transaction,
+    identity: { readonly curp: string; readonly rfc: string; readonly phone: string },
+  ): Promise<readonly IdentityOwner[]>;
   /** Lanza `EmailAlreadyTaken` o `IdentityAlreadyTaken` si la base detecta un duplicado. */
   insert(tx: Transaction, user: NewUser): Promise<void>;
   markEmailVerified(tx: Transaction, userId: string, at: Date): Promise<void>;

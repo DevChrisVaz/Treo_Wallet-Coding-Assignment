@@ -3,7 +3,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { AuditWriter } from '../../../src/modules/audit/application/audit-writer.js';
 import { PgAuditWriter } from '../../../src/modules/audit/infrastructure/pg-audit-writer.js';
-import { auditEvents } from '../../helpers/audit.js';
+import { auditEvents, leakedValues } from '../../helpers/audit.js';
 import { buildTestApp, type TestApp } from '../../helpers/app.js';
 import { expectToMatchContract } from '../../helpers/contract.js';
 import { useIntegrationHarness } from '../../helpers/harness.js';
@@ -204,5 +204,97 @@ describe('IDN-06 verificación de correo', () => {
       'SELECT count(*)::int AS n FROM app.refresh_tokens',
     );
     expect(sessions[0].n).toBe(0);
+  });
+});
+
+/** Refresh tokens emitidos al usuario de ese email. */
+async function refreshTokensOf(email: string): Promise<number> {
+  const [{ tokens }] = await harness.migrator.query(
+    `SELECT count(*)::int AS tokens FROM app.refresh_tokens r JOIN app.users u ON u.id = r.user_id
+      WHERE u.email = $1`,
+    [email],
+  );
+  return tokens;
+}
+
+const OWNER_NOTICE = 'Alguien intentó registrarse con tus datos';
+
+describe('IDN-06 IDN-16 verificación de un registro en revisión', () => {
+  it('IDN-06 verifica el correo pero responde 403 REGISTRATION_IN_REVIEW, sin cuentas ni sesión', async () => {
+    const owner = await verifiedUser(t);
+    const { person, code } = await registerPerson(t, { phone: owner.person.phone });
+    const res = await verify(person.email, code);
+    expect(res.status).toBe(403);
+    expect(res.body).toMatchObject({ code: 'REGISTRATION_IN_REVIEW', status: 403 });
+    expect(res.body.tokens).toBeUndefined();
+    expect((await userByEmail(person.email)).email_verified_at).not.toBeNull();
+    expect(await accountsOf(person.email)).toEqual([]);
+    expect(await refreshTokensOf(person.email)).toBe(0);
+  });
+
+  it('IDN-06 el código queda consumido: repetir la verificación responde como un código incorrecto', async () => {
+    const owner = await verifiedUser(t);
+    const { person, code } = await registerPerson(t, { phone: owner.person.phone });
+    await verify(person.email, code);
+    const again = await verify(person.email, code);
+    expect(again.status).toBe(422);
+    expect(again.body.code).toBe('VERIFICATION_CODE_INVALID');
+  });
+
+  it('AUD-01 audita REGISTRATION_IN_REVIEW con los datos que chocaron y sin datos personales', async () => {
+    const owner = await verifiedUser(t);
+    const { person, code } = await registerPerson(t, { phone: owner.person.phone });
+    await verify(person.email, code);
+    const [user] = await harness.migrator.query('SELECT id FROM app.users WHERE email = $1', [
+      person.email,
+    ]);
+    const events = await auditEvents(harness.migrator);
+    expect(events.at(-1)).toMatchObject({
+      action: 'REGISTRATION_IN_REVIEW',
+      actor_type: 'USER',
+      actor_user_id: user.id,
+      entity_id: user.id,
+      metadata: { curpTaken: false, rfcTaken: false, phoneTaken: true },
+    });
+    expect(leakedValues(events, [person.email, person.phone, owner.person.email])).toEqual([]);
+  });
+
+  it('IDN-16 el dueño del dato recibe el aviso, sin el correo de quien se registró ni el dato', async () => {
+    const owner = await verifiedUser(t);
+    const { person, code } = await registerPerson(t, { phone: owner.person.phone });
+    expect(t.mailer.to(owner.person.email)).toHaveLength(1);
+    await verify(person.email, code);
+    const notices = t.mailer.to(owner.person.email).filter((m) => m.subject === OWNER_NOTICE);
+    expect(notices).toHaveLength(1);
+    const [notice] = notices;
+    for (const part of [notice?.text, notice?.html]) {
+      expect(part).not.toContain(person.email);
+      expect(part).not.toContain(person.phone);
+      expect(part).not.toMatch(/CURP|RFC|tel[eé]fono/i);
+    }
+    expect(t.mailer.to(person.email).some((m) => m.subject === OWNER_NOTICE)).toBe(false);
+  });
+
+  it('IDN-16 un dueño recibe un solo aviso aunque choquen su CURP y su RFC', async () => {
+    const owner = await verifiedUser(t);
+    const { person, code } = await registerPerson(t, {
+      curp: owner.person.curp,
+      rfc: owner.person.rfc,
+      birthDate: owner.person.birthDate,
+      birthState: owner.person.birthState,
+    });
+    await verify(person.email, code);
+    const notices = t.mailer.to(owner.person.email).filter((m) => m.subject === OWNER_NOTICE);
+    expect(notices).toHaveLength(1);
+  });
+
+  it('IDN-16 no se avisa al dueño en el registro ni en un reenvío, solo al verificar', async () => {
+    const owner = await verifiedUser(t);
+    const { person } = await registerPerson(t, { phone: owner.person.phone });
+    const resend = await request(t.app)
+      .post('/auth/verify-email/resend')
+      .send({ email: person.email });
+    expect(resend.status).toBe(202);
+    expect(t.mailer.to(owner.person.email).some((m) => m.subject === OWNER_NOTICE)).toBe(false);
   });
 });

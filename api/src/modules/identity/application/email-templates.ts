@@ -30,6 +30,24 @@ export function verificationCodeEmail(input: {
   };
 }
 
+/**
+ * Aviso al dueño de una CURP, un RFC o un teléfono cuando un registro en revisión verifica su
+ * correo con esos datos (IDN-16). No dice cuál dato ni el correo de quien lo intentó.
+ */
+export function identityUseAttemptEmail(): EmailContent {
+  const subject = 'Alguien intentó registrarse con tus datos';
+  const lines = [
+    'Alguien intentó abrir una cuenta en TreoWallet con datos de identidad que ya están en tu cuenta.',
+    'No tuvo acceso a tu cuenta ni a tu dinero, y su registro quedó en revisión.',
+    'Si fuiste tú, no tienes que hacer nada. Si no fuiste tú, responde este correo para que lo revisemos contigo.',
+  ];
+  return {
+    subject,
+    text: lines.join('\n'),
+    html: layout(subject, lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')),
+  };
+}
+
 /** Aviso al dueño de un email ya verificado: alguien intentó registrarse con él (IDN-01). */
 export function registrationAttemptEmail(): EmailContent {
   const subject = 'Alguien intentó registrarse con tu correo';

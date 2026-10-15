@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  identityUseAttemptEmail,
   registrationAttemptEmail,
   verificationCodeEmail,
 } from '../../../src/modules/identity/application/email-templates.js';
@@ -31,6 +32,14 @@ describe('PLT-16 plantillas de correo en español', () => {
     const mail = verificationCodeEmail({ fullName: '<script>x</script>', code: '1', minutes: 15 });
     expect(mail.html).not.toContain('<script>');
     expect(mail.html).toContain('&lt;script&gt;');
+  });
+
+  it('IDN-16 el aviso al dueño de los datos no dice qué dato se usó ni trae código', () => {
+    const mail = identityUseAttemptEmail();
+    expect(mail.subject).toBe('Alguien intentó registrarse con tus datos');
+    for (const part of [mail.subject, mail.text, mail.html]) {
+      expect(part).not.toMatch(/CURP|RFC|tel[eé]fono|[0-9]{6}/i);
+    }
   });
 
   it('IDN-01 el aviso de intento de registro no crea nada ni trae código', () => {

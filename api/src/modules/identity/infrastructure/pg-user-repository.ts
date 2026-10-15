@@ -9,6 +9,8 @@ import type { Transaction } from '../../../shared/transaction.js';
 import {
   EmailAlreadyTaken,
   IdentityAlreadyTaken,
+  type IdentityField,
+  type IdentityOwner,
   type NewUser,
   type UserRecord,
   type UserRepository,
@@ -88,6 +90,22 @@ export class PgUserRepository implements UserRepository {
       [identity.curp, identity.rfc, identity.phone],
     );
     return rows.length > 0;
+  }
+
+  async activeOwnersOf(
+    tx: Transaction,
+    identity: { curp: string; rfc: string; phone: string },
+  ): Promise<readonly IdentityOwner[]> {
+    const rows = await queryIn<{ email: string } & Record<IdentityField, boolean>>(
+      tx,
+      `SELECT email, curp = $1 AS curp, rfc = $2 AS rfc, phone = $3 AS phone
+         FROM users
+        WHERE NOT identity_conflict AND (curp = $1 OR rfc = $2 OR phone = $3)
+        ORDER BY created_at, id`,
+      [identity.curp, identity.rfc, identity.phone],
+    );
+    const fields: readonly IdentityField[] = ['curp', 'rfc', 'phone'];
+    return rows.map((row) => ({ email: row.email, fields: fields.filter((field) => row[field]) }));
   }
 
   async insert(tx: Transaction, user: NewUser): Promise<void> {
