@@ -32,9 +32,23 @@ const page = () => new NextRequest('http://localhost:3000/login');
 const policyOf = (response: Response) => response.headers.get('content-security-policy') ?? '';
 const noncesOf = (policy: string) => [...policy.matchAll(/'nonce-([^']+)'/g)].map((m) => m[1]);
 
+/** Módulo nuevo: la cookie segura se lee una sola vez por proceso, en la primera petición. */
+async function freshProxy() {
+  vi.resetModules();
+  return (await import('./proxy')).proxy;
+}
+
 describe('proxy · Content-Security-Policy', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+  });
+
+  it('WEB-39 SESSION_COOKIE_SECURE se lee una sola vez, no en cada petición', async () => {
+    const fresh = await freshProxy();
+    vi.stubEnv('SESSION_COOKIE_SECURE', 'false');
+    expect(policyOf(fresh(page()))).not.toContain('upgrade-insecure-requests');
+    vi.stubEnv('SESSION_COOKIE_SECURE', 'true');
+    expect(policyOf(fresh(page()))).not.toContain('upgrade-insecure-requests');
   });
 
   it('WEB-39 cada petición recibe un nonce distinto, el mismo en script-src y en style-src', () => {
@@ -53,11 +67,11 @@ describe('proxy · Content-Security-Policy', () => {
     expect(response.headers.get('x-middleware-request-x-nonce')).toBe(noncesOf(policy)[0]);
   });
 
-  it('WEB-39 la política de producción con HTTPS no permite unsafe-inline ni unsafe-eval en los scripts', () => {
+  it('WEB-39 la política de producción con HTTPS no permite unsafe-inline ni unsafe-eval en los scripts', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('API_BASE_URL', 'https://api.example.com');
     vi.stubEnv('SESSION_COOKIE_SECURE', 'true');
-    const policy = policyOf(proxy(page()));
+    const policy = policyOf((await freshProxy())(page()));
     const script = policy.split('; ').find((directive) => directive.startsWith('script-src')) ?? '';
     expect(script).toContain("'strict-dynamic'");
     expect(script).not.toContain('unsafe-inline');
@@ -74,9 +88,9 @@ describe('proxy · Content-Security-Policy', () => {
     expect(script).toContain("'unsafe-eval'");
   });
 
-  it('WEB-39 con HTTP en local no agrega upgrade-insecure-requests', () => {
+  it('WEB-39 con HTTP en local no agrega upgrade-insecure-requests', async () => {
     vi.stubEnv('SESSION_COOKIE_SECURE', 'false');
-    expect(policyOf(proxy(page()))).not.toContain('upgrade-insecure-requests');
+    expect(policyOf((await freshProxy())(page()))).not.toContain('upgrade-insecure-requests');
   });
 
   it('WEB-39 la política fija el resto de las directivas', () => {

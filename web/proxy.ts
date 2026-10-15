@@ -9,6 +9,16 @@ export const CURRENT_PATH_HEADER = 'x-wallet-path';
 export const NONCE_HEADER = 'x-nonce';
 
 /**
+ * ¿La cookie de sesión es segura (HTTPS)? Se lee una sola vez, en la primera petición y no al cargar
+ * el módulo: `next build` también importa este archivo y todavía no exige `API_BASE_URL`.
+ */
+let secure: boolean | undefined;
+function isSecure(): boolean {
+  secure ??= parseServerEnv(process.env).sessionCookieSecure;
+  return secure;
+}
+
+/**
  * Proxy de Next.js (antes middleware). No protege rutas, eso lo hace el layout del grupo `(app)`
  * en el servidor (D4 de web-app). Hace dos cosas por petición de página:
  * - informa la ruta pedida, reemplazando cualquier valor que envíe el navegador (WEB-22); el
@@ -21,7 +31,7 @@ export function proxy(request: NextRequest) {
   const policy = contentSecurityPolicy({
     nonce,
     development: process.env.NODE_ENV === 'development',
-    secure: parseServerEnv(process.env).sessionCookieSecure,
+    secure: isSecure(),
   });
   const headers = new Headers(request.headers);
   headers.set(CURRENT_PATH_HEADER, `${request.nextUrl.pathname}${request.nextUrl.search}`);
