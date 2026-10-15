@@ -669,6 +669,45 @@ El prompt con el que empezó el rediseño no quedó registrado textualmente. La 
 - **`npm install` no actualiza la versión de un paquete `file:` en el lockfile.** Instaló 1.5.0 pero dejó 1.4.0 registrado; se corrigió a mano, como en el cambio a 1.4.0, y `npm ci` confirmó que el lockfile es coherente. El de la app todavía registraba 1.3.0.
 - **La unicidad por nombre se conserva.** Los índices únicos parciales llevan los nombres de las constraints que reemplazan, así que la traducción de errores de PostgreSQL y las pruebas de esquema no cambian. La prueba de ida y vuelta de las migraciones ejercitó el `down`.
 
+## Sesión 12 — 2026-10-15 · Endurecimiento de seguridad (`security-hardening`)
+
+**Prompt clave:** "Dame un resumen de todas las decisiones de seguridad que se implementaron y las que no", y sobre la lista de huecos que devolvió la AI: "realiza del 4 el punto 1, 2, 4 y 11, el resto también agrégalas al readme. Los cambios los quiero en una rama separada y que un subagente los realice, tú lo orquestas y revisas el resultado". Al final: "lanza a haiku a probar todo el panel web".
+
+**Quién:** Claude Code con Claude Opus 5.5 como orquestador y revisor. Implementó un subagente con Sonnet en `dev/security-hardening`, con su propio worktree, PostgreSQL (5443) y Mailpit (1035 y 8035). La prueba de punta a punta la hizo un agente con Haiku contra una compilación de producción de la rama.
+
+**El inventario.** Antes de proponer nada, la AI leyó el README, la propuesta de AWS y los `design.md`, y comprobó en el código cada hueco que iba a nombrar: la web solo tenía `poweredByHeader: false`; `refresh`, `logout` y las cuatro operaciones de transferencias no tenían límite; `no-store` solo estaba en el estado de cuenta; la API mandaba cinco correos y ninguno avisaba de un inicio de sesión, y el CI no tenía escaneo de seguridad. Separó lo implementado, lo que ya estaba en "qué haría con más tiempo" y lo pendiente que solo vivía en otros documentos (rotación del secreto JWT, revocación del access token, timeouts de la base, dos saltos de proxy, el candado en Redis, el rol de soporte y la retención de la auditoría).
+
+**Decisiones mías:** aviso en **cada** inicio de sesión con contraseña (avisar solo desde un dispositivo nuevo quedó en el README) y comprobante solo para **quien envía**, en transferencias a terceros.
+
+**Qué se hizo:**
+- **Límites de tasa:** por IP en `refresh` (120 cada 15 min) y `logout` (60); por usuario en crear (30 cada 10 min), confirmar (15 cada 15 min), reenviar el código (6) y cancelar (20). Solo el tope es configurable. El contrato 1.6.0 declara el `429` de `logout`.
+- **`Cache-Control: no-store`** en toda la API.
+- **Web:** CSP con nonce por petición, `nosniff`, `X-Frame-Options`, `Referrer-Policy` y `Permissions-Policy`, y HSTS solo con HTTPS.
+- **Cuatro correos** (inicio de sesión, sesión cerrada por reuso, alta de beneficiario y comprobante) que salen después del `COMMIT` sin hacer esperar la respuesta, con un `drain()` de 5 s en el apagado. El BFF reenvía el `User-Agent` del navegador y la app manda el suyo.
+- **15 puntos nuevos** en "qué haría con más tiempo".
+
+**Revisión por etapas.** El subagente se detuvo después de escribir el change y la AI revisó el diseño antes de que tocara código. Aceptó topes más altos que los que había sugerido (por la IP compartida y los 3 intentos del OTP), aceptó los avisos sin esperar al SMTP con dos condiciones (un `catch` por envío y `drain()` en el apagado) y agregó corregir el correo del OTP, que pedía "cambia tu contraseña" sin que exista esa función.
+
+**Hallazgos de esta sesión:**
+- **`no-referrer` habría roto todas las Server Actions.** El subagente lo detectó al diseñar: con esa política el navegador manda `Origin: null` en los POST del mismo origen. Se eligió `strict-origin-when-cross-origin`, y la prueba e2e de inicio de sesión lo cubre.
+- **La compilación de producción encontró lo que `next dev` escondía.** `/register` y `/_not-found` se prerenderizaban sin nonce y el navegador bloqueaba sus scripts: el layout raíz ahora espera `connection()`. Zod 4 prueba `Function("")` y Chromium lo reporta como una violación de `eval`: `instrumentation-client.ts` fija `jitless`.
+- **Un aviso podía cambiar la respuesta.** Al revisar el código, la AI vio que el alta de beneficiario y el reuso de sesión buscaban al dueño después del `COMMIT` sin protección: si esa lectura fallaba, la respuesta era `500` aunque el alta ya existiera. Ahora la falla solo se registra, con una prueba por caso.
+- **HSTS se decidía al compilar.** Al preparar el entorno de Haiku, la AI levantó la web con `SESSION_COOKIE_SECURE=false` y vio `Strict-Transport-Security` en la respuesta: `headers()` de `next.config` se evalúa en `next build` y queda en `routes-manifest.json`. La prueba de producción no lo detectó porque compilaba y arrancaba con el mismo entorno. HSTS pasó a `proxy.ts`, y la prueba ahora compila sin la variable y arranca con `false`; con HSTS de vuelta en `headers()`, falla.
+- **Una función de `Permissions-Policy` que Chrome no reconoce.** Haiku vio "Unrecognized feature: 'bluetooth'" en la consola de cada página. Se quitó, y la prueba e2e falla ante cualquier aviso de ese header. El diseño afirmaba que todas las funciones eran reconocidas sin haberlo comprobado.
+- **`db:bootstrap` volvió a apuntar al contenedor equivocado** (el hallazgo de la sesión 6). Sin `psql` instalado, el script usó `docker compose exec` y corrió `bootstrap.sql` en el PostgreSQL del 5433. El script es idempotente y las contraseñas eran las mismas, así que no cambió nada; la AI lo comprobó antes de seguir.
+- **El README contradecía `registration-review`.** "Códigos por correo" todavía decía que un choque de CURP, RFC o teléfono respondía `422`. Se corrigió.
+
+**Cómo se comprobó:**
+- **Cada prueba nueva se vio fallar:** con TDD en la API; en la web y la app, donde el comportamiento ya existía, rompiendo a propósito la condición que cierra la sesión.
+- **Suites:** la AI corrió de nuevo todas las de la rama: API, 606 unitarias y 812 de integración; web, 854 unitarias, 61 e2e y 8 contra la compilación de producción; app, 434; contrato, 579.
+- **Panel completo:** Haiku recorrió en la compilación de producción el registro normal y el que queda en revisión, la sesión, Inicio, movimientos, estado de cuenta, beneficiarios, transferencias con OTP, límite diario, saldo insuficiente, doble clic, programadas, los cuatro correos y el `429`. No hubo violaciones de la política de contenido.
+
+**Pendiente:**
+- El `User-Agent` de la app no se ha visto llegar desde un teléfono real.
+- HSTS con HTTPS real solo tiene prueba unitaria.
+- `test:e2e:prod` no corre en el CI.
+- `/favicon.ico` responde 404 (ya pasaba antes de la rama).
+
 ## Correcciones a la AI, en conjunto
 
 Índice de lo que la AI propuso mal o dejó inseguro, ordenado por lo que importa en un sistema de dinero. Cada punto está explicado en la sesión que se indica.
@@ -708,6 +747,9 @@ El prompt con el que empezó el rediseño no quedó registrado textualmente. La 
 | Una afirmación sobre Amplify ("deja menos control de `allowedOrigins`") era falsa | 1 | Se verificó contra la documentación; se mantuvo Fargate con los argumentos que sí pesan |
 | El paquete se nombró con el usuario de GitHub que devolvía `gh api user`, sin confirmarlo | 2 | Mi usuario es DevChrisVaz; no se infiere la identidad del entorno |
 | Las pruebas en navegador adoptaban cualquier servidor que ya escuchara en su puerto (`reuseExistingServer: true`), que podía ser la API real | 7 | Playwright siempre levanta su API simulada y su `next dev` |
+| Un aviso por correo podía convertir la respuesta en `500` si fallaba la búsqueda del dueño después del `COMMIT` | 12 | La falla solo se registra; una prueba por caso |
+| HSTS en `headers()` de `next.config` quedaba fijo en el build, no al arrancar | 12 | HSTS en `proxy.ts`; la prueba de producción compila y arranca con entornos distintos |
+| `bluetooth` en `Permissions-Policy`, una función que Chrome no reconoce | 12 | Se quitó; la prueba e2e falla ante cualquier aviso del header |
 
 ### De proceso
 
@@ -721,6 +763,8 @@ El prompt con el que empezó el rediseño no quedó registrado textualmente. La 
 - **Dos sesiones sobre el mismo producto a la vez** (sesión 7): la rama principal cambió de nombre y de historia mientras el rediseño trabajaba, y un `pkill -f vitest` de otra sesión mató corridas ajenas.
 - **`FLUSHDB` en pruebas que corren en paralelo** sobre la misma base de Redis (sesión 9).
 - **Un ID de requisito tomado a la vez por dos sesiones** (WEB-35, sesión 9): un ID libre en la base de una rama puede estar ocupado en el trabajo sin commit de otra sesión.
+- **Una prueba de producción con el mismo entorno en el build y en el arranque** no detecta lo que se decide al compilar (HSTS, sesión 12).
+- **`db:bootstrap` en un worktree alcanzó el contenedor principal** sin `psql` instalado (sesiones 6 y 12).
 
 ## Resumen del flujo spec-first
 
