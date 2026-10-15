@@ -637,6 +637,8 @@ El prompt con el que empezó el rediseño no quedó registrado textualmente. La 
 
 **Corrección a la AI:** la suite completa falló de forma intermitente en una prueba de Redis que pasaba sola. La AI no la reintentó ni subió los márgenes de tiempo: grabó los comandos con `redis-cli MONITOR` y encontró la causa. Los dos archivos de pruebas de Redis hacían `FLUSHDB` en `beforeEach` y, al correr en paralelo, uno borraba la sesión que el otro esperaba. Cada archivo borra ahora solo sus llaves; tres corridas completas pasaron.
 
+**Al integrar, un ID repetido.** Mientras esta rama estaba abierta, `ux-fixes` llegó a `release` con su propio WEB-35 ("Recibir dinero") y WEB-36. El ID se había elegido libre en la base de la rama, pero `ux-fixes` vivía en cambios sin commit de otra sesión. Los IDs no se reutilizan, así que este requisito pasó a **WEB-37**. Los trailers `Refs:` de los commits decían WEB-35 y `trace.sh` los habría acreditado a "Recibir dinero". Por eso la rama se rehízo en `dev/web-redis-sessions-v2`, con el ID corregido en el contenido y en los mensajes, y se comprobó que la única diferencia con la original es el ID. Reescribir la rama en el lugar (`filter-branch`) lo bloqueó el modo automático; la rama original quedó intacta.
+
 **Pendiente:** el *single-flight* de la renovación sigue siendo por proceso (aceptado en D2 de `web-app`), y el rate limiting de la API sigue en memoria.
 
 ## Correcciones a la AI, en conjunto
@@ -690,6 +692,7 @@ El prompt con el que empezó el rediseño no quedó registrado textualmente. La 
 - **Una corrección escrita antes que su prueba** y un reporte sin la evidencia de rojo y verde (sesión 7).
 - **Dos sesiones sobre el mismo producto a la vez** (sesión 7): la rama principal cambió de nombre y de historia mientras el rediseño trabajaba, y un `pkill -f vitest` de otra sesión mató corridas ajenas.
 - **`FLUSHDB` en pruebas que corren en paralelo** sobre la misma base de Redis (sesión 9).
+- **Un ID de requisito tomado a la vez por dos sesiones** (WEB-35, sesión 9): un ID libre en la base de una rama puede estar ocupado en el trabajo sin commit de otra sesión.
 
 ## Resumen del flujo spec-first
 
