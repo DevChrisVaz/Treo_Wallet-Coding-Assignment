@@ -329,6 +329,12 @@ describe('MovementsScreen', () => {
     expect(within(sheet).getByLabelText('Desde')).toHaveValue('');
   });
 
+  it('WEB-20 mientras lee los movimientos muestra el estado de carga', () => {
+    reads(() => new Promise<never>(() => undefined));
+    renderWithClient(<MovementsScreen accountId={PRINCIPAL.id} />);
+    expect(screen.getAllByRole('status')[0]).toHaveTextContent('Cargando movimientos');
+  });
+
   it('WEB-20 si la lectura falla muestra el error con "Reintentar"', async () => {
     let attempt = 0;
     reads(() => {

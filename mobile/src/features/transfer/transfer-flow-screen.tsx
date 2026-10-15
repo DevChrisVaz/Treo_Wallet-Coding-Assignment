@@ -15,10 +15,12 @@ import { useTransferAttempt } from './use-transfer-attempt';
  */
 export function TransferFlowScreen() {
   const router = useRouter();
-  const { beneficiaryId } = useLocalSearchParams<{ beneficiaryId: string }>();
+  const { beneficiaryId: routeBeneficiaryId } = useLocalSearchParams<{ beneficiaryId: string }>();
   const accounts = useAccountsOverview();
   const beneficiaries = useBeneficiaries();
   const { attempt, state } = useTransferAttempt();
+  // Un intento retomado tras cerrar la app manda sobre el beneficiario de la ruta.
+  const beneficiaryId = 'draft' in state ? state.draft.beneficiaryId : routeBeneficiaryId;
   const [values, setValues] = useState<FormValues>({
     fromAccountId: undefined,
     amount: '',

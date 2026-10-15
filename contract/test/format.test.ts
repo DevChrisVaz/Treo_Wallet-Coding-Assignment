@@ -46,7 +46,7 @@ describe('formatMXN frente a Intl.NumberFormat es-MX (oráculo en Node)', () => 
   });
 });
 
-describe('formatMXN sin floats ni Intl', () => {
+describe('formatMXN sin floats y con respaldo sin Intl', () => {
   it('CTR-14 es exacto por encima de 2^53 (un float convertiría ...993 en ...992)', () => {
     expect(formatMXN('9007199254740993.01')).toBe('$9,007,199,254,740,993.01');
   });

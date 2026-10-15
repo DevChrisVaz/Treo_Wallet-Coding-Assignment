@@ -171,10 +171,25 @@ El enunciado sugiere S3 + CloudFront o Amplify Hosting. **Aquí no aplica S3 + C
 | Logs de aplicación | La API ya escribe JSON con `pino`, con `requestId` y datos sensibles enmascarados. El driver `awslogs` o FireLens los envía a CloudWatch Logs | 90 días en caliente; exportación a S3 si cumplimiento lo pide |
 | Métricas y alarmas | CloudWatch: latencia, 5xx, rechazos por saldo y por límite, `REFRESH_TOKEN_REUSE_DETECTED`, errores de permiso `42501`, fallos de envío de correo, conexiones de RDS, CPU y memoria de las tareas | — |
 | Trazas | OpenTelemetry SDK en la API y el BFF y colector ADOT como sidecar hacia X-Ray (propuesta: hoy no hay instrumentación) | 30 días |
-| Auditoría de AWS | CloudTrail de organización hacia un bucket S3 dedicado con Object Lock | Igual que `audit_log` |
-| `audit_log` (negocio y seguridad) | En caliente en RDS; exportación periódica a S3 con **Object Lock en modo compliance** | En caliente 13 meses; en S3, **plazo legal pendiente de cumplimiento** |
+| Auditoría de AWS | CloudTrail de organización hacia un bucket S3 dedicado con Object Lock y validación de integridad de los archivos de log (*log file validation*) | Igual que `audit_log` |
+| `audit_log` (negocio y seguridad) | En caliente en RDS; exportación periódica a S3 con **Object Lock en modo compliance** | En caliente 13 meses; en S3, **propuesta de 10 años**, a validar con cumplimiento |
 
-**Retención del `audit_log`: pendiente de cumplimiento.** Como referencia, la normativa mexicana plantea plazos de 5 años (prevención de lavado de dinero) a 10 años (registros mercantiles). El plazo real lo fija el área de cumplimiento; el diseño no cambia, porque Object Lock admite cualquier plazo. Se marca como pendiente a propósito y no se afirma una cifra.
+**Retención del `audit_log`: propuesta de 10 años en S3, a validar con cumplimiento y jurídico.** Es una propuesta, no un dato legal. La normativa financiera mexicana aplicable a una entidad regulada (CNBV, Ley Fintech y sus disposiciones de carácter general, prevención de lavado de dinero, obligaciones mercantiles y fiscales) fija plazos de conservación que varían según el tipo de entidad, de registro y de autorización; aquí no se cita ningún artículo concreto. La elección de 10 años se justifica así:
+
+- Es el plazo más largo entre los que suelen aparecer para registros contables y de operaciones, de modo que cubre también los más cortos (del orden de 5 años) sin rediseñar nada.
+- Cubre la vida típica de una auditoría, una aclaración o un litigio sobre una transferencia, que suele abrirse años después de la operación.
+- El costo es bajo: el `audit_log` es texto comprimido y, tras los primeros 13 meses, casi no se consulta.
+
+Si cumplimiento fija un plazo distinto, solo cambia el parámetro de retención del bucket; la arquitectura no cambia.
+
+Controles propuestos para el archivo en S3:
+
+- **Object Lock en modo *compliance*** con retención por defecto de 10 años: ningún usuario, ni el raíz de la cuenta, puede acortarla ni borrar la versión antes de que venza. Exige versionado, que se activa al crear el bucket.
+- **Retención legal (*legal hold*)** por objeto, independiente del plazo: cuando hay una investigación, una auditoría o un litigio, jurídico la activa y el objeto no se puede borrar aunque el plazo haya vencido, hasta que se retire.
+- **Ciclo de vida:** los objetos pasan a *S3 Glacier Deep Archive* después de 13 meses (cuando ya salieron de la base en caliente) y se expiran al vencer los 10 años, siempre que no tengan *legal hold*. La recuperación desde Deep Archive tarda horas, y es aceptable para auditoría y no para operación.
+- **CloudTrail con *log file validation*:** CloudTrail firma cada archivo de log y publica resúmenes (*digest files*) por hora, con lo que se puede demostrar que un log no se alteró ni se eliminó. El bucket de CloudTrail usa el mismo Object Lock y el mismo ciclo de vida.
+- **Cifrado con KMS** del cliente y bucket sin acceso público; el acceso de auditoría es por rol de solo lectura.
+- Una copia replicada a otra región con el mismo bloqueo, si cumplimiento exige resiliencia ante la pérdida de una región (también es una propuesta a validar).
 
 **Dos capas de inmutabilidad.** Dentro de PostgreSQL, `audit_log` y `ledger_entries` son de solo inserción por permisos y triggers: protegen contra la aplicación y contra errores. No protegen contra alguien con acceso de administrador a la base. Esa protección la da la copia en S3 con Object Lock en modo *compliance*: ni el dueño de la cuenta puede borrar antes del plazo. Con las llaves de KMS del cliente y acceso por roles de solo lectura para auditoría.
 

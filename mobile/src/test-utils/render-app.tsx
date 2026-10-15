@@ -26,6 +26,8 @@ interface RenderAppOptions {
   routes: Record<string, ComponentType>;
   initialUrl?: string;
   signedIn?: boolean;
+  /** Prepara el almacenamiento seguro tras iniciar la sesión (por ejemplo, un cierre previo de la app). */
+  seed?: () => void | Promise<void>;
 }
 
 export async function renderApp({
@@ -33,9 +35,11 @@ export async function renderApp({
   routes,
   initialUrl = '/',
   signedIn = true,
+  seed,
 }: RenderAppOptions) {
   const services = createServices(TEST_BASE_URL, fake.fetch, { testing: true });
   if (signedIn) await services.session.start(TEST_TOKENS);
+  await seed?.();
   const router = renderRouter(
     {
       _layout: () => (

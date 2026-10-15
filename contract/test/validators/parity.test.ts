@@ -15,6 +15,8 @@ import {
   newPassword,
   rfc,
   scheduledInstant,
+  toFieldErrors,
+  transferForm,
 } from '../../src/index';
 import { contract } from '../support/contract';
 import { amountVectors } from '../vectors/amount';
@@ -35,6 +37,7 @@ import {
   curpVectors,
   rfcVectors,
 } from '../vectors/identity';
+import { transferBodyVectors } from '../vectors/transfer-body';
 import { contractExpectation, type Vector } from '../vectors/types';
 
 // JSON Schema 2020-12 es el dialecto de OpenAPI 3.1. `strict` se relaja solo para las palabras
@@ -69,4 +72,27 @@ describe.each(parity)('paridad con el esquema %s del contrato', (schemaName, sch
     expect(validateContract(vector.input)).toBe(contractExpectation(vector));
     expect(schema.safeParse(vector.input).success).toBe(vector.valid);
   });
+});
+
+describe('paridad del cuerpo de CreateTransferRequest', () => {
+  const validateBody = ajv.compile({
+    ...(contract.components.schemas.CreateTransferRequest ?? {}),
+    components: contract.components,
+  });
+
+  it.each(transferBodyVectors)('CTR-13 transferForm da el resultado esperado: $name', (vector) => {
+    const result = transferForm.safeParse(vector.body);
+    const errors = result.success
+      ? []
+      : toFieldErrors(result.error).map((error) => `${error.pointer} ${error.code}`);
+
+    expect([...errors].sort()).toEqual([...vector.errors].sort());
+  });
+
+  it.each(transferBodyVectors.filter((vector) => !vector.beyondJsonSchema))(
+    'CTR-13 openapi.yaml y transferForm coinciden en: $name',
+    (vector) => {
+      expect(validateBody(vector.body)).toBe(vector.errors.length === 0);
+    },
+  );
 });

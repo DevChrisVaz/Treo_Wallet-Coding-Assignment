@@ -37,9 +37,9 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | BEN-10 | Límite de altas de beneficiarios | api-ledger | 2: api-ledger#5.4 api-ledger#5.6 | 2: c076f67 605ed26 | api 1 |
 | BEN-11 | Auditoría del alta de beneficiarios | api-ledger | 3: api-ledger#5.3 api-ledger#5.6 domain-test-coverage#4.2 | 3: b347718 c076f67 e3e5f28 | api 4 |
 | BEN-12 | Aviso del alta de un beneficiario | security-hardening | 1: security-hardening#3.5 | 8: 755b17c d8accf3 b2eb142 (+5) | api 7 |
-| CTR-01 | Contrato OpenAPI como fuente de verdad | contract-v1 | 2: contract-v1#1.2 contract-v1#6.1 | 2: b2f920a 25ea459 | — |
+| CTR-01 | Contrato OpenAPI como fuente de verdad | contract-v1 | 2: contract-v1#1.2 contract-v1#6.1 | 2: b2f920a 25ea459 | contract 3 |
 | CTR-02 | Versionado semántico del contrato | contract-v1 | 7: contract-v1#1.3 contract-v1#6.2 contract-v1-1#1.3 (+4) | 13: dc7670d 3df47c3 b211155 (+10) | contract 3 |
-| CTR-03 | Tipos generados desde el contrato | contract-v1 | 3: contract-v1#2.1 contract-v1#2.2 contract-v1#6.1 | 3: b2f920a cdb92c8 cd24bec | — |
+| CTR-03 | Tipos generados desde el contrato | contract-v1 | 3: contract-v1#2.1 contract-v1#2.2 contract-v1#6.1 | 3: b2f920a cdb92c8 cd24bec | contract 3 |
 | CTR-04 | Cliente HTTP tipado por rutas | contract-v1 | 1: contract-v1#2.3 | 1: 8e1a0da | contract 8 |
 | CTR-05 | Request ID en cada petición | contract-v1 | 1: contract-v1#2.4 | 1: 24b5d02 | contract 3 |
 | CTR-06 | Llave de idempotencia provista por el consumidor | contract-v1 | 1: contract-v1#2.5 | 1: eb75c81 | contract 5 |
@@ -50,10 +50,10 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | CTR-11 | Validación de RFC de persona física | contract-v1, ux-fixes | 5: contract-v1#3.1 contract-v1#3.5 domain-test-coverage#7.1 (+2) | 6: 8721244 b79fd1e befd9dd (+3) | contract 3 |
 | CTR-12 | Validación de teléfono, concepto, referencia y códigos | contract-v1, ux-fixes | 6: contract-v1#3.1 contract-v1#3.6 domain-test-coverage#7.2 (+3) | 5: 8721244 b79fd1e 0dcce09 (+2) | contract 8 |
 | CTR-13 | Esquemas de formularios alineados con el contrato | contract-v1, contract-v1-2, registration-birth-data, ux-fixes | 11: contract-v1#3.7 contract-v1#3.8 contract-v1-2#1.2 (+8) | 16: a23c4d6 3220257 1972769 (+13) | contract 24 |
-| CTR-14 | Formato de montos en es-MX sin floats | contract-v1 | 2: contract-v1#4.1 contract-v1#4.2 | 2: 3f8a98b 00bafd9 | contract 2 |
+| CTR-14 | Formato de montos en es-MX sin floats | contract-v1 | 2: contract-v1#4.1 contract-v1#4.2 | 2: 3f8a98b 00bafd9 | contract 2, mobile 1 |
 | CTR-15 | Paquete agnóstico de entorno | contract-v1, contract-v1-1 | 5: contract-v1#1.1 contract-v1#5.1 contract-v1#5.2 (+2) | 7: 6f0a8a7 18354b0 f486d8d (+4) | contract 6 |
 | CTR-16 | Distribución como artefacto, sin dependencias de código | contract-v1 | 3: contract-v1#5.1 contract-v1#5.3 contract-v1#6.2 | 4: f909af3 b859bf3 75f61c2 (+1) | contract 1 |
-| CTR-17 | Verificación continua del paquete | contract-v1 | 1: contract-v1#6.1 | 1: b2f920a | — |
+| CTR-17 | Verificación continua del paquete | contract-v1 | 1: contract-v1#6.1 | 1: b2f920a | contract 2 |
 | CTR-18 | Calendario de la Ciudad de México en el paquete | contract-v1-2, ux-fixes | 2: contract-v1-2#1.3 ux-fixes#10.1 | 6: 3220257 1972769 8721244 (+3) | contract 3 |
 | CTR-19 | Descarga de documentos binarios | contract-v1-2 | 1: contract-v1-2#1.1 | 2: f415c27 ad628da | contract 3 |
 | CTR-20 | Utilidades de captura y búsqueda de texto | ux-fixes | 3: ux-fixes#3.1 ux-fixes#5.1 ux-fixes#8.1 | 2: 8721244 b79fd1e | contract 10 |
@@ -62,7 +62,7 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | DSG-01 | Paquete de tokens como fuente única | design-system | 8: design-system#1.1 design-system#5.1 design-system#5.2 (+5) | 11: b1ea000 f251908 e174ed1 (+8) | web 2, mobile 4, design-tokens 7 |
 | DSG-02 | Identidad visual basada en Treo | design-system | 2: design-system#2.1 web-app#1.3 | 4: 9e12634 715b4b1 7b6e740 (+1) | web 2, mobile 2, design-tokens 3 |
 | DSG-03 | Tokens semánticos | design-system | 3: design-system#2.1 web-app#1.5 mobile-app#1.7 | 8: f3f3e97 c3af92d 21b249b (+5) | mobile 2, design-tokens 2 |
-| DSG-04 | Contraste accesible verificado | design-system | 1: design-system#2.2 | 2: f9d0256 ff80797 | design-tokens 3 |
+| DSG-04 | Contraste accesible verificado | design-system | 1: design-system#2.2 | 2: f9d0256 ff80797 | web 1, design-tokens 3 |
 | DSG-05 | Tipografía | design-system | 3: design-system#2.3 web-app#1.3 mobile-app#1.6 | 6: e845649 d08344c e174ed1 (+3) | web 2, mobile 5, design-tokens 6 |
 | DSG-06 | Espaciado, forma, foco y movimiento | design-system | 4: design-system#2.3 web-app#1.3 web-app#1.5 (+1) | 10: f3f3e97 c3af92d 21b249b (+7) | web 4, mobile 4, design-tokens 7 |
 | DSG-07 | Tema claro listo para tema oscuro | design-system | 3: design-system#2.1 design-system#4.1 design-system#5.3 | 3: 6388596 a316ca5 26d7248 | design-tokens 3 |
@@ -118,7 +118,7 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | MOB-08 | Captura y validación de la transferencia | mobile-app, ux-fixes | 3: mobile-app#4.6 ux-fixes#3.4 ux-fixes#4.4 | 6: 5522250 225c723 a1bb69a (+3) | mobile 13 |
 | MOB-09 | Confirmación previa y envío único | mobile-app | 2: mobile-app#4.1 mobile-app#4.7 | 5: 225c723 b64bd2f 4cac987 (+2) | mobile 14 |
 | MOB-10 | Reintento ante pérdida de red con la misma llave | mobile-app | 7: mobile-app#1.3 mobile-app#2.2 mobile-app#4.2 (+4) | 8: 225c723 4cac987 99de8f7 (+5) | mobile 21 |
-| MOB-11 | Estado incierto y reintento manual | mobile-app | 2: mobile-app#4.4 mobile-app#4.8 | 4: 225c723 4cac987 c4fc58e (+1) | mobile 5 |
+| MOB-11 | Estado incierto y reintento manual | mobile-app | 2: mobile-app#4.4 mobile-app#4.8 | 4: 225c723 4cac987 c4fc58e (+1) | mobile 30 |
 | MOB-12 | Confirmación con OTP | mobile-app, ux-fixes | 3: mobile-app#4.9 mobile-app#] ux-fixes#5.4 | 5: 5522250 123421b 225c723 (+2) | mobile 22 |
 | MOB-13 | Resultado con el estado real | mobile-app, ux-fixes | 3: mobile-app#4.10 mobile-app#4.11 ux-fixes#4.4 | 9: 5522250 fc6bb8b 123421b (+6) | mobile 9 |
 | MOB-14 | Mensajes de error por código | mobile-app | 4: redesign#7.5 mobile-app#2.6 mobile-app#4.8 (+1) | 7: c11c20f 123421b 225c723 (+4) | mobile 9 |
@@ -155,8 +155,8 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | PLT-13 | Entorno local reproducible | api-foundation, ux-fixes | 6: api-foundation#1.1 api-foundation#1.4 api-foundation#3.12 (+3) | 10: b211155 7663863 b79fd1e (+7) | api 13 |
 | PLT-14 | Roles de base de datos de privilegio mínimo | api-foundation, tooling-fixes | 4: api-foundation#2.1 api-foundation#2.9 tooling-fixes#1.1 (+1) | 10: 755b17c 3abf76d 197606e (+7) | api 25 |
 | PLT-15 | Esquema gestionado solo por migraciones reversibles | api-foundation | 3: api-foundation#2.2 api-foundation#2.9 api-foundation#9.1 | 4: a8230bd 3c1128f 2a0ebd5 (+1) | api 17 |
-| PLT-16 | Entrega de correo transaccional | api-foundation, email-branding, security-hardening | 6: api-foundation#5.1 api-foundation#5.2 email-branding#1.1 (+3) | 17: 2464a4f 8874181 35fcdec (+14) | api 34 |
-| PLT-17 | Integración continua del proyecto | api-foundation | 2: api-foundation#9.1 api-foundation#9.2 | 3: 2bdbcc7 baa7583 a8230bd | — |
+| PLT-16 | Entrega de correo transaccional | api-foundation, email-branding, security-hardening | 6: api-foundation#5.1 api-foundation#5.2 email-branding#1.1 (+3) | 18: 4ff1da7 2464a4f 8874181 (+15) | api 34 |
+| PLT-17 | Integración continua del proyecto | api-foundation | 2: api-foundation#9.1 api-foundation#9.2 | 3: 2bdbcc7 baa7583 a8230bd | contract 1 |
 | PLT-18 | Reglas de negocio independientes del transporte HTTP | api-foundation | 2: api-foundation#1.2 api-foundation#8.2 | 3: 8a6ce7b 1ee03e0 6abd830 | api 6 |
 | PLT-19 | Límites de tasa configurables | security-hardening | 4: security-hardening#2.1 security-hardening#2.2 security-hardening#2.3 (+1) | 10: 755b17c d8accf3 b2eb142 (+7) | api 2 |
 | PLT-20 | Respuestas sin caché | security-hardening | 1: security-hardening#2.5 | 8: 755b17c d8accf3 b2eb142 (+5) | api 6 |
@@ -167,7 +167,7 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | TRF-05 | Peticiones simultáneas con la misma llave | api-ledger | 1: api-ledger#10.2 | 1: 99c4c5d | api 3 |
 | TRF-06 | Propiedad de las cuentas y del beneficiario | api-ledger | 4: api-ledger#6.2 api-ledger#6.4 api-ledger#6.10 (+1) | 4: d8e47ab 6ef5fea 757af5f (+1) | api 17 |
 | TRF-07 | Transferencia a la misma cuenta | api-ledger | 6: api-ledger#2.2 api-ledger#2.7 api-ledger#2.9 (+3) | 6: 9d47e3a 945ad31 89ddb7f (+3) | api 9 |
-| TRF-08 | Validación del monto sin redondeo | api-ledger | 6: api-ledger#1.1 api-ledger#1.2 api-ledger#6.1 (+3) | 6: 7663863 9d47e3a 945ad31 (+3) | api 13 |
+| TRF-08 | Validación del monto sin redondeo | api-ledger | 6: api-ledger#1.1 api-ledger#1.2 api-ledger#6.1 (+3) | 6: 7663863 9d47e3a 945ad31 (+3) | api 14 |
 | TRF-09 | Concepto y referencia | api-ledger, ux-fixes | 6: api-ledger#2.2 api-ledger#6.1 api-ledger#6.8 (+3) | 7: 7663863 b79fd1e 1af5ce6 (+4) | api 14 |
 | TRF-10 | Rechazo por saldo insuficiente | api-ledger | 4: api-ledger#2.9 api-ledger#6.5 api-ledger#6.8 (+1) | 4: 06ba6b1 945ad31 226fa20 (+1) | api 9 |
 | TRF-11 | Límite diario por usuario | api-ledger | 7: api-ledger#1.6 api-ledger#2.6 api-ledger#2.9 (+4) | 7: e140c54 21f79fa 8b547ad (+4) | api 12 |
@@ -204,20 +204,20 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | WEB-04 | Renovación única del access token | web-app | 2: web-app#2.4 web-redis-sessions#2.2 | 3: 3b06a9d c96751d c34960b | web 7 |
 | WEB-05 | Cierre de sesión | web-app | 2: web-app#4.1 web-app#4.6 | 5: cef5421 68f7efd 8f52722 (+2) | web 9 |
 | WEB-06 | Protección de las mutaciones contra CSRF | web-app | 4: scheduled-transfers#3.3 web-app#1.2 web-app#10.2 (+1) | 8: 433fa46 27509a1 0cbf6ed (+5) | web 7 |
-| WEB-07 | Validación y autorización en cada mutación | web-app | 4: scheduled-transfers#3.3 web-app#1.1 web-app#2.5 (+1) | 5: 433fa46 27509a1 1d400eb (+2) | web 20 |
-| WEB-08 | Resultado de las mutaciones como valor | web-app | 3: scheduled-transfers#3.3 web-app#2.5 web-app#5.1 | 5: 433fa46 27509a1 9635f0c (+2) | web 13 |
+| WEB-07 | Validación y autorización en cada mutación | web-app | 4: scheduled-transfers#3.3 web-app#1.1 web-app#2.5 (+1) | 5: 433fa46 27509a1 1d400eb (+2) | web 25 |
+| WEB-08 | Resultado de las mutaciones como valor | web-app | 3: scheduled-transfers#3.3 web-app#2.5 web-app#5.1 | 5: 433fa46 27509a1 9635f0c (+2) | web 14 |
 | WEB-09 | Proxy de lecturas con lista blanca | web-app | 6: account-statements#2.1 scheduled-transfers#3.3 web-app#1.2 (+3) | 9: 6f63631 852e373 433fa46 (+6) | web 14 |
 | WEB-10 | Propagación de headers hacia la API | web-app, security-hardening | 3: web-app#2.3 web-app#8.1 security-hardening#4.1 | 6: 755b17c 19cef68 4f135c6 (+3) | web 22 |
-| WEB-11 | Registro y verificación de correo | web-app, registration-birth-data, registration-review, ux-fixes | 10: redesign#6.2 web-app#4.2 web-app#4.4 (+7) | 21: e667fa6 c62b858 a4439ad (+18) | web 26 |
+| WEB-11 | Registro y verificación de correo | web-app, registration-birth-data, registration-review, ux-fixes | 10: redesign#6.2 web-app#4.2 web-app#4.4 (+7) | 21: e667fa6 c62b858 a4439ad (+18) | web 27 |
 | WEB-12 | Inicio de sesión | web-app, registration-review | 5: contract-v1-1#2.1 redesign#6.2 web-app#4.1 (+2) | 8: e667fa6 a4439ad 0f64221 (+5) | web 13 |
 | WEB-13 | Resumen de cuentas | web-app, ux-fixes | 2: web-app#6.1 ux-fixes#7.1 | 6: 64d86f3 d548eab 1f484b4 (+3) | web 9 |
 | WEB-14 | Historial de movimientos | web-app | 4: account-statements#2.3 redesign#6.4 web-app#6.2 (+1) | 7: b9aeea0 db1bffd 5719ece (+4) | web 15 |
 | WEB-15 | Beneficiarios | web-app | 2: web-app#7.1 web-app#7.2 | 4: 221a143 af02f36 05aa62c (+1) | web 9 |
 | WEB-16 | Flujo de transferencia | web-app, ux-fixes | 6: redesign#6.5 web-app#8.3 web-app#8.4 (+3) | 16: 64d86f3 1566084 4d5e011 (+13) | web 28 |
-| WEB-17 | Una sola transferencia por intento | web-app | 4: web-app#8.1 web-app#8.2 web-app#8.4 (+1) | 9: 274c2c4 e4e52a4 86ab381 (+6) | web 31 |
+| WEB-17 | Una sola transferencia por intento | web-app | 4: web-app#8.1 web-app#8.2 web-app#8.4 (+1) | 9: 274c2c4 e4e52a4 86ab381 (+6) | web 32 |
 | WEB-18 | Confirmación con OTP | web-app, ux-fixes | 3: web-app#8.5 web-app#8.7 ux-fixes#5.3 | 7: 64d86f3 e4e52a4 1e8561b (+4) | web 24 |
 | WEB-19 | Mensajes por código de error | web-app | 3: redesign#6.5 web-app#5.1 web-app#8.4 | 8: 1566084 4d5e011 1e8561b (+5) | web 8 |
-| WEB-20 | Estados de carga, vacío y error | web-app | 5: web-app#1.5 web-app#5.2 web-app#6.1 (+2) | 12: d1f5e8a 221a143 1e8561b (+9) | web 20 |
+| WEB-20 | Estados de carga, vacío y error | web-app | 5: web-app#1.5 web-app#5.2 web-app#6.1 (+2) | 12: d1f5e8a 221a143 1e8561b (+9) | web 27 |
 | WEB-21 | Montos sin floats ni redondeo | web-app, ux-fixes | 5: web-app#1.1 web-app#1.4 web-app#6.1 (+2) | 10: 3220257 1972769 64d86f3 (+7) | web 11 |
 | WEB-22 | Rutas protegidas | web-app | 3: web-app#3.2 web-app#4.6 web-app#5.2 | 5: 86ab381 0cbf6ed dcf659f (+2) | web 17 |
 | WEB-23 | Accesibilidad básica | web-app | 8: redesign#6.7 web-app#1.3 web-app#1.4 (+5) | 45: 0fbc9da 048ca0b e0be490 (+42) | web 93 |
@@ -250,12 +250,9 @@ Ninguno.
 
 Ninguno.
 
-### Requisitos sin prueba cuyo título empiece con su ID (4)
+### Requisitos sin prueba cuyo título empiece con su ID (0)
 
-- `CTR-01` Contrato OpenAPI como fuente de verdad
-- `CTR-03` Tipos generados desde el contrato
-- `CTR-17` Verificación continua del paquete
-- `PLT-17` Integración continua del proyecto
+Ninguno.
 
 <!-- trace.sh:end -->
 

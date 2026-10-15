@@ -276,4 +276,33 @@ describe('TransferDetailScreen', () => {
     expect(alert).toHaveTextContent('No pudimos cargar la transferencia');
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeVisible();
   });
+
+  it('WEB-20 mientras carga la transferencia muestra el estado de carga', () => {
+    bffGetMock.mockReturnValue(new Promise(() => undefined));
+    renderWithClient(<TransferDetailScreen transferId={transfer().id} />);
+    expect(screen.getByRole('status')).toHaveTextContent('Cargando la transferencia');
+  });
+
+  it('WEB-20 "Reintentar" repite la lectura de la transferencia y muestra el comprobante', async () => {
+    reads(new ProblemError(500, { code: 'INTERNAL_ERROR' }));
+    const user = userEvent.setup();
+    renderWithClient(<TransferDetailScreen transferId={transfer().id} />);
+    await screen.findByRole('alert');
+
+    reads(transfer());
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByRole('region', { name: 'Comprobante' })).toBeVisible();
+  });
+
+  it('WEB-20 si fallan las cuentas del detalle también muestra el error', async () => {
+    bffGetMock.mockImplementation(async (path: string) => {
+      if (path === 'accounts') throw new TypeError('Failed to fetch');
+      return transfer();
+    });
+    renderWithClient(<TransferDetailScreen transferId={transfer().id} />);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No pudimos cargar la transferencia',
+    );
+  });
 });
