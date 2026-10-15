@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { isBirthStateCode } from './birth-states';
+import { isBirthStateCode, type BirthStateCode } from './birth-states';
 import { isValidCalendarDate } from './dates';
 import { addFieldIssue, textField } from './field-errors';
 
@@ -102,4 +102,4 @@ export const birthState = textField('La entidad de nacimiento es obligatoria', (
   if (!isBirthStateCode(value)) {
     addFieldIssue(ctx, 'INVALID_FORMAT', 'Elige una entidad de la lista');
   }
-});
+}).transform((value) => value as BirthStateCode);
