@@ -158,6 +158,45 @@ describe('renovación de la sesión', () => {
     expect(session.getSnapshot()).toEqual({ status: 'signedIn' });
   });
 
+  test('MOB-31 un 429 al renovar no cierra la sesión: el refresh sigue guardado y la petición falla con RATE_LIMITED', async () => {
+    const { fake, session, api } = await setup();
+    await saveUnlockPreference('enabled');
+    fake.on('GET', '/me', expired());
+    fake.on('POST', '/auth/refresh', problem(429, 'RATE_LIMITED', {}, { 'Retry-After': '45' }));
+
+    await expect(api.GET('/me')).rejects.toMatchObject({
+      status: 429,
+      code: 'RATE_LIMITED',
+      retryAfter: 45,
+    });
+
+    expect(fake.requestsTo('POST', '/auth/refresh')).toHaveLength(1);
+    expect(secureStoreMock.entries()[REFRESH_TOKEN_KEY]).toBe('refresh-1');
+    expect(session.getSnapshot()).toEqual({ status: 'signedIn' });
+    expect(await readUnlockPreference()).toBe('enabled');
+  });
+
+  test('MOB-31 con el refresh conservado, la siguiente petición renueva cuando la API ya acepta', async () => {
+    const { fake, session, api } = await setup();
+    fake.on('GET', '/me', expired(), expired(), json(200, { id: 'u1' }));
+    fake.on(
+      'POST',
+      '/auth/refresh',
+      problem(429, 'RATE_LIMITED', {}, { 'Retry-After': '1' }),
+      json(200, tokens(2)),
+    );
+
+    await api.GET('/me').catch(() => undefined);
+    const { data } = await api.GET('/me');
+
+    expect(data).toEqual({ id: 'u1' });
+    expect(fake.requestsTo('POST', '/auth/refresh')).toHaveLength(2);
+    expect(JSON.parse(fake.requestsTo('POST', '/auth/refresh')[1]?.body ?? '')).toEqual({
+      refreshToken: 'refresh-1',
+    });
+    expect(session.getSnapshot()).toEqual({ status: 'signedIn' });
+  });
+
   test('MOB-03 un 401 que no es UNAUTHENTICATED no dispara la renovación', async () => {
     const { fake, api } = await setup();
     fake.on('POST', '/auth/login', problem(401, 'INVALID_CREDENTIALS'));
