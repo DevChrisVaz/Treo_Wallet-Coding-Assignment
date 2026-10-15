@@ -56,6 +56,22 @@ Todos están verificados y tienen sus cuentas "Principal" y "Ahorro"; sus CURP, 
 
 `POST /auth/register` responde 202 siempre; el código de 6 dígitos llega a la bandeja de Mailpit y se confirma con `POST /auth/verify-email`, que devuelve la sesión y abre las dos cuentas.
 
+Si la CURP, el RFC o el teléfono ya son de otro usuario, el registro sigue el mismo camino (202 y el mismo correo con código), pero queda **en revisión** (`users.identity_conflict`): al verificar el correo la API responde `403 REGISTRATION_IN_REVIEW` sin abrir cuentas ni sesión, y el dueño de esos datos recibe "Alguien intentó registrarse con tus datos". Iniciar sesión responde lo mismo.
+
+### Registros en revisión
+
+Soporte los resuelve fuera del producto (D6 de `registration-review`). Para listarlos, con `psql` como `wallet_migrator` sobre el esquema `app`:
+
+```sql
+SELECT u.id, u.created_at, u.email_verified_at,
+       EXISTS (SELECT 1 FROM users o WHERE NOT o.identity_conflict AND o.curp = u.curp) AS curp_taken,
+       EXISTS (SELECT 1 FROM users o WHERE NOT o.identity_conflict AND o.rfc = u.rfc) AS rfc_taken,
+       EXISTS (SELECT 1 FROM users o WHERE NOT o.identity_conflict AND o.phone = u.phone) AS phone_taken
+  FROM users u
+ WHERE u.identity_conflict
+ ORDER BY u.created_at;
+```
+
 ## Scripts
 
 | Script                                  | Qué hace                                                                                                                                                                                                                      |
