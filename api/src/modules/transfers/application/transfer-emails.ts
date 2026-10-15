@@ -38,7 +38,8 @@ export function transferOtpEmail(input: {
     ? `Programada para el ${formatMexicoCityDateTime(input.scheduledFor)} (hora de la Ciudad de México).`
     : null;
   const expiry = `Vence en ${minutesText(input.minutes)}.`;
-  const warning = 'Si no fuiste tú, no compartas este código con nadie y cambia tu contraseña.';
+  const warning =
+    'Si no fuiste tú, no compartas este código con nadie y responde este correo para que lo revisemos contigo.';
   return {
     subject,
     text: [
