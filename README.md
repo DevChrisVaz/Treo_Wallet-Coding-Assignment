@@ -1252,7 +1252,7 @@ Dónde está cada punto de la lista de entregables y su estado.
 - **Vida máxima de la sesión web** (por ejemplo, de 8 a 12 horas). Hoy solo termina tras 15 minutos sin actividad o cuando vence la familia del refresh token (30 días): una sesión usada a diario no vuelve a pedir la contraseña.
 - **Monitoreo de fraude:** reglas de velocidad, montos inusuales, la primera transferencia a un beneficiario nuevo y alertas de prevención de lavado de dinero. Complementa el periodo de espera al dar de alta un beneficiario, que ya está en esta lista.
 - **Derechos ARCO y retención de datos** según la LFPDPPP (acceso, rectificación, cancelación y oposición), con una política de borrado o anonimización compatible con un ledger inmutable. Hoy no hay forma de pedir el borrado de una cuenta.
-- **Modelo de amenazas** (STRIDE por flujo), correspondencia con OWASP ASVS nivel 2 (MASVS en la app), DAST con OWASP ZAP en el CI y una prueba de penetración antes de producción. Este change hizo una revisión de seguridad del código, no un análisis formal.
+- **Modelo de amenazas** (STRIDE por flujo), correspondencia con OWASP ASVS nivel 2 (MASVS en la app), DAST con OWASP ZAP en el CI y una prueba de penetración antes de producción. Hasta hoy hubo una revisión de seguridad del código, no un análisis formal.
 - **Aviso de inicio de sesión solo desde un dispositivo nuevo,** en lugar de en cada inicio. Pide un identificador de dispositivo y una tabla de dispositivos conocidos. Hoy se avisa en cada inicio de sesión con contraseña (IDN-18).
 
 **App móvil:**
