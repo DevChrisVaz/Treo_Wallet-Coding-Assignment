@@ -372,7 +372,12 @@ export async function createContainer(
 export function createApp(container: Container): Express {
   const authenticateRequest = authenticate(container.accessTokens, container.clock);
   const tables = [
-    identityRoutes(container.identity, authenticateRequest, container.clock),
+    identityRoutes(
+      container.identity,
+      authenticateRequest,
+      container.clock,
+      container.config.rateLimits,
+    ),
     accountRoutes(container.accounts, authenticateRequest),
     movementRoutes(container.movements, authenticateRequest),
     statementRoutes(container.statements, authenticateRequest, container.clock),

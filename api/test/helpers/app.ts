@@ -13,6 +13,21 @@ import type { IntegrationHarness } from './harness.js';
 import { InMemoryMailer } from './in-memory-mailer.js';
 import { captureLogger, type CapturedLogs } from './logs.js';
 
+/** Topes de pruebas (D2): los de transferencias altos; una prueba de límite baja el que verifica. */
+export function testRateLimits(
+  overrides: Partial<AppConfig['rateLimits']> = {},
+): AppConfig['rateLimits'] {
+  return {
+    refreshMax: 120,
+    logoutMax: 60,
+    transferCreateMax: 10_000,
+    transferConfirmMax: 10_000,
+    transferResendMax: 10_000,
+    transferCancelMax: 10_000,
+    ...overrides,
+  };
+}
+
 /** Configuración de pruebas: la misma forma que la de producción, con secretos fijos de prueba. */
 export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   return {
@@ -45,14 +60,7 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     cursorSigningSecret: Buffer.alloc(32, 17),
     // Los topes de transferencias suben al máximo para que las suites de concurrencia (~100
     // transferencias de un usuario) afirmen lo suyo; cada prueba de un límite pasa el suyo (D2).
-    rateLimits: {
-      refreshMax: 120,
-      logoutMax: 60,
-      transferCreateMax: 10_000,
-      transferConfirmMax: 10_000,
-      transferResendMax: 10_000,
-      transferCancelMax: 10_000,
-    },
+    rateLimits: testRateLimits(),
     // Las pruebas llaman a `runOnce()` directamente (D6).
     scheduler: { enabled: false, intervalMs: 60_000, batchSize: 100 },
     ...overrides,
