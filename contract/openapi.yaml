@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Wallet API
-  version: 1.4.0
+  version: 1.5.0
   summary: Billetera digital en MXN con transferencias entre cuentas de la plataforma.
   description: |
     Contrato de la API (contrato primero). Es la fuente de verdad que consumen `/api`, `/web` y `/mobile`
@@ -96,6 +96,10 @@ paths:
       description: |
         Marca el correo como verificado, abre las dos cuentas del usuario ("Principal" y "Ahorro", con
         saldo 0.00) y devuelve una sesión. Código de 6 dígitos, válido 15 minutos, con 3 intentos.
+
+        Si la CURP, el RFC o el teléfono del registro ya eran de otra cuenta, el registro queda en
+        revisión: el correo se marca como verificado, pero no se abren cuentas ni se devuelve sesión, y
+        la respuesta es `403 REGISTRATION_IN_REVIEW`.
       security: []
       requestBody:
         required: true
@@ -112,6 +116,8 @@ paths:
                 $ref: '#/components/schemas/AuthSession'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/UnprocessableContent'
         '429':
@@ -154,7 +160,7 @@ paths:
       description: |
         Las credenciales inválidas responden siempre `401 INVALID_CREDENTIALS`, exista o no el email, y
         con el mismo tiempo de respuesta. Un usuario con contraseña correcta y correo sin verificar
-        recibe `403 EMAIL_NOT_VERIFIED`.
+        recibe `403 EMAIL_NOT_VERIFIED`; uno cuyo registro está en revisión, `403 REGISTRATION_IN_REVIEW`.
       security: []
       requestBody:
         required: true
@@ -772,7 +778,7 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
     Forbidden:
-      description: 'Prohibido: EMAIL_NOT_VERIFIED.'
+      description: 'Prohibido: EMAIL_NOT_VERIFIED o REGISTRATION_IN_REVIEW.'
       headers:
         X-Request-Id:
           $ref: '#/components/headers/RequestId'
@@ -1382,6 +1388,7 @@ components:
         - INVALID_CREDENTIALS
         - SESSION_REVOKED
         - EMAIL_NOT_VERIFIED
+        - REGISTRATION_IN_REVIEW
         - NOT_FOUND
         - BENEFICIARY_CONFLICT
         - TRANSFER_NOT_PENDING

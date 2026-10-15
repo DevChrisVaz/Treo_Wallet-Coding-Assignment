@@ -57,6 +57,10 @@ export interface paths {
          * Verificar el correo con el código recibido
          * @description Marca el correo como verificado, abre las dos cuentas del usuario ("Principal" y "Ahorro", con
          *     saldo 0.00) y devuelve una sesión. Código de 6 dígitos, válido 15 minutos, con 3 intentos.
+         *
+         *     Si la CURP, el RFC o el teléfono del registro ya eran de otra cuenta, el registro queda en
+         *     revisión: el correo se marca como verificado, pero no se abren cuentas ni se devuelve sesión, y
+         *     la respuesta es `403 REGISTRATION_IN_REVIEW`.
          */
         post: operations["verifyEmail"];
         delete?: never;
@@ -99,7 +103,7 @@ export interface paths {
          * Iniciar sesión
          * @description Las credenciales inválidas responden siempre `401 INVALID_CREDENTIALS`, exista o no el email, y
          *     con el mismo tiempo de respuesta. Un usuario con contraseña correcta y correo sin verificar
-         *     recibe `403 EMAIL_NOT_VERIFIED`.
+         *     recibe `403 EMAIL_NOT_VERIFIED`; uno cuyo registro está en revisión, `403 REGISTRATION_IN_REVIEW`.
          */
         post: operations["login"];
         delete?: never;
@@ -765,7 +769,7 @@ export interface components {
             items: components["schemas"]["Transfer"][];
         };
         /** @enum {string} */
-        ProblemCode: "MALFORMED_REQUEST" | "IDEMPOTENCY_KEY_MISSING" | "IDEMPOTENCY_KEY_INVALID" | "INVALID_CURSOR" | "UNAUTHENTICATED" | "INVALID_CREDENTIALS" | "SESSION_REVOKED" | "EMAIL_NOT_VERIFIED" | "NOT_FOUND" | "BENEFICIARY_CONFLICT" | "TRANSFER_NOT_PENDING" | "TRANSFER_EXPIRED" | "TRANSFER_NOT_CANCELLABLE" | "VALIDATION_FAILED" | "INSUFFICIENT_FUNDS" | "DAILY_LIMIT_EXCEEDED" | "SAME_ACCOUNT_TRANSFER" | "IDEMPOTENCY_KEY_REUSED" | "CLABE_INVALID" | "CLABE_NOT_IN_PLATFORM" | "BENEFICIARY_IS_OWN_ACCOUNT" | "OTP_INVALID" | "OTP_ATTEMPTS_EXHAUSTED" | "RESEND_LIMIT_REACHED" | "SCHEDULED_LIMIT_REACHED" | "VERIFICATION_CODE_INVALID" | "RATE_LIMITED" | "INTERNAL_ERROR";
+        ProblemCode: "MALFORMED_REQUEST" | "IDEMPOTENCY_KEY_MISSING" | "IDEMPOTENCY_KEY_INVALID" | "INVALID_CURSOR" | "UNAUTHENTICATED" | "INVALID_CREDENTIALS" | "SESSION_REVOKED" | "EMAIL_NOT_VERIFIED" | "REGISTRATION_IN_REVIEW" | "NOT_FOUND" | "BENEFICIARY_CONFLICT" | "TRANSFER_NOT_PENDING" | "TRANSFER_EXPIRED" | "TRANSFER_NOT_CANCELLABLE" | "VALIDATION_FAILED" | "INSUFFICIENT_FUNDS" | "DAILY_LIMIT_EXCEEDED" | "SAME_ACCOUNT_TRANSFER" | "IDEMPOTENCY_KEY_REUSED" | "CLABE_INVALID" | "CLABE_NOT_IN_PLATFORM" | "BENEFICIARY_IS_OWN_ACCOUNT" | "OTP_INVALID" | "OTP_ATTEMPTS_EXHAUSTED" | "RESEND_LIMIT_REACHED" | "SCHEDULED_LIMIT_REACHED" | "VERIFICATION_CODE_INVALID" | "RATE_LIMITED" | "INTERNAL_ERROR";
         /**
          * @description Vocabulario cerrado de errores por campo, compartido por la API y los validadores del paquete.
          *     `INVALID_TYPE` cubre, por ejemplo, un monto enviado como número JSON en lugar de string.
@@ -839,7 +843,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Prohibido: EMAIL_NOT_VERIFIED. */
+        /** @description Prohibido: EMAIL_NOT_VERIFIED o REGISTRATION_IN_REVIEW. */
         Forbidden: {
             headers: {
                 "X-Request-Id": components["headers"]["RequestId"];
@@ -998,6 +1002,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
