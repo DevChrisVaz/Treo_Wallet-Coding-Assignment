@@ -1,5 +1,8 @@
 import { ConfigError, loadConfig } from './platform/config/config.js';
-import { gracefulShutdown } from './platform/lifecycle/graceful-shutdown.js';
+import {
+  gracefulShutdown,
+  NOTICE_DRAIN_TIMEOUT_MS,
+} from './platform/lifecycle/graceful-shutdown.js';
 import {
   assertRuntimeRoleIsNotSchemaOwner,
   createAppDataSource,
@@ -41,6 +44,7 @@ export async function main(): Promise<void> {
   const shutdown = gracefulShutdown({
     stopWork: async () => scheduler?.stop(),
     closeServer: () => new Promise<void>((resolve) => server.close(() => resolve())),
+    drainNotices: () => container.notices.drain(NOTICE_DRAIN_TIMEOUT_MS),
     closePool: () => dataSource.destroy(),
   });
   const onSignal = () => {
