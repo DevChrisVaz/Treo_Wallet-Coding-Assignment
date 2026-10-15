@@ -1,5 +1,6 @@
 import type { TokenPair } from '@devchrisvaz/wallet-contract';
 import type { Clock } from '../../../shared/clock.js';
+import type { AppLogger } from '../../../shared/logger.js';
 import type { NoticeDispatcher } from '../../../platform/mail/notice-dispatcher.js';
 import { DomainError } from '../../../shared/errors.js';
 import type { TransactionRunner } from '../../../shared/transaction.js';
@@ -27,6 +28,7 @@ export interface RefreshSessionDeps {
   /** Para avisar al dueño de la sesión cuando se detecta un reuso (IDN-19). */
   readonly users: UserRepository;
   readonly notices: NoticeDispatcher;
+  readonly logger: AppLogger;
   readonly clock: Clock;
 }
 
@@ -116,12 +118,17 @@ export class RefreshSession {
    * el 401 que recibe quien presentó el token (PLT-16).
    */
   private async notifyReuse(userId: string): Promise<void> {
-    const { users, notices, clock } = this.deps;
-    const user = await users.findById(userId);
-    if (!user) return;
-    notices.send(
-      { to: user.email, ...sessionClosedEmail({ at: clock.now() }) },
-      'session-closed-notice',
-    );
+    const { users, notices, clock, logger } = this.deps;
+    // La lectura del dueño ocurre después del COMMIT: si falla, solo se registra y el 401 sigue igual.
+    try {
+      const user = await users.findById(userId);
+      if (!user) return;
+      notices.send(
+        { to: user.email, ...sessionClosedEmail({ at: clock.now() }) },
+        'session-closed-notice',
+      );
+    } catch (error) {
+      logger.error({ err: error, userId }, 'session closed notice failed');
+    }
   }
 }

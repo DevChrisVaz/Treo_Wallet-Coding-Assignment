@@ -248,6 +248,7 @@ export async function createContainer(
         audit,
         users,
         notices,
+        logger,
         clock,
       }),
       login: new Login({

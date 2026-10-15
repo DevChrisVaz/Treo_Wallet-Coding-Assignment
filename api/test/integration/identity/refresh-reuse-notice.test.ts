@@ -1,5 +1,6 @@
 import request from 'supertest';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PgUserRepository } from '../../../src/modules/identity/infrastructure/pg-user-repository.js';
 import { buildTestApp, type TestApp } from '../../helpers/app.js';
 import { useIntegrationHarness } from '../../helpers/harness.js';
 import { verifiedUser, type VerifiedUser } from '../../helpers/identity.js';
@@ -89,5 +90,29 @@ describe('IDN-19 aviso de sesión cerrada por seguridad', () => {
     expect(res.status).toBe(401);
     expect(res.body.code).toBe('SESSION_REVOKED');
     expect(t.logs.entries().some((entry) => entry.template === 'session-closed-notice')).toBe(true);
+  });
+
+  describe('con la lectura del dueño caída después del COMMIT', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('PLT-16 IDN-19 el reuso responde 401 SESSION_REVOKED, la familia queda revocada, no envía nada y solo se registra', async () => {
+      const stale = await reusedToken();
+      vi.spyOn(PgUserRepository.prototype, 'findById').mockRejectedValue(
+        new Error('connection terminated'),
+      );
+      const res = await refresh(stale);
+      expect(res.status).toBe(401);
+      expect(res.body.code).toBe('SESSION_REVOKED');
+      expect(notices()).toHaveLength(0);
+      expect(t.logs.entries().some((e) => e.msg === 'session closed notice failed')).toBe(true);
+      expect(t.logs.text()).not.toContain(email);
+      const [row] = await harness.migrator.query(
+        `SELECT count(*)::int AS n FROM app.refresh_tokens WHERE user_id = $1 AND revoked_at IS NULL`,
+        [user.userId],
+      );
+      expect(row.n).toBe(0);
+    });
   });
 });
