@@ -1210,8 +1210,9 @@ Dónde está cada punto de la lista de entregables y su estado.
 
 - **Outbox transaccional para los correos:** OTP, avisos de fallas de programadas y avisos de registro. Así se reintentan los envíos fallidos, en lugar de solo registrarlos en el log.
 - **Guardar el estado de entrega del OTP.** Hoy las lecturas siempre informan `SENT`, aunque el envío haya fallado.
-- **Límites de tasa compartidos entre instancias,** con Redis o reglas de AWS WAF. Hoy cada instancia cuenta por su lado.
+- **Límites de tasa compartidos entre instancias,** con Redis o reglas de AWS WAF. Hoy cada instancia cuenta por su lado, en todos los límites (login, registro, `refresh`, `logout`, beneficiarios, estados de cuenta y transferencias).
 - **El ejecutor de programadas como proceso aparte,** o invocado por EventBridge Scheduler, en lugar de correr dentro de cada instancia de la API.
+- **`lock_timeout`, `statement_timeout` e `idle_in_transaction_session_timeout`,** ordenados para que lo primero que falle sea lo más fácil de reintentar: primero la espera de un bloqueo, después la consulta lenta y al final la transacción abierta sin actividad. Hoy no están configurados, así que una transacción que espera un bloqueo espera sin límite ([propuesta de AWS](docs/aws-deploy.md), pregunta 1).
 
 **Seguridad y cumplimiento:**
 
@@ -1239,6 +1240,20 @@ Dónde está cada punto de la lista de entregables y su estado.
 - **Atar el refresh token a la biometría** con `requireAuthentication` de `expo-secure-store`. Necesita un development build en iOS y un flujo de recuperación para cuando cambian las huellas registradas.
 - **Entrar con la huella después de cerrar sesión,** con una credencial del dispositivo. Hoy cerrar sesión desactiva el desbloqueo (MOB-27); cambiarlo es una decisión de producto y de seguridad.
 - **Certificate pinning y App Attest o Play Integrity** en la app móvil.
+- **Rotar `JWT_SECRET` sin cortes:** un `kid` en el token y dos secretos válidos, uno para firmar y los dos para verificar. Hoy la API usa un solo secreto, así que rotarlo cierra todas las sesiones ([propuesta de AWS](docs/aws-deploy.md#6-servicios-de-soporte)).
+- **Revocación inmediata del access token,** con una lista de `jti` revocados (por ejemplo en Redis) que la API consulta al verificar. Hoy el access token sigue válido hasta 10 minutos después de cerrar sesión; solo el refresh token se revoca (Riesgos de `api-foundation`).
+- **Confiar en dos saltos de proxy** (CloudFront y el ALB) cuando la web lee la IP del cliente. Hoy toma la última dirección de `X-Forwarded-For`, la que agrega el proxy delante de ella; con CloudFront delante, la del cliente es la anterior (D19 de `web-app`).
+- **Un candado en Redis (`SET NX PX`) para que dos instancias de la web nunca renueven la misma sesión a la vez.** Hoy lo absorbe la ventana de gracia de 30 s de la API (IDN-12): la segunda renovación recibe un par nuevo y revoca el sucesor perdido (diseño de `web-app`).
+- **Un rol de soporte** con un endpoint o una pantalla para resolver los registros en revisión, y la retención y el borrado de esos registros. Hoy soporte los consulta con SQL y los resuelve fuera del producto ([registros en revisión](api/README.md#registros-en-revisión), D6 y Riesgos de `registration-review`).
+- **El periodo legal de retención de `audit_log`,** pendiente con cumplimiento. Hoy la bitácora no se purga ni se archiva ([propuesta de AWS](docs/aws-deploy.md#5-observabilidad-y-auditoría)).
+- **Segundo factor al iniciar sesión** (TOTP o _passkeys_ con WebAuthn) y **reautenticación en acciones sensibles.** Hoy el inicio de sesión es solo con contraseña, y el OTP por correo solo cubre las transferencias mayores a $10,000.00.
+- **Revisar la contraseña contra filtraciones al registrarse** (Have I Been Pwned con k-anonimato, como pide NIST SP 800-63B), además de la regla de 12 caracteres con letra y dígito.
+- **Escaneo de seguridad en el CI:** Dependabot o Renovate, `npm audit --omit=dev` como compuerta, CodeQL o Semgrep y gitleaks; Trivy y un SBOM cuando existan los `Dockerfile`. Hoy el CI corre lint, tipos y pruebas, y `npm audit` se revisa a mano ([avisos conocidos](#avisos-conocidos)).
+- **Vida máxima de la sesión web** (por ejemplo, de 8 a 12 horas). Hoy solo termina tras 15 minutos sin actividad o cuando vence la familia del refresh token (30 días): una sesión usada a diario no vuelve a pedir la contraseña.
+- **Monitoreo de fraude:** reglas de velocidad, montos inusuales, la primera transferencia a un beneficiario nuevo y alertas de prevención de lavado de dinero. Complementa el periodo de espera al dar de alta un beneficiario, que ya está en esta lista.
+- **Derechos ARCO y retención de datos** según la LFPDPPP (acceso, rectificación, cancelación y oposición), con una política de borrado o anonimización compatible con un ledger inmutable. Hoy no hay forma de pedir el borrado de una cuenta.
+- **Modelo de amenazas** (STRIDE por flujo), correspondencia con OWASP ASVS nivel 2 (MASVS en la app), DAST con OWASP ZAP en el CI y una prueba de penetración antes de producción. Este change hizo una revisión de seguridad del código, no un análisis formal.
+- **Aviso de inicio de sesión solo desde un dispositivo nuevo,** en lugar de en cada inicio. Pide un identificador de dispositivo y una tabla de dispositivos conocidos. Hoy se avisa en cada inicio de sesión con contraseña (IDN-18).
 
 **App móvil:**
 
