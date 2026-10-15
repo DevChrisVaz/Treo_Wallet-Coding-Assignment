@@ -261,7 +261,7 @@ Todos están verificados y tienen sus cuentas "Principal" y "Ahorro". Sus CURP, 
 
 ### Códigos por correo
 
-- **Registro:** `POST /auth/register` responde 202 exista o no el correo; si la CURP, el RFC o el teléfono ya son de otro usuario, responde 422 en ese campo y no envía correo. El código de 6 dígitos llega a Mailpit y se confirma con `POST /auth/verify-email`, que devuelve la sesión y abre las dos cuentas.
+- **Registro:** `POST /auth/register` responde 202 igual con datos nuevos que con la CURP, el RFC o el teléfono de otro usuario, y envía el mismo correo con código. El código de 6 dígitos llega a Mailpit y se confirma con `POST /auth/verify-email`, que devuelve la sesión y abre las dos cuentas. Si los datos eran de otro usuario, la verificación responde `403 REGISTRATION_IN_REVIEW` (sin cuentas ni sesión), el registro queda en revisión y el dueño de los datos recibe el aviso "Alguien intentó registrarse con tus datos" ([registros en revisión](api/README.md#registros-en-revisión)).
 - **OTP de transferencias** (mayores a $10,000.00): llega a Mailpit, vence en 5 minutos y se puede reenviar hasta 3 veces desde la web o la app.
 
 ### Fondear una cuenta
