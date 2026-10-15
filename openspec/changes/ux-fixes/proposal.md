@@ -15,7 +15,7 @@ Cada punto cambia una regla ya especificada, así que este change las actualiza 
 
 ## What Changes
 
-- **Registro.** El nombre pasa a ser un `PersonName` (letras, al menos dos palabras); la contraseña pide 12 a 128 caracteres con una letra y un dígito; el teléfono no empieza con 0 ni 1; la CURP debe ser de una persona de 18 años o más en la Ciudad de México; los primeros 10 caracteres del RFC deben ser los de la CURP; el correo se normaliza. La web agrega "Confirmar contraseña" (solo de interfaz), valida al salir de cada campo y restringe lo que se escribe.
+- **Registro.** El nombre pasa a ser un `PersonName` (letras, al menos dos palabras); la contraseña pide 12 a 128 caracteres con una letra y un dígito; el teléfono no empieza con 0 ni 1; la CURP debe ser de una persona de 18 años o más en la Ciudad de México; los primeros 10 caracteres del RFC deben ser los de la CURP; el correo se normaliza. Una CURP, un RFC o un teléfono que ya son de otra cuenta responden 422 `ALREADY_REGISTERED` en el campo, en lugar de 202 con un aviso por correo. La web agrega "Confirmar contraseña" (solo de interfaz), valida al salir de cada campo, restringe lo que se escribe y muestra los errores de la API bajo cada campo.
 - **Monto.** Solo dígitos y un punto, 2 decimales como máximo, con comas de miles al escribir y sin ellas al enviar (web y móvil).
 - **Referencia opcional.** `reference` deja de ser obligatoria; sin ella vale `null` en transferencias, comprobantes y movimientos, y no se imprime en correos ni en el estado de cuenta. Solo dígitos, hasta 7.
 - **Códigos de 6 dígitos.** Solo dígitos al escribir y pegar, con teclado numérico y autocompletado de código de un solo uso.
@@ -38,7 +38,7 @@ Cada punto cambia una regla ya especificada, así que este change las actualiza 
 
 ### Modified Capabilities
 - `api-contract`: reglas del registro y de la referencia (CTR-11, CTR-12, CTR-13), ventana programable como instante (CTR-18) y utilidades de captura y búsqueda de texto (CTR-20, nuevo).
-- `identity`: datos del registro (IDN-02).
+- `identity`: respuesta del registro (IDN-01), datos del registro (IDN-02) y choque con los datos de otra cuenta (IDN-03).
 - `transfers`: referencia opcional (TRF-09) y programación con hora (TRF-27, TRF-28, TRF-29, TRF-30, TRF-33, TRF-35).
 - `movement-history`: referencia nula (HIS-03), meses del estado de cuenta (HIS-11, HIS-12).
 - `web-app`: registro (WEB-11), resumen de cuentas (WEB-13), flujo de transferencia (WEB-16, WEB-18, WEB-21), navegación (WEB-26), Inicio (WEB-28), estado de cuenta (WEB-32), programadas (WEB-33, WEB-34), y los requisitos nuevos Recibir dinero (WEB-35) y Búsqueda de beneficiarios (WEB-36).
@@ -48,7 +48,7 @@ Cada punto cambia una regla ya especificada, así que este change las actualiza 
 ## Impact
 
 - **`/contract`:**
-  - `openapi.yaml` (1.3.0): `PersonName`, `Password`, `Phone`, `ScheduledInstant`, `reference` opcional y nula, texto del periodo del estado de cuenta;
+  - `openapi.yaml` (1.3.0): `PersonName`, `Password`, `Phone`, `ScheduledInstant`, `reference` opcional y nula, `ALREADY_REGISTERED` en `FieldErrorCode`, texto del periodo del estado de cuenta;
   - validadores y esquemas (`registerFormAt`, `scheduledInstantWithin`, `schedulableWindow`), calendario de la Ciudad de México y utilidades de texto;
   - pruebas de paridad y de cada regla.
 - **`/api`:**

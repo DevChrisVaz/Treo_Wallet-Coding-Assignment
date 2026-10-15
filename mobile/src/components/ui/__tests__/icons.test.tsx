@@ -17,6 +17,8 @@ describe('Icon', () => {
     ['receive', 'ArrowDownToLine'],
     ['copy', 'Copy'],
     ['share', 'Share2'],
+    ['eye', 'Eye'],
+    ['eyeOff', 'EyeOff'],
   ] as const)('DSG-15 el glifo propio %s usa %s de Lucide', (name, lucideName) => {
     expect(EXTRA_ICONS[name]).toBe((Lucide as unknown as Record<string, unknown>)[lucideName]);
   });

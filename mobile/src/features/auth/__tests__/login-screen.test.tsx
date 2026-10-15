@@ -159,6 +159,7 @@ describe('inicio de sesión', () => {
   test('MOB-01 no ofrece registro ni verificación de correo en la app', async () => {
     await renderLogin(createFakeApi());
     expect(screen.getAllByRole('button').map((button) => button.props.accessibilityLabel)).toEqual([
+      'Mostrar contraseña',
       'Iniciar sesión',
     ]);
   });

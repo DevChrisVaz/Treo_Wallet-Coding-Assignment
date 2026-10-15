@@ -1,6 +1,6 @@
 # Matriz de trazabilidad
 
-Generada con `scripts/trace.sh`: 217 requisitos. Las columnas de tareas y commits muestran el total y los primeros; los commits son los que citan el ID en `Refs:` o los que ligan una tarea que lo nombra con `Task:`. En `Pruebas` se cuentan las pruebas cuyo título empieza con el ID, por proyecto.
+Generada con `scripts/trace.sh`: 216 requisitos. Las columnas de tareas y commits muestran el total y los primeros; los commits son los que citan el ID en `Refs:` o los que ligan una tarea que lo nombra con `Task:`. En `Pruebas` se cuentan las pruebas cuyo título empieza con el ID, por proyecto.
 
 | ID | Requisito | Change | Tareas | Commits | Pruebas |
 |---|---|---|---|---|---|
@@ -86,9 +86,9 @@ Generada con `scripts/trace.sh`: 217 requisitos. Las columnas de tareas y commit
 | HIS-10 | Datos de volumen para desarrollo | api-ledger | 4: api-ledger#11.1 api-ledger#11.2 api-ledger#11.3 (+1) | 6: ed14599 8f0eada fc5307d (+3) | api 17 |
 | HIS-11 | Estado de cuenta mensual en PDF | account-statements, ux-fixes | 6: account-statements#1.1 account-statements#1.2 account-statements#1.8 (+3) | 12: 7663863 b79fd1e 0b9c0c9 (+9) | contract 9, api 29 |
 | HIS-12 | Contenido y conciliación del estado de cuenta | account-statements, ux-fixes | 10: account-statements#1.2 account-statements#1.3 account-statements#1.4 (+7) | 13: 7663863 bfc57a6 0b9c0c9 (+10) | api 46 |
-| IDN-01 | Registro con respuesta uniforme | api-foundation | 3: api-foundation#7.3 domain-test-coverage#3.1 domain-test-coverage#3.5 | 4: 6d835e1 a5fe8fb 69327b6 (+1) | api 7 |
+| IDN-01 | Registro con respuesta uniforme | api-foundation, ux-fixes | 4: api-foundation#7.3 domain-test-coverage#3.1 domain-test-coverage#3.5 (+1) | 6: 26fd371 1b4375a 6d835e1 (+3) | api 7 |
 | IDN-02 | Datos obligatorios del registro | api-foundation, ux-fixes | 6: api-foundation#2.5 api-foundation#6.1 api-foundation#7.3 (+3) | 8: 7663863 b79fd1e c51d653 (+5) | api 25 |
-| IDN-03 | Unicidad de los datos de identidad | api-foundation | 3: api-foundation#2.5 api-foundation#7.3 domain-test-coverage#3.5 | 4: 6d835e1 69327b6 489fc77 (+1) | api 8 |
+| IDN-03 | Unicidad de los datos de identidad | api-foundation, ux-fixes | 5: api-foundation#2.5 api-foundation#7.3 domain-test-coverage#3.5 (+2) | 7: 26fd371 e45deb4 1b4375a (+4) | api 9 |
 | IDN-04 | Almacenamiento seguro de contraseñas | api-foundation | 1: api-foundation#7.1 | 1: fed4b5e | api 5 |
 | IDN-05 | Código de verificación de correo | api-foundation | 4: api-foundation#2.8 api-foundation#7.2 domain-test-coverage#3.1 (+1) | 4: c51d653 a5fe8fb 6323e25 (+1) | api 15 |
 | IDN-06 | Verificación de correo | api-foundation | 3: api-foundation#7.5 domain-test-coverage#3.6 ux-fixes#5.2 | 4: 7663863 fb2e70e 2bdbcc7 (+1) | api 7 |
@@ -186,15 +186,15 @@ Generada con `scripts/trace.sh`: 217 requisitos. Las columnas de tareas y commit
 | TRF-36 | Auditoría de las programadas | scheduled-transfers | 6: domain-test-coverage#2.5 scheduled-transfers#2.4 scheduled-transfers#2.6 (+3) | 8: e3e44a5 e93d5b4 7a4fee5 (+5) | api 11 |
 | WEB-01 | Los tokens nunca llegan al navegador | web-app | 4: web-app#2.4 web-app#3.2 web-app#4.1 (+1) | 4: 8077ffa db2c412 8701341 (+1) | web 10 |
 | WEB-02 | Atributos de la cookie de sesión | web-app | 2: web-app#2.2 web-app#10.3 | 3: 0cbf6ed 20c81c8 f5cff7c | web 5 |
-| WEB-03 | Expiración por inactividad | web-app | 3: web-app#2.1 web-redis-sessions#2.1 web-redis-sessions#2.2 | 5: 3b06a9d cef5421 c96751d (+2) | web 15 |
-| WEB-04 | Renovación única del access token | web-app | 2: web-app#2.4 web-redis-sessions#2.2 | 3: 3b06a9d c96751d c34960b | web 6 |
-| WEB-05 | Cierre de sesión | web-app | 2: web-app#4.1 web-app#4.6 | 5: cef5421 68f7efd 8f52722 (+2) | web 9 |
+| WEB-03 | Expiración por inactividad | web-app | 1: web-app#2.1 | 2: 0cbf6ed f1577ef | web 18 |
+| WEB-04 | Renovación única del access token | web-app | 1: web-app#2.4 | 1: c34960b | web 6 |
+| WEB-05 | Cierre de sesión | web-app | 2: web-app#4.1 web-app#4.6 | 4: 68f7efd 8f52722 306ac5b (+1) | web 10 |
 | WEB-06 | Protección de las mutaciones contra CSRF | web-app | 4: scheduled-transfers#3.3 web-app#1.2 web-app#10.2 (+1) | 8: 433fa46 27509a1 0cbf6ed (+5) | web 6 |
 | WEB-07 | Validación y autorización en cada mutación | web-app | 4: scheduled-transfers#3.3 web-app#1.1 web-app#2.5 (+1) | 5: 433fa46 27509a1 1d400eb (+2) | web 20 |
 | WEB-08 | Resultado de las mutaciones como valor | web-app | 3: scheduled-transfers#3.3 web-app#2.5 web-app#5.1 | 5: 433fa46 27509a1 9635f0c (+2) | web 13 |
-| WEB-09 | Proxy de lecturas con lista blanca | web-app | 5: account-statements#2.1 scheduled-transfers#3.3 web-app#1.2 (+2) | 8: 852e373 433fa46 27509a1 (+5) | web 14 |
+| WEB-09 | Proxy de lecturas con lista blanca | web-app | 4: account-statements#2.1 scheduled-transfers#3.3 web-app#1.2 (+1) | 7: 433fa46 27509a1 02bb16c (+4) | web 14 |
 | WEB-10 | Propagación de headers hacia la API | web-app | 2: web-app#2.3 web-app#8.1 | 3: 0cbf6ed d3ba0b9 05aa965 | web 14 |
-| WEB-11 | Registro y verificación de correo | ux-fixes, web-app | 5: redesign#6.2 ux-fixes#2.3 web-app#4.2 (+2) | 5: 64d86f3 af02f36 d769332 (+2) | web 18 |
+| WEB-11 | Registro y verificación de correo | ux-fixes, web-app | 6: redesign#6.2 ux-fixes#2.3 ux-fixes#2.6 (+3) | 7: 9925197 1b4375a 64d86f3 (+4) | web 20 |
 | WEB-12 | Inicio de sesión | web-app | 4: contract-v1-1#2.1 redesign#6.2 web-app#4.1 (+1) | 4: 2712c63 af02f36 1627708 (+1) | web 11 |
 | WEB-13 | Resumen de cuentas | ux-fixes, web-app | 2: ux-fixes#7.1 web-app#6.1 | 6: 64d86f3 d548eab 1f484b4 (+3) | web 9 |
 | WEB-14 | Historial de movimientos | web-app | 4: account-statements#2.3 redesign#6.4 web-app#6.2 (+1) | 7: b9aeea0 db1bffd 5719ece (+4) | web 15 |
@@ -220,7 +220,6 @@ Generada con `scripts/trace.sh`: 217 requisitos. Las columnas de tareas y commit
 | WEB-34 | Página de transferencias programadas | scheduled-transfers, ux-fixes | 8: redesign#P1 redesign#P2 scheduled-transfers#3.1 (+5) | 43: 64d86f3 b1ea000 048ca0b (+40) | web 31 |
 | WEB-35 | Recibir dinero | ux-fixes | 1: ux-fixes#7.1 | 2: 64d86f3 b79fd1e | web 8 |
 | WEB-36 | Búsqueda de beneficiarios | ux-fixes | 1: ux-fixes#8.2 | 2: 64d86f3 b79fd1e | web 14 |
-| WEB-37 | Sesión que sobrevive al reinicio del servidor web | web-redis-sessions | 7: web-redis-sessions#1.1 web-redis-sessions#1.2 web-redis-sessions#2.2 (+4) | 11: 48964c7 25006f2 0c2e056 (+8) | web 15 |
 
 ## Huecos
 
@@ -239,26 +238,3 @@ Ninguno.
 - `CTR-17` Verificación continua del paquete
 - `PLT-17` Integración continua del proyecto
 
-<!-- trace.sh:end -->
-
-## Notas sobre los huecos
-
-Lo anterior se generó con `scripts/trace.sh --check`, que **termina con error** mientras queden huecos; hoy quedan cuatro. Esta sección es manual y el script no la genera. Para regenerar solo la matriz y conservarla: `{ scripts/trace.sh; sed -n '/trace.sh:end/,$p' docs/traceability.md; } > /tmp/t.md && mv /tmp/t.md docs/traceability.md`. Ningún hueco se cubrió con una prueba falsa.
-
-Los cuatro son requisitos de **proceso**, no de comportamiento de la aplicación. Se verifican con un paso del CI o con un script, no con una prueba cuyo título empiece con el ID:
-
-| ID | Por qué no tiene prueba con su ID | Dónde se verifica |
-| -- | --------------------------------- | ----------------- |
-| `CTR-01` | El escenario es "se ejecuta el lint sobre `openapi.yaml` y no reporta errores". Es una herramienta (Redocly), no código del paquete | Paso "Lint del contrato (CTR-01)" de [`contract.yml`](../.github/workflows/contract.yml) (`npm run lint:contract`). El 2026-10-14 terminó con código 0. Las reglas de forma del contrato (códigos de error `application/problem+json`) las ejercen indirectamente las pruebas de conformidad de la API (PLT-12) |
-| `CTR-03` | El escenario es "regenerar los tipos da un resultado idéntico a los versionados" | Paso "Tipos generados al día (CTR-03)" de `contract.yml` (`npm run generate` y `git diff --exit-code -- src/generated`). El 2026-10-14, `npm run generate` no dejó cambios en `src/generated` |
-| `CTR-17` | Pide que el paquete tenga su propio pipeline de CI que falle si algo falla | El propio [`contract.yml`](../.github/workflows/contract.yml): filtros de rutas, lint, tipos al día, typecheck, pruebas, build y empaquetado. Que esté en verde se comprueba con la tarea 5.1 de `delivery`, que sigue **pendiente** |
-| `PLT-17` | Igual para el CI de `/api`: se dispara con cambios en `api/**` y `contract/**` | [`api.yml`](../.github/workflows/api.yml) (paso "Pruebas unitarias e integración (PLT-17)"). Su estado en verde también depende de la tarea 5.1 |
-
-**Qué haría falta para cerrarlos:** o una prueba que lea los workflows y compruebe sus disparadores y pasos (comprueba la configuración, no el resultado del CI), o aceptar que `trace.sh` admita una lista explícita de requisitos verificados por CI. Ninguna de las dos se hizo: lo primero daría una falsa sensación de cobertura, y lo segundo cambiaría el significado de `--check`. Por eso el comando sigue fallando y los huecos quedan visibles.
-
-**Límites de la matriz:**
-
-- **La columna de commits es una cota.** Cuenta los commits que citan el ID en `Refs:` o que ligan una tarea que lo nombra con `Task:`. Los commits anteriores a la convención o los que no llevan trailers no aparecen, aunque todos los requisitos tienen al menos uno.
-- **La columna de pruebas cuenta títulos, no verifica que la prueba pase.** Esa información la da el CI. Además solo detecta títulos de `it`, `test` y `describe` que empiezan con el ID, en `contract`, `api`, `web`, `mobile` y `design-tokens` (esta última no estaba en la tarea 2.4 y se agregó, porque ahí se prueban los requisitos DSG).
-- **Las tareas sin marcar cuentan.** Un requisito con una tarea pendiente (por ejemplo, de `redesign`) aparece con tareas aunque no esté terminado. El estado de cada tarea está en su `tasks.md`.
-- **El change `redesign` vive en su propia rama de trabajo** (README, tabla de changes); la matriz incluye sus requisitos tal como están en esta rama.

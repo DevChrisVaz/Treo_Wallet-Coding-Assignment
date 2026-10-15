@@ -176,6 +176,40 @@ describe('RegisterForm', () => {
     expect(router.push).not.toHaveBeenCalled();
   });
 
+  it('WEB-11 una CURP y un teléfono de otra cuenta se marcan en su campo, con el foco en el primero, sin pasar a la verificación', async () => {
+    registerMock.mockResolvedValue({
+      ok: false,
+      problem: problem('VALIDATION_FAILED', {
+        errors: [
+          {
+            pointer: '/curp',
+            code: 'ALREADY_REGISTERED',
+            message: 'Esta CURP ya está registrada en otra cuenta.',
+          },
+          {
+            pointer: '/phone',
+            code: 'ALREADY_REGISTERED',
+            message: 'Este teléfono ya está registrado en otra cuenta.',
+          },
+        ],
+      }),
+    });
+    render(<RegisterForm />);
+
+    await fill();
+
+    const curp = screen.getByLabelText('CURP');
+    const phone = screen.getByLabelText('Teléfono');
+    expect(await screen.findByText('Esta CURP ya está registrada en otra cuenta.')).toBeVisible();
+    expect(screen.getByText('Este teléfono ya está registrado en otra cuenta.')).toBeVisible();
+    expect(curp).toHaveAttribute('aria-invalid', 'true');
+    expect(phone).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('RFC')).not.toHaveAttribute('aria-invalid', 'true');
+    expect(curp).toHaveFocus();
+    expect(router.push).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('WEB-19 un rechazo sin campos se anuncia como alerta', async () => {
     registerMock.mockResolvedValue({
       ok: false,

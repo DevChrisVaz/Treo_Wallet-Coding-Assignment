@@ -11,6 +11,8 @@ import {
   ChevronsUpDown,
   CircleCheck,
   Copy,
+  Eye,
+  EyeOff,
   House,
   Info,
   Landmark,
@@ -54,7 +56,7 @@ export const ICONS = {
 
 /**
  * Glifos de la interfaz que aún no son un concepto del paquete de tokens (DSG-15): buscar,
- * copiar, confirmar y el selector de dos chevrones del botón de perfil. Si se vuelven conceptos
+ * copiar, confirmar, mostrar u ocultar la contraseña y el selector de dos chevrones del botón de perfil. Si se vuelven conceptos
  * compartidos con la app móvil, pasan a `iconConcepts`.
  */
 export const EXTRA_ICONS = {
@@ -62,6 +64,8 @@ export const EXTRA_ICONS = {
   copy: Copy,
   check: Check,
   selector: ChevronsUpDown,
+  eye: Eye,
+  eyeOff: EyeOff,
 } as const satisfies Record<string, LucideIcon>;
 
 export type ExtraIconName = keyof typeof EXTRA_ICONS;

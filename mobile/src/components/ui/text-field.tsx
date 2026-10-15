@@ -90,10 +90,13 @@ export function TextField({
   ];
   const note = error ?? help;
   const search = variant === 'search';
+  const password = variant === 'password';
+  const [revealed, setRevealed] = useState(false);
 
   const input = (
     <TextInput
       {...variantProps[variant]}
+      {...(password && revealed ? { secureTextEntry: false } : {})}
       {...inputProps}
       accessibilityLabel={label}
       accessibilityHint={note}
@@ -110,7 +113,11 @@ export function TextField({
         onBlur?.(event);
       }}
       placeholderTextColor={theme.colors.text.muted}
-      style={[styles.input, prefix || search ? styles.inputWithPrefix : frame, inputStyle]}
+      style={[
+        styles.input,
+        prefix || search || password ? styles.inputWithPrefix : frame,
+        inputStyle,
+      ]}
     />
   );
 
@@ -132,6 +139,21 @@ export function TextField({
               <Icon name="close" color={theme.colors.text.secondary} />
             </Pressable>
           ) : null}
+        </View>
+      ) : password ? (
+        <View style={[frame, styles.row]}>
+          {input}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={revealed ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            accessibilityState={{ disabled }}
+            disabled={disabled}
+            hitSlop={theme.spacing[2]}
+            onPress={() => setRevealed((current) => !current)}
+            style={styles.clear}
+          >
+            <Icon name={revealed ? 'eyeOff' : 'eye'} color={theme.colors.text.secondary} />
+          </Pressable>
         </View>
       ) : prefix ? (
         <View style={[frame, styles.row]}>

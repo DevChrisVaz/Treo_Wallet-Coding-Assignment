@@ -32,6 +32,22 @@ describe('TextField', () => {
     expect(screen.getByLabelText('Nombre')).toHaveClass('border-border-input', 'min-h-13');
   });
 
+  it('el campo de contraseña tiene un botón que muestra y oculta el texto', async () => {
+    const user = userEvent.setup();
+    render(<TextField label="Contraseña" type="password" />);
+    const input = screen.getByLabelText('Contraseña');
+    expect(input).toHaveAttribute('type', 'password');
+    await user.click(screen.getByRole('button', { name: 'Mostrar contraseña' }));
+    expect(input).toHaveAttribute('type', 'text');
+    await user.click(screen.getByRole('button', { name: 'Ocultar contraseña' }));
+    expect(input).toHaveAttribute('type', 'password');
+  });
+
+  it('los campos que no son de contraseña no llevan el botón', () => {
+    render(<TextField label="Correo" type="email" />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('WEB-23 no tiene problemas de accesibilidad en reposo, error y deshabilitado', async () => {
     const { container } = render(
       <form>

@@ -32,10 +32,15 @@ export interface paths {
         put?: never;
         /**
          * Solicitar el registro de un usuario
-         * @description Responde **202 siempre** con el mismo cuerpo, exista o no el email, para no permitir la
-         *     enumeración de cuentas. Si los datos son nuevos y válidos, crea el usuario sin verificar y envía
-         *     un código por correo. Si el email ya está verificado, envía un aviso al dueño. Si el email está
+         * @description Responde **202** con el mismo cuerpo exista o no el email, para no permitir la enumeración de
+         *     cuentas por correo. Si los datos son nuevos y válidos, crea el usuario sin verificar y envía un
+         *     código por correo. Si el email ya está verificado, envía un aviso al dueño. Si el email está
          *     registrado sin verificar, reenvía el código.
+         *
+         *     Si el email es nuevo pero la CURP, el RFC o el teléfono ya pertenecen a otro usuario, no crea nada
+         *     ni envía correo: responde `422 VALIDATION_FAILED` con un error `ALREADY_REGISTERED` en el
+         *     `pointer` de cada dato que choca (`/curp`, `/rfc`, `/phone`), para que el cliente lo muestre en
+         *     el formulario.
          */
         post: operations["registerUser"];
         delete?: never;
@@ -747,9 +752,11 @@ export interface components {
         /**
          * @description Vocabulario cerrado de errores por campo, compartido por la API y los validadores del paquete.
          *     `INVALID_TYPE` cubre, por ejemplo, un monto enviado como número JSON en lugar de string.
+         *     `ALREADY_REGISTERED` solo lo devuelve la API (los validadores del paquete no consultan datos):
+         *     la CURP, el RFC o el teléfono de un registro ya pertenecen a otro usuario.
          * @enum {string}
          */
-        FieldErrorCode: "REQUIRED" | "UNKNOWN_FIELD" | "INVALID_TYPE" | "INVALID_FORMAT" | "TOO_SHORT" | "TOO_LONG" | "TOO_MANY_DECIMALS" | "NOT_POSITIVE" | "TOO_LARGE" | "INVALID_CHECK_DIGIT" | "INVALID_DATE" | "DATE_OUT_OF_RANGE";
+        FieldErrorCode: "REQUIRED" | "UNKNOWN_FIELD" | "INVALID_TYPE" | "INVALID_FORMAT" | "TOO_SHORT" | "TOO_LONG" | "TOO_MANY_DECIMALS" | "NOT_POSITIVE" | "TOO_LARGE" | "INVALID_CHECK_DIGIT" | "INVALID_DATE" | "DATE_OUT_OF_RANGE" | "ALREADY_REGISTERED";
         FieldError: {
             /** @description JSON Pointer al campo inválido (por ejemplo `/amount`). */
             pointer: string;

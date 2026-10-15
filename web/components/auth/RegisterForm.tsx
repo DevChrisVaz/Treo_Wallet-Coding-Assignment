@@ -60,7 +60,9 @@ const registerResolver: Resolver<RegisterValues, unknown, RegisterOutput> = asyn
 
 /**
  * Registro (WEB-11): los campos se validan con `registerForm` del contrato, incluido el dígito
- * verificador de la CURP. Tras enviarlo, siempre se pasa a la verificación con el mismo mensaje.
+ * verificador de la CURP. Tras enviarlo se pasa a la verificación con el mismo mensaje; si la API rechaza
+ * la CURP, el RFC o el teléfono por ser de otra cuenta (422 `ALREADY_REGISTERED`), el mensaje de la API
+ * queda bajo cada campo y el usuario se queda en el formulario.
  */
 export function RegisterForm() {
   const router = useRouter();

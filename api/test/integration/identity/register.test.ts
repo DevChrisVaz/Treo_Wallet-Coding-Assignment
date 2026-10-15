@@ -199,9 +199,7 @@ describe('IDN-01 registro con respuesta uniforme', () => {
     const person = newRegistration();
     const created = await register(person);
     const unverified = await register(person);
-    const conflict = await register({ ...newRegistration(), ...sharing('curp', person) });
     expect(unverified.body).toEqual(created.body);
-    expect(conflict.body).toEqual(created.body);
   });
 });
 
@@ -283,20 +281,70 @@ describe('IDN-02 datos obligatorios del registro', () => {
 });
 
 describe('IDN-03 unicidad de los datos de identidad', () => {
+  const taken = {
+    curp: {
+      pointer: '/curp',
+      code: 'ALREADY_REGISTERED',
+      message: 'Esta CURP ya está registrada en otra cuenta.',
+    },
+    rfc: {
+      pointer: '/rfc',
+      code: 'ALREADY_REGISTERED',
+      message: 'Este RFC ya está registrado en otra cuenta.',
+    },
+    phone: {
+      pointer: '/phone',
+      code: 'ALREADY_REGISTERED',
+      message: 'Este teléfono ya está registrado en otra cuenta.',
+    },
+  };
+
   it.each(['curp', 'rfc', 'phone'] as const)(
-    'IDN-03 un email nuevo con el %s de otro usuario no se crea y recibe un aviso genérico',
+    'IDN-03 un email nuevo con el %s de otro usuario se rechaza con 422, sin crear nada ni enviar correo',
     async (field) => {
       const existing = newRegistration();
       await register(existing);
       const intruder = newRegistration(sharing(field, existing));
       const res = await register(intruder);
-      expect(res.status).toBe(202);
+      expect(res.status).toBe(422);
+      expect(res.body.code).toBe('VALIDATION_FAILED');
+      expect(res.body.errors).toEqual([taken[field]]);
       expect(await usersWith('email', intruder.email)).toEqual([]);
-      const [notice] = t.mailer.to(intruder.email);
-      expect(notice?.subject).toBe('No pudimos completar tu registro');
-      expect(`${notice?.subject} ${notice?.text}`).not.toMatch(/CURP|RFC|tel[eé]fono/i);
+      expect(t.mailer.to(intruder.email)).toEqual([]);
     },
   );
+
+  it('IDN-03 si chocan varios datos, informa todos en el orden curp, rfc, phone', async () => {
+    const existing = newRegistration();
+    await register(existing);
+    const intruder = newRegistration({
+      ...sharing('curp', existing),
+      ...sharing('phone', existing),
+    });
+    const res = await register(intruder);
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe('VALIDATION_FAILED');
+    expect(res.body.errors).toEqual([taken.curp, taken.phone]);
+    expect(await usersWith('email', intruder.email)).toEqual([]);
+    expect(t.mailer.to(intruder.email)).toEqual([]);
+  });
+
+  it('IDN-03 un email verificado sigue ganando: 202 y aviso aunque los datos choquen con otro usuario', async () => {
+    const owner = newRegistration();
+    await register(owner);
+    const other = newRegistration();
+    await register(other);
+    await harness.migrator.query(
+      `UPDATE app.users SET email_verified_at = now() WHERE email = $1`,
+      [owner.email],
+    );
+    t.mailer.clear();
+    const res = await register({ ...owner, ...sharing('phone', other) });
+    expect(res.status).toBe(202);
+    expect(t.mailer.to(owner.email).map((mail) => mail.subject)).toEqual([
+      'Alguien intentó registrarse con tu correo',
+    ]);
+  });
 
   it('IDN-03 dos registros simultáneos con el mismo RFC crean a lo sumo un usuario', async () => {
     // Barrera: ninguno sigue después del pre-chequeo hasta que ambos lo pasaron, así los dos
@@ -320,12 +368,13 @@ describe('IDN-03 unicidad de los datos de identidad', () => {
     const second = newRegistration(sharing('rfc', first));
     const responses = await Promise.all([register(first), register(second)]);
     expect(arrived).toBe(2);
-    expect(responses.map((res) => res.status)).toEqual([202, 202]);
+    expect(responses.map((res) => res.status).sort()).toEqual([202, 422]);
+    const rejected = responses.find((res) => res.status === 422);
+    expect(rejected?.body.code).toBe('VALIDATION_FAILED');
+    expect(rejected?.body.errors).toEqual([taken.rfc]);
     expect(await usersWith('rfc', first.rfc)).toHaveLength(1);
-    const notified = [first, second].filter((p: Registration) =>
-      t.mailer.to(p.email).some((mail) => mail.subject === 'No pudimos completar tu registro'),
-    );
-    expect(notified).toHaveLength(1);
+    const created = [first, second].filter((p: Registration) => t.mailer.to(p.email).length > 0);
+    expect(created).toHaveLength(1);
   });
 });
 

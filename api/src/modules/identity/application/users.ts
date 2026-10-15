@@ -23,9 +23,12 @@ export class EmailAlreadyTaken extends Error {
   }
 }
 
-/** La CURP, el RFC o el teléfono ya pertenecen a otro usuario (IDN-03). */
+/** Dato de identidad único que puede pertenecer ya a otro usuario. */
+export type IdentityField = 'curp' | 'rfc' | 'phone';
+
+/** La CURP, el RFC o el teléfono ya pertenecen a otro usuario (IDN-03); `fields` dice cuáles. */
 export class IdentityAlreadyTaken extends Error {
-  constructor() {
+  constructor(readonly fields: readonly IdentityField[]) {
     super('Los datos de identidad ya pertenecen a otro usuario');
     this.name = 'IdentityAlreadyTaken';
   }
@@ -37,11 +40,11 @@ export interface UserRepository {
   findById(id: string): Promise<UserRecord | null>;
   /** Busca por email y bloquea la fila, para serializar operaciones sobre el mismo usuario. */
   findByEmailForUpdate(tx: Transaction, email: string): Promise<UserRecord | null>;
-  /** ¿Alguna de la CURP, el RFC o el teléfono pertenece ya a otro usuario? */
+  /** ¿Cuáles de la CURP, el RFC y el teléfono pertenecen ya a otro usuario? (en ese orden). */
   identityInUse(
     tx: Transaction,
     identity: { readonly curp: string; readonly rfc: string; readonly phone: string },
-  ): Promise<boolean>;
+  ): Promise<readonly IdentityField[]>;
   /** Lanza `EmailAlreadyTaken` o `IdentityAlreadyTaken` si la base detecta un duplicado. */
   insert(tx: Transaction, user: NewUser): Promise<void>;
   markEmailVerified(tx: Transaction, userId: string, at: Date): Promise<void>;
