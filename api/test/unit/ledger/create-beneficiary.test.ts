@@ -63,6 +63,7 @@ function setup() {
     audit,
     users: { findById: async () => ({ email: 'ana@example.com' }) } as unknown as UserRepository,
     notices: new NoticeDispatcher({ send: async () => undefined }, captureLogger().logger),
+    logger: captureLogger().logger,
     clock: new FakeClock('2026-10-13T18:00:00.000Z'),
   });
   return { store, events, useCase };

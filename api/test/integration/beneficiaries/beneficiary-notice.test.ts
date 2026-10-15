@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PgUserRepository } from '../../../src/modules/identity/infrastructure/pg-user-repository.js';
 import { buildTestApp, type TestApp } from '../../helpers/app.js';
 import { useIntegrationHarness } from '../../helpers/harness.js';
 import { authed, ledgerUser, type LedgerUser } from '../../helpers/ledger-api.js';
@@ -73,5 +74,28 @@ describe('BEN-12 aviso del alta de un beneficiario', () => {
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({ ...luisBody(), id: expect.any(String) });
     expect(t.logs.entries().some((entry) => entry.template === 'beneficiary-notice')).toBe(true);
+  });
+
+  describe('con la lectura del dueño caída después del COMMIT', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('PLT-16 BEN-12 el alta responde 201 con el mismo cuerpo, no envía nada y solo se registra', async () => {
+      vi.spyOn(PgUserRepository.prototype, 'findById').mockRejectedValue(
+        new Error('connection terminated'),
+      );
+      const res = await add(luisBody());
+      expect(res.status).toBe(201);
+      expect(res.body).toMatchObject({ ...luisBody(), id: expect.any(String) });
+      expect(notices()).toHaveLength(0);
+      expect(t.logs.entries().some((e) => e.msg === 'beneficiary notice failed')).toBe(true);
+      expect(t.logs.text()).not.toContain(email);
+      const [row] = await harness.migrator.query(
+        'SELECT count(*)::int AS n FROM app.beneficiaries WHERE user_id = $1',
+        [ana.userId],
+      );
+      expect(row.n).toBe(1);
+    });
   });
 });

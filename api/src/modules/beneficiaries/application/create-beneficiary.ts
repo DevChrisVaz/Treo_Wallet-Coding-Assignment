@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { formatMexicoCityDateTime } from '@devchrisvaz/wallet-contract';
 import { escapeHtml, layout } from '../../../platform/mail/html.js';
+import type { AppLogger } from '../../../shared/logger.js';
 import type { NoticeDispatcher } from '../../../platform/mail/notice-dispatcher.js';
 import type { Clock } from '../../../shared/clock.js';
 import { DomainError } from '../../../shared/errors.js';
@@ -43,6 +44,7 @@ export interface CreateBeneficiaryDeps {
   /** Dueño del alta y avisos que no hacen esperar la respuesta (BEN-12). */
   readonly users: UserRepository;
   readonly notices: NoticeDispatcher;
+  readonly logger: AppLogger;
   readonly clock: Clock;
 }
 
@@ -119,20 +121,28 @@ export class CreateBeneficiary {
 
   /** Después del COMMIT y sin esperar al servidor de correo; solo en altas nuevas (BEN-12). */
   private async notify(userId: string, beneficiary: BeneficiaryRecord): Promise<void> {
-    const owner = await this.deps.users.findById(userId);
-    if (!owner) return;
-    this.deps.notices.send(
-      {
-        to: owner.email,
-        ...beneficiaryAddedEmail({
-          name: beneficiary.name,
-          alias: beneficiary.alias,
-          clabe: beneficiary.clabe,
-          at: this.deps.clock.now(),
-        }),
-      },
-      'beneficiary-notice',
-    );
+    // La lectura del dueño ocurre después del COMMIT: si falla, solo se registra (PLT-16).
+    try {
+      const owner = await this.deps.users.findById(userId);
+      if (!owner) return;
+      this.deps.notices.send(
+        {
+          to: owner.email,
+          ...beneficiaryAddedEmail({
+            name: beneficiary.name,
+            alias: beneficiary.alias,
+            clabe: beneficiary.clabe,
+            at: this.deps.clock.now(),
+          }),
+        },
+        'beneficiary-notice',
+      );
+    } catch (error) {
+      this.deps.logger.error(
+        { err: error, beneficiaryId: beneficiary.id },
+        'beneficiary notice failed',
+      );
+    }
   }
 
   private attempt(
