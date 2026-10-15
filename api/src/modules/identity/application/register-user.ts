@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { DeliveryStatus, Mailer } from '../../../platform/mail/mailer.js';
 import { deliverAfterCommit } from '../../../platform/mail/deliver.js';
-import { DomainError, type FieldError } from '../../../shared/errors.js';
 import { composeFullName } from '../domain/full-name.js';
 import type { Clock } from '../../../shared/clock.js';
 import type { AppLogger } from '../../../shared/logger.js';
@@ -9,36 +8,13 @@ import type { TransactionRunner } from '../../../shared/transaction.js';
 import type { AuditWriter } from '../../audit/application/audit-writer.js';
 import {
   registrationAttemptEmail,
+  registrationNotCompletedEmail,
   verificationCodeEmail,
   type EmailContent,
 } from './email-templates.js';
 import { EMAIL_VERIFICATION_POLICY, type OneTimeCodeService } from './one-time-codes.js';
 import type { PasswordHasher } from './ports.js';
-import {
-  EmailAlreadyTaken,
-  IdentityAlreadyTaken,
-  type IdentityField,
-  type UserRepository,
-} from './users.js';
-
-/** Error de campo por dato de identidad repetido; el texto lo muestra la web bajo el campo. */
-const IDENTITY_TAKEN: Record<IdentityField, FieldError> = {
-  curp: {
-    pointer: '/curp',
-    code: 'ALREADY_REGISTERED',
-    message: 'Esta CURP ya está registrada en otra cuenta.',
-  },
-  rfc: {
-    pointer: '/rfc',
-    code: 'ALREADY_REGISTERED',
-    message: 'Este RFC ya está registrado en otra cuenta.',
-  },
-  phone: {
-    pointer: '/phone',
-    code: 'ALREADY_REGISTERED',
-    message: 'Este teléfono ya está registrado en otra cuenta.',
-  },
-};
+import { EmailAlreadyTaken, IdentityAlreadyTaken, type UserRepository } from './users.js';
 
 export interface RegisterUserInput {
   /** Ya normalizado (IDN-02). */
@@ -72,22 +48,17 @@ export interface RegisterUserDeps {
 type Outcome =
   | { readonly kind: 'CODE'; readonly fullName: string; readonly code: string }
   | { readonly kind: 'ALREADY_VERIFIED' }
+  | { readonly kind: 'IDENTITY_CONFLICT' }
   | { readonly kind: 'NOTHING' };
 
-function identityTaken(fields: readonly IdentityField[]): DomainError {
-  return new DomainError('VALIDATION_FAILED', 'Revisa los campos marcados', {
-    errors: fields.map((field) => IDENTITY_TAKEN[field]),
-  });
-}
-
 /**
- * `POST /auth/register` (IDN-01, IDN-02, IDN-03). Responde igual (202) en las ramas por email; el
- * caso de uso decide qué hacer y qué correo enviar:
+ * `POST /auth/register` (IDN-01, IDN-02, IDN-03). Responde igual en todas las ramas; el caso de
+ * uso solo decide qué hacer y qué correo enviar:
  * - email nuevo con datos únicos: crea el usuario sin verificar, emite el código y audita;
  * - email verificado: no cambia nada y avisa al dueño;
  * - email sin verificar: conserva los datos y reenvía un código (si quedan reenvíos);
- * - email nuevo con CURP, RFC o teléfono de otro usuario (pre-chequeo o constraint única): no crea
- *   nada, no envía correo y falla con `422 VALIDATION_FAILED` y un `ALREADY_REGISTERED` por campo.
+ * - CURP, RFC o teléfono de otro usuario (pre-chequeo o constraint única): no crea nada y envía un
+ *   aviso genérico.
  */
 export class RegisterUser {
   constructor(private readonly deps: RegisterUserDeps) {}
@@ -99,7 +70,7 @@ export class RegisterUser {
     try {
       outcome = await this.attempt(input, passwordHash);
     } catch (error) {
-      if (error instanceof IdentityAlreadyTaken) throw identityTaken(error.fields);
+      if (error instanceof IdentityAlreadyTaken) outcome = { kind: 'IDENTITY_CONFLICT' };
       // Otro registro con el mismo email ganó la carrera: se repite y cae en la rama que toque.
       else if (error instanceof EmailAlreadyTaken)
         outcome = await this.attempt(input, passwordHash);
@@ -129,8 +100,7 @@ export class RegisterUser {
         });
         return { kind: 'CODE', fullName: existing.fullName, code: issued.code };
       }
-      const taken = await users.identityInUse(tx, input);
-      if (taken.length > 0) throw new IdentityAlreadyTaken(taken);
+      if (await users.identityInUse(tx, input)) return { kind: 'IDENTITY_CONFLICT' };
 
       const id = randomUUID();
       const fullName = composeFullName(input);
@@ -172,7 +142,9 @@ export class RegisterUser {
           ]
         : outcome.kind === 'ALREADY_VERIFIED'
           ? [registrationAttemptEmail(), 'registration-attempt']
-          : undefined;
+          : outcome.kind === 'IDENTITY_CONFLICT'
+            ? [registrationNotCompletedEmail(), 'registration-not-completed']
+            : undefined;
     if (!content) return undefined;
     const [mail, template] = content;
     return deliverAfterCommit(this.deps.mailer, this.deps.logger, { to: email, ...mail }, template);

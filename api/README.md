@@ -54,7 +54,7 @@ Todos están verificados y tienen sus cuentas "Principal" y "Ahorro"; sus CURP, 
 
 ### Registro manual
 
-`POST /auth/register` responde 202 para un email nuevo, sin verificar o ya verificado (no revela cuál); si el email es nuevo pero la CURP, el RFC o el teléfono ya son de otra cuenta, responde `422 VALIDATION_FAILED` con un `ALREADY_REGISTERED` por campo y no envía correo. El código de 6 dígitos llega a la bandeja de Mailpit y se confirma con `POST /auth/verify-email`, que devuelve la sesión y abre las dos cuentas.
+`POST /auth/register` responde 202 siempre; el código de 6 dígitos llega a la bandeja de Mailpit y se confirma con `POST /auth/verify-email`, que devuelve la sesión y abre las dos cuentas.
 
 ## Scripts
 
