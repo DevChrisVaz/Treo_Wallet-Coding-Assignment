@@ -1075,7 +1075,7 @@ Así se rastrea cada requisito en el código:
 | `redesign`                                                | design-tokens, web, mobile      | DSG-13 a DSG-17, WEB-24 a WEB-31, MOB-18 a MOB-22       | Aplicado e integrado en `release`; faltan la verificación en Expo Go y subir los lienzos a Claude Design |
 | `ux-fixes`                                                | contract, api, web, mobile, docs | Cambios a CTR-11 a CTR-13, CTR-18, IDN-02, TRF-09, TRF-27 a TRF-30, HIS-11, WEB-11 a WEB-34 y MOB-06 a MOB-23; nuevos CTR-20, WEB-35, WEB-36, MOB-28 y MOB-29 | Completo                                                    |
 | `web-redis-sessions`                                      | web                             | WEB-37                                                  | Completo                                                    |
-| `delivery`                                                | docs                            | Sin requisitos nuevos                                   | Pendiente: video y CIs en verde en `main` |
+| `delivery`                                                | docs                            | Sin requisitos nuevos                                   | Pendiente: video                          |
 
 ### Mapa de la especificación
 
@@ -1151,7 +1151,7 @@ Dónde está cada punto de la lista de entregables y su estado.
 | Instrucciones para correr la app móvil | [App móvil](#3-app-móvil) y [Configuración](#app-móvil-mobileenv) (Expo Go o simulador apuntando a la API local) | Cumple. El bundle compila (`npx expo export`); falta el recorrido en un teléfono ([Verificaciones manuales](#verificaciones-manuales)) |
 | Video de 5 minutos como máximo, con un intento de transferencia con saldo insuficiente | No grabado ni enlazado. El guion (`docs/video-script.md`) se retiró del historial del repositorio | **Pendiente** |
 | `README.md` con cómo correr en local, cómo correr pruebas y "qué haría con más tiempo" | Este archivo: [Ejecución en local](#ejecución-en-local), [Pruebas](#pruebas), [¿Qué haría con más tiempo?](#qué-haría-con-más-tiempo) | Cumple |
-| Pipeline de CI con lint y pruebas, en verde en la rama principal | Un workflow por proyecto en [`.github/workflows/`](.github/workflows/) (`api`, `web`, `mobile`, `contract`, `design-tokens`, `infrastructure`), con sus insignias arriba | **Pendiente de comprobar:** los workflows corren en `release`, la rama principal de este repositorio, y no existe una rama `main`. No se ha verificado con `gh run list` que estén en verde |
+| Pipeline de CI con lint y pruebas, en verde en la rama principal | Un workflow por proyecto en [`.github/workflows/`](.github/workflows/) (`api`, `web`, `mobile`, `contract`, `design-tokens`, `infrastructure`), con sus insignias arriba | Cumple. Los workflows corren en `release`, la rama principal de este repositorio (no existe una rama `main`). Verificado con `gh run list --branch release`: los seis en verde sobre el commit `29ff901` |
 
 ## Avisos conocidos
 

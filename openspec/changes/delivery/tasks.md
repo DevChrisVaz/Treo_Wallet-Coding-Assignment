@@ -37,6 +37,6 @@
 
 ## 5. Verificación final
 
-- [ ] 5.1 [docs] Verificar con `gh run list --branch main` que los workflows de `contract`, `api`, `web` y `mobile` están en verde y agregar sus badges al README
+- [x] 5.1 [docs] Verificar con `gh run list --branch main` que los workflows de `contract`, `api`, `web` y `mobile` están en verde y agregar sus badges al README
 - [x] 5.2 [docs] Verificar desde un clon limpio que el arranque local del README funciona de principio a fin (incluida la documentación OpenAPI navegable en Swagger UI) y corregir el README si algo falla (PLT)
 - [x] 5.3 [docs] Recorrer el checklist de entregables del enunciado (repositorio con historial completo sin squash, especificaciones, aws-deploy.md, OpenAPI navegable, instrucciones de la app móvil, video, README, CI en verde) y anotar en el README dónde está cada uno
