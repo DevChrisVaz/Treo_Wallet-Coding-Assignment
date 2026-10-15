@@ -9,5 +9,5 @@
 
 ## 3. Documentación
 
-- [ ] 3.1 [docs] README raíz y de la API: el respaldo de `db:bootstrap` y su guarda. README raíz y de la web: el paso del CI de la web y el icono (PLT-14, WEB-38, WEB-39, WEB-41)
+- [x] 3.1 [docs] README raíz y de la API: el respaldo de `db:bootstrap` y su guarda. README raíz y de la web: el paso del CI de la web y el icono (PLT-14, WEB-38, WEB-39, WEB-41)
 - [ ] 3.2 [docs] Matriz de trazabilidad
