@@ -18,9 +18,9 @@ export interface ShutdownSteps {
 
 /**
  * Apagado ordenado (D6 de scheduled-transfers): el trabajo en segundo plano y el servidor HTTP se
- * detienen a la vez y los avisos en vuelo se esperan cuando ambos terminaron y el pool se cierra al final, para que ninguna transacción
- * pierda su conexión a la mitad. Devuelve una función idempotente: una segunda señal (SIGINT después
- * de SIGTERM) espera el mismo apagado en lugar de repetirlo.
+ * detienen a la vez; cuando ambos terminaron se esperan los avisos en vuelo y, al final, se cierra el
+ * pool, para que ninguna transacción pierda su conexión a la mitad. Devuelve una función idempotente:
+ * una segunda señal (SIGINT después de SIGTERM) espera el mismo apagado en lugar de repetirlo.
  */
 export function gracefulShutdown(steps: ShutdownSteps): () => Promise<void> {
   let running: Promise<void> | null = null;

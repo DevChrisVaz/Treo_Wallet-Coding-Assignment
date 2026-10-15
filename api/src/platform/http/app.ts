@@ -1,7 +1,6 @@
-import express, { type Express, type Router } from 'express';
+import express, { type Express, type RequestHandler, type Router } from 'express';
 import type { DomainError } from '../../shared/errors.js';
 import type { AppLogger } from '../../shared/logger.js';
-import type { RequestHandler } from 'express';
 import { errorHandler, notFoundHandler } from './error-handler.js';
 import { requestContext } from './request-id.js';
 import { requestLogger } from './request-logger.js';
