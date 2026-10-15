@@ -142,3 +142,46 @@ describe('AUD-01 auditoría del inicio de sesión', () => {
     });
   });
 });
+
+describe('IDN-08 inicio de sesión de un registro en revisión', () => {
+  /** Registra a alguien con el teléfono de otro usuario y verifica su correo: queda en revisión. */
+  async function inReviewPerson() {
+    const owner = await verifiedUser(t);
+    const { person, code } = await registerPerson(t, { phone: owner.person.phone });
+    const verified = await request(t.app)
+      .post('/auth/verify-email')
+      .send({ email: person.email, code });
+    expect(verified.status).toBe(403);
+    return person;
+  }
+
+  it('IDN-08 con la contraseña correcta recibe 403 REGISTRATION_IN_REVIEW sin tokens', async () => {
+    const person = await inReviewPerson();
+    const res = await login(person.email, person.password);
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('REGISTRATION_IN_REVIEW');
+    expect(res.body.tokens).toBeUndefined();
+  });
+
+  it('IDN-08 con una contraseña incorrecta recibe el 401 genérico', async () => {
+    const person = await inReviewPerson();
+    const res = await login(person.email, `${person.password}x`);
+    expect(res.status).toBe(401);
+    expect(res.body.code).toBe('INVALID_CREDENTIALS');
+  });
+
+  it('AUD-01 deja LOGIN_FAILED con motivo REGISTRATION_IN_REVIEW', async () => {
+    const person = await inReviewPerson();
+    await login(person.email, person.password);
+    const [user] = await harness.migrator.query('SELECT id FROM app.users WHERE email = $1', [
+      person.email,
+    ]);
+    const events = await auditEvents(harness.migrator);
+    expect(events.at(-1)).toMatchObject({
+      action: 'LOGIN_FAILED',
+      actor_type: 'ANONYMOUS',
+      entity_id: user.id,
+      metadata: { reason: 'REGISTRATION_IN_REVIEW' },
+    });
+  });
+});
