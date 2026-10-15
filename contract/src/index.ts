@@ -3,4 +3,6 @@ export * from './client';
 export * from './errors';
 export * from './format';
 export * from './idempotency';
+export * from './calendar';
+export * from './text';
 export * from './validators';

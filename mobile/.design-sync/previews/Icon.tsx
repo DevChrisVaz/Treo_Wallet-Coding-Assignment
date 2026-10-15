@@ -71,3 +71,19 @@ export const OnDark = () => (
     </View>
   </View>
 );
+
+// Glifos propios de la app (DSG-15), fuera del mapa compartido de conceptos: buscar, recibir dinero
+// (flecha entrante), copiar y compartir.
+export const AppGlyphs = () => (
+  <View style={{ ...frame, flexDirection: 'row', flexWrap: 'wrap', gap: 0 }}>
+    {(['search', 'receive', 'copy', 'share'] as const).map((name) => (
+      <View
+        key={name}
+        style={{ width: '25%', alignItems: 'center', gap: theme.spacing[1], paddingVertical: theme.spacing[3] }}
+      >
+        <Icon name={name} color={theme.colors.text.primary} />
+        <Text style={{ ...theme.typography.label, color: theme.colors.text.primary }}>{name}</Text>
+      </View>
+    ))}
+  </View>
+);

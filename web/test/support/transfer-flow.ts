@@ -17,17 +17,23 @@ export function mockTransferReads(mock: ReturnType<typeof vi.mocked<typeof bffGe
 
 /**
  * Elige a Luis, llena el monto (Principal es el origen por omisión) y pasa a la revisión. Con
- * `scheduledFor`, elige "Programar" y escribe esa fecha (WEB-33).
+ * `scheduledFor`, elige "Programar" y escribe esa fecha y la hora (WEB-33).
  */
-export async function fillTransfer(user: User, amount = '5,000', scheduledFor?: string) {
+export async function fillTransfer(
+  user: User,
+  amount = '5,000',
+  scheduledFor?: string,
+  scheduledTime = '14:30',
+) {
   await user.click(await screen.findByRole('button', { name: /^Luis/ }));
   await user.type(await screen.findByLabelText('Monto'), amount);
   await user.selectOptions(screen.getByLabelText('Cuenta de origen'), PRINCIPAL.id);
   await user.type(screen.getByLabelText('Concepto'), 'Renta');
-  await user.type(screen.getByLabelText('Referencia'), '1');
+  await user.type(screen.getByLabelText('Referencia (opcional)'), '1');
   if (scheduledFor) {
     await user.click(screen.getByRole('radio', { name: 'Programar' }));
     await user.type(screen.getByLabelText('Fecha de envío'), scheduledFor);
+    await user.type(screen.getByLabelText('Hora de envío'), scheduledTime);
   }
   await user.click(screen.getByRole('button', { name: 'Continuar' }));
 }

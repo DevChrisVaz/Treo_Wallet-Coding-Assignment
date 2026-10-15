@@ -62,7 +62,7 @@ export function ReviewView({ draft, account, beneficiary }: ReviewViewProps) {
           value={beneficiary ? `${beneficiary.alias} · ${maskClabe(beneficiary.clabe)}` : ''}
         />
         <SummaryRow label="Concepto" value={draft.concept} />
-        <SummaryRow label="Referencia" value={draft.reference} />
+        {draft.reference ? <SummaryRow label="Referencia" value={draft.reference} /> : null}
       </ListSection>
       {requiresOtp(draft.amount) ? (
         <InlineAlert

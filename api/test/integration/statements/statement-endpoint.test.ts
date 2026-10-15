@@ -124,6 +124,26 @@ describe('HIS-11 ruta getAccountStatement', () => {
     expect(res.headers.etag).toBeUndefined();
   });
 
+  it('HIS-11 un periodo anterior al mes de apertura de la cuenta (CDMX) es 422 DATE_OUT_OF_RANGE en /period y no audita', async () => {
+    const { ana, token } = await septemberScenario(t); // cuentas abiertas el 31-ago a las 23:55 en CDMX
+    const before = await getStatement(t, token, ana.principal.id, '2026-07');
+    expect(before.status).toBe(422);
+    expect(before.body.code).toBe('VALIDATION_FAILED');
+    expect(before.body.errors).toEqual([
+      expect.objectContaining({ pointer: '/period', code: 'DATE_OUT_OF_RANGE' }),
+    ]);
+    expect(await statementEvents()).toEqual([]);
+    // El mes de apertura (agosto, aunque en UTC ya fuera septiembre) sí se entrega.
+    const opening = await getStatement(t, token, ana.principal.id, '2026-08');
+    expect(opening.status).toBe(200);
+  });
+
+  it('HIS-11 una cuenta ajena sigue siendo 404 aunque el periodo sea anterior a la apertura', async () => {
+    const { luis, token } = await septemberScenario(t);
+    const res = await getStatement(t, token, luis.principal.id, '2026-01');
+    expect(res.status).toBe(404);
+  });
+
   it('HIS-12 el documento de la ruta cuadra con el ledger: $1,000.00 + $500.00 − $150.00 = $1,350.00 en 2 renglones', async () => {
     const { ana, token } = await septemberScenario(t);
     const res = await getStatement(t, token, ana.principal.id, '2026-09');

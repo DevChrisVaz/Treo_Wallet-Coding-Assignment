@@ -21,6 +21,8 @@ const ACCOUNT: StatementAccount = {
   name: 'Principal',
   clabe: '999180000000000015',
   holderName: 'Ana Gómez Cruz',
+  // Septiembre de 2026 en CDMX (el 1 de septiembre a las 00:30 locales).
+  createdAt: new Date('2026-09-01T06:30:00.000Z'),
 };
 
 function entry(amountCents: bigint, balanceAfterCents: bigint): MovementRecord {
@@ -127,6 +129,32 @@ describe('HIS-11 caso de uso GenerateStatement', () => {
       expect.objectContaining({ pointer: '/period', code: 'DATE_OUT_OF_RANGE' }),
     ]);
     expect(calls.snapshots).toBe(0);
+  });
+
+  it('HIS-11 un periodo anterior al mes de apertura de la cuenta (CDMX) es 422 DATE_OUT_OF_RANGE en /period, sin auditar', async () => {
+    const { useCase, calls } = setup();
+    const error = await failure(useCase.execute(ANA, ACCOUNT.id, '2026-08'));
+    expect(error.code).toBe('VALIDATION_FAILED');
+    expect(error.extensions.errors).toEqual([
+      expect.objectContaining({ pointer: '/period', code: 'DATE_OUT_OF_RANGE' }),
+    ]);
+    expect(calls.audited).toEqual([]);
+    expect(calls.rendered).toEqual([]);
+  });
+
+  it('HIS-11 el mes de apertura y el mes en curso se entregan (la apertura se mide en CDMX, no en UTC)', async () => {
+    const { useCase } = setup();
+    // 2026-09-01T06:30Z es septiembre en CDMX; el 31-ago a las 23:00 locales (05:00Z del 1) sería agosto.
+    expect((await useCase.execute(ANA, ACCOUNT.id, '2026-09')).filename).toContain('2026-09');
+    expect((await useCase.execute(ANA, ACCOUNT.id, '2026-10')).filename).toContain('2026-10');
+  });
+
+  it('HIS-11 una cuenta ajena sigue siendo 404 aunque el periodo sea anterior a su apertura', async () => {
+    const { useCase } = setup();
+    const error = await failure(
+      useCase.execute(ANA, '00000000-0000-4000-8000-000000000000', '2026-01'),
+    );
+    expect(error.code).toBe('NOT_FOUND');
   });
 
   it('HIS-11 un id que no es UUID es 404 sin abrir la instantánea, igual que una cuenta ajena', async () => {

@@ -1,6 +1,11 @@
-import { Button, MovementRow } from 'wallet-web-ui';
+import { ListSection, MovementRow } from 'wallet-web-ui';
 
-/* Historial de la cuenta Principal, del más reciente al más antiguo; el saldo cuadra entre filas. */
+/*
+ * Movimientos de la cuenta Principal (del más reciente al más antiguo; el saldo cuadra entre filas).
+ * Con `timeOnly`, solo la hora a la vista y sin borde: así los pone MovementList bajo su encabezado
+ * de día, dentro de una ListSection. Sin él (por omisión), fecha completa y borde inferior, para
+ * listas sin agrupar.
+ */
 const received = {
   id: '01JA8Z3K5Q7M2N4P6R8T0V2X4Z',
   type: 'TRANSFER_IN' as const,
@@ -8,7 +13,7 @@ const received = {
   balanceAfter: '26949.50',
   concept: 'Renta de octubre',
   reference: '1234',
-  counterparty: { name: 'Luis Pérez Ramírez', clabeLast4: '9735' },
+  counterparty: { name: 'Luis Pérez Ramírez', clabeLast4: '5678' },
   transferId: '3e0a9c8b-7f6e-4d5c-8b4a-9c8b7a6f5e4d',
   occurredAt: '2026-10-13T16:42:00.000Z',
 };
@@ -20,7 +25,7 @@ const sent = {
   balanceAfter: '25449.50',
   concept: 'Cena de cumpleaños',
   reference: '2048',
-  counterparty: { name: 'Mariana', clabeLast4: '4410' },
+  counterparty: { name: 'María Gómez', clabeLast4: '4321' },
   transferId: '7b2d4f6a-8c0e-4a1b-9d3f-5e7a9c1b3d5f',
   occurredAt: '2026-10-12T23:15:00.000Z',
 };
@@ -32,21 +37,9 @@ const ownOut = {
   balanceAfter: '26300.00',
   concept: 'Ahorro quincenal',
   reference: '15',
-  counterparty: { name: 'Ahorro', clabeLast4: '9722' },
+  counterparty: { name: 'Ahorro', clabeLast4: '1234' },
   transferId: '9a2c4e6f-1b3d-4f5a-8c7e-2d4f6a8b0c1e',
   occurredAt: '2026-10-10T15:05:00.000Z',
-};
-
-const tuition = {
-  id: '01J9YM5C7E9G1J3L5N7Q9S1U3W',
-  type: 'TRANSFER_OUT' as const,
-  amount: '-1200.00',
-  balanceAfter: '28800.00',
-  concept: 'Clases de inglés',
-  reference: '8',
-  counterparty: { name: 'Sofía', clabeLast4: '2286' },
-  transferId: '5c7e9a1b-3d5f-4b7c-9e1a-3b5d7f9a1c3e',
-  occurredAt: '2026-10-08T19:30:00.000Z',
 };
 
 const deposit = {
@@ -72,39 +65,62 @@ const ownIn = {
 };
 
 export const TransferReceived = () => (
-  <ul aria-label="Movimientos" className="max-w-xl">
-    <MovementRow timeOnly movement={received} />
-  </ul>
+  <div className="max-w-xl bg-surface-canvas p-5">
+    <ListSection>
+      <ul aria-label="Movimientos">
+        <MovementRow timeOnly movement={received} />
+      </ul>
+    </ListSection>
+  </div>
 );
 
 export const TransferSent = () => (
-  <ul aria-label="Movimientos" className="max-w-xl">
-    <MovementRow timeOnly movement={sent} />
-  </ul>
+  <div className="max-w-xl bg-surface-canvas p-5">
+    <ListSection>
+      <ul aria-label="Movimientos">
+        <MovementRow timeOnly movement={sent} />
+      </ul>
+    </ListSection>
+  </div>
 );
 
 export const Deposit = () => (
-  <ul aria-label="Movimientos" className="max-w-xl">
-    <MovementRow timeOnly movement={deposit} />
-  </ul>
+  <div className="max-w-xl bg-surface-canvas p-5">
+    <ListSection>
+      <ul aria-label="Movimientos">
+        <MovementRow timeOnly movement={deposit} />
+      </ul>
+    </ListSection>
+  </div>
 );
 
 export const OwnAccountTransfers = () => (
-  <ul aria-label="Traspasos entre tus cuentas" className="max-w-xl">
-    <MovementRow timeOnly movement={ownOut} />
-    <MovementRow timeOnly movement={ownIn} />
-  </ul>
+  <div className="max-w-xl bg-surface-canvas p-5">
+    <ListSection>
+      <ul aria-label="Traspasos entre tus cuentas">
+        <MovementRow timeOnly movement={ownOut} />
+        <MovementRow timeOnly movement={ownIn} />
+      </ul>
+    </ListSection>
+  </div>
 );
 
-export const MovementHistory = () => (
-  <section className="grid max-w-3xl gap-4">
-    <ul aria-label="Movimientos">
-      {[received, sent, ownOut, tuition, deposit].map((item) => (
-        <MovementRow key={item.id} movement={item} timeOnly />
-      ))}
-    </ul>
-    <div>
-      <Button variant="secondary">Cargar más</Button>
-    </div>
-  </section>
+/** Sin `timeOnly`: fecha y hora completas y borde entre filas, para una lista sin días. */
+export const FullDate = () => (
+  <div className="max-w-xl bg-surface-canvas p-5">
+    <ListSection>
+      <ul aria-label="Movimientos">
+        {[received, sent, ownOut, deposit].map((item) => (
+          <MovementRow key={item.id} movement={item} />
+        ))}
+      </ul>
+    </ListSection>
+  </div>
+);
+
+/** WEB-16: un movimiento sin referencia (`null`) no muestra "Ref.". */
+export const WithoutReference = () => (
+  <ul aria-label="Movimientos" className="max-w-xl">
+    <MovementRow timeOnly movement={{ ...sent, reference: null }} />
+  </ul>
 );

@@ -1,5 +1,11 @@
 import { Receipt } from 'wallet-web-ui';
 
+/*
+ * Comprobantes sobre el lienzo de la app, como en el último paso del flujo y en el detalle de una
+ * transferencia: sin título visible (el encabezado es solo para lectores de pantalla), con el icono
+ * en el tono del estado y la cuenta de origen como "Principal · •••• 9719".
+ */
+
 const principal = { name: 'Principal', clabe: '032180000118359719' };
 
 const completed = {
@@ -26,13 +32,13 @@ const completed = {
 };
 
 export const Completed = () => (
-  <div className="max-w-xl">
+  <div className="max-w-xl bg-surface-canvas p-5">
     <Receipt transfer={completed} fromAccount={principal} />
   </div>
 );
 
 export const OwnAccountTransfer = () => (
-  <div className="max-w-xl">
+  <div className="max-w-xl bg-surface-canvas p-5">
     <Receipt
       transfer={{
         ...completed,
@@ -55,7 +61,7 @@ export const OwnAccountTransfer = () => (
 );
 
 export const Failed = () => (
-  <div className="max-w-xl">
+  <div className="max-w-xl bg-surface-canvas p-5">
     <Receipt
       transfer={{
         ...completed,
@@ -73,7 +79,7 @@ export const Failed = () => (
 );
 
 /**
- * Bonus (WEB-34): la programada canónica, $1,000.00 a Luis para el 20 de octubre de 2026. La
+ * Bonus (WEB-34): la programada canónica, $1,000.00 a Luis para el 20 de octubre de 2026, 14:30 (el comprobante muestra fecha y hora de la Ciudad de México). La
  * insignia "Programada" va en el tono informativo y el comprobante agrega "Programada para".
  */
 const scheduled = {
@@ -84,24 +90,31 @@ const scheduled = {
   amount: '1000.00',
   concept: 'Renta',
   reference: '1',
-  scheduledFor: '2026-10-20',
+  scheduledFor: '2026-10-20T20:30:00Z',
   cancelledAt: null,
   createdAt: '2026-10-13T16:50:00.000Z',
   completedAt: null,
 };
 
 export const Scheduled = () => (
-  <div className="max-w-xl">
+  <div className="max-w-xl bg-surface-canvas p-5">
     <Receipt transfer={scheduled} fromAccount={principal} />
   </div>
 );
 
 /** La misma, cancelada: "Cancelada" en el tono neutro; la fecha programada sigue a la vista. */
 export const Cancelled = () => (
-  <div className="max-w-xl">
+  <div className="max-w-xl bg-surface-canvas p-5">
     <Receipt
       transfer={{ ...scheduled, status: 'CANCELLED', cancelledAt: '2026-10-14T15:00:00.000Z' }}
       fromAccount={principal}
     />
+  </div>
+);
+
+/** WEB-16: sin referencia (`null`) no hay fila "Referencia". */
+export const WithoutReference = () => (
+  <div className="max-w-xl">
+    <Receipt transfer={{ ...completed, reference: null }} fromAccount={principal} />
   </div>
 );

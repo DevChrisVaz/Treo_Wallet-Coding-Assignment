@@ -124,7 +124,7 @@ describe('logout', () => {
 
 const REGISTRATION = {
   email: 'ana@example.com',
-  password: 'una contraseña larga',
+  password: 'contraseña-larga-1',
   fullName: 'Ana Gómez Castillo',
   curp: 'GOMC900101HDFNLR09',
   rfc: 'GOMC900101AB1',

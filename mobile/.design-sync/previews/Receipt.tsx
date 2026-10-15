@@ -1,6 +1,13 @@
 import { Receipt, View, theme } from 'wallet-mobile-ui';
 
-const frame = { width: 360, padding: theme.spacing[4] };
+// Lienzo de la app a ancho de teléfono. El comprobante muestra el origen como "Principal · •••• 9719"
+// con `fromAccountClabe`, como en el último paso del flujo.
+const frame = {
+  width: 390,
+  padding: theme.spacing[5],
+  backgroundColor: theme.colors.surface.canvas,
+};
+const principalClabe = '646180157000009719';
 
 const completed = {
   id: '7f1c2a8e-5a0b-4c4e-9a59-8f0e1c2d3b4a',
@@ -27,7 +34,11 @@ const completed = {
 
 export const Completed = () => (
   <View style={frame}>
-    <Receipt transfer={completed} fromAccountName="Principal" />
+    <Receipt
+      transfer={completed}
+      fromAccountName="Principal"
+      fromAccountClabe={principalClabe}
+    />
   </View>
 );
 
@@ -50,6 +61,7 @@ export const OwnAccountTransfer = () => (
         reference: '15',
       }}
       fromAccountName="Principal"
+      fromAccountClabe={principalClabe}
     />
   </View>
 );
@@ -68,6 +80,7 @@ export const Rejected = () => (
         rejectionReason: 'DAILY_LIMIT_EXCEEDED',
       }}
       fromAccountName="Principal"
+      fromAccountClabe={principalClabe}
     />
   </View>
 );
@@ -79,7 +92,7 @@ const scheduled = {
   id: '9a3b5c7d-2e4f-4a6b-8c0d-1e3f5a7b9c2d',
   status: 'SCHEDULED' as const,
   amount: '1000.00',
-  scheduledFor: '2026-10-20',
+  scheduledFor: '2026-10-20T20:30:00Z',
   cancelledAt: null,
   createdAt: '2026-10-13T16:50:00Z',
   completedAt: null,
@@ -87,7 +100,11 @@ const scheduled = {
 
 export const Scheduled = () => (
   <View style={frame}>
-    <Receipt transfer={scheduled} fromAccountName="Principal" />
+    <Receipt
+      transfer={scheduled}
+      fromAccountName="Principal"
+      fromAccountClabe={principalClabe}
+    />
   </View>
 );
 
@@ -96,6 +113,18 @@ export const Cancelled = () => (
   <View style={frame}>
     <Receipt
       transfer={{ ...scheduled, status: 'CANCELLED', cancelledAt: '2026-10-14T15:00:00Z' }}
+      fromAccountName="Principal"
+      fromAccountClabe={principalClabe}
+    />
+  </View>
+);
+
+// MOB-13: sin referencia (null) la fila "Referencia" no se muestra. Diseño objetivo: el campo del contrato
+// pasa a `string | null` con la nueva versión; el comprobante ya oculta la fila.
+export const WithoutReference = () => (
+  <View style={frame}>
+    <Receipt
+      transfer={{ ...completed, concept: 'Despensa', reference: null }}
       fromAccountName="Principal"
     />
   </View>

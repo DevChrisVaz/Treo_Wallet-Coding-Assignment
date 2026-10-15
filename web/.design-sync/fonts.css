@@ -1,0 +1,13 @@
+/*
+ * Work Sans para Claude Design: el mismo archivo que la app sirve con next/font/local
+ * (app/layout.tsx), así que el lienzo y las pantallas reales dibujan el mismo texto (WEB-25).
+ * package-build lo copia a fonts/ del bundle (extraFonts). La familia se llama "Work Sans" y
+ * tailwind.css apunta --font-work-sans a ella.
+ */
+@font-face {
+  font-family: 'Work Sans';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('../app/fonts/WorkSans-latin.woff2') format('woff2');
+}

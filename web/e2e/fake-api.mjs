@@ -159,7 +159,7 @@ const scheduled = {
   id: '9a3b5c7d-2e4f-4a6b-8c0d-1e3f5a7b9c2d',
   status: 'SCHEDULED',
   amount: '1000.00',
-  scheduledFor: '2026-10-20',
+  scheduledFor: '2026-10-20T20:30:00.000Z',
   cancelledAt: null,
   createdAt: '2026-10-13T16:50:00Z',
   completedAt: null,
@@ -310,13 +310,16 @@ createServer(async (req, res) => {
   if (route === `GET /transfers/${sent.id}`) return send(res, 200, sent);
   if (route === `GET /transfers/${pending.id}`) return send(res, 200, pending);
   if (route === 'POST /transfers') {
-    const { amount, scheduledFor } = await readBody(req);
-    // Con fecha (WEB-33): una programada nueva, sin mover saldos.
+    const { amount, scheduledFor, reference } = await readBody(req);
+    // Sin referencia (WEB-16) la API responde `null`.
+    const referenceOut = reference ?? null;
+    // Con fecha y hora (WEB-33): una programada nueva, sin mover saldos; `scheduledFor` es un instante.
     if (scheduledFor)
       return send(res, 201, {
         ...scheduled,
         id: randomUUID(),
         amount: String(amount),
+        reference: referenceOut,
         scheduledFor,
       });
     const whole = String(amount).replace(/\.00$/, '');
@@ -327,7 +330,9 @@ createServer(async (req, res) => {
     return send(
       res,
       201,
-      whole === '1250' ? sent : { ...sent, id: randomUUID(), amount: String(amount) },
+      whole === '1250'
+        ? sent
+        : { ...sent, id: randomUUID(), amount: String(amount), reference: referenceOut },
     );
   }
   if (route === `POST /transfers/${pending.id}/confirm`) {

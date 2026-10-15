@@ -1,52 +1,58 @@
 import { describe, expect, it } from 'vitest';
 import {
   scheduledAmountIssue,
-  scheduledDateIssue,
-  schedulableRange,
+  scheduledInstantIssue,
 } from '../../../src/modules/transfers/domain/schedule.js';
 import { Money } from '../../../src/shared/money.js';
 import { FakeClock } from '../../helpers/fake-clock.js';
 
 const LIMIT = Money.parse('50000.00');
 
-describe('TRF-27 rango programable en días de la Ciudad de México', () => {
-  it('TRF-27 el 14 de octubre de 2026 se programa del 15 de octubre al 12 de enero de 2027', () => {
-    const clock = new FakeClock('2026-10-14T18:00:00.000Z'); // 12:00 de CDMX
-    expect(schedulableRange(clock)).toEqual({ min: '2026-10-15', max: '2027-01-12' });
-  });
+/** 14-oct-2026 12:00 de CDMX. */
+const NOW = '2026-10-14T18:00:00.000Z';
+const MINUTE = 60_000;
 
-  it('TRF-27 el día sale de CDMX, no de UTC: a las 21:00 del 14 en CDMX (03:00 UTC del 15) mañana es el 15', () => {
-    const clock = new FakeClock('2026-10-15T03:00:00.000Z');
-    expect(schedulableRange(clock).min).toBe('2026-10-15');
-  });
-
-  it('TRF-27 a las 00:00 del 15 en CDMX el rango ya empieza el 16', () => {
-    const clock = new FakeClock('2026-10-14T05:59:59.999Z');
-    expect(schedulableRange(clock).min).toBe('2026-10-14');
-    clock.set('2026-10-15T06:00:00.000Z');
-    expect(schedulableRange(clock).min).toBe('2026-10-16');
-  });
+describe('TRF-27 ventana programable: de 10 minutos a 90 días después de ahora', () => {
+  it.each([
+    ['9 minutos', 9 * MINUTE],
+    ['1 minuto', MINUTE],
+    ['ahora mismo', 0],
+    ['una hora antes', -60 * MINUTE],
+    ['90 días y 1 minuto', 90 * 1_440 * MINUTE + MINUTE],
+  ])(
+    'TRF-27 %s después de ahora queda fuera con DATE_OUT_OF_RANGE en /scheduledFor',
+    (_case, offset) => {
+      const clock = new FakeClock(NOW);
+      const instant = new Date(clock.now().getTime() + offset);
+      expect(scheduledInstantIssue(instant, clock)).toEqual({
+        pointer: '/scheduledFor',
+        code: 'DATE_OUT_OF_RANGE',
+        message: expect.stringContaining('10 minutos y 90 días'),
+      });
+    },
+  );
 
   it.each([
-    ['hoy', '2026-10-14'],
-    ['ayer', '2026-10-13'],
-    ['91 días después', '2027-01-13'],
-  ])('TRF-27 %s (%s) está fuera de rango con DATE_OUT_OF_RANGE en /scheduledFor', (_case, day) => {
-    const clock = new FakeClock('2026-10-14T18:00:00.000Z');
-    expect(scheduledDateIssue(day, clock)).toEqual({
-      pointer: '/scheduledFor',
-      code: 'DATE_OUT_OF_RANGE',
-      message: expect.any(String),
-    });
+    ['exactamente 10 minutos', 10 * MINUTE],
+    ['11 minutos', 11 * MINUTE],
+    ['mañana a la misma hora', 1_440 * MINUTE],
+    ['exactamente 90 días', 90 * 1_440 * MINUTE],
+  ])('TRF-27 %s después de ahora está dentro de la ventana', (_case, offset) => {
+    const clock = new FakeClock(NOW);
+    expect(scheduledInstantIssue(new Date(clock.now().getTime() + offset), clock)).toBeNull();
   });
 
-  it.each([
-    ['mañana', '2026-10-15'],
-    ['90 días después', '2027-01-12'],
-    ['un día intermedio', '2026-12-01'],
-  ])('TRF-27 %s (%s) está dentro del rango', (_case, day) => {
-    const clock = new FakeClock('2026-10-14T18:00:00.000Z');
-    expect(scheduledDateIssue(day, clock)).toBeNull();
+  it('TRF-27 la ventana se mueve con el reloj: 10 minutos después ya no alcanza el mismo instante', () => {
+    const clock = new FakeClock(NOW);
+    const instant = new Date(clock.now().getTime() + 10 * MINUTE);
+    expect(scheduledInstantIssue(instant, clock)).toBeNull();
+    clock.set('2026-10-14T18:00:01.000Z');
+    expect(scheduledInstantIssue(instant, clock)).not.toBeNull();
+  });
+
+  it('TRF-27 el mismo día de CDMX sí se puede programar si pasan 10 minutos (hoy a las 23:00)', () => {
+    const clock = new FakeClock(NOW);
+    expect(scheduledInstantIssue(new Date('2026-10-15T05:00:00.000Z'), clock)).toBeNull(); // 23:00 CDMX
   });
 });
 

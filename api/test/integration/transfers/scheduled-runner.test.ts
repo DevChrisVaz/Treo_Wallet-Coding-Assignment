@@ -50,7 +50,11 @@ const toLuis = (amount: string, scheduledFor: string, reference = '1') => ({
   scheduledFor,
 });
 
-async function schedule(amount: string, scheduledFor = '2026-10-15', reference = '1') {
+async function schedule(
+  amount: string,
+  scheduledFor = '2026-10-15T06:00:00.000Z',
+  reference = '1',
+) {
   const res = await postTransfer(t, ana, toLuis(amount, scheduledFor, reference));
   expect(res.status).toBe(201);
   return res.body.id as string;
@@ -211,13 +215,13 @@ describe('TRF-30 ejecución en la fecha programada', () => {
   it('TRF-30 ejecución atrasada: si corre hasta las 09:00 del 15, la ejecuta a las 09:00 y consume el límite del 15', async () => {
     await fund(t, ana.principal.id, '5000.00');
     const id = await schedule('1000.00');
-    t.clock.set('2026-10-15T15:00:00.000Z'); // 09:00 del 15 en CDMX
+    t.clock.set('2026-10-15T06:00:00.000Z'); // 09:00 del 15 en CDMX
 
     await runOnce();
 
     expect(await transferRow(id)).toMatchObject({
       status: 'COMPLETED',
-      completed_at: new Date('2026-10-15T15:00:00.000Z'),
+      completed_at: new Date('2026-10-15T06:00:00.000Z'),
     });
     expect(await usage('2026-10-15')).toBe('100000');
   });
@@ -236,11 +240,11 @@ describe('TRF-30 ejecución en la fecha programada', () => {
 
   it('TRF-30 ejecuta en orden de scheduledFor y luego de creación: con saldo para dos, la última queda FAILED', async () => {
     await fund(t, ana.principal.id, '2000.00');
-    const later = await schedule('1000.00', '2026-10-16', '1'); // creada primero, fecha posterior
+    const later = await schedule('1000.00', '2026-10-16T06:00:00.000Z', '1'); // creada primero, fecha posterior
     t.clock.advance(1_000);
-    const first = await schedule('1000.00', '2026-10-15', '2');
+    const first = await schedule('1000.00', '2026-10-15T06:00:00.000Z', '2');
     t.clock.advance(1_000);
-    const second = await schedule('1000.00', '2026-10-15', '3');
+    const second = await schedule('1000.00', '2026-10-15T06:00:00.000Z', '3');
     t.clock.set('2026-10-16T16:00:00.000Z');
 
     await runOnce();
@@ -261,7 +265,7 @@ describe('TRF-30 ejecución en la fecha programada', () => {
       amount: '5000.00',
       concept: 'Ahorro',
       reference: '1',
-      scheduledFor: '2026-10-20',
+      scheduledFor: '2026-10-20T06:00:00.000Z',
     });
     t.clock.set('2026-10-20T06:00:30.000Z');
 
@@ -300,14 +304,14 @@ describe('TRF-30 ejecución en la fecha programada', () => {
   it('TRF-28 una programada confirmada después de medianoche se ejecuta en la siguiente pasada', async () => {
     await setup('2026-10-15T05:58:00.000Z'); // 23:58 del 14
     await fund(t, ana.principal.id, '20000.00');
-    const res = await postTransfer(t, ana, toLuis('15000.00', '2026-10-15'));
+    const res = await postTransfer(t, ana, toLuis('15000.00', '2026-10-15T06:10:00.000Z'));
     expect(res.body.status).toBe('PENDING_OTP');
     t.clock.set('2026-10-15T06:02:00.000Z'); // 00:02 del 15
     const confirmed = await confirmTransfer(t, ana, res.body.id, {
       otp: t.mailer.lastCode(ana.person.email),
     });
     expect(confirmed.body.status).toBe('SCHEDULED');
-    t.clock.set('2026-10-15T06:03:00.000Z');
+    t.clock.set('2026-10-15T06:11:00.000Z');
 
     await runOnce();
 
@@ -317,7 +321,7 @@ describe('TRF-30 ejecución en la fecha programada', () => {
 
   it('TRF-28 una programada que nunca confirmó su OTP queda vencida y nunca se ejecuta', async () => {
     await fund(t, ana.principal.id, '20000.00');
-    const res = await postTransfer(t, ana, toLuis('15000.00', '2026-10-15'));
+    const res = await postTransfer(t, ana, toLuis('15000.00', '2026-10-15T06:00:00.000Z'));
     expect(res.body.status).toBe('PENDING_OTP');
     t.clock.set(OCT_15_JUST_AFTER_MIDNIGHT);
 
@@ -342,7 +346,8 @@ describe('TRF-30 ejecución en la fecha programada', () => {
     });
     await fund(t, ana.principal.id, '5000.00');
     const ids = [];
-    for (let i = 0; i < 5; i += 1) ids.push(await schedule('100.00', '2026-10-15', String(i)));
+    for (let i = 0; i < 5; i += 1)
+      ids.push(await schedule('100.00', '2026-10-15T06:00:00.000Z', String(i)));
     t.clock.set(OCT_15_JUST_AFTER_MIDNIGHT);
 
     await runOnce();
@@ -370,7 +375,7 @@ describe('TRF-36 y AUD-08 auditoría de la ejecución', () => {
           userId: ana.userId,
           kind: 'THIRD_PARTY',
           amount: '1000.00',
-          scheduledFor: '2026-10-15',
+          scheduledFor: '2026-10-15T06:00:00.000Z',
         },
       }),
     ]);
@@ -391,7 +396,7 @@ describe('TRF-36 y AUD-08 auditoría de la ejecución', () => {
           userId: ana.userId,
           reason: 'INSUFFICIENT_FUNDS',
           amount: '1000.00',
-          scheduledFor: '2026-10-15',
+          scheduledFor: '2026-10-15T06:00:00.000Z',
         },
       }),
     ]);

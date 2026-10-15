@@ -15,8 +15,9 @@ desde `mobile/`.
   esa versión.
 - `entry.ts` es la lista explícita: `components/ui` (su index), `Screen`, el `theme` de tokens,
   `SafeAreaProvider` y las primitivas `View/Text/ScrollView/Pressable/StyleSheet/Image/TextInput`
-  para que el agente componga pantallas. Las primitivas y `SafeAreaProvider` están excluidas de las
-  tarjetas con `componentSrcMap: null` (siguen en el bundle).
+  para que el agente componga pantallas, más las vistas reales de las pantallas (ver "Mapa de
+  pantallas") y `ProblemError` del contrato. Las primitivas, `SafeAreaProvider`, las vistas y
+  `ProblemError` están excluidas de las tarjetas con `componentSrcMap: null` (siguen en el bundle).
 - `provider`: `SafeAreaProvider` con `initialMetrics` fijos (390x844, insets 0). `Screen` y `Select`
   usan `SafeAreaView`, que lanza sin proveedor; en la app lo monta expo-router.
 - Estilos: react-native-web los inyecta en tiempo de ejecución, así que `_ds_bundle.css` es un stub
@@ -48,14 +49,16 @@ node .ds-sync/package-validate.mjs ./ds-bundle
 
 ## Previews (`previews/`, autoría propia)
 
-- Convención: cada historia va en `<View style={{ width: 360, padding: theme.spacing[4], gap: … }}>`
-  (ancho de teléfono), solo con props `style` y `theme`; callbacks obligatorios con `noop`. Datos de
-  `src/test-utils/fixtures.ts` y textos reales (`problemMessage`, `transferStatus`, mensajes de
-  `amountInput` del contrato, copias de las pantallas).
+- Convención: cada historia va en el contexto del rediseño, `<View style={{ width: 390, padding:
+  theme.spacing[5], gap: …, backgroundColor: theme.colors.surface.canvas }}>` (ancho de teléfono,
+  margen de pantalla y lienzo de la app), y las tarjetas y listas van en `ListSection` donde las
+  pantallas reales las ponen (el límite diario, los movimientos, el destinatario). Solo props `style`
+  y `theme`; callbacks obligatorios con `noop`. Datos canónicos del rediseño (los de `Screen`) y
+  textos reales (`problemMessage`, `transferStatus`, mensajes del contrato, copias de las vistas).
 - `Select` abre un `Modal` de RN: el estado abierto no se captura dentro de una tarjeta. El contenido
   del modal se muestra en la historia `AccountSheet` de `OptionRow` (fondo inverse al 60 % y hoja
   anclada abajo, copiando los estilos de `select.tsx`).
-- `Screen` necesita un padre con tamaño fijo (360x640); `PrivacyOverlay` es `position: absolute`,
+- `Screen` necesita un padre con tamaño fijo (390x844); `PrivacyOverlay` es `position: absolute`,
   así que va en un padre con tamaño y `position: 'relative'`. Si se pone sobre contenido, se ve
   idéntico al Default (es opaco): por eso `AppSwitcherStates` muestra dos teléfonos lado a lado.
 - `Skeleton` anima la opacidad; la captura puede caer a media animación (0.5–1). Es aceptable.
@@ -63,7 +66,9 @@ node .ds-sync/package-validate.mjs ./ds-bundle
   abierto, foco y presión.
 - `dtsPropsFor` (MovementRow, Receipt, DailyLimitMeter, PrivacyOverlay): el extractor no resuelve los
   tipos del contrato generados por openapi-typescript (`components["schemas"][…]`) y los deja como
-  `unknown`. Los cuerpos están escritos a mano desde `contract/openapi.yaml`.
+  `unknown`. Los cuerpos están escritos a mano desde `contract/openapi.yaml` y las props del
+  componente (Receipt incluye `fromAccountName` y `fromAccountClabe`, para el origen con su
+  terminación).
 - Hallazgos de los tokens (no de las previews): los tonos success e info comparten fondo
   (`#EDF7ED`) y solo cambia el texto; la pista de `DailyLimitMeter` al 0 % (`#F6F5F2`) casi no se ve
   sobre blanco.
@@ -78,9 +83,9 @@ re-sync vuelve a validarlo y reporta lo que ya no exista (no lo reescribas sin p
 
 ## Known render warns
 
-Ninguno: el último validate terminó limpio (17/17) con todos los componentes en `cardMode: column`
-(el marco de 360 px de las previews es más ancho que una celda de la grilla). `[CSS_RUNTIME]` es
-informativo y esperado.
+Ninguno: el último validate (tarea 8.3) terminó limpio, 30/30 previews y "bundle is complete", con
+los componentes en `cardMode: column` (el marco de 390 px de las previews es más ancho que una celda
+de la grilla) salvo BottomSheet (`single`, 390x520). `[CSS_RUNTIME]` es informativo y esperado.
 
 ## Re-sync risks
 
@@ -99,28 +104,58 @@ informativo y esperado.
 
 ## Mapa de pantallas (`previews/Screen.tsx`)
 
-Cada pantalla y cada estado de pantalla completa es una historia de Screen en un marco de
-**390x844** (el mismo de `initialMetrics` y de `conventions.md`; a 360x640 quedaban bajo el pie las
-acciones que distinguen varios estados). Portadas del JSX y StyleSheet reales (las pantallas usan
-expo-router, TanStack Query y la sesión, no se pueden importar):
+Cada pantalla y cada estado de pantalla completa es una historia de `Screen` en un marco de
+**390x844** (el mismo de `initialMetrics`), con los mismos nombres que las historias de `AppShell` de
+la web (el lienzo de paridad las empareja). Desde la tarea 8.1 las historias **dibujan las vistas
+reales**: cada pantalla de la app es un contenedor (`*-screen.tsx`: expo-router, TanStack Query,
+sesión) y una vista pura (`*-view.tsx`) que solo recibe props, y `entry.ts` exporta las vistas. Lo que
+se ve en el lienzo es el código de presentación de la app con los datos canónicos, el mismo tema y
+react-native-web.
 
-| Ruta / origen | Historias |
+| Vista real | Historias |
 |---|---|
-| `navigation/root-navigator.tsx` | `StartupLoading`, `StartupOffline` (sin `Screen`, como en la app) |
-| `app/login.tsx` | `LoginScreen`, `LoginRateLimited` |
-| `app/(app)/index.tsx` | `HomeScreen`, `HomeEmpty`, `HomeLoading`, `HomeError` |
-| `app/(app)/accounts/[accountId].tsx` | `MovementsScreen`, `MovementsEmpty` |
-| `app/(app)/transfer/index.tsx` | `BeneficiaryPickerScreen`, `BeneficiaryPickerEmpty` |
-| `app/(app)/transfer/send.tsx` | `TransferFormScreen`, `TransferReviewScreen`, `TransferRetryingScreen`, `TransferUncertainScreen`, `TransferRejectedScreen`, `TransferOtpScreen`, `TransferCompletedScreen`, `TransferFailedScreen` |
+| `navigation/startup-views.tsx` | `StartupLoading`, `StartupOffline` |
+| `features/auth/login-view.tsx` (sobre `BrandScreen`) | `Login`, `LoginRateLimited` |
+| `features/accounts/home-view.tsx` | `Home`, `HomeEmpty`, `HomeLoading`, `HomeError`, `HomeUnlockOffer` (con `UnlockOfferView`) |
+| `features/accounts/movements-view.tsx` | `Movements`, `MovementsEmpty` |
+| `features/transfer/recipient-view.tsx` | `TransferRecipient`, `TransferRecipientEmpty` |
+| `features/transfer/transfer-flow-view.tsx` (con `form-view`, `review-view`, `otp-view` y `outcome-view`) | `TransferAmount`, `TransferReview`, `TransferRetrying`, `TransferUncertain`, `TransferRejected`, `TransferOtp`, `TransferCompleted`, `TransferFailed`, `TransferOutcomeScheduled`, `TransferOutcomeCancelled` |
+| `features/unlock/lock-screen-view.tsx` | `LockScreen`, `LockScreenLockout` |
+| Diseño UX (MOB-08, MOB-28, MOB-29), vistas reales | `HomeReceive`, `HomeReceiveSheet`, `HomeReceiveSheetSavings`, `HomeReceiveSheetCopied`, `TransferAmountFormatted`, `TransferAmountFormattedWithReference`, `TransferRecipientSearch`, `TransferRecipientSearchResults`, `TransferRecipientSearchNoResults` |
+
+- **La guarda de pureza.** `src/__tests__/views-are-pure.test.ts` falla si una vista importa
+  navegación, consultas, sesión o módulos nativos (expo-*, TanStack Query, NetInfo, la sesión, las
+  consultas, el intento de transferencia o, en el desbloqueo, la biometría y la preferencia) y lista
+  las vistas que deben existir. Si una vista no se puede empaquetar con react-native-web, la guarda
+  se saltó: se corrige el import de la vista, nunca la guarda.
+- Las pestañas se ven con el `TabBar` del kit debajo de la vista, como lo monta el layout de
+  pestañas de expo-router; el flujo de transferencia no lo lleva.
+- **Diseño objetivo implementado (MOB-08, MOB-28, MOB-29).** Las historias de la fila anterior usan las vistas
+  reales: `HomeView` (acción "Recibir", prop `onReceive`), `TransferFlowView` (monto con comas y
+  "Referencia (opcional)") y `RecipientView` (búsqueda; `initialQuery` solo existe para los lienzos). La
+  hoja "Recibir dinero" es `features/accounts/receive-sheet-view.tsx`: su contenido real
+  (`ReceiveSheetContent`, exportado en `entry.ts` y sin tarjeta en `config.json`) va dentro de una réplica
+  de la anatomía de `BottomSheet` (un `Modal` que en el lienzo cubriría todo), como `OptionRow/AccountSheet`,
+  y encima de la `TabBar`. Si cambia `BottomSheet`, la réplica queda desfasada sin que nada falle. El
+  portapapeles (`expo-clipboard`) y `Share` los conecta el contenedor `receive-sheet.tsx`.
+- Diferencia contra las capturas del lienzo objetivo: las filas del buscador de destinatarios llevan la
+  flecha `forward` de la vista real (las capturas objetivo no la traían); el resto es idéntico.
+- Piezas nuevas del kit: variante `search` de `TextField` (lupa, × y etiqueta solo accesible) y glifos
+  propios `search`, `receive` (`ArrowDownToLine`), `copy` y `share` (`EXTRA_ICONS`, tipo `IconName`; aún
+  no están en `design-tokens`). `Receipt` y `MovementRow` ocultan la referencia vacía (MOB-06, MOB-13).
+- MOB-23: la app móvil no muestra `scheduledFor` (el comprobante usa `createdAt`/`completedAt`), así que no
+  hay cambio visual; los datos de las historias ya usan el instante (`2026-10-20T20:30:00Z`).
+- MOB-12: el campo de código no cambia visualmente (solo dígitos al escribir y pegar).
 
 - `ActivityIndicator` se exporta en `entry.ts` (excluido de las tarjetas) para `StartupLoading`.
-- Montos y textos de error van escritos a mano (la preview no importa el contrato ni los tokens);
-  "El código vence en 4:32." es fijo (en la app es una cuenta regresiva).
+- Los textos de error salen de `errorMessage()` (`src/lib/errors.ts`) copiados en la historia. En
+  `TransferOtp` el vencimiento es relativo al render (`Date.now()` + 4:32), así que la cuenta
+  regresiva de la vista real arranca en 4:32 y la captura puede caer un segundo después.
 - Omitidos a propósito (misma pantalla con otra alerta o botón `loading`): otros errores de login,
   loading/error de movimientos y del selector, `sending`, `rateLimited`, `error`, subestados del
   código, `expired`, `completed` repetido (`replayed`).
-- Si una pantalla de la app cambia, su historia queda desfasada sin que nada falle: es una copia
-  del JSX. Revísalas en cada re-sync contra `src/features/` y `src/navigation/root-navigator.tsx`.
+- Las historias ya no son copias del JSX: si una vista cambia, el lienzo cambia con ella. Lo que sí
+  puede quedar desfasado son los datos canónicos y los estados que cada historia arma a mano.
 
 ## Revisión local
 
@@ -161,3 +196,6 @@ plataforma**: no tiene pareja web y queda "por diseño" en la paridad (ver la mi
   frente a `TransferScheduled` de la web), así que `parity-check.mjs` no los compara. El comprobante
   móvil no lleva "Programada para": MOB-23 solo pide la etiqueta y el tono, y la app no programa.
 
+## Subida a Claude Design
+
+Pendiente: subir a Claude Design. Requiere autenticarse con `/design-login` (no se ha hecho en este entorno); después, `resync` desde cada app según 'Preparar'.

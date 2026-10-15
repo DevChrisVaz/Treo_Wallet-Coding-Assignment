@@ -38,6 +38,20 @@ export const AllConcepts = () => (
   </ul>
 );
 
+/** Glifos de interfaz que aún no son conceptos del paquete de tokens (DSG-15): buscar, copiar, confirmar y selector. */
+const EXTRAS = ['search', 'copy', 'check', 'selector'] as const;
+
+export const InterfaceGlyphs = () => (
+  <ul className="grid max-w-xl grid-cols-3 gap-x-4 gap-y-3 sm:grid-cols-4">
+    {EXTRAS.map((name) => (
+      <li key={name} className="flex items-center gap-2 text-caption text-fg-secondary">
+        <Icon name={name} className="text-fg" />
+        {name}
+      </li>
+    ))}
+  </ul>
+);
+
 export const Sizes = () => (
   <div className="flex items-end gap-6 text-fg">
     <Icon name="transfer" size="sm" />

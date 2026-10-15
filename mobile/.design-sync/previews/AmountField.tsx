@@ -16,7 +16,7 @@ export const Default = () => (
       label="Monto"
       value=""
       placeholder="0.00"
-      help="Hasta 2 decimales, sin comas."
+      help="Hasta 2 decimales."
       onChangeText={noop}
     />
   </View>
@@ -26,10 +26,18 @@ export const Filled = () => (
   <View style={frame}>
     <AmountField
       label="Monto"
-      value="1250.50"
-      help="Hasta 2 decimales, sin comas."
+      value="1,250.50"
+      help="Hasta 2 decimales."
       onChangeText={noop}
     />
+  </View>
+);
+
+// MOB-08: se escribe con separadores de miles y punto decimal ("12,345.67"); a la API va "12345.67". Solo
+// entran dígitos y un punto, con máximo 2 decimales. Diseño objetivo: el campo real aún no agrupa miles.
+export const Formatted = () => (
+  <View style={frame}>
+    <AmountField label="Monto" value="12,345.67" help="Hasta 2 decimales." onChangeText={noop} />
   </View>
 );
 
@@ -37,7 +45,7 @@ export const WithError = () => (
   <View style={frame}>
     <AmountField
       label="Monto"
-      value="1250.505"
+      value="1,250.505"
       error="El monto admite máximo 2 decimales"
       onChangeText={noop}
     />
@@ -50,16 +58,22 @@ export const Hero = () => (
     <AmountField
       variant="hero"
       label="Monto"
-      value="1250.00"
-      help="Hasta 2 decimales, sin comas."
+      value="1,250.00"
+      help="Hasta 2 decimales."
       onChangeText={noop}
     />
   </View>
 );
 
+export const HeroLarge = () => (
+  <View style={{ ...frame, backgroundColor: theme.colors.surface.canvas }}>
+    <AmountField variant="hero" label="Monto" value="1,234,567.89" help="Hasta 2 decimales." onChangeText={noop} />
+  </View>
+);
+
 export const Disabled = () => (
   <View style={frame}>
-    <AmountField label="Monto" value="3000.00" disabled onChangeText={noop} />
+    <AmountField label="Monto" value="3,000.00" disabled onChangeText={noop} />
   </View>
 );
 
@@ -74,15 +88,16 @@ export const TransferForm = () => (
     />
     <AmountField
       label="Monto"
-      value="1250.00"
-      help="Hasta 2 decimales, sin comas."
+      value="1,250.00"
+      help="Hasta 2 decimales."
       onChangeText={noop}
     />
     <TextField label="Concepto" value="Renta" help="De 1 a 40 caracteres." onChangeText={noop} />
     <TextField
-      label="Referencia"
+      label="Referencia (opcional)"
       value="1"
-      help="De 1 a 7 dígitos."
+      help="Hasta 7 dígitos."
+      maxLength={7}
       keyboardType="number-pad"
       onChangeText={noop}
     />

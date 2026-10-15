@@ -30,7 +30,7 @@ async function race(t: TestApp, owner: LedgerUser) {
             amount: '100.00',
             concept: `Carrera ${reference}`,
             reference: '7',
-            scheduledFor: '2026-10-20',
+            scheduledFor: '2026-10-20T15:00:00.000Z',
           },
           randomUUID(),
         ),

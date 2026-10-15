@@ -9,9 +9,9 @@ export interface TransferRequest {
   readonly destination: { readonly type: 'OWN_ACCOUNT' | 'BENEFICIARY'; readonly id: string };
   readonly amount: Money;
   readonly concept: string;
-  readonly reference: number;
-  /** Fecha de ejecución (`YYYY-MM-DD`, ya válida en el calendario); sin ella es inmediata. */
-  readonly scheduledFor?: string | null | undefined;
+  readonly reference: number | null;
+  /** Instante de ejecución (ya con minuto exacto); sin él es inmediata. */
+  readonly scheduledFor?: Date | null | undefined;
 }
 
 export interface ResolvedRoute {

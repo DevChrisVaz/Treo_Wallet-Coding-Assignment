@@ -227,23 +227,28 @@ describe('TransferFlow · confirmación de una programada', () => {
     vi.useRealTimers();
   });
 
-  const SCHEDULED_REQUEST = { ...REQUEST, amount: '1000', scheduledFor: '2026-10-20' };
-  const scheduled = () => transfer({ status: 'SCHEDULED', scheduledFor: '2026-10-20' });
+  const SCHEDULED_REQUEST = {
+    ...REQUEST,
+    amount: '1000',
+    scheduledFor: '2026-10-20T20:30:00.000Z',
+  };
+  const scheduled = () =>
+    transfer({ status: 'SCHEDULED', scheduledFor: '2026-10-20T20:30:00.000Z' });
 
-  it('WEB-33 la revisión dice "Se enviará el 20 de octubre de 2026"', async () => {
+  it('WEB-33 la revisión dice "Se enviará el 20 de octubre de 2026, 14:30"', async () => {
     const user = userEvent.setup();
     renderWithClient(<TransferFlow />);
 
     await fillTransfer(user, '1,000', '2026-10-20');
 
     const summary = await screen.findByRole('region', { name: 'Revisa tu transferencia' });
-    expect(summary).toHaveTextContent('Se enviará el 20 de octubre de 2026');
+    expect(summary).toHaveTextContent('Se enviará el 20 de octubre de 2026, 14:30');
     // Es una fila más del resumen de la revisión, después de la referencia (WEB-30).
     expect(within(summary).getByText('Cuándo').closest('dl')).toHaveTextContent(
-      'Referencia1CuándoSe enviará el 20 de octubre de 2026',
+      'Referencia1CuándoSe enviará el 20 de octubre de 2026, 14:30',
     );
     // En dos líneas (teléfono o columna del resumen) el valor se reparte parejo: sin "2026" suelto.
-    expect(within(summary).getByText('Se enviará el 20 de octubre de 2026')).toHaveClass(
+    expect(within(summary).getByText('Se enviará el 20 de octubre de 2026, 14:30')).toHaveClass(
       'text-balance',
     );
     expect(createMock).not.toHaveBeenCalled();

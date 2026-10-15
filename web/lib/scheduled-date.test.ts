@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { formatScheduledDate } from './scheduled-date';
+import { formatScheduledDate, formatScheduledInstant } from './scheduled-date';
 
 describe('formatScheduledDate', () => {
   it('WEB-33 escribe la fecha programada en palabras', () => {
@@ -16,4 +16,17 @@ describe('formatScheduledDate', () => {
       expect(formatScheduledDate('2027-01-01')).toBe('1 de enero de 2027');
     },
   );
+});
+
+describe('formatScheduledInstant', () => {
+  it('WEB-33 escribe el instante en hora de la Ciudad de México', () => {
+    expect(formatScheduledInstant('2026-10-20T20:30:00Z')).toBe('20 de octubre de 2026, 14:30');
+    expect(formatScheduledInstant('2026-10-20T14:30:00-06:00')).toBe(
+      '20 de octubre de 2026, 14:30',
+    );
+  });
+
+  it('WEB-33 una fecha sola (formato anterior) se escribe sin hora', () => {
+    expect(formatScheduledInstant('2026-10-20')).toBe('20 de octubre de 2026');
+  });
 });

@@ -15,7 +15,7 @@ import {
   loginRequestSchema,
   logoutRequestSchema,
   refreshRequestSchema,
-  registerRequestSchema,
+  registerRequestSchemaAt,
   resendVerificationRequestSchema,
   verifyEmailRequestSchema,
 } from './schemas.js';
@@ -73,7 +73,7 @@ export function identityRoutes(
     rateLimit({ name, windowMs: 60 * MINUTE, limit: 10, key: byIp, clock });
 
   routes.public.post('/auth/register', perIpHourly('register'), async (req, res) => {
-    const input = parseBody(registerRequestSchema, req.body);
+    const input = parseBody(registerRequestSchemaAt(clock.now()), req.body);
     await handlers.registerUser.execute(input);
     res.status(202).json(ACCEPTED_BODY);
   });

@@ -80,4 +80,60 @@ describe('RecipientStep', () => {
     const { container } = renderStep();
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  describe('búsqueda de beneficiarios (WEB-36)', () => {
+    const MAMA = {
+      ...BENEFICIARY,
+      id: '7c2e1a0f-9d8c-4b7a-8f6e-5d4c3b2a1f0e',
+      name: 'María Gómez',
+      alias: 'Mamá',
+      clabe: '032180000118359791',
+    };
+
+    it('WEB-36 filtra solo los beneficiarios; las cuentas propias siguen a la vista', async () => {
+      const { user } = renderStep({ beneficiaries: [BENEFICIARY, MAMA] });
+      await user.type(screen.getByRole('searchbox', { name: 'Buscar beneficiarios' }), 'mar');
+
+      expect(screen.getByRole('button', { name: /^Mamá/ })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Luis/ })).toBeNull();
+      expect(screen.getByRole('button', { name: /^Principal/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Ahorro/ })).toBeInTheDocument();
+    });
+
+    it('WEB-36 elegir un beneficiario filtrado continúa con él', async () => {
+      const { user, onChoose } = renderStep({ beneficiaries: [BENEFICIARY, MAMA] });
+      await user.type(screen.getByRole('searchbox', { name: 'Buscar beneficiarios' }), '9791');
+      await user.click(screen.getByRole('button', { name: /^Mamá/ }));
+      expect(onChoose).toHaveBeenCalledWith({
+        destinationType: 'BENEFICIARY',
+        beneficiaryId: MAMA.id,
+      });
+    });
+
+    it('WEB-36 sin coincidencias muestra "Sin resultados" sin quitar las cuentas propias y "Limpiar búsqueda" restaura la lista', async () => {
+      const { user } = renderStep({ beneficiaries: [BENEFICIARY, MAMA] });
+      const field = screen.getByRole('searchbox', { name: 'Buscar beneficiarios' });
+      await user.type(field, 'Zapata');
+
+      expect(screen.getByRole('heading', { name: 'Sin resultados' })).toBeVisible();
+      expect(screen.getByText('No hay beneficiarios que coincidan con «Zapata».')).toBeVisible();
+      expect(screen.getByRole('button', { name: /^Principal/ })).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Limpiar búsqueda' }));
+      expect(field).toHaveValue('');
+      expect(screen.getByRole('button', { name: /^Luis/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Mamá/ })).toBeInTheDocument();
+    });
+
+    it('WEB-36 sin beneficiarios no hay campo de búsqueda', () => {
+      renderStep({ beneficiaries: [] });
+      expect(screen.queryByRole('searchbox')).toBeNull();
+    });
+
+    it('WEB-23 el estado sin resultados no tiene problemas de accesibilidad', async () => {
+      const { user, container } = renderStep({ beneficiaries: [BENEFICIARY, MAMA] });
+      await user.type(screen.getByRole('searchbox', { name: 'Buscar beneficiarios' }), 'Zapata');
+      expect(await axe(container)).toHaveNoViolations();
+    });
+  });
 });

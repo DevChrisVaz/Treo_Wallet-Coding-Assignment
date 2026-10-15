@@ -55,7 +55,8 @@ export function Receipt({ transfer, fromAccountName, fromAccountClabe }: Receipt
         value={`${destination.displayName} · ${maskClabe(destination.clabeLast4)}`}
       />
       <Row label="Concepto" value={transfer.concept} />
-      <Row label="Referencia" value={transfer.reference} />
+      {/* La referencia es opcional (MOB-13): sin ella la fila no se muestra (nunca "null"). */}
+      {transfer.reference ? <Row label="Referencia" value={transfer.reference} /> : null}
       <Row
         label="Fecha"
         value={formatDateTime(transfer.completedAt ?? transfer.createdAt, { withYear: true })}

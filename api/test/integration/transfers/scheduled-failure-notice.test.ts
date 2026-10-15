@@ -54,7 +54,7 @@ async function scheduleToLuis(amount: string) {
     amount,
     concept: 'Renta',
     reference: '1',
-    scheduledFor: '2026-10-15',
+    scheduledFor: '2026-10-15T06:00:00.000Z',
   });
   expect(res.status).toBe(201);
   return res.body.id as string;

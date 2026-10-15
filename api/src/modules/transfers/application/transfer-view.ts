@@ -69,13 +69,14 @@ export function toTransferView(
     },
     amount: Money.fromCents(details.amountCents).toDecimalString(),
     concept: details.concept,
-    reference: String(details.reference),
+    // Sin referencia es `null`, no "null" ni "0" (TRF-09).
+    reference: details.reference === null ? null : String(details.reference),
     requiresOtp: details.requiresOtp,
     otp: status === 'PENDING_OTP' ? otpChallenge(details, policy, deliveryStatus) : null,
     rejectionReason: details.rejectionReason,
     failureReason: details.failureReason,
     // En toda programada, sin importar su estado; nula en las inmediatas (TRF-34).
-    scheduledFor: details.scheduledFor,
+    scheduledFor: details.scheduledFor?.toISOString() ?? null,
     cancelledAt: details.cancelledAt?.toISOString() ?? null,
     createdAt: details.createdAt.toISOString(),
     completedAt: details.completedAt?.toISOString() ?? null,

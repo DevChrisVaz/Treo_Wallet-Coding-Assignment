@@ -24,7 +24,7 @@ function toMovement(record: MovementRecord): Movement {
     amount: Money.fromCents(record.amountCents).toDecimalString(),
     balanceAfter: Money.fromCents(record.balanceAfterCents).toDecimalString(),
     concept: record.concept,
-    reference: String(record.reference),
+    reference: record.reference === null ? null : String(record.reference),
     counterparty: record.counterparty,
     transferId: record.transferId,
     occurredAt: new Date(record.occurredAt).toISOString(),

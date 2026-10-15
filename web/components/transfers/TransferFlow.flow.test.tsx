@@ -206,7 +206,7 @@ describe('TransferFlow · flujo completo', () => {
     expect(screen.queryByLabelText('Beneficiario')).not.toBeInTheDocument();
     await user.type(screen.getByLabelText('Monto'), '200');
     await user.type(screen.getByLabelText('Concepto'), 'Apartado');
-    await user.type(screen.getByLabelText('Referencia'), '42');
+    await user.type(screen.getByLabelText('Referencia (opcional)'), '42');
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     await user.click(await screen.findByRole('button', { name: 'Enviar' }));
     expect(createMock.mock.calls[0]?.[0]).toMatchObject({
@@ -230,7 +230,7 @@ describe('TransferFlow · flujo completo', () => {
     ).toBe(false);
     await user.type(screen.getByLabelText('Monto'), '300');
     await user.type(screen.getByLabelText('Concepto'), 'Regreso');
-    await user.type(screen.getByLabelText('Referencia'), '7');
+    await user.type(screen.getByLabelText('Referencia (opcional)'), '7');
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     await user.click(await screen.findByRole('button', { name: 'Enviar' }));
     expect(createMock.mock.calls[0]?.[0]).toMatchObject({
@@ -349,7 +349,7 @@ describe('TransferFlow · programar', () => {
     const scheduled = transfer({
       status: 'SCHEDULED',
       amount: '1000.00',
-      scheduledFor: '2026-10-20',
+      scheduledFor: '2026-10-20T20:30:00.000Z',
       completedAt: null,
     });
     createMock.mockResolvedValue({ ok: true, data: { transfer: scheduled, replayed: false } });
@@ -359,7 +359,7 @@ describe('TransferFlow · programar', () => {
     await fillTransfer(user, '1,000', '2026-10-20');
     expect(
       await screen.findByRole('region', { name: 'Revisa tu transferencia' }),
-    ).toHaveTextContent('Se enviará el 20 de octubre de 2026');
+    ).toHaveTextContent('Se enviará el 20 de octubre de 2026, 14:30');
     await user.click(screen.getByRole('button', { name: 'Enviar' }));
 
     const heading = await screen.findByRole('heading', { name: 'Transferencia programada' });
@@ -367,7 +367,7 @@ describe('TransferFlow · programar', () => {
     expect(
       screen.queryByRole('heading', { name: 'Transferencia enviada' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText(/Se enviará el 20 de octubre de 2026\./)).toBeVisible();
+    expect(screen.getByText(/Se enviará el 20 de octubre de 2026, 14:30\./)).toBeVisible();
     expect(screen.getByRole('link', { name: 'tus transferencias programadas' })).toHaveAttribute(
       'href',
       '/transfers/scheduled',
@@ -375,8 +375,10 @@ describe('TransferFlow · programar', () => {
     const receipt = screen.getByRole('region', { name: 'Comprobante' });
     expect(within(receipt).getByText('Programada')).toBeVisible();
     expect(receipt).toHaveTextContent('$1,000.00');
-    expect(receipt).toHaveTextContent('Programada para20 de octubre de 2026');
-    expect(createMock.mock.calls[0]?.[0]).toMatchObject({ scheduledFor: '2026-10-20' });
+    expect(receipt).toHaveTextContent('Programada para20 de octubre de 2026, 14:30');
+    expect(createMock.mock.calls[0]?.[0]).toMatchObject({
+      scheduledFor: '2026-10-20T20:30:00.000Z',
+    });
   });
 
   it('WEB-33 WEB-30 en el dashboard el resumen dice cuándo se enviará, desde el monto hasta la revisión', async () => {
@@ -388,26 +390,27 @@ describe('TransferFlow · programar', () => {
 
     await user.click(screen.getByRole('radio', { name: 'Programar' }));
     await user.type(screen.getByLabelText('Fecha de envío'), '2026-10-20');
+    await user.type(screen.getByLabelText('Hora de envío'), '14:30');
     expect(screen.getByRole('region', { name: 'Resumen' })).toHaveTextContent(
-      'CuándoSe enviará el 20 de octubre de 2026',
+      'CuándoSe enviará el 20 de octubre de 2026, 14:30',
     );
 
     await user.type(screen.getByLabelText('Concepto'), 'Renta');
-    await user.type(screen.getByLabelText('Referencia'), '1');
+    await user.type(screen.getByLabelText('Referencia (opcional)'), '1');
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     await screen.findByRole('region', { name: 'Revisa tu transferencia' });
     expect(screen.getByRole('region', { name: 'Resumen' })).toHaveTextContent(
-      'CuándoSe enviará el 20 de octubre de 2026',
+      'CuándoSe enviará el 20 de octubre de 2026, 14:30',
     );
   });
 
   it('WEB-33 WEB-18 programada mayor al umbral: tras el código correcto muestra "Transferencia programada" y no "Transferencia enviada"', async () => {
-    const pending = pendingOtpTransfer({ scheduledFor: '2026-10-20' });
+    const pending = pendingOtpTransfer({ scheduledFor: '2026-10-20T20:30:00.000Z' });
     const scheduled = transfer({
       status: 'SCHEDULED',
       amount: '15000.00',
       requiresOtp: true,
-      scheduledFor: '2026-10-20',
+      scheduledFor: '2026-10-20T20:30:00.000Z',
       completedAt: null,
     });
     createMock.mockResolvedValue({ ok: true, data: { transfer: pending, replayed: false } });
@@ -419,7 +422,7 @@ describe('TransferFlow · programar', () => {
     await user.click(await screen.findByRole('button', { name: 'Enviar' }));
     expect(createMock.mock.calls[0]?.[0]).toMatchObject({
       amount: '15000',
-      scheduledFor: '2026-10-20',
+      scheduledFor: '2026-10-20T20:30:00.000Z',
     });
 
     await user.type(await screen.findByLabelText('Código de 6 dígitos'), '123456');
@@ -431,6 +434,6 @@ describe('TransferFlow · programar', () => {
     ).not.toBeInTheDocument();
     const receipt = screen.getByRole('region', { name: 'Comprobante' });
     expect(within(receipt).getByText('Programada')).toBeVisible();
-    expect(receipt).toHaveTextContent('Programada para20 de octubre de 2026');
+    expect(receipt).toHaveTextContent('Programada para20 de octubre de 2026, 14:30');
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mexicoCityDate, schedulableRange } from '../../src/index';
+import { mexicoCityDate, schedulableWindow, schedulableDates, parseInstant } from '../../src/index';
 
 describe('mexicoCityDate', () => {
   it('CTR-18 devuelve la fecha de la Ciudad de México de un instante de noche', () => {
@@ -17,24 +17,44 @@ describe('mexicoCityDate', () => {
   });
 });
 
-describe('schedulableRange', () => {
-  it('CTR-18 va de mañana a 90 días después de hoy', () => {
-    expect(schedulableRange(new Date('2026-10-14T18:00:00Z'))).toEqual({
-      min: '2026-10-15',
-      max: '2027-01-12',
+describe('schedulableWindow', () => {
+  const now = new Date('2026-10-14T18:00:00Z');
+
+  it('TRF-27 va de 10 minutos a 90 días después del instante, ambos inclusive', () => {
+    expect(schedulableWindow(now)).toEqual({
+      min: new Date('2026-10-14T18:10:00Z'),
+      max: new Date('2027-01-12T18:00:00Z'),
     });
   });
 
-  it('CTR-18 cambia de año en el último día de diciembre', () => {
-    expect(schedulableRange(new Date('2026-12-31T23:00:00Z')).min).toBe('2027-01-01');
+  it('TRF-27 schedulableDates da las fechas de la Ciudad de México que contienen la ventana', () => {
+    expect(schedulableDates(now)).toEqual({ min: '2026-10-14', max: '2027-01-12' });
   });
 
-  it('CTR-18 usa el día local, no el de UTC', () => {
-    // 2026-10-15 03:00Z sigue siendo 14 de octubre en la Ciudad de México.
-    expect(schedulableRange(new Date('2026-10-15T03:00:00Z')).min).toBe('2026-10-15');
+  it('TRF-27 pasada la medianoche local el mínimo ya es el día siguiente', () => {
+    // 2026-10-15 05:55Z = 23:55 del 14 en CDMX; +10 min = 00:05 del 15.
+    expect(schedulableDates(new Date('2026-10-15T05:55:00Z')).min).toBe('2026-10-15');
   });
 
-  it('CTR-18 cruza el 29 de febrero de un año bisiesto', () => {
-    expect(schedulableRange(new Date('2028-02-28T18:00:00Z')).min).toBe('2028-02-29');
+  it('TRF-27 usa el día local, no el de UTC', () => {
+    // 2026-12-31 23:00Z = 17:00 del 31 en CDMX.
+    expect(schedulableDates(new Date('2026-12-31T23:00:00Z')).min).toBe('2026-12-31');
+  });
+});
+
+describe('parseInstant', () => {
+  it('TRF-27 interpreta RFC 3339 con Z y con desfase', () => {
+    expect(parseInstant('2026-10-20T14:30:00-06:00')).toEqual(new Date('2026-10-20T20:30:00Z'));
+    expect(parseInstant('2026-10-20T20:30:00.000Z')).toEqual(new Date('2026-10-20T20:30:00Z'));
+  });
+
+  it.each([
+    '2026-10-20',
+    '2026-10-20T20:30:00',
+    '2026-02-30T10:00:00Z',
+    '2026-10-20T25:00:00Z',
+    '',
+  ])('TRF-27 rechaza %s', (value) => {
+    expect(parseInstant(value)).toBeNull();
   });
 });

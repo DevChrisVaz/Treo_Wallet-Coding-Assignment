@@ -1,17 +1,17 @@
-import type { IconConcept } from '@devchrisvaz/wallet-design-tokens';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { theme } from '@/theme';
 
 import { Avatar } from './avatar';
 import { Button } from './button';
+import type { IconName } from './icon';
 
 interface EmptyStateProps {
   title: string;
   description: string;
   action?: { label: string; onPress: () => void };
   /** Icono en un avatar grande sobre el título. */
-  icon?: IconConcept;
+  icon?: IconName;
 }
 
 /** Estado vacío: título, una línea de ayuda y una acción. */

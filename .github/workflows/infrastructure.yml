@@ -1,0 +1,65 @@
+name: infrastructure
+
+on:
+  push:
+    branches: [release]
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/infrastructure.yml'
+  pull_request:
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/infrastructure.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infrastructure-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: infrastructure
+
+# Sin credenciales de AWS: validate y las pruebas con proveedores simulados no crean recursos.
+jobs:
+  verify:
+    name: Formato, validación y pruebas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.16.1
+          terraform_wrapper: false
+
+      - name: Formato
+        run: terraform fmt -recursive -check
+
+      - name: Validar bootstrap y probar los roles de GitHub
+        working-directory: infrastructure/bootstrap
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+          terraform test
+
+      - name: Validar stack
+        working-directory: infrastructure/stack
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+      - name: Pruebas del stack con cada ambiente
+        working-directory: infrastructure/stack
+        run: |
+          for environment in dev staging prod; do
+            terraform test -var-file="../environments/${environment}.tfvars"
+          done
+
+      - name: Pruebas de separación de credenciales
+        working-directory: infrastructure/modules/compute
+        run: |
+          terraform init -backend=false -input=false
+          terraform test

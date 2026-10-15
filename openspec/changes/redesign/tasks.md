@@ -40,25 +40,32 @@
 
 ## 6. Web
 
-- [ ] 6.1 [web] Layouts `(app)` y `(public)` con `AppShell` y la navegación nueva; pruebas de navegación y de cierre de sesión desde la navegación lateral y desde el avatar (WEB-24, WEB-26, WEB-27)
-- [ ] 6.2 [web] Inicio de sesión, registro y verificación sobre la superficie de marca; las pruebas de WEB-11 y WEB-12 siguen pasando (WEB-31)
-- [ ] 6.3 [web] Inicio con el *hero*, las tarjetas seleccionables y los últimos 5 movimientos; pruebas de la suma, del cambio de cuenta y de "Ver todos" (WEB-28)
-- [ ] 6.4 [web] Movimientos agrupados por día con filtros en hoja inferior (teléfono) y en panel (escritorio); las pruebas de WEB-14 siguen pasando (WEB-29)
-- [ ] 6.5 [web] Flujo de transferencia por pasos con el paso de destinatario (cuentas propias y beneficiarios) y el resumen en escritorio; pruebas del indicador, de la transferencia entre cuentas propias y del doble clic en Enviar; las pruebas de WEB-16 a WEB-19 siguen pasando (WEB-30)
-- [ ] 6.6 [web] Beneficiarios, nuevo beneficiario y detalle de transferencia con los patrones de la forma de app y del *dashboard* (WEB-25, WEB-26, WEB-27)
-- [ ] 6.7 [web] Accesibilidad y responsividad: `vitest-axe` en cada pantalla, flujo de transferencia solo con teclado y prueba de que no hay desplazamiento horizontal entre 320 y 1440 px (WEB-23, WEB-24)
+- [x] 6.1 [web] Layouts `(app)` y `(public)` con `AppShell` y la navegación nueva; pruebas de navegación y de cierre de sesión desde la navegación lateral y desde el avatar (WEB-24, WEB-26, WEB-27)
+- [x] 6.2 [web] Inicio de sesión, registro y verificación sobre la superficie de marca; las pruebas de WEB-11 y WEB-12 siguen pasando (WEB-31)
+- [x] 6.3 [web] Inicio con el *hero*, las tarjetas seleccionables y los últimos 5 movimientos; pruebas de la suma, del cambio de cuenta y de "Ver todos" (WEB-28)
+- [x] 6.4 [web] Movimientos agrupados por día con filtros en hoja inferior (teléfono) y en panel (escritorio); las pruebas de WEB-14 siguen pasando (WEB-29)
+- [x] 6.5 [web] Flujo de transferencia por pasos con el paso de destinatario (cuentas propias y beneficiarios) y el resumen en escritorio; pruebas del indicador, de la transferencia entre cuentas propias y del doble clic en Enviar; las pruebas de WEB-16 a WEB-19 siguen pasando (WEB-30)
+- [x] 6.6 [web] Beneficiarios, nuevo beneficiario y detalle de transferencia con los patrones de la forma de app y del *dashboard* (WEB-25, WEB-26, WEB-27)
+- [x] 6.7 [web] Accesibilidad y responsividad: `vitest-axe` en cada pantalla, flujo de transferencia solo con teclado y prueba de que no hay desplazamiento horizontal entre 320 y 1440 px (WEB-23, WEB-24)
 
 ## 7. Móvil
 
-- [ ] 7.1 [mobile] Pestañas de expo-router (Inicio, Movimientos, Transferir) con el flujo de transferencia fuera de ellas y el menú del avatar; pruebas de la pestaña actual y de cerrar sesión (MOB-18)
-- [ ] 7.2 [mobile] Inicio de sesión sobre la superficie de marca; las pruebas de MOB-01 siguen pasando (MOB-22)
-- [ ] 7.3 [mobile] Inicio con el saludo, el *hero*, las tarjetas seleccionables y los últimos 5 movimientos; pruebas de la suma y de "Ver todos" (MOB-19)
-- [ ] 7.4 [mobile] Movimientos como pestaña con selector de cuenta y agrupación por día; prueba del movimiento cerca de la medianoche (MOB-20)
-- [ ] 7.5 [mobile] Flujo de transferencia por pasos con el monto protagonista; pruebas del indicador y de la pérdida de red al enviar; las pruebas de MOB-07 a MOB-14 siguen pasando (MOB-21)
+- [x] 7.1 [mobile] Pestañas de expo-router (Inicio, Movimientos, Transferir) con el flujo de transferencia fuera de ellas y el menú del avatar; pruebas de la pestaña actual y de cerrar sesión (MOB-18)
+- [x] 7.2 [mobile] Inicio de sesión sobre la superficie de marca; las pruebas de MOB-01 siguen pasando (MOB-22)
+- [x] 7.3 [mobile] Inicio con el saludo, el *hero*, las tarjetas seleccionables y los últimos 5 movimientos; pruebas de la suma y de "Ver todos" (MOB-19)
+- [x] 7.4 [mobile] Movimientos como pestaña con selector de cuenta y agrupación por día; prueba del movimiento cerca de la medianoche (MOB-20)
+- [x] 7.5 [mobile] Flujo de transferencia por pasos con el monto protagonista; pruebas del indicador y de la pérdida de red al enviar; las pruebas de MOB-07 a MOB-14 siguen pasando (MOB-21)
 
 ## 8. Cierre
 
-- [ ] 8.1 [web] Paridad final: captura comparada de todas las parejas equivalentes sobre las pantallas reales, sin diferencias de estructura, tamaño, color ni espaciado (WEB-25)
-- [ ] 8.2 [docs] README de web, móvil y tokens, y `docs/ai-log.md` con las decisiones del rediseño (DSG-13, WEB-24, MOB-18)
-- [ ] 8.3 [docs] Re-sincronizar design-sync de ambas apps con los componentes nuevos (previews, conventions y NOTES) y subir a Claude Design cuando haya autorización (DSG-17)
-- [ ] 8.4 [docs] Integrar `design/redesign` en `main` con `--no-ff` después de que pasen lint, typecheck y pruebas de los tres proyectos (DSG-13, WEB-24, MOB-18)
+- [x] 8.1 [web] Paridad final: captura comparada de todas las parejas equivalentes sobre las pantallas reales, sin diferencias de estructura, tamaño, color ni espaciado (WEB-25)
+- [x] 8.2 [docs] README de web, móvil y tokens, y `docs/ai-log.md` con las decisiones del rediseño (DSG-13, WEB-24, MOB-18)
+- [ ] 8.3 [docs] Re-sincronizar design-sync de ambas apps con los componentes nuevos (previews, conventions y NOTES) y subir a Claude Design cuando haya autorización (DSG-17). Pendiente: la subida a Claude Design, que requiere `/design-login`
+- [x] 8.4 [docs] Integrar `design/redesign` en `main` con `--no-ff` después de que pasen lint, typecheck y pruebas de los tres proyectos (DSG-13, WEB-24, MOB-18). Hecho a petición del usuario en dos merges locales a `release` (la rama principal, antes `main`), sin push: `b3bb8ae` (fases A y B, paridad y P1) y `e3e5554` (P2); 8.2 y 8.3 llegan en un merge posterior
+
+## 9. Pasos agregados durante la aplicación
+
+- [x] P0 [docs] Integrar `main` en `design/redesign` antes de las líneas de la fase B (especificaciones de los bonus, contrato 1.2.0, estados `SCHEDULED` y `CANCELLED`, desbloqueo biométrico) y otra vez a mitad de la fase B (P0b: estado de cuenta en PDF); el paquete de diseño pasa a 1.2.0 con las dos líneas aditivas (DSG-16)
+- [x] P1 [web] Portar al flujo rediseñado la web de las transferencias programadas: "Cuándo" en el paso del monto, en la revisión y en el resumen, el resultado "Transferencia programada", y la página "Programadas" en `AppShell`, en la navegación lateral y, en teléfono, desde el paso del destinatario; concepto de icono `scheduled` (`CalendarClock`) en el paquete de diseño 1.3.0 (WEB-27, WEB-33, WEB-34, DSG-15)
+- [x] P2 [web] Estilos del rediseño e historias en el lienzo para los bonus de la web: la tarjeta del estado de cuenta, "Cuándo", el resultado programado, "Programada para", las insignias `SCHEDULED` y `CANCELLED`, y la página "Programadas" con su estado vacío y el diálogo de cancelar (WEB-25, WEB-32, WEB-33, WEB-34)
+- [x] P2 [mobile] Estilos del rediseño e historias en el lienzo para los bonus del móvil: la pantalla de bloqueo, la oferta del desbloqueo en Inicio, el interruptor en el menú de la cuenta y las etiquetas de las programadas y canceladas en el comprobante (MOB-23, MOB-24, MOB-25)

@@ -1,6 +1,14 @@
-import { MovementRow, Text, View, theme } from 'wallet-mobile-ui';
+import { ListSection, MovementRow, View, theme } from 'wallet-mobile-ui';
 
-const frame = { width: 360, padding: theme.spacing[4], gap: theme.spacing[3] };
+// Lienzo de la app a ancho de teléfono. Con `timeOnly`, solo la hora y sin borde: así los pone
+// MovementList bajo su encabezado de día, dentro de una ListSection. Sin él (por omisión), fecha
+// completa y borde inferior, para listas sin agrupar.
+const frame = {
+  width: 390,
+  padding: theme.spacing[5],
+  gap: theme.spacing[3],
+  backgroundColor: theme.colors.surface.canvas,
+};
 
 // Movimientos de la cuenta Principal (montos con signo: negativos para salidas).
 const deposit = {
@@ -77,41 +85,52 @@ const ownTransferIn = {
 
 export const TransferSent = () => (
   <View style={frame}>
-    <MovementRow timeOnly movement={transferOut} />
+    <ListSection>
+      <MovementRow timeOnly movement={transferOut} />
+    </ListSection>
   </View>
 );
 
 export const TransferReceived = () => (
   <View style={frame}>
-    <MovementRow timeOnly movement={transferIn} />
+    <ListSection>
+      <MovementRow timeOnly movement={transferIn} />
+    </ListSection>
   </View>
 );
 
 export const Deposit = () => (
   <View style={frame}>
-    <MovementRow timeOnly movement={deposit} />
+    <ListSection>
+      <MovementRow timeOnly movement={deposit} />
+    </ListSection>
   </View>
 );
 
 export const OwnAccountTransfers = () => (
   <View style={frame}>
-    <MovementRow timeOnly movement={ownTransferOut} />
-    <MovementRow timeOnly movement={ownTransferIn} />
+    <ListSection>
+      <MovementRow timeOnly movement={ownTransferOut} />
+      <MovementRow timeOnly movement={ownTransferIn} />
+    </ListSection>
   </View>
 );
 
-export const RecentMovementsList = () => (
-  <View style={{ ...frame, gap: theme.spacing[5] }}>
-    <View style={{ gap: theme.spacing[1] }}>
-      <Text style={{ ...theme.typography.label, color: theme.colors.text.secondary }}>
-        Últimos movimientos
-      </Text>
-      <Text style={{ ...theme.typography.h1, color: theme.colors.text.primary }}>Principal</Text>
-    </View>
-    <View>
+// Sin `timeOnly`: fecha y hora completas y borde entre filas, para una lista sin días.
+export const FullDate = () => (
+  <View style={frame}>
+    <ListSection>
       {[rent, transferOut, transferIn, ownTransferOut, deposit].map((movement) => (
-        <MovementRow key={movement.id} movement={movement} timeOnly />
+        <MovementRow key={movement.id} movement={movement} />
       ))}
-    </View>
+    </ListSection>
+  </View>
+);
+
+// MOB-06: un movimiento sin referencia lleva solo la fecha u hora, sin "Ref.".
+export const WithoutReference = () => (
+  <View style={frame}>
+    <MovementRow timeOnly movement={{ ...ownTransferOut, reference: null }} />
+    <MovementRow movement={{ ...ownTransferOut, reference: null }} />
   </View>
 );

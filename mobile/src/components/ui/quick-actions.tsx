@@ -1,14 +1,13 @@
-import type { IconConcept } from '@devchrisvaz/wallet-design-tokens';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { theme } from '@/theme';
 
-import { Icon } from './icon';
+import { Icon, type IconName } from './icon';
 
 export interface QuickAction {
   key: string;
   label: string;
-  icon: IconConcept;
+  icon: IconName;
   onPress: () => void;
 }
 

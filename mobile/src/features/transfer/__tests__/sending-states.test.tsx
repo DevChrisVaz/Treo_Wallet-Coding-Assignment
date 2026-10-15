@@ -23,7 +23,7 @@ async function send(fake: FakeApi, amount = '1500') {
   const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
   await user.type(await screen.findByLabelText('Monto'), amount);
   await user.type(screen.getByLabelText('Concepto'), 'Renta');
-  await user.type(screen.getByLabelText('Referencia'), '1');
+  await user.type(screen.getByLabelText('Referencia (opcional)'), '1');
   await user.press(screen.getByRole('button', { name: 'Continuar' }));
   await user.press(await screen.findByRole('button', { name: 'Enviar' }));
   return user;
@@ -116,7 +116,7 @@ describe('envío, estado incierto y rechazo', () => {
     await user.press(await screen.findByRole('button', { name: 'Corregir' }));
 
     const amount = screen.getByLabelText('Monto');
-    expect(amount).toHaveDisplayValue('1500');
+    expect(amount).toHaveDisplayValue('1,500');
     await user.clear(amount);
     await user.type(amount, '100');
     await user.press(screen.getByRole('button', { name: 'Continuar' }));

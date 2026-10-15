@@ -130,6 +130,7 @@ for (const width of [390, 1280] as const) {
     await page.getByLabel('Referencia').fill('1');
     await page.getByLabel('Programar').check();
     await page.getByLabel('Fecha de envío').fill('2026-10-20');
+    await page.getByLabel('Hora de envío').fill('14:30');
     expect(await axe(page), 'paso de monto con "Programar"').toEqual([]);
     await page.getByRole('button', { name: 'Continuar' }).click();
     await expect(

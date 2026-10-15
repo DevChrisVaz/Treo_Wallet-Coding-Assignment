@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { AmountField } from './AmountField';
 import { OtpField } from './OtpField';
+import { SearchField } from './SearchField';
 import { Select } from './Select';
 import { TextField } from './TextField';
 
@@ -99,6 +100,45 @@ describe('AmountField', () => {
   });
 });
 
+describe('AmountField · formato (WEB-21)', () => {
+  it('WEB-21 deja solo dígitos y un punto, con comas de millar y 2 decimales, también al pegar', async () => {
+    const user = userEvent.setup();
+    render(<AmountField label="Monto" variant="hero" />);
+    const input = screen.getByLabelText('Monto');
+    await user.type(input, 'a1b2345.678.9');
+    expect(input).toHaveValue('12,345.67');
+    expect(screen.getByTestId('hero-amount-mirror')).toHaveTextContent('12,345.67');
+    await user.clear(input);
+    await user.paste('$ 007,5');
+    expect(input).toHaveValue('75');
+  });
+
+  it('WEB-21 el cursor se queda junto al mismo dígito al insertar una coma', async () => {
+    const user = userEvent.setup();
+    render(<AmountField label="Monto" />);
+    const input = screen.getByLabelText('Monto');
+    await user.type(input, '123');
+    await user.type(input, '4', { initialSelectionStart: 1, initialSelectionEnd: 1 });
+    expect(input).toHaveValue('1,423');
+    expect(input).toHaveProperty('selectionStart', 3);
+  });
+});
+
+describe('OtpField · solo dígitos (WEB-18)', () => {
+  it('WEB-18 descarta lo que no es dígito y limita a 6, también al pegar', async () => {
+    const user = userEvent.setup();
+    render(<OtpField label="Código" />);
+    const input = screen.getByLabelText('Código');
+    expect(input).toHaveAttribute('inputmode', 'numeric');
+    expect(input).toHaveAttribute('autocomplete', 'one-time-code');
+    await user.type(input, '1a2-3');
+    expect(input).toHaveValue('123');
+    await user.clear(input);
+    await user.paste('12 34 56 78');
+    expect(input).toHaveValue('123456');
+  });
+});
+
 describe('OtpField', () => {
   it('DSG-11 es un solo campo numérico de código de un solo uso', () => {
     render(<OtpField label="Código de 6 dígitos" />);
@@ -170,5 +210,44 @@ describe('Select', () => {
       </Select>,
     );
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe('SearchField', () => {
+  it('WEB-36 es un campo de búsqueda con nombre accesible y sin botón de borrar cuando está vacío', () => {
+    render(
+      <SearchField
+        label="Buscar beneficiarios"
+        placeholder="Buscar por nombre, alias o CLABE"
+        value=""
+        onClear={() => {}}
+      />,
+    );
+    const input = screen.getByRole('searchbox', { name: 'Buscar beneficiarios' });
+    expect(input).toHaveAttribute('placeholder', 'Buscar por nombre, alias o CLABE');
+    expect(screen.queryByRole('button', { name: 'Borrar búsqueda' })).not.toBeInTheDocument();
+  });
+
+  it('WEB-36 con texto aparece la × que lo vacía y devuelve el foco al campo', async () => {
+    const onClear = vi.fn();
+    render(<SearchField label="Buscar" value="luis" onClear={onClear} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Borrar búsqueda' }));
+    expect(onClear).toHaveBeenCalledOnce();
+    expect(screen.getByRole('searchbox')).toHaveFocus();
+  });
+
+  it('WEB-36 Escape con texto lo vacía', async () => {
+    const onClear = vi.fn();
+    render(<SearchField label="Buscar" value="luis" onClear={onClear} />);
+    screen.getByRole('searchbox').focus();
+    await userEvent.keyboard('{Escape}');
+    expect(onClear).toHaveBeenCalledOnce();
+  });
+
+  it('WEB-36 avisa los cambios al padre', async () => {
+    const onChange = vi.fn();
+    render(<SearchField label="Buscar" value="" onChange={onChange} />);
+    await userEvent.type(screen.getByRole('searchbox'), 'a');
+    expect(onChange).toHaveBeenCalledOnce();
   });
 });

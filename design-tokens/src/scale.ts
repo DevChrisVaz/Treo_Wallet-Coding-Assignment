@@ -101,7 +101,12 @@ export const motion = { fast: 150, base: 250, easing: 'cubic-bezier(0.2, 0, 0, 1
 /** Tamaños de icono en px (Lucide, trazo de 2 px). */
 export const iconSize = { sm: 16, md: 20, lg: 24 } as const;
 
-/** Tamaños de avatar en px: movimientos (md), menú de la cuenta (sm) y estados vacíos (lg). */
+/**
+ * Tamaños de avatar en px, por uso: `sm` (32) para la persona en la navegación lateral de la web;
+ * `md` (40, el de omisión) para las filas de movimientos, destinatarios y beneficiarios, y el avatar
+ * del menú de la cuenta (dentro de un área táctil de 44); `lg` (56) para los estados vacíos y el
+ * comprobante.
+ */
 export const avatarSize = { sm: 32, md: 40, lg: 56 } as const;
 
 /** Medidas de layout compartidas por la web y la app móvil (paridad, D3 y D5 del rediseño). */

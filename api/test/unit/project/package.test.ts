@@ -45,11 +45,11 @@ describe('PLT-13 proyecto /api', () => {
     expect(lstatSync(installed).isSymbolicLink()).toBe(false);
   });
 
-  it('HIS-11 el lockfile registra el contrato 1.2.0 y el paquete de diseño 1.3.0', () => {
+  it('HIS-11 el lockfile registra el contrato 1.3.0 y el paquete de diseño 1.3.0', () => {
     const lock = JSON.parse(readFileSync(resolve(root, 'package-lock.json'), 'utf8')) as {
       packages: Record<string, { version?: string }>;
     };
-    expect(lock.packages['node_modules/@devchrisvaz/wallet-contract']?.version).toBe('1.2.0');
+    expect(lock.packages['node_modules/@devchrisvaz/wallet-contract']?.version).toBe('1.3.0');
     expect(lock.packages['node_modules/@devchrisvaz/wallet-design-tokens']?.version).toBe('1.3.0');
   });
 

@@ -15,7 +15,7 @@ import { transferFingerprint } from '../domain/fingerprint.js';
 import {
   MAX_ACTIVE_SCHEDULED,
   scheduledAmountIssue,
-  scheduledDateIssue,
+  scheduledInstantIssue,
 } from '../domain/schedule.js';
 import { declineFor, type Decline } from '../domain/settlement.js';
 import type { TransferDestinationResolver, TransferRequest } from './destination-resolver.js';
@@ -82,8 +82,8 @@ interface Draft {
   readonly beneficiaryId: string | null;
   readonly amount: Money;
   readonly concept: string;
-  readonly reference: number;
-  readonly scheduledFor: string | null;
+  readonly reference: number | null;
+  readonly scheduledFor: Date | null;
 }
 
 /**
@@ -92,7 +92,7 @@ interface Draft {
  * orden global, valida saldo y límite bajo bloqueo y decide: rechazo persistido como REJECTED,
  * ejecución inmediata o espera de OTP. Si la medianoche de CDMX llega mientras espera los bloqueos,
  * revierte y reintenta una vez. Una programada no toca saldo, límite ni cuentas: queda en
- * SCHEDULED hasta su fecha.
+ * SCHEDULED hasta su instante.
  */
 export class CreateTransfer {
   constructor(private readonly deps: CreateTransferDeps) {}
@@ -109,8 +109,9 @@ export class CreateTransfer {
       destination: request.destination,
       amount: request.amount,
       concept: request.concept,
-      reference: String(request.reference),
-      scheduledFor,
+      reference: request.reference === null ? null : String(request.reference),
+      // Las equivalencias de zona (`...Z` y `...-06:00`) dan el mismo instante y la misma huella.
+      scheduledFor: scheduledFor?.toISOString() ?? null,
     });
     const draft: Draft = {
       userId,
@@ -260,7 +261,7 @@ export class CreateTransfer {
         status: 'PENDING_OTP',
         kind: draft.kind,
         amount: draft.amount.toDecimalString(),
-        ...(draft.scheduledFor === null ? {} : { scheduledFor: draft.scheduledFor }),
+        ...(draft.scheduledFor === null ? {} : { scheduledFor: draft.scheduledFor.toISOString() }),
       },
     });
     await audit.record(tx, {
@@ -274,9 +275,9 @@ export class CreateTransfer {
 
   /**
    * Camino programado (TRF-27, D4), dentro de la transacción del reclamo y sin bloqueos de saldo ni
-   * de límite: ambos se validan al ejecutar. La fecha y el monto se validan aquí, después del
+   * de límite: ambos se validan al ejecutar. El instante y el monto se validan aquí, después del
    * reclamo, y no antes: un reintento que llega pasada la medianoche se reconoce como reintento (la
-   * original ya pasó la validación) en lugar de responder que su fecha ya no es programable. Una
+   * original ya pasó la validación) en lugar de responder que su instante ya no es programable. Una
    * petición nueva inválida lanza y revierte el reclamo, así que la llave no se consume.
    *
    * El tope de programadas (D8) se revisa con la fila del usuario bloqueada: dos programaciones
@@ -287,11 +288,11 @@ export class CreateTransfer {
     tx: Transaction,
     id: string,
     draft: Draft,
-    scheduledFor: string,
+    scheduledFor: Date,
   ): Promise<AttemptResult> {
     const { store, cap, audit, clock, otpThreshold, dailyLimit } = this.deps;
     const issues = [
-      scheduledDateIssue(scheduledFor, clock),
+      scheduledInstantIssue(scheduledFor, clock),
       scheduledAmountIssue(draft.kind, draft.amount, dailyLimit),
     ].filter((issue): issue is FieldError => issue !== null);
     if (issues.length > 0) {
@@ -309,18 +310,19 @@ export class CreateTransfer {
     const actor = { type: 'USER' as const, userId: draft.userId };
     const entity = { type: 'transfer', id };
     const amount = draft.amount.toDecimalString();
+    const instant = scheduledFor.toISOString();
     await store.schedule(tx, id);
     await audit.record(tx, {
       action: 'TRANSFER_CREATED',
       actor,
       entity,
-      metadata: { status: 'SCHEDULED', kind: draft.kind, amount, scheduledFor },
+      metadata: { status: 'SCHEDULED', kind: draft.kind, amount, scheduledFor: instant },
     });
     await audit.record(tx, {
       action: 'TRANSFER_SCHEDULED',
       actor,
       entity,
-      metadata: { kind: draft.kind, amount, scheduledFor },
+      metadata: { kind: draft.kind, amount, scheduledFor: instant },
     });
     return { kind: 'CREATED', transferId: id, otp: null };
   }

@@ -6,7 +6,7 @@ const RFC = /^[A-ZÑ&]{4}[0-9]{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])[A-Z0-9]
 
 /**
  * RFC de persona física con fecha existente. El RFC no indica el siglo, así que la fecha es válida
- * si existe en 19AA o en 20AA. No se exige que coincida con la CURP.
+ * si existe en 19AA o en 20AA. La coincidencia con la CURP se revisa en `registerForm`.
  */
 export const rfc = textField('El RFC es obligatorio', (value, ctx) => {
   if (!RFC.test(value)) {
@@ -20,3 +20,8 @@ export const rfc = textField('El RFC es obligatorio', (value, ctx) => {
     addFieldIssue(ctx, 'INVALID_DATE', 'La fecha del RFC no existe');
   }
 });
+
+/** Indica si los primeros 10 caracteres del RFC (iniciales y fecha) son los de la CURP. */
+export function rfcMatchesCurp(rfcValue: string, curpValue: string): boolean {
+  return [...rfcValue].slice(0, 10).join('') === curpValue.slice(0, 10);
+}

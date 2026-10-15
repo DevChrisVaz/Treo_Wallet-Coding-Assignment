@@ -117,7 +117,7 @@ La base también lo protege por su cuenta: un trigger diferido rechaza al hacer 
 `GET /accounts/{accountId}/statements/{period}` (`getAccountStatement`) devuelve el PDF del mes `period` (`AAAA-MM`, mes calendario de la Ciudad de México) de una cuenta del usuario:
 
 - **Respuesta:** `Content-Type: application/pdf`, `Content-Length`, `Cache-Control: no-store` y `Content-Disposition: attachment; filename="estado-de-cuenta-2026-09-0015.pdf"` (periodo y últimos 4 dígitos de la CLABE).
-- **Periodo:** de la medianoche de CDMX del día 1 a la del día 1 del mes siguiente (la conversión a UTC usa la base IANA, así que los meses con horario de verano, antes de 2023, quedan bien). El mes en curso se entrega como parcial, hasta el momento de la generación. Un mes futuro o un periodo mal formado responde `422 VALIDATION_FAILED` en `/period`; una cuenta ajena o inexistente, `404 NOT_FOUND`.
+- **Periodo:** de la medianoche de CDMX del día 1 a la del día 1 del mes siguiente (la conversión a UTC usa la base IANA, así que los meses con horario de verano, antes de 2023, quedan bien). El mes en curso se entrega como parcial, hasta el momento de la generación. Un mes futuro, un mes anterior al de apertura de la cuenta (medido en CDMX, con `isPeriodBeforeCreation` del contrato) o un periodo mal formado responde `422 VALIDATION_FAILED` en `/period` (`DATE_OUT_OF_RANGE` en los dos primeros); una cuenta ajena o inexistente, `404 NOT_FOUND`.
 - **Límite:** 10 por minuto por usuario (`429 RATE_LIMITED` con `Retry-After`).
 - **Auditoría:** cada descarga registra `STATEMENT_EXPORTED` con el usuario, la cuenta y el periodo, sin CLABE, nombre ni montos. Es la única lectura auditada; si el evento no se puede escribir, la respuesta es 500 y el documento no sale. Los rechazos no dejan evento.
 
@@ -170,11 +170,11 @@ La migración `1760600000000-audit-statement-exported` agrega `STATEMENT_EXPORTE
 
 ## Transferencias programadas
 
-`POST /transfers` con `scheduledFor` (`AAAA-MM-DD`, día de la Ciudad de México, de mañana a 90 días después de hoy) programa la transferencia en lugar de ejecutarla:
+`POST /transfers` con `scheduledFor` (instante RFC 3339 con desfase, por ejemplo `2026-10-20T14:30:00-06:00`, con minutos exactos; de 10 minutos a 90 días después de ahora) programa la transferencia en lugar de ejecutarla:
 
-- **Hasta 10,000.00:** `201` con estado `SCHEDULED`, sin asientos y sin tocar saldo ni límite. **Arriba de 10,000.00:** `201` en `PENDING_OTP`, con la fecha en el correo del código ("Programada para el 20 de octubre de 2026."); al confirmar el código queda `SCHEDULED`, también sin mover dinero ni revalidar.
-- **Validación al programar:** la fecha (`422 VALIDATION_FAILED` en `/scheduledFor` con `DATE_OUT_OF_RANGE`, incluida la de hoy, o `INVALID_DATE`), las mismas reglas de propiedad, monto, concepto y referencia que una inmediata, y que una programada a un tercero no supere el límite diario (`TOO_LARGE` en `/amount`: nunca podría ejecutarse). El saldo y el límite **de hoy** no se validan: se validan al ejecutar.
-- **Idempotencia:** la fecha forma parte del contenido que se compara (`IDEMPOTENCY_KEY_REUSED` con otra fecha), pero entra en la huella **solo cuando existe**: la huella de las inmediatas ya guardadas no cambió. La fecha y el monto se validan después de reclamar la llave: un reintento que llega pasada la medianoche se reconoce como reintento en lugar de responder que su fecha ya no es programable, y una petición nueva inválida revierte el reclamo, así que no consume la llave.
+- **Hasta 10,000.00:** `201` con estado `SCHEDULED`, sin asientos y sin tocar saldo ni límite. **Arriba de 10,000.00:** `201` en `PENDING_OTP`, con la fecha en el correo del código ("Programada para el 20 de octubre de 2026, 14:30 (hora de la Ciudad de México)."); al confirmar el código queda `SCHEDULED`, también sin mover dinero ni revalidar.
+- **Validación al programar:** el instante (`422 VALIDATION_FAILED` en `/scheduledFor` con `DATE_OUT_OF_RANGE` si queda fuera de la ventana, o `INVALID_FORMAT` si no es RFC 3339 con desfase, no existe o trae segundos), las mismas reglas de propiedad, monto, concepto y referencia que una inmediata, y que una programada a un tercero no supere el límite diario (`TOO_LARGE` en `/amount`: nunca podría ejecutarse). El saldo y el límite **de hoy** no se validan: se validan al ejecutar.
+- **Idempotencia:** la fecha forma parte del contenido que se compara (`IDEMPOTENCY_KEY_REUSED` con otra fecha), pero entra en la huella **solo cuando existe** (como instante ISO UTC, así que `...-06:00` y `...Z` equivalentes dan la misma huella): la huella de las inmediatas ya guardadas no cambió. La fecha y el monto se validan después de reclamar la llave: un reintento que llega pasada la medianoche se reconoce como reintento en lugar de responder que su fecha ya no es programable, y una petición nueva inválida revierte el reclamo, así que no consume la llave.
 - **Tope:** 20 activas por usuario (las `SCHEDULED` y las programadas en `PENDING_OTP` vigentes). La número 21 responde `422 SCHEDULED_LIMIT_REACHED` sin guardarse ni consumir la llave.
 - **Consultar y cancelar:** `GET /transfers/scheduled` (`listScheduledTransfers`) devuelve las `SCHEDULED` del usuario por fecha y luego por creación. `POST /transfers/{transferId}/cancel` (`cancelTransfer`) pasa una `SCHEDULED` a `CANCELLED` con `cancelledAt`; cancelarla otra vez responde `200` sin cambios y cualquier otro estado, `409 TRANSFER_NOT_CANCELLABLE` con `transferStatus`.
 - Hasta ejecutarse, una programada no aparece en el historial ni consume límite. `GET /transfers/{transferId}` muestra `scheduledFor` en cualquier estado y `cancelledAt` en las canceladas.
@@ -190,7 +190,7 @@ La migración `1760600000000-audit-statement-exported` agrega `STATEMENT_EXPORTE
 | `SCHEDULER_INTERVAL_MS` | `60000`           | Cada cuánto corre una pasada; de 1,000 a 3,600,000                                             |
 | `SCHEDULER_BATCH_SIZE`  | `100`             | Candidatas por lote (1 a 1,000); si un lote viene lleno, la pasada sigue con el siguiente lote |
 
-Una pasada lee sin bloqueo las `SCHEDULED` con `scheduled_for` menor o igual al día de hoy en la Ciudad de México, en orden de fecha y creación (índice parcial `ix_transfers_scheduled_due`), y ejecuta cada una en su propia transacción:
+Una pasada lee sin bloqueo las `SCHEDULED` con `scheduled_for` menor o igual al instante actual, en orden de instante y creación (índice parcial `ix_transfers_scheduled_due`), y ejecuta cada una en su propia transacción:
 
 1. Si es a un tercero, crea y bloquea la fila contador del límite del usuario para el día de ahora.
 2. Bloquea la transferencia con `SELECT … WHERE id = $1 AND status = 'SCHEDULED' FOR NO KEY UPDATE SKIP LOCKED`. Sin fila: otra instancia o una cancelación la tiene, o ya cambió de estado; se deja y se sigue.
@@ -212,11 +212,11 @@ Cada programada se ejecuta exactamente una vez aunque corran varias instancias d
 
 Lo demuestran las pruebas de `test/integration/concurrency/` (`scheduled-runners`, `cancel-race`, `scheduled-cap-race`): dos ejecutores sobre 50 vencidas con conciliación, el ejecutor contra transferencias manuales de la misma cuenta, las tres variantes de la carrera con la cancelación (con barreras dentro de las transacciones) y el tope con dos peticiones simultáneas. Como alternativa en AWS queda EventBridge Scheduler invocando `runOnce` cada minuto en una tarea aparte.
 
-Las migraciones `1760700000000-scheduled-transfers` (columnas, estados, constraints e índices parciales) y `1760700001000-audit-scheduled-transfers` (catálogo de la bitácora) necesitan `npm run db:migrate` en una base creada antes. El `down` de la primera se niega mientras exista alguna transferencia programada (pendiente, ejecutada o cancelada), para no borrar sus fechas.
+Las migraciones `1760800000000-optional-transfer-reference` (`reference` admite `NULL`; los fondeos pasan a `NULL`) y `1760800001000-scheduled-for-instant` (`scheduled_for` de `date` a `timestamptz`; las filas existentes quedan a las 09:00 de America/Mexico_City de su día) se aplican igual con `npm run db:migrate`; su `down` pierde la hora y la distinción entre referencia 0 y ninguna. Las migraciones `1760700000000-scheduled-transfers` (columnas, estados, constraints e índices parciales) y `1760700001000-audit-scheduled-transfers` (catálogo de la bitácora) necesitan `npm run db:migrate` en una base creada antes. El `down` de la primera se niega mientras exista alguna transferencia programada (pendiente, ejecutada o cancelada), para no borrar sus fechas.
 
 ### Verlas ejecutarse en local
 
-Una programada vence a las 00:00 de su fecha; para no esperar a la medianoche, se adelanta su fecha en la base:
+Una programada vence en su minuto exacto y el ejecutor corre cada 60 s por omisión (`SCHEDULER_INTERVAL_MS=60000`), así que se ejecuta como mucho un minuto después. Para no esperar, se adelanta su instante en la base:
 
 ```bash
 # 1. Pasadas cada 5 s: en .env, SCHEDULER_INTERVAL_MS=5000; después `npm run dev`.
@@ -229,17 +229,17 @@ FROM=$(curl -s localhost:4000/accounts -H "Authorization: Bearer $TOKEN" \
 LUIS=$(curl -s localhost:4000/beneficiaries -H "Authorization: Bearer $TOKEN" \
   | jq -r '.items[] | select(.alias == "Luis") | .id')
 
-# 3. Programar 100.00 para mañana (fecha de la Ciudad de México)
-TOMORROW=$(TZ=America/Mexico_City date -d tomorrow +%F)
+# 3. Programar 100.00 para dentro de una hora (minutos exactos, con desfase)
+TOMORROW=$(date -d '+1 hour' +%Y-%m-%dT%H:%M:00%:z)
 ID=$(curl -s localhost:4000/transfers -H "Authorization: Bearer $TOKEN" \
   -H "Idempotency-Key: $(uuidgen)" -H 'Content-Type: application/json' \
   -d "{\"fromAccountId\":\"$FROM\",\"destination\":{\"type\":\"BENEFICIARY\",\"beneficiaryId\":\"$LUIS\"},\"amount\":\"100.00\",\"concept\":\"Prueba programada\",\"reference\":\"1\",\"scheduledFor\":\"$TOMORROW\"}" \
   | jq -r .id)
 curl -s localhost:4000/transfers/scheduled -H "Authorization: Bearer $TOKEN" | jq '.items[] | {id, status, scheduledFor}'
 
-# 4. "Llega" su fecha: solo en desarrollo, con el rol dueño
+# 4. "Llega" su hora: solo en desarrollo, con el rol dueño
 docker compose exec -T postgres psql -U wallet_migrator -d wallet -c \
-  "UPDATE app.transfers SET scheduled_for = (now() AT TIME ZONE 'America/Mexico_City')::date
+  "UPDATE app.transfers SET scheduled_for = date_trunc('minute', now())
     WHERE id = '$ID' AND status = 'SCHEDULED'"
 
 # 5. En menos de 5 s el log de la API muestra "scheduled transfers pass" con completed: 1

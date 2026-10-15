@@ -1,21 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  longSpanishDate,
   scheduledFailureEmail,
   transferOtpEmail,
 } from '../../../src/modules/transfers/application/transfer-emails.js';
 import { Money } from '../../../src/shared/money.js';
-
-describe('TRF-28 fecha programada en palabras', () => {
-  it.each([
-    ['2026-10-20', '20 de octubre de 2026'],
-    ['2027-01-01', '1 de enero de 2027'],
-    ['2028-02-29', '29 de febrero de 2028'],
-    ['2026-12-31', '31 de diciembre de 2026'],
-  ])('TRF-28 %s se escribe "%s" sin pasar por zonas horarias', (day, text) => {
-    expect(longSpanishDate(day)).toBe(text);
-  });
-});
 
 describe('TRF-28 correo del OTP de una programada', () => {
   const base = {
@@ -26,10 +14,12 @@ describe('TRF-28 correo del OTP de una programada', () => {
     minutes: 5,
   };
 
-  it('TRF-28 con fecha, el correo dice "Programada para el 20 de octubre de 2026." en texto y HTML', () => {
-    const email = transferOtpEmail({ ...base, scheduledFor: '2026-10-20' });
+  it('TRF-28 con fecha y hora, el correo dice "Programada para el 20 de octubre de 2026, 14:30" en hora de CDMX, en texto y HTML', () => {
+    // 20:30 UTC = 14:30 en CDMX (UTC-6, sin horario de verano)
+    const email = transferOtpEmail({ ...base, scheduledFor: new Date('2026-10-20T20:30:00.000Z') });
     for (const body of [email.text, email.html]) {
-      expect(body).toContain('Programada para el 20 de octubre de 2026.');
+      expect(body).toContain('Programada para el 20 de octubre de 2026, 14:30');
+      expect(body).not.toContain('null');
       expect(body).toContain('$15,000.00');
       expect(body).toContain('0031');
     }
@@ -47,17 +37,17 @@ describe('TRF-35 aviso de falla de una programada', () => {
     amount: Money.parse('1000.00'),
     destinationName: 'Luis',
     clabeLast4: '0031',
-    scheduledFor: '2026-10-15',
+    scheduledFor: new Date('2026-10-15T15:05:00.000Z'), // 09:05 en CDMX
   };
 
-  it('TRF-35 por saldo: monto, destino, últimos 4 dígitos, fecha en palabras y "saldo insuficiente"', () => {
+  it('TRF-35 por saldo: monto, destino, últimos 4 dígitos, fecha y hora en palabras y "saldo insuficiente"', () => {
     const email = scheduledFailureEmail({ ...base, reason: 'INSUFFICIENT_FUNDS' });
     expect(email.subject).toBe('Tu transferencia programada no se realizó');
     for (const body of [email.text, email.html]) {
       expect(body).toContain('$1,000.00');
       expect(body).toContain('Luis');
       expect(body).toContain('0031');
-      expect(body).toContain('15 de octubre de 2026');
+      expect(body).toContain('15 de octubre de 2026, 09:05');
       expect(body).toContain('saldo insuficiente');
     }
   });

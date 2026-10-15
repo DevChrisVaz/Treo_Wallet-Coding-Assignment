@@ -46,7 +46,7 @@ async function scheduleOwn(t: TestApp, user: LedgerUser, amount: string, referen
     amount,
     concept: 'Ahorro programado',
     reference,
-    scheduledFor: '2026-10-15',
+    scheduledFor: '2026-10-15T06:00:00.000Z',
   });
   expect(res.status).toBe(201);
   return res.body.id as string;
@@ -65,7 +65,7 @@ async function scheduleTo(
     amount,
     concept: 'Pago programado',
     reference,
-    scheduledFor: '2026-10-15',
+    scheduledFor: '2026-10-15T06:00:00.000Z',
   });
   expect(res.status).toBe(201);
   return res.body.id as string;

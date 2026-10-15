@@ -4,15 +4,17 @@ import {
   type MovementPage,
 } from '@devchrisvaz/wallet-contract';
 import { problemMessage } from '@devchrisvaz/wallet-design-tokens';
-import { screen, within } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { bffGet } from '@/lib/client/bff';
 import { queryKeys } from '@/lib/client/query-keys';
 import { AHORRO, DAILY_LIMIT, OVERVIEW, PRINCIPAL, movement } from '@/test/fixtures';
+import { SessionUserProvider } from '@/lib/client/session-user';
 import { renderWithClient } from '@/test/support/render';
 import { AccountsOverviewScreen } from './AccountsOverviewScreen';
+import { CLIPBOARD_ERROR } from './ReceiveSheet';
 
 vi.mock('@/lib/client/bff', () => ({ bffGet: vi.fn() }));
 
@@ -203,5 +205,154 @@ describe('AccountsOverviewScreen', () => {
     await screen.findByRole('article', { name: 'Principal' });
     await screen.findByText(/Renta de octubre/);
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  describe('Recibir (WEB-35)', () => {
+    function renderHome() {
+      reads();
+      return renderWithClient(
+        <SessionUserProvider user={{ name: 'Ana Gómez Castillo', email: 'ana@example.com' }}>
+          <AccountsOverviewScreen />
+        </SessionUserProvider>,
+      );
+    }
+
+    async function openReceive(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(await screen.findByRole('button', { name: 'Recibir' }));
+      return screen.getByRole('dialog', { name: 'Recibir dinero' });
+    }
+
+    it('WEB-28 "Recibir" va después de "Transferir" en las acciones rápidas', async () => {
+      renderHome();
+      await screen.findByRole('button', { name: 'Recibir' });
+      const labels = screen
+        .getAllByRole('listitem')
+        .map((item) => item.textContent)
+        .filter((text) => ['Transferir', 'Recibir', 'Movimientos'].includes(text ?? ''));
+      expect(labels).toEqual(['Transferir', 'Recibir', 'Movimientos']);
+    });
+
+    it('WEB-28 la tarjeta no ofrece "Mostrar CLABE": solo la CLABE enmascarada', async () => {
+      renderHome();
+      await screen.findByRole('article', { name: 'Principal' });
+      expect(screen.queryByRole('button', { name: /Mostrar CLABE|Ocultar CLABE/ })).toBeNull();
+      expect(screen.queryByText(PRINCIPAL.clabe)).toBeNull();
+    });
+
+    it('WEB-35 abre "Recibir dinero" con la cuenta de Inicio, Titular, Banco, Cuenta y la CLABE agrupada', async () => {
+      const user = userEvent.setup();
+      renderHome();
+      const dialog = await openReceive(user);
+
+      expect(within(dialog).getByRole('radio', { name: 'Principal' })).toBeChecked();
+      expect(within(dialog).getByRole('radio', { name: 'Ahorro' })).not.toBeChecked();
+      expect(within(dialog).getByText('Ana Gómez Castillo')).toBeVisible();
+      expect(within(dialog).getByText('TreoWallet')).toBeVisible();
+      expect(within(dialog).getByText('0321 8000 0118 3597 19')).toBeVisible();
+      expect(
+        within(dialog).getByText(
+          'Comparte estos datos para que te transfieran desde otra cuenta TreoWallet.',
+        ),
+      ).toBeVisible();
+    });
+
+    it('WEB-35 preselecciona la cuenta elegida en Inicio', async () => {
+      const user = userEvent.setup();
+      renderHome();
+      await user.click(await screen.findByRole('button', { name: 'Ahorro' }));
+      const dialog = await openReceive(user);
+      expect(within(dialog).getByRole('radio', { name: 'Ahorro' })).toBeChecked();
+      expect(within(dialog).getByText('0321 8000 0118 3597 22')).toBeVisible();
+    });
+
+    it('WEB-35 cambiar de cuenta en el selector cambia la cuenta y la CLABE, con las flechas también', async () => {
+      const user = userEvent.setup();
+      renderHome();
+      const dialog = await openReceive(user);
+
+      await user.click(within(dialog).getByRole('radio', { name: 'Ahorro' }));
+      expect(within(dialog).getByText('0321 8000 0118 3597 22')).toBeVisible();
+      expect(within(dialog).queryByText('0321 8000 0118 3597 19')).toBeNull();
+
+      await user.keyboard('{ArrowLeft}');
+      expect(within(dialog).getByRole('radio', { name: 'Principal' })).toBeChecked();
+      expect(within(dialog).getByRole('radio', { name: 'Principal' })).toHaveFocus();
+      expect(within(dialog).getByText('0321 8000 0118 3597 19')).toBeVisible();
+    });
+
+    it('WEB-35 "Copiar CLABE" copia los 18 dígitos sin espacios y muestra "CLABE copiada" anunciada', async () => {
+      const user = userEvent.setup();
+      renderHome();
+      const dialog = await openReceive(user);
+
+      await user.click(within(dialog).getByRole('radio', { name: 'Ahorro' }));
+      await user.click(within(dialog).getByRole('button', { name: 'Copiar CLABE' }));
+
+      expect(await navigator.clipboard.readText()).toBe(AHORRO.clabe);
+      expect(AHORRO.clabe).toMatch(/^\d{18}$/);
+      expect(await within(dialog).findByRole('button', { name: 'CLABE copiada' })).toBeVisible();
+      expect(within(dialog).getByRole('status')).toHaveTextContent('CLABE copiada');
+    });
+
+    it('WEB-35 "CLABE copiada" vuelve a "Copiar CLABE" a los pocos segundos', async () => {
+      const user = userEvent.setup({ advanceTimers: (ms) => vi.advanceTimersByTime(ms) });
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        renderHome();
+        const dialog = await openReceive(user);
+        await user.click(within(dialog).getByRole('button', { name: 'Copiar CLABE' }));
+        await within(dialog).findByRole('button', { name: 'CLABE copiada' });
+
+        act(() => {
+          vi.advanceTimersByTime(3500);
+        });
+        expect(within(dialog).getByRole('button', { name: 'Copiar CLABE' })).toBeVisible();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('WEB-35 si el portapapeles falla avisa y deja la CLABE a la vista', async () => {
+      const user = userEvent.setup();
+      renderHome();
+      vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new Error('denegado'));
+      const dialog = await openReceive(user);
+
+      await user.click(within(dialog).getByRole('button', { name: 'Copiar CLABE' }));
+
+      expect(await within(dialog).findByRole('alert')).toHaveTextContent(CLIPBOARD_ERROR);
+      expect(within(dialog).getByRole('button', { name: 'Copiar CLABE' })).toBeVisible();
+      expect(within(dialog).getByText('0321 8000 0118 3597 19')).toBeVisible();
+    });
+
+    it('WEB-35 Escape la cierra y al reabrirla vuelve a la cuenta de Inicio', async () => {
+      const user = userEvent.setup();
+      renderHome();
+      const dialog = await openReceive(user);
+      await user.click(within(dialog).getByRole('radio', { name: 'Ahorro' }));
+
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('dialog', { name: 'Recibir dinero' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Recibir' })).toHaveFocus();
+
+      const reopened = await openReceive(user);
+      expect(within(reopened).getByRole('radio', { name: 'Principal' })).toBeChecked();
+    });
+
+    it('WEB-35 sin la sesión (pantalla sola) omite el Titular en lugar de inventarlo', async () => {
+      const user = userEvent.setup();
+      reads();
+      renderWithClient(<AccountsOverviewScreen />);
+      const dialog = await openReceive(user);
+      expect(within(dialog).queryByText('Titular')).toBeNull();
+      expect(within(dialog).getByText('Banco')).toBeVisible();
+    });
+
+    it('WEB-23 la hoja no tiene problemas de accesibilidad', async () => {
+      const user = userEvent.setup();
+      renderHome();
+      const dialog = await openReceive(user);
+      expect(await axe(dialog)).toHaveNoViolations();
+    });
   });
 });

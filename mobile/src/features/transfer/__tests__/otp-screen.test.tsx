@@ -28,7 +28,7 @@ async function reachOtp(fake: FakeApi) {
   const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
   await user.type(await screen.findByLabelText('Monto'), '15000');
   await user.type(screen.getByLabelText('Concepto'), 'Renta');
-  await user.type(screen.getByLabelText('Referencia'), '1');
+  await user.type(screen.getByLabelText('Referencia (opcional)'), '1');
   await user.press(screen.getByRole('button', { name: 'Continuar' }));
   await user.press(await screen.findByRole('button', { name: 'Enviar' }));
   await screen.findByLabelText('Código de 6 dígitos');
@@ -108,7 +108,7 @@ describe('confirmación con OTP', () => {
       await screen.findByText('El código venció. Crea la transferencia de nuevo.'),
     ).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Intentar de nuevo' }));
-    expect(screen.getByLabelText('Monto')).toHaveDisplayValue('15000');
+    expect(screen.getByLabelText('Monto')).toHaveDisplayValue('15,000');
   });
 
   test('MOB-12 si el correo no se envió lo indica y permite reenviar el código', async () => {

@@ -5,8 +5,10 @@ import { axe } from 'vitest-axe';
 import { CONNECTION_ERROR } from '@/lib/client/problem-messages';
 import { PRINCIPAL } from '@/test/fixtures';
 import { deferred, problemResponse } from '@/test/support/fake-api';
-import { StatementDownload } from './StatementDownload';
+import { PERIOD_BEFORE_CREATION, StatementDownload } from './StatementDownload';
 
+/** Cuenta abierta hace más de un año: ofrece los 13 meses de siempre. */
+const CREATED_AT = '2025-10-03T15:00:00.000Z';
 const FILENAME = 'estado-de-cuenta-2026-09-0015.pdf';
 const PDF_BYTES = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x33, 0xff]);
 
@@ -54,7 +56,11 @@ describe('StatementDownload', () => {
     // El reloj dice mayo de 2024, como en la captura de design-sync; la fecha de la historia manda.
     vi.setSystemTime(new Date('2024-05-15T12:00:00.000Z'));
     render(
-      <StatementDownload accountId={PRINCIPAL.id} now={new Date('2026-10-13T18:00:00.000Z')} />,
+      <StatementDownload
+        accountId={PRINCIPAL.id}
+        createdAt={CREATED_AT}
+        now={new Date('2026-10-13T18:00:00.000Z')}
+      />,
     );
     const select = screen.getByLabelText<HTMLSelectElement>('Mes');
     const options = within(select).getAllByRole('option');
@@ -64,7 +70,7 @@ describe('StatementDownload', () => {
   });
 
   it('WEB-32 el 14 de octubre de 2026 ofrece "octubre 2026 (en curso)" y de octubre de 2025 a septiembre de 2026, con septiembre seleccionado', () => {
-    render(<StatementDownload accountId={PRINCIPAL.id} />);
+    render(<StatementDownload accountId={PRINCIPAL.id} createdAt={CREATED_AT} />);
     const select = screen.getByLabelText<HTMLSelectElement>('Mes');
     const options = within(select)
       .getAllByRole('option')
@@ -91,7 +97,7 @@ describe('StatementDownload', () => {
   it('WEB-32 "Descargar PDF" pide septiembre 2026 al BFF y guarda el PDF con el nombre de Content-Disposition', async () => {
     fetchMock.mockResolvedValue(pdfResponse());
     const user = userEvent.setup();
-    render(<StatementDownload accountId={PRINCIPAL.id} />);
+    render(<StatementDownload accountId={PRINCIPAL.id} createdAt={CREATED_AT} />);
 
     await user.click(button());
 
@@ -109,7 +115,7 @@ describe('StatementDownload', () => {
   it('WEB-32 descarga el mes elegido en el selector', async () => {
     fetchMock.mockResolvedValue(pdfResponse());
     const user = userEvent.setup();
-    render(<StatementDownload accountId={PRINCIPAL.id} />);
+    render(<StatementDownload accountId={PRINCIPAL.id} createdAt={CREATED_AT} />);
 
     await user.selectOptions(screen.getByLabelText('Mes'), 'octubre 2026 (en curso)');
     await user.click(button());
@@ -124,7 +130,7 @@ describe('StatementDownload', () => {
     const response = deferred<Response>();
     fetchMock.mockReturnValue(response.promise);
     const user = userEvent.setup();
-    render(<StatementDownload accountId={PRINCIPAL.id} />);
+    render(<StatementDownload accountId={PRINCIPAL.id} createdAt={CREATED_AT} />);
     const download = button();
 
     await user.dblClick(download);
@@ -146,7 +152,7 @@ describe('StatementDownload', () => {
       problemResponse(429, { code: 'RATE_LIMITED', requestId: 'api-9' }, { 'Retry-After': '60' }),
     );
     const user = userEvent.setup();
-    render(<StatementDownload accountId={PRINCIPAL.id} />);
+    render(<StatementDownload accountId={PRINCIPAL.id} createdAt={CREATED_AT} />);
 
     await user.click(button());
 
@@ -163,7 +169,7 @@ describe('StatementDownload', () => {
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     fetchMock.mockResolvedValueOnce(pdfResponse());
     const user = userEvent.setup();
-    render(<StatementDownload accountId={PRINCIPAL.id} />);
+    render(<StatementDownload accountId={PRINCIPAL.id} createdAt={CREATED_AT} />);
 
     await user.click(button());
     expect(await screen.findByRole('alert')).toHaveTextContent(CONNECTION_ERROR);
@@ -173,10 +179,47 @@ describe('StatementDownload', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('WEB-32 una cuenta creada en agosto de 2026 ofrece de octubre a agosto, con septiembre seleccionado', () => {
+    render(<StatementDownload accountId={PRINCIPAL.id} createdAt="2026-08-20T15:00:00.000Z" />);
+    const select = screen.getByLabelText<HTMLSelectElement>('Mes');
+    expect(
+      within(select)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['octubre 2026 (en curso)', 'septiembre 2026', 'agosto 2026']);
+    expect(select.value).toBe('2026-09');
+  });
+
+  it('WEB-32 una cuenta creada este mes ofrece solo el mes en curso, seleccionado', () => {
+    render(<StatementDownload accountId={PRINCIPAL.id} createdAt="2026-10-02T15:00:00.000Z" />);
+    const select = screen.getByLabelText<HTMLSelectElement>('Mes');
+    expect(within(select).getAllByRole('option')).toHaveLength(1);
+    expect(select.value).toBe('2026-10');
+  });
+
+  it('WEB-32 un 422 en /period muestra un mensaje claro y no descarga nada', async () => {
+    fetchMock.mockResolvedValue(
+      problemResponse(422, {
+        code: 'VALIDATION_FAILED',
+        requestId: 'api-3',
+        errors: [{ pointer: '/period', code: 'DATE_OUT_OF_RANGE', message: 'Fuera de rango' }],
+      }),
+    );
+    const user = userEvent.setup();
+    render(<StatementDownload accountId={PRINCIPAL.id} createdAt={CREATED_AT} />);
+
+    await user.click(button());
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(PERIOD_BEFORE_CREATION);
+    expect(saved).toEqual([]);
+  });
+
   it('WEB-23 el selector tiene etiqueta y axe no reporta problemas, tampoco con el error a la vista', async () => {
     fetchMock.mockResolvedValue(problemResponse(404, { code: 'NOT_FOUND', requestId: 'api-1' }));
     const user = userEvent.setup();
-    const { container } = render(<StatementDownload accountId={PRINCIPAL.id} />);
+    const { container } = render(
+      <StatementDownload accountId={PRINCIPAL.id} createdAt={CREATED_AT} />,
+    );
     expect(await axe(container)).toHaveNoViolations();
 
     await user.click(button());

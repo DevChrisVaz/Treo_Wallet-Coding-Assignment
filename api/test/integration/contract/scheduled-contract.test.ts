@@ -42,27 +42,39 @@ describe('TRF-34 conformidad con el contrato de las programadas', () => {
     const key = randomUUID();
     const scheduled = record(
       'createTransfer',
-      await api.post('/transfers').set('Idempotency-Key', key).send(body('1000.00', '2026-10-15')),
+      await api
+        .post('/transfers')
+        .set('Idempotency-Key', key)
+        .send(body('1000.00', '2026-10-15T06:00:00.000Z')),
     );
     expect(scheduled.status).toBe(201);
-    expect(scheduled.body).toMatchObject({ status: 'SCHEDULED', scheduledFor: '2026-10-15' });
+    expect(scheduled.body).toMatchObject({
+      status: 'SCHEDULED',
+      scheduledFor: '2026-10-15T06:00:00.000Z',
+    });
     const replay = record(
       'createTransfer',
-      await api.post('/transfers').set('Idempotency-Key', key).send(body('1000.00', '2026-10-15')),
+      await api
+        .post('/transfers')
+        .set('Idempotency-Key', key)
+        .send(body('1000.00', '2026-10-15T06:00:00.000Z')),
     );
     expect(replay.status).toBe(200);
     expect(replay.headers['idempotent-replayed']).toBe('true');
     const withOtp = await api
       .post('/transfers')
       .set('Idempotency-Key', randomUUID())
-      .send(body('15000.00', '2026-10-20'));
-    expect(withOtp.body).toMatchObject({ status: 'PENDING_OTP', scheduledFor: '2026-10-20' });
+      .send(body('15000.00', '2026-10-20T15:00:00.000Z'));
+    expect(withOtp.body).toMatchObject({
+      status: 'PENDING_OTP',
+      scheduledFor: '2026-10-20T15:00:00.000Z',
+    });
     const outOfRange = record(
       'createTransfer',
       await api
         .post('/transfers')
         .set('Idempotency-Key', randomUUID())
-        .send(body('1000.00', '2026-10-14')),
+        .send(body('1000.00', '2026-10-14T15:00:00.000Z')),
     );
     expect(outOfRange.status).toBe(422);
     expect(outOfRange.body.errors).toEqual([
@@ -107,7 +119,7 @@ describe('TRF-34 conformidad con el contrato de las programadas', () => {
       await api
         .post('/transfers')
         .set('Idempotency-Key', randomUUID())
-        .send(body('1.00', '2026-10-15')),
+        .send(body('1.00', '2026-10-15T06:00:00.000Z')),
     );
     expect(capped.status).toBe(422);
     expect(capped.body.code).toBe('SCHEDULED_LIMIT_REACHED');

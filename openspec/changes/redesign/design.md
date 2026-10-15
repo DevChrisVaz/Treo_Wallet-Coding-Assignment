@@ -172,6 +172,8 @@ Conceptos de interfaz agregados en el prototipo:
 | desplegar | `ChevronDown` | filtros | `SlidersHorizontal` |
 | cuenta | `UserRound` | | |
 
+Al integrar las transferencias programadas (fase B, P1) se agregó el concepto `scheduled` → `CalendarClock`, para que "Programadas" no repita el icono de "Transferir" en la navegación lateral. Es aditivo: el paquete pasó a 1.3.0.
+
 **Resplandor del *hero*:** es un círculo de 192 px (`spacing[16] × 3`) desplazado 64 px hacia arriba y a la derecha, fuera de la esquina superior derecha. Lleva un degradado radial de `accent.onDark`, del 35 % de opacidad en el centro a transparente en el 70 % del radio. En la web es un `radial-gradient` con `color-mix`; en móvil es un `RadialGradient` de `react-native-svg`. En ambos casos es decorativo y se oculta a los lectores de pantalla.
 
 **Decisiones de detalle que cambian lo escrito arriba:**
@@ -186,3 +188,9 @@ Conceptos de interfaz agregados en el prototipo:
 - **Espaciado de la forma de app.** El contenido de las pestañas empieza 36 px bajo el encabezado, en web y en móvil. En móvil, la pantalla no reserva el alto de la barra de pestañas, que es hermana de la pantalla y no la tapa.
 - **Comprobante.** No lleva título visible: el encabezado es solo para lectores de pantalla. Muestra la cuenta de origen como "Principal · •••• 9719" en ambas plataformas. El icono sigue el tono del estado: éxito si se completó y error si falló o se rechazó.
 - **Paridad medida.** Las 15 parejas de pantallas web y móvil a 390×844 salen idénticas, con diferencias solo de suavizado o con diferencias por diseño. La tabla está en `web/.design-sync/NOTES.md`, sección "Paridad".
+
+**Decisiones al integrar los bonus (fase B).** Los bonus llegaron a la rama principal después de aprobar las historias. Son funciones propias de cada plataforma: llevan el lenguaje del rediseño, no tienen pareja y quedan "por diseño" en la paridad.
+
+- **Estado de cuenta (web):** en su propia tarjeta, "Estado de cuenta", después del historial de Movimientos.
+- **Programadas (web):** "Cuándo" en el paso del monto, en la revisión y en el resumen; el resultado "Transferencia programada"; "Programada para" en el comprobante. La página "Programadas" está en la navegación lateral del *dashboard*. En teléfono, la barra de pestañas conserva las cuatro pestañas de la app y se llega desde el paso del destinatario (escenario "Programadas en teléfono" de WEB-27).
+- **Desbloqueo biométrico (móvil):** sin cambios de comportamiento. La pantalla de bloqueo va sobre `BrandScreen`, la oferta queda en Inicio debajo del *hero* y el interruptor pasa al menú de la cuenta, junto a "Cerrar sesión".

@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
+import { ReceiveSheet } from '@/components/accounts/ReceiveSheet';
 import { ErrorState, LoadingState } from '@/components/states/states';
 import { AccountCard } from '@/components/ui/AccountCard';
 import { BalanceHero } from '@/components/ui/BalanceHero';
@@ -13,17 +15,21 @@ import { QuickActions } from '@/components/ui/QuickActions';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { selectedAccount, useAccountSelection } from '@/lib/client/account-selection';
 import { useAccountsOverview, useLatestMovements } from '@/lib/client/queries';
+import { useSessionUser } from '@/lib/client/session-user';
 import { sumAmounts } from '@/lib/money';
 
 /**
  * Inicio (WEB-28, amplía WEB-13): hero con el saldo total (suma en centavos, sin floats) y lo que
  * queda del límite diario tal como lo devuelve la API, tarjetas que seleccionan la cuenta, el medidor
  * del límite y los últimos 5 movimientos de la cuenta elegida con "Ver todos". Saldos con
- * `formatMXN`; el navegador no recalcula el límite ni hace otra aritmética con montos.
+ * `formatMXN`; el navegador no recalcula el límite ni hace otra aritmética con montos. "Recibir"
+ * (WEB-35) abre la hoja con los datos para recibir de la cuenta elegida.
  */
 export function AccountsOverviewScreen() {
   const overview = useAccountsOverview();
   const { accountId, select } = useAccountSelection();
+  const sessionUser = useSessionUser();
+  const [receiveOpen, setReceiveOpen] = useState(false);
   const accounts = overview.data?.accounts ?? [];
   const selected = selectedAccount(accounts, accountId);
 
@@ -82,6 +88,12 @@ export function AccountsOverviewScreen() {
                 icon: 'transfer',
                 href: `/transfers/new?from=${selected.id}`,
               },
+              {
+                key: 'receive',
+                label: 'Recibir',
+                icon: 'moneyIn',
+                onClick: () => setReceiveOpen(true),
+              },
               { key: 'movements', label: 'Movimientos', icon: 'movements', href: history },
             ]}
           />
@@ -119,6 +131,13 @@ export function AccountsOverviewScreen() {
           <LatestMovements accountId={selected.id} />
         </ListSection>
       </div>
+      <ReceiveSheet
+        open={receiveOpen}
+        onClose={() => setReceiveOpen(false)}
+        accounts={accounts}
+        initialAccountId={selected.id}
+        holder={sessionUser?.name ?? null}
+      />
     </>
   );
 }

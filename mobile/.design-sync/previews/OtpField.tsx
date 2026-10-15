@@ -2,7 +2,13 @@ import { Button, InlineAlert, OtpField, Text, View, theme } from 'wallet-mobile-
 
 const noop = () => {};
 
-const frame = { width: 360, gap: theme.spacing[4], padding: theme.spacing[4] };
+// Lienzo de la app (surface.canvas) a ancho de teléfono, con el margen de pantalla.
+const frame = {
+  width: 390,
+  gap: theme.spacing[4],
+  padding: theme.spacing[5],
+  backgroundColor: theme.colors.surface.canvas,
+};
 
 const body = { ...theme.typography.body, color: theme.colors.text.primary };
 const meta = { ...theme.typography.bodySm, ...theme.amount, color: theme.colors.text.secondary };
@@ -36,20 +42,24 @@ export const Confirming = () => (
   </View>
 );
 
+// El paso "Código" del flujo: el aviso, el vencimiento, los intentos y el campo (en la app, las
+// acciones van en el pie fijo de la pantalla).
 export const ConfirmationStep = () => (
   <View style={frame}>
-    <Text style={body}>Te enviamos un código de 6 dígitos a a•••@example.com.</Text>
-    <Text style={meta}>El código vence en 4:32.</Text>
-    <Text style={meta}>Te quedan 3 intentos.</Text>
-    <OtpField value="4829" onChangeText={noop} />
-    <Button label="Confirmar" disabled onPress={noop} />
+    <Text style={body}>Te enviamos un código de 6 dígitos a an***@example.com.</Text>
+    <View style={{ gap: theme.spacing[1] }}>
+      <Text style={meta}>El código vence en 4:32.</Text>
+      <Text style={meta}>Te quedan 3 intentos.</Text>
+    </View>
+    <OtpField value="482913" onChangeText={noop} />
+    <Button label="Confirmar" onPress={noop} />
     <Button label="Reenviar código" variant="ghost" onPress={noop} />
   </View>
 );
 
 export const DeliveryFailed = () => (
   <View style={frame}>
-    <Text style={body}>Te enviamos un código de 6 dígitos a a•••@example.com.</Text>
+    <Text style={body}>Te enviamos un código de 6 dígitos a an***@example.com.</Text>
     <InlineAlert
       tone="warning"
       message="No pudimos enviarte el código. Reenvíalo para recibir uno nuevo."

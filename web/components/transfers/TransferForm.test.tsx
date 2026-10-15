@@ -33,7 +33,7 @@ function originOptions(): (string | null)[] {
 async function fillBeneficiaryTransfer(user: ReturnType<typeof userEvent.setup>, amount: string) {
   await user.type(screen.getByLabelText('Monto'), amount);
   await user.type(screen.getByLabelText('Concepto'), 'Renta');
-  await user.type(screen.getByLabelText('Referencia'), '1');
+  await user.type(screen.getByLabelText('Referencia (opcional)'), '1');
   await user.click(screen.getByRole('button', { name: 'Continuar' }));
 }
 
@@ -61,21 +61,55 @@ describe('TransferForm', () => {
     expect(screen.getByTestId('hero-amount-mirror')).toBeInTheDocument();
   });
 
-  it('WEB-25 las ayudas del concepto y de la referencia usan la redacción de la app móvil', () => {
+  it('WEB-25 las ayudas del concepto y de la referencia (opcional, hasta 7 dígitos) usan la redacción de la app móvil', () => {
     renderForm();
     expect(screen.getByLabelText('Concepto')).toHaveAccessibleDescription('De 1 a 40 caracteres.');
-    expect(screen.getByLabelText('Referencia')).toHaveAccessibleDescription('De 1 a 7 dígitos.');
+    expect(screen.getByLabelText('Referencia (opcional)')).toHaveAccessibleDescription(
+      'Hasta 7 dígitos.',
+    );
   });
 
-  it('WEB-21 un monto con tres decimales se rechaza en el formulario, sin redondear', async () => {
-    const { onSubmit, user } = renderForm();
-
-    await fillBeneficiaryTransfer(user, '100.005');
-
+  it('WEB-21 el monto no admite un tercer decimal ni letras: se descartan al teclear', async () => {
+    const { user } = renderForm();
     const amount = screen.getByLabelText('Monto');
-    expect(amount).toHaveAttribute('aria-invalid', 'true');
-    expect(amount).toHaveAccessibleDescription(expect.stringContaining('máximo 2 decimales'));
-    expect(onSubmit).not.toHaveBeenCalled();
+
+    await user.type(amount, '100.005');
+    expect(amount).toHaveValue('100.00');
+
+    await user.clear(amount);
+    await user.type(amount, '1a2b,3$4');
+    expect(amount).toHaveValue('1,234');
+  });
+
+  it('WEB-21 da formato de miles mientras se escribe y al pegar', async () => {
+    const { user } = renderForm();
+    const amount = screen.getByLabelText('Monto');
+
+    await user.type(amount, '12345.67');
+    expect(amount).toHaveValue('12,345.67');
+
+    await user.clear(amount);
+    await user.click(amount);
+    await user.paste('abc 007,000.509xyz');
+    expect(amount).toHaveValue('7,000.50');
+  });
+
+  it('WEB-16 la referencia solo admite dígitos, hasta 7, y es opcional', async () => {
+    const { onSubmit, user } = renderForm();
+    const reference = screen.getByLabelText('Referencia (opcional)');
+    expect(reference).toHaveAttribute('inputmode', 'numeric');
+
+    await user.type(reference, 'a1b2-3');
+    expect(reference).toHaveValue('123');
+    await user.paste('45678999');
+    expect(reference).toHaveValue('1234567');
+
+    await user.clear(reference);
+    await user.type(screen.getByLabelText('Monto'), '200');
+    await user.type(screen.getByLabelText('Concepto'), 'Renta');
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]?.[0].request).not.toHaveProperty('reference');
   });
 
   it('WEB-21 quita los separadores de miles y envía el monto como texto', async () => {
@@ -101,7 +135,7 @@ describe('TransferForm', () => {
     });
     await user.type(screen.getByLabelText('Monto'), '200');
     await user.type(screen.getByLabelText('Concepto'), 'Apartado');
-    await user.type(screen.getByLabelText('Referencia'), '42');
+    await user.type(screen.getByLabelText('Referencia (opcional)'), '42');
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
 
     expect(onSubmit.mock.calls[0]?.[0].request).toMatchObject({
@@ -111,17 +145,13 @@ describe('TransferForm', () => {
     });
   });
 
-  it('WEB-07 valida concepto y referencia con el contrato', async () => {
+  it('WEB-07 valida el concepto con el contrato', async () => {
     const { onSubmit, user } = renderForm();
     await user.type(screen.getByLabelText('Monto'), '10');
-    await user.type(screen.getByLabelText('Referencia'), 'abc');
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
 
     expect(screen.getByLabelText('Concepto')).toHaveAccessibleDescription(
       expect.stringContaining('El concepto es obligatorio'),
-    );
-    expect(screen.getByLabelText('Referencia')).toHaveAccessibleDescription(
-      expect.stringContaining('La referencia solo admite dígitos'),
     );
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -145,6 +175,7 @@ describe('TransferForm', () => {
         reference: '7',
         when: 'NOW',
         scheduledFor: '',
+        scheduledTime: '',
       },
     });
     expect(screen.getByLabelText('Monto')).toHaveValue('15,000');
@@ -182,7 +213,7 @@ describe('TransferForm · programar', () => {
     vi.useRealTimers();
   });
 
-  const OUT_OF_RANGE = 'Elige una fecha entre mañana y 90 días después de hoy';
+  const OUT_OF_RANGE = 'Elige un momento entre 10 minutos y 90 días después de ahora';
   const SCHEDULED_VALUES = {
     fromAccountId: PRINCIPAL.id,
     destinationType: 'BENEFICIARY',
@@ -193,16 +224,22 @@ describe('TransferForm · programar', () => {
     reference: '1',
     when: 'SCHEDULED',
     scheduledFor: '2026-10-20',
+    scheduledTime: '14:30',
   } as const;
 
   /** Con Luis ya elegido en el paso anterior (`TO_LUIS`), como en el flujo por pasos (WEB-30). */
-  async function fillScheduled(user: ReturnType<typeof userEvent.setup>, date: string) {
+  async function fillScheduled(
+    user: ReturnType<typeof userEvent.setup>,
+    date: string,
+    time = '14:30',
+  ) {
     await user.selectOptions(screen.getByLabelText('Cuenta de origen'), PRINCIPAL.id);
     await user.type(screen.getByLabelText('Monto'), '1,000');
     await user.type(screen.getByLabelText('Concepto'), 'Renta');
-    await user.type(screen.getByLabelText('Referencia'), '1');
+    await user.type(screen.getByLabelText('Referencia (opcional)'), '1');
     await user.click(screen.getByRole('radio', { name: 'Programar' }));
     if (date) await user.type(screen.getByLabelText('Fecha de envío'), date);
+    if (time) await user.type(screen.getByLabelText('Hora de envío'), time);
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
   }
 
@@ -212,7 +249,7 @@ describe('TransferForm · programar', () => {
     expect(screen.getByRole('radio', { name: 'Ahora' })).toBeChecked();
   });
 
-  it('WEB-33 con "Programar" y una fecha arma la petición con scheduledFor', async () => {
+  it('WEB-33 con "Programar", fecha y hora arma el instante de la Ciudad de México en scheduledFor', async () => {
     const { onSubmit, user } = renderForm();
 
     await fillScheduled(user, '2026-10-20');
@@ -224,7 +261,8 @@ describe('TransferForm · programar', () => {
       amount: '1000',
       concept: 'Renta',
       reference: '1',
-      scheduledFor: '2026-10-20',
+      // 14:30 en la Ciudad de México (UTC-6) son las 20:30 UTC.
+      scheduledFor: '2026-10-20T20:30:00.000Z',
     });
   });
 
@@ -232,6 +270,7 @@ describe('TransferForm · programar', () => {
     const { onSubmit, user } = renderForm();
     await user.click(screen.getByRole('radio', { name: 'Programar' }));
     await user.type(screen.getByLabelText('Fecha de envío'), '2026-10-20');
+    await user.type(screen.getByLabelText('Hora de envío'), '14:30');
     await user.click(screen.getByRole('radio', { name: 'Ahora' }));
 
     await fillBeneficiaryTransfer(user, '1,000');
@@ -240,14 +279,16 @@ describe('TransferForm · programar', () => {
   });
 
   it.each([
-    ['2026-10-14', 'hoy'],
-    ['2027-01-13', 'a 91 días'],
+    ['2026-10-14', '12:05', 'a 5 minutos'],
+    ['2026-10-14', '11:00', 'en el pasado'],
+    ['2027-01-12', '12:01', 'pasados los 90 días'],
+    ['2027-01-13', '09:00', 'a 91 días'],
   ])(
-    'WEB-33 valida la fecha con el esquema del contrato: %s (%s) queda fuera de rango',
-    async (date) => {
+    'WEB-33 valida el momento con el contrato: %s %s (%s) queda fuera de rango',
+    async (date, time) => {
       const { onSubmit, user } = renderForm();
 
-      await fillScheduled(user, date);
+      await fillScheduled(user, date, time);
 
       const field = screen.getByLabelText('Fecha de envío');
       expect(field).toHaveAttribute('aria-invalid', 'true');
@@ -256,18 +297,31 @@ describe('TransferForm · programar', () => {
     },
   );
 
-  it.each(['2026-10-15', '2027-01-12'])('WEB-33 acepta la fecha límite %s', async (date) => {
+  it.each([
+    ['2026-10-14', '12:10', '2026-10-14T18:10:00.000Z'],
+    ['2027-01-12', '12:00', '2027-01-12T18:00:00.000Z'],
+  ])('WEB-33 acepta el límite %s %s', async (date, time, instant) => {
     const { onSubmit, user } = renderForm();
-    await fillScheduled(user, date);
-    expect(onSubmit.mock.calls[0]?.[0].request).toMatchObject({ scheduledFor: date });
+    await fillScheduled(user, date, time);
+    expect(onSubmit.mock.calls[0]?.[0].request).toMatchObject({ scheduledFor: instant });
   });
 
   it('WEB-33 "Programar" sin fecha pide la fecha', async () => {
     const { onSubmit, user } = renderForm();
     await fillScheduled(user, '');
     expect(screen.getByLabelText('Fecha de envío')).toHaveAccessibleDescription(
-      expect.stringContaining('La fecha es obligatoria'),
+      expect.stringContaining('Elige la fecha de envío'),
     );
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('WEB-33 "Programar" sin hora pide la hora y no marca la fecha', async () => {
+    const { onSubmit, user } = renderForm();
+    await fillScheduled(user, '2026-10-20', '');
+    const time = screen.getByLabelText('Hora de envío');
+    expect(time).toHaveAttribute('aria-invalid', 'true');
+    expect(time).toHaveAccessibleDescription(expect.stringContaining('Elige la hora de envío'));
+    expect(screen.getByLabelText('Fecha de envío')).not.toHaveAttribute('aria-invalid', 'true');
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
@@ -275,6 +329,7 @@ describe('TransferForm · programar', () => {
     renderForm({ initialValues: SCHEDULED_VALUES });
     expect(screen.getByRole('radio', { name: 'Programar' })).toBeChecked();
     expect(screen.getByLabelText('Fecha de envío')).toHaveValue('2026-10-20');
+    expect(screen.getByLabelText('Hora de envío')).toHaveValue('14:30');
   });
 
   it.each([

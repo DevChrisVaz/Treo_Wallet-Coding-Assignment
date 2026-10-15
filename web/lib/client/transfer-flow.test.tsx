@@ -14,6 +14,7 @@ const DRAFT: TransferDraft = {
     reference: '1',
     when: 'NOW',
     scheduledFor: '',
+    scheduledTime: '',
   },
   request: {
     fromAccountId: PRINCIPAL.id,

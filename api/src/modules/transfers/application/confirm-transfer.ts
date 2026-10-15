@@ -159,7 +159,7 @@ export class ConfirmTransfer {
         metadata: {
           kind: transfer.kind,
           amount: amount.toDecimalString(),
-          scheduledFor: transfer.scheduledFor,
+          scheduledFor: transfer.scheduledFor?.toISOString() ?? null,
         },
       });
       return { kind: 'OK' };

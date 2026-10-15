@@ -114,6 +114,18 @@ export async function runSeed(migrator: DataSource, options: SeedOptions): Promi
     generatedUsers: options.generatedUsers,
     fundedAt: window.fundedAt,
   });
+  // Los usuarios y cuentas demo "existen" desde antes de su historial: sin esto el estado de cuenta
+  // de un mes anterior a hoy se rechazaría por ser previo a la apertura de la cuenta (HIS-11).
+  await migrator.query(
+    `UPDATE app.users SET created_at = $1 WHERE created_at > $1 AND email LIKE '%@example.com'`,
+    [window.fundedAt],
+  );
+  await migrator.query(
+    `UPDATE app.accounts SET created_at = $1
+      WHERE created_at > $1
+        AND user_id IN (SELECT id FROM app.users WHERE email LIKE '%@example.com')`,
+    [window.fundedAt],
+  );
   const volume = await seedVolume(migrator, data, {
     transfers: options.transfers,
     batchSize: options.batchSize,

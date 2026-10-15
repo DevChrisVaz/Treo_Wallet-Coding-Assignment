@@ -50,6 +50,101 @@ describe('BeneficiariesScreen', () => {
     expect(bffGetMock).toHaveBeenCalledWith('beneficiaries');
   });
 
+  describe('búsqueda (WEB-36)', () => {
+    const MARIA: Beneficiary = {
+      ...ANA,
+      id: '6b1d0f9e-8c7b-4a6f-8e5d-4c3b2a1f0e9d',
+      name: 'María Gómez',
+      alias: 'Mamá',
+      clabe: '032180000118359791',
+    };
+
+    async function renderSearch() {
+      bffGetMock.mockResolvedValue({ items: [ANA, MARIA, BENEFICIARY] });
+      const user = userEvent.setup();
+      const { container } = renderWithClient(<BeneficiariesScreen />);
+      await screen.findByRole('list', { name: 'Beneficiarios' });
+      return {
+        user,
+        container,
+        field: screen.getByRole('searchbox', { name: 'Buscar beneficiarios' }),
+      };
+    }
+
+    const aliases = () =>
+      within(screen.getByRole('list', { name: 'Beneficiarios' }))
+        .getAllByRole('listitem')
+        .map((row) => row.querySelector('p')?.textContent);
+
+    it('WEB-36 el campo va arriba de la lista con su placeholder', async () => {
+      const { field } = await renderSearch();
+      expect(field).toHaveAttribute('placeholder', 'Buscar por nombre, alias o CLABE');
+      expect(
+        field.compareDocumentPosition(screen.getByRole('list', { name: 'Beneficiarios' })) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it('WEB-36 filtra por nombre o alias sin distinguir mayúsculas ni acentos', async () => {
+      const { user, field } = await renderSearch();
+      await user.type(field, 'MAR');
+      expect(aliases()).toEqual(['Mamá']);
+
+      await user.clear(field);
+      await user.type(field, 'maria gomez');
+      expect(aliases()).toEqual(['Mamá']);
+
+      await user.clear(field);
+      await user.type(field, 'mama');
+      expect(aliases()).toEqual(['Mamá']);
+    });
+
+    it('WEB-36 los dígitos buscan dentro de la CLABE', async () => {
+      const { user, field } = await renderSearch();
+      await user.type(field, '9735');
+      expect(aliases()).toEqual(['Luis']);
+    });
+
+    it('WEB-36 sin coincidencias muestra "Sin resultados" y "Limpiar búsqueda" la vacía y devuelve la lista', async () => {
+      const { user, field } = await renderSearch();
+      await user.type(field, 'Zapata');
+
+      expect(screen.getByRole('heading', { name: 'Sin resultados' })).toBeVisible();
+      expect(screen.getByText('No hay beneficiarios que coincidan con «Zapata».')).toBeVisible();
+      expect(screen.queryByRole('list', { name: 'Beneficiarios' })).toBeNull();
+      expect(field).toBeVisible();
+
+      await user.click(screen.getByRole('button', { name: 'Limpiar búsqueda' }));
+      expect(field).toHaveValue('');
+      expect(aliases()).toEqual(['Ana', 'Mamá', 'Luis']);
+    });
+
+    it('WEB-36 la × y Escape vacían el campo', async () => {
+      const { user, field } = await renderSearch();
+      await user.type(field, 'luis');
+      await user.click(screen.getByRole('button', { name: 'Borrar búsqueda' }));
+      expect(field).toHaveValue('');
+      expect(field).toHaveFocus();
+
+      await user.type(field, 'luis{Escape}');
+      expect(field).toHaveValue('');
+      expect(aliases()).toHaveLength(3);
+    });
+
+    it('WEB-36 sin beneficiarios no hay campo de búsqueda', async () => {
+      bffGetMock.mockResolvedValue({ items: [] });
+      renderWithClient(<BeneficiariesScreen />);
+      await screen.findByRole('heading', { name: 'Aún no tienes beneficiarios' });
+      expect(screen.queryByRole('searchbox')).toBeNull();
+    });
+
+    it('WEB-23 la pantalla con una búsqueda sin resultados no tiene problemas de accesibilidad', async () => {
+      const { user, field, container } = await renderSearch();
+      await user.type(field, 'Zapata');
+      expect(await axe(container)).toHaveNoViolations();
+    });
+  });
+
   it('WEB-20 sin beneficiarios muestra "Aún no tienes beneficiarios" con "Agregar beneficiario"', async () => {
     bffGetMock.mockResolvedValue({ items: [] });
     renderWithClient(<BeneficiariesScreen />);

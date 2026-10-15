@@ -3,6 +3,11 @@ import type { Vector } from './types';
 /** Esquema `PhoneInput` del contrato (CTR-12). */
 export const phoneVectors: Vector[] = [
   { input: '5512345678', valid: true },
+  { input: '2012345678', valid: true, note: 'primer dígito 2' },
+  { input: '9912345678', valid: true, note: 'primer dígito 9' },
+  { input: '0512345678', valid: false, code: 'INVALID_FORMAT', note: 'empieza con 0' },
+  { input: '1512345678', valid: false, code: 'INVALID_FORMAT', note: 'empieza con 1' },
+  { input: '55123456789', valid: false, code: 'INVALID_FORMAT', note: '11 dígitos' },
   { input: '551234567', valid: false, code: 'INVALID_FORMAT', note: '9 dígitos' },
   { input: '+525512345678', valid: false, code: 'INVALID_FORMAT', note: 'se captura sin lada' },
   { input: '55 1234 5678', valid: false, code: 'INVALID_FORMAT' },
@@ -51,20 +56,61 @@ export const otpVectors: Vector[] = [
   { input: '', valid: false, code: 'REQUIRED' },
 ];
 
+/** Esquema `Password` del contrato para contraseñas nuevas (CTR-13). */
+export const passwordVectors: Vector[] = [
+  { input: 'una-contraseña-1', valid: true },
+  { input: 'abcdefghijk1', valid: true, note: '12 caracteres, letra y dígito' },
+  { input: 'ñandú-123-ñandú', valid: true, note: 'letras con acento' },
+  { input: 'x'.repeat(127) + '1', valid: true, note: '128 caracteres' },
+  { input: 'abcdefghij1', valid: false, code: 'TOO_SHORT', contractValid: false, note: '11' },
+  { input: 'x'.repeat(128) + '1', valid: false, code: 'TOO_LONG', note: '129' },
+  { input: 'sololetrasaquihay', valid: false, code: 'INVALID_FORMAT', note: 'sin dígito' },
+  { input: '123456789012', valid: false, code: 'INVALID_FORMAT', note: 'sin letra' },
+  { input: '------------1', valid: false, code: 'INVALID_FORMAT', note: 'sin letra' },
+  { input: 1234567890123, valid: false, code: 'INVALID_TYPE' },
+  { input: '', valid: false, code: 'REQUIRED' },
+];
+
+/** Esquema `PersonName` del contrato: nombre del titular al registrarse (CTR-13). */
+export const personNameVectors: Vector[] = [
+  { input: 'Ana Gómez', valid: true },
+  { input: 'Ana Gómez Núñez', valid: true },
+  { input: 'María José Peña-Ortiz', valid: true, note: 'guion' },
+  { input: "Luis D'Angelo", valid: true, note: 'apóstrofo' },
+  { input: 'Juan Pérez Jr.', valid: true, note: 'punto' },
+  { input: 'Ñandú Ibáñez', valid: true },
+  { input: 'Ana Gómez ', valid: false, code: 'INVALID_FORMAT', note: 'espacio al final' },
+  { input: ' Ana Gómez', valid: false, code: 'INVALID_FORMAT', note: 'espacio al inicio' },
+  { input: 'Ana  Gómez', valid: false, code: 'INVALID_FORMAT', note: 'espacios repetidos' },
+  { input: 'Ana', valid: false, code: 'INVALID_FORMAT', note: 'una sola palabra' },
+  { input: 'Ana Gómez2', valid: false, code: 'INVALID_FORMAT', note: 'dígito' },
+  { input: 'Ana G@mez', valid: false, code: 'INVALID_FORMAT', note: 'símbolo' },
+  { input: 'Ana\nGómez', valid: false, code: 'INVALID_FORMAT', note: 'salto de línea' },
+  { input: '-Ana Gómez', valid: false, code: 'INVALID_FORMAT', note: 'empieza con guion' },
+  { input: `${'N'.repeat(50)} ${'N'.repeat(50)}`, valid: false, code: 'TOO_LONG', note: '101' },
+  { input: `${'N'.repeat(49)} ${'N'.repeat(50)}`, valid: true, note: '100' },
+  { input: 'A', valid: false, code: 'TOO_SHORT', note: '1 carácter' },
+  { input: 123, valid: false, code: 'INVALID_TYPE' },
+  { input: '', valid: false, code: 'REQUIRED' },
+];
+
 /**
- * Esquema `ScheduledDate` del contrato (CTR-13). El patrón no sabe de calendario: una fecha que no
- * existe pasa el patrón y solo el paquete la rechaza.
+ * Esquema `ScheduledInstant` del contrato (TRF-27). El patrón exige minutos exactos y desfase; no sabe
+ * de calendario: un día que no existe pasa el patrón y solo el paquete lo rechaza.
  */
-export const scheduledDateVectors: Vector[] = [
-  { input: '2026-10-20', valid: true },
-  { input: '2028-02-29', valid: true, note: 'año bisiesto' },
-  { input: '2026-02-30', valid: false, code: 'INVALID_DATE', contractValid: true },
-  { input: '2027-02-29', valid: false, code: 'INVALID_DATE', contractValid: true },
-  { input: '2026-10-00', valid: false, code: 'INVALID_DATE', contractValid: true, note: 'día 00' },
-  { input: '2026-13-01', valid: false, code: 'INVALID_DATE', contractValid: true },
-  { input: '2026-10-20T00:00:00Z', valid: false, code: 'INVALID_FORMAT', note: 'con hora' },
-  { input: '20-10-2026', valid: false, code: 'INVALID_FORMAT' },
-  { input: '2026-1-5', valid: false, code: 'INVALID_FORMAT' },
-  { input: 20261020, valid: false, code: 'INVALID_TYPE' },
+export const scheduledInstantVectors: Vector[] = [
+  { input: '2026-10-20T14:30:00-06:00', valid: true },
+  { input: '2026-10-20T20:30:00Z', valid: true },
+  { input: '2026-10-20T20:30:00.000Z', valid: true, note: 'la forma que devuelve la API' },
+  { input: '2028-02-29T00:00:00+00:00', valid: true, note: 'año bisiesto' },
+  { input: '2026-10-20T20:30:30Z', valid: false, code: 'INVALID_FORMAT', note: 'segundos' },
+  { input: '2026-10-20T20:30:00.500Z', valid: false, code: 'INVALID_FORMAT', note: 'milisegundos' },
+  { input: '2026-10-20T20:30:00', valid: false, code: 'INVALID_FORMAT', note: 'sin desfase' },
+  { input: '2026-10-20', valid: false, code: 'INVALID_FORMAT', note: 'solo fecha' },
+  { input: '2026-10-20 20:30:00Z', valid: false, code: 'INVALID_FORMAT', note: 'sin T' },
+  { input: '2026-02-30T10:00:00Z', valid: false, code: 'INVALID_FORMAT', contractValid: true },
+  { input: '2026-10-20T24:00:00Z', valid: false, code: 'INVALID_FORMAT', contractValid: true },
+  { input: '2026-10-20T10:61:00Z', valid: false, code: 'INVALID_FORMAT', contractValid: true },
+  { input: 1792000000000, valid: false, code: 'INVALID_TYPE' },
   { input: '', valid: false, code: 'REQUIRED' },
 ];

@@ -26,7 +26,7 @@ export interface MovementRecord {
   readonly occurredAt: string;
   readonly transferId: string;
   readonly concept: string;
-  readonly reference: number;
+  readonly reference: number | null;
   readonly counterparty: { readonly name: string; readonly clabeLast4: string | null } | null;
 }
 

@@ -18,15 +18,16 @@ export interface TransferRow {
   readonly beneficiaryId: string | null;
   readonly amountCents: bigint;
   readonly concept: string;
-  readonly reference: number;
+  /** Referencia numérica; nula si la persona no la indicó (TRF-09). */
+  readonly reference: number | null;
   readonly requiresOtp: boolean;
   readonly rejectionReason: RejectionReason | null;
   readonly failureReason: FailureReason | null;
   readonly otpExpiresAt: Date | null;
   readonly createdAt: Date;
   readonly completedAt: Date | null;
-  /** Fecha de ejecución (`YYYY-MM-DD`, día de CDMX) de una programada; nula en las inmediatas. */
-  readonly scheduledFor: string | null;
+  /** Instante de ejecución (minuto exacto) de una programada; nulo en las inmediatas. */
+  readonly scheduledFor: Date | null;
   /** Momento de la cancelación; solo en `CANCELLED`. */
   readonly cancelledAt: Date | null;
 }
@@ -93,11 +94,11 @@ export interface DueTransfer {
 /** Cola de programadas vencidas del ejecutor (TRF-30, TRF-31, D6). */
 export interface ScheduledQueue {
   /**
-   * Candidatas sin bloqueo: SCHEDULED con `scheduled_for <= day`, en orden de ejecución
+   * Candidatas sin bloqueo: SCHEDULED con `scheduled_for <= now`, en orden de ejecución
    * (`scheduled_for`, creación, id), a partir de la siguiente de `after` (la última del lote
    * anterior de la misma pasada) y hasta `limit`.
    */
-  due(day: string, limit: number, after: string | null): Promise<DueTransfer[]>;
+  due(now: Date, limit: number, after: string | null): Promise<DueTransfer[]>;
   /**
    * Bloquea la transferencia solo si sigue SCHEDULED, con `FOR NO KEY UPDATE SKIP LOCKED`: `null`
    * si otra instancia (o una cancelación) la tiene bloqueada o si ya cambió de estado.

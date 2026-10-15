@@ -65,7 +65,7 @@ beforeEach(async () => {
     amount: '1000.00',
     concept: 'Renta',
     reference: '1',
-    scheduledFor: '2026-10-15',
+    scheduledFor: '2026-10-15T06:00:00.000Z',
   });
   id = res.body.id;
   // La programada ya venció: 00:00:30 del 15 en CDMX.

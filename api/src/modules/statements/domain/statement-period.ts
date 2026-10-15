@@ -47,8 +47,8 @@ export class StatementPeriod {
   ) {}
 
   /**
-   * Valida el patrón y que el mes no sea posterior al mes en curso de CDMX. Sin límite inferior
-   * aparte del patrón: un mes anterior a la apertura de la cuenta es un estado vacío.
+   * Valida el patrón y que el mes no sea posterior al mes en curso de CDMX. El límite inferior (el
+   * mes de apertura de la cuenta) depende de la cuenta y lo valida el caso de uso.
    */
   static parse(value: string, clock: Clock): StatementPeriod {
     if (!PERIOD.test(value)) {

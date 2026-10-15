@@ -5,6 +5,17 @@ const run = Math.floor(Math.random() * 1e6)
   .toString(36)
   .padStart(4, '0');
 
+/** El contador en letras (el nombre no admite dígitos): 1 → `B`, 27 → `BB`. */
+function spelled(n: number): string {
+  let rest = n;
+  let letters = '';
+  do {
+    letters = String.fromCharCode(65 + (rest % 26)) + letters;
+    rest = Math.floor(rest / 26);
+  } while (rest > 0);
+  return letters;
+}
+
 /**
  * Datos de registro válidos y únicos: CURP con dígito verificador calculado, RFC con fecha real y
  * teléfono de 10 dígitos, todos derivados de un contador para no chocar entre pruebas.
@@ -24,7 +35,7 @@ export function newRegistration(overrides: Partial<Record<string, unknown>> = {}
   return {
     email: `persona${n}.${run}@example.com`,
     password: 'contraseña muy segura 2026',
-    fullName: `Persona ${n} Prueba`,
+    fullName: `Persona ${spelled(n)} Prueba`,
     curp,
     rfc,
     phone,

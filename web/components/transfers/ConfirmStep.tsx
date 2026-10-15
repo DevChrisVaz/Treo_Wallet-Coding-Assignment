@@ -79,7 +79,7 @@ export function ConfirmStep({
           />
           <SummaryRow term="Para" value={destinationText} />
           <SummaryRow term="Concepto" value={request.concept} />
-          <SummaryRow term="Referencia" value={request.reference} />
+          {request.reference ? <SummaryRow term="Referencia" value={request.reference} /> : null}
           {request.scheduledFor ? (
             <SummaryRow term="Cuándo" value={scheduledSendText(request.scheduledFor)} />
           ) : null}

@@ -11,13 +11,12 @@ export const TRANSFER_COLUMNS = `id, user_id, idempotency_key, request_fingerpri
   cancelled_at`;
 
 /**
- * Las mismas columnas para leer. `scheduled_for` sale como texto: el driver convierte un `date` en
- * un `Date` a la medianoche local del proceso, que en otra zona horaria cambiaría el día.
+ * Las mismas columnas para leer. `scheduled_for` es `timestamptz`: el driver lo entrega como `Date`.
  */
 export const TRANSFER_SELECT = `id, user_id, idempotency_key, request_fingerprint, kind, status,
   from_account_id, to_account_id, beneficiary_id, amount_cents, concept, reference, requires_otp,
-  rejection_reason, failure_reason, otp_expires_at, created_at, completed_at,
-  scheduled_for::text AS scheduled_for, cancelled_at`;
+  rejection_reason, failure_reason, otp_expires_at, created_at, completed_at, scheduled_for,
+  cancelled_at`;
 
 export function transferValues(row: TransferRow): unknown[] {
   return [
@@ -58,14 +57,14 @@ interface Row {
   beneficiary_id: string | null;
   amount_cents: string;
   concept: string;
-  reference: number;
+  reference: number | null;
   requires_otp: boolean;
   rejection_reason: RejectionReason | null;
   failure_reason: FailureReason | null;
   otp_expires_at: Date | null;
   created_at: Date;
   completed_at: Date | null;
-  scheduled_for: string | null;
+  scheduled_for: Date | null;
   cancelled_at: Date | null;
 }
 

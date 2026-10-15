@@ -5,6 +5,7 @@ import { PgUserRepository } from '../../../src/modules/identity/infrastructure/p
 import { auditEvents, leakedValues } from '../../helpers/audit.js';
 import { buildTestApp, type TestApp } from '../../helpers/app.js';
 import { expectToMatchContract } from '../../helpers/contract.js';
+import { curpCheckDigit } from '../../../src/modules/identity/domain/curp.js';
 import { newRegistration, type Registration } from '../../helpers/factories.js';
 import { useIntegrationHarness } from '../../helpers/harness.js';
 
@@ -19,6 +20,26 @@ async function register(body: Record<string, unknown>) {
   const res = await request(t.app).post('/auth/register').send(body);
   expectToMatchContract(res, 'registerUser');
   return res;
+}
+
+/** Mismo CURP salvo el diferenciador (carácter 17), con su dígito verificador: comparte los 10 primeros. */
+function siblingCurp(curp: string): string {
+  const first16 = curp.slice(0, 16);
+  const differentiator = curp[16] === '7' ? '8' : '7';
+  return `${first16}${differentiator}${curpCheckDigit(`${first16}${differentiator}`)}`;
+}
+
+/** Datos de otra persona que repiten un solo dato único de `existing` y siguen siendo coherentes (RFC y CURP). */
+function sharing(field: 'curp' | 'rfc' | 'phone', existing: Registration) {
+  if (field === 'curp') return { curp: existing.curp, rfc: `${existing.rfc.slice(0, 10)}XY1` };
+  if (field === 'rfc') return { rfc: existing.rfc, curp: siblingCurp(existing.curp) };
+  return { phone: existing.phone };
+}
+
+/** CURP y RFC coherentes de alguien nacido en 20`yymmdd` (hoy del arnés: 13-oct-2026 en CDMX). */
+function bornOn(yymmdd: string) {
+  const first17 = `GOMC${yymmdd}HDFNLRA`;
+  return { curp: `${first17}${curpCheckDigit(first17)}`, rfc: `GOMC${yymmdd}AB1` };
 }
 
 async function usersWith(field: 'email' | 'curp' | 'rfc' | 'phone', value: string) {
@@ -178,7 +199,7 @@ describe('IDN-01 registro con respuesta uniforme', () => {
     const person = newRegistration();
     const created = await register(person);
     const unverified = await register(person);
-    const conflict = await register({ ...newRegistration(), curp: person.curp });
+    const conflict = await register({ ...newRegistration(), ...sharing('curp', person) });
     expect(unverified.body).toEqual(created.body);
     expect(conflict.body).toEqual(created.body);
   });
@@ -189,12 +210,67 @@ describe('IDN-02 datos obligatorios del registro', () => {
     ['CURP con dígito verificador incorrecto', { curp: 'GOMC900101HDFNLR08' }, '/curp'],
     ['RFC con fecha 990231', { rfc: 'GOMC990231AB1' }, '/rfc'],
     ['contraseña de 11 caracteres', { password: 'a'.repeat(11) }, '/password'],
-    ['contraseña de 129 caracteres', { password: 'a'.repeat(129) }, '/password'],
+    ['contraseña de 129 caracteres', { password: 'a1'.repeat(64) + 'b' }, '/password'],
+    ['contraseña sin dígito', { password: 'solo letras largas' }, '/password'],
+    ['contraseña sin letra', { password: '123456789012345' }, '/password'],
+    ['nombre con dígitos', { fullName: 'Ana 2 Gómez' }, '/fullName'],
+    ['nombre con símbolos', { fullName: 'Ana @ Gómez' }, '/fullName'],
+    ['nombre de una sola palabra', { fullName: 'Ana' }, '/fullName'],
+    ['nombre con espacios repetidos', { fullName: 'Ana  Gómez' }, '/fullName'],
+    ['teléfono que empieza con 0', { phone: '0512345678' }, '/phone'],
+    ['teléfono que empieza con 1', { phone: '1512345678' }, '/phone'],
+    ['teléfono de 9 dígitos', { phone: '551234567' }, '/phone'],
+    ['RFC que no coincide con la CURP', { rfc: 'PEPE700101AB1' }, '/rfc'],
   ])('IDN-02 %s responde 422 VALIDATION_FAILED en el campo', async (_case, change, pointer) => {
     const res = await register({ ...newRegistration(), ...change });
     expect(res.status).toBe(422);
     expect(res.body.code).toBe('VALIDATION_FAILED');
     expect(res.body.errors.map((error: { pointer: string }) => error.pointer)).toEqual([pointer]);
+  });
+
+  it('IDN-02 un RFC distinto al de la CURP dice "El RFC no coincide con tu CURP" con INVALID_FORMAT', async () => {
+    const res = await register({ ...newRegistration(), rfc: 'PEPE700101AB1' });
+    expect(res.status).toBe(422);
+    expect(res.body.errors).toEqual([
+      { pointer: '/rfc', code: 'INVALID_FORMAT', message: 'El RFC no coincide con tu CURP' },
+    ]);
+  });
+
+  it('IDN-02 quien cumple 18 mañana (en CDMX) se rechaza con DATE_OUT_OF_RANGE en /curp y no se guarda', async () => {
+    const person = newRegistration(bornOn('081014')); // cumple 18 el 14-oct-2026; hoy es el 13
+    const res = await register(person);
+    expect(res.status).toBe(422);
+    expect(res.body.errors).toEqual([
+      expect.objectContaining({ pointer: '/curp', code: 'DATE_OUT_OF_RANGE' }),
+    ]);
+    expect(await usersWith('email', person.email)).toEqual([]);
+  });
+
+  it('IDN-02 quien cumple 18 hoy se registra', async () => {
+    const person = newRegistration(bornOn('081013'));
+    expect((await register(person)).status).toBe(202);
+    expect(await usersWith('email', person.email)).toHaveLength(1);
+  });
+
+  it('IDN-02 una CURP con fecha de nacimiento futura se rechaza con INVALID_DATE en /curp', async () => {
+    const res = await register(newRegistration(bornOn('301013')));
+    expect(res.status).toBe(422);
+    expect(res.body.errors).toEqual([
+      expect.objectContaining({ pointer: '/curp', code: 'INVALID_DATE' }),
+    ]);
+  });
+
+  it('IDN-02 la mayoría de edad se mide con el Clock inyectado: un día después el mismo CURP es válido', async () => {
+    t = await buildTestApp(harness, { now: '2026-10-14T18:00:00.000Z' });
+    const person = newRegistration(bornOn('081014'));
+    expect((await register(person)).status).toBe(202);
+  });
+
+  it('IDN-02 datos válidos con nombre acentuado, ñ, apóstrofo y guion se registran', async () => {
+    const person = newRegistration({ fullName: "María-José O'Brien Ñuñez" });
+    expect((await register(person)).status).toBe(202);
+    const [user] = await usersWith('email', person.email);
+    expect(user.full_name).toBe("María-José O'Brien Ñuñez");
   });
 
   it('IDN-02 guarda el email normalizado y el teléfono en E.164', async () => {
@@ -212,7 +288,7 @@ describe('IDN-03 unicidad de los datos de identidad', () => {
     async (field) => {
       const existing = newRegistration();
       await register(existing);
-      const intruder = newRegistration({ [field]: existing[field] });
+      const intruder = newRegistration(sharing(field, existing));
       const res = await register(intruder);
       expect(res.status).toBe(202);
       expect(await usersWith('email', intruder.email)).toEqual([]);
@@ -241,7 +317,7 @@ describe('IDN-03 unicidad de los datos de identidad', () => {
     t = await buildTestApp(harness, { overrides: { users } });
 
     const first = newRegistration();
-    const second = newRegistration({ rfc: first.rfc });
+    const second = newRegistration(sharing('rfc', first));
     const responses = await Promise.all([register(first), register(second)]);
     expect(arrived).toBe(2);
     expect(responses.map((res) => res.status)).toEqual([202, 202]);

@@ -11,7 +11,7 @@ import type { StatementAccount, StatementReader, StatementSnapshot } from '../ap
 const DEFAULT_BATCH_SIZE = 1_000;
 
 const ACCOUNT = `
-  SELECT a.id, a.name, a.clabe, u.full_name AS holder_name
+  SELECT a.id, a.name, a.clabe, u.full_name AS holder_name, a.created_at
     FROM accounts a
     JOIN users u ON u.id = a.user_id
    WHERE a.id = $1 AND a.user_id = $2 AND a.type = 'USER'`;
@@ -46,10 +46,21 @@ class PgStatementSnapshot implements StatementSnapshot {
   ) {}
 
   async account(userId: string, accountId: string): Promise<StatementAccount | null> {
-    const [row]: { id: string; name: string; clabe: string; holder_name: string }[] =
-      await this.runner.query(ACCOUNT, [accountId, userId]);
+    const [row]: {
+      id: string;
+      name: string;
+      clabe: string;
+      holder_name: string;
+      created_at: Date;
+    }[] = await this.runner.query(ACCOUNT, [accountId, userId]);
     return row
-      ? { id: row.id, name: row.name, clabe: row.clabe, holderName: row.holder_name }
+      ? {
+          id: row.id,
+          name: row.name,
+          clabe: row.clabe,
+          holderName: row.holder_name,
+          createdAt: row.created_at,
+        }
       : null;
   }
 

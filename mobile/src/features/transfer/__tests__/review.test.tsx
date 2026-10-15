@@ -23,7 +23,7 @@ async function review(fake: FakeApi, amount: string, fakeTimers = false) {
   const user = userEvent.setup(fakeTimers ? { advanceTimers: jest.advanceTimersByTime } : {});
   await user.type(await screen.findByLabelText('Monto'), amount);
   await user.type(screen.getByLabelText('Concepto'), 'Renta de octubre');
-  await user.type(screen.getByLabelText('Referencia'), '1234567');
+  await user.type(screen.getByLabelText('Referencia (opcional)'), '1234567');
   await user.press(screen.getByRole('button', { name: 'Continuar' }));
   return user;
 }
@@ -86,7 +86,7 @@ describe('confirmación previa', () => {
     const fake = apiWith(json(201, transfer()));
     const user = await review(fake, '1500');
     await user.press(await screen.findByRole('button', { name: 'Editar' }));
-    expect(screen.getByLabelText('Monto')).toHaveDisplayValue('1500');
+    expect(screen.getByLabelText('Monto')).toHaveDisplayValue('1,500');
     expect(screen.getByLabelText('Concepto')).toHaveDisplayValue('Renta de octubre');
     expect(fake.requestsTo('POST', '/transfers')).toHaveLength(0);
   });

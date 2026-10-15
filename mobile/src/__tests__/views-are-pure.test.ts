@@ -37,6 +37,7 @@ describe('vistas de pantalla puras', () => {
     ).toEqual([
       'accounts/home-view.tsx',
       'accounts/movements-view.tsx',
+      'accounts/receive-sheet-view.tsx',
       'auth/login-view.tsx',
       'transfer/form-view.tsx',
       'transfer/otp-view.tsx',

@@ -8,6 +8,7 @@ import { logout } from '@/app/actions/auth';
 import { buttonClasses } from '@/components/ui/Button';
 import { RouterLinkProvider, type LinkComponent } from '@/components/ui/RouterLink';
 import { AccountSelectionProvider } from '@/lib/client/account-selection';
+import { SessionUserProvider } from '@/lib/client/session-user';
 import { appSection } from '@/lib/navigation';
 import { AppShell } from './AppShell';
 
@@ -67,23 +68,25 @@ export function AppFrame({ user, children }: AppFrameProps) {
   const primary = PRIMARY[section.primary];
   return (
     <RouterLinkProvider value={NextLink}>
-      <AccountSelectionProvider>
-        <AppShell
-          current={section.current}
-          title={section.title}
-          mode={section.mode}
-          user={user}
-          onLogout={() => void onLogout()}
-          loggingOut={pending}
-          primaryAction={
-            <Link href={primary.href} className={buttonClasses('primary')}>
-              {primary.label}
-            </Link>
-          }
-        >
-          {children}
-        </AppShell>
-      </AccountSelectionProvider>
+      <SessionUserProvider user={user}>
+        <AccountSelectionProvider>
+          <AppShell
+            current={section.current}
+            title={section.title}
+            mode={section.mode}
+            user={user}
+            onLogout={() => void onLogout()}
+            loggingOut={pending}
+            primaryAction={
+              <Link href={primary.href} className={buttonClasses('primary')}>
+                {primary.label}
+              </Link>
+            }
+          >
+            {children}
+          </AppShell>
+        </AccountSelectionProvider>
+      </SessionUserProvider>
     </RouterLinkProvider>
   );
 }

@@ -8,8 +8,10 @@ import {
   otpCode,
   phone,
   reference,
+  newPassword,
+  personName,
   rfc,
-  scheduledDate,
+  scheduledInstant,
 } from '../../src/index';
 import { contract } from '../support/contract';
 import { amountVectors } from '../vectors/amount';
@@ -17,8 +19,10 @@ import {
   conceptVectors,
   otpVectors,
   phoneVectors,
+  passwordVectors,
+  personNameVectors,
   referenceVectors,
-  scheduledDateVectors,
+  scheduledInstantVectors,
 } from '../vectors/fields';
 import { clabeVectors, curpVectors, rfcVectors } from '../vectors/identity';
 import { contractExpectation, type Vector } from '../vectors/types';
@@ -36,7 +40,9 @@ const parity: [string, { safeParse: (input: unknown) => { success: boolean } }, 
   ['Concept', concept, conceptVectors],
   ['Reference', reference, referenceVectors],
   ['SixDigitCode', otpCode, otpVectors],
-  ['ScheduledDate', scheduledDate, scheduledDateVectors],
+  ['ScheduledInstant', scheduledInstant, scheduledInstantVectors],
+  ['Password', newPassword, passwordVectors],
+  ['PersonName', personName, personNameVectors],
 ];
 
 describe.each(parity)('paridad con el esquema %s del contrato', (schemaName, schema, vectors) => {

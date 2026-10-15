@@ -51,7 +51,7 @@ export function MovementRow({ movement, timeOnly = false }: MovementRowProps) {
               formatDateTime(movement.occurredAt)
             )}
           </time>
-          {' · '}Ref. {movement.reference}
+          {movement.reference ? ` · Ref. ${movement.reference}` : null}
         </p>
       </div>
       <div className="ml-auto grid justify-items-end gap-1 text-right">

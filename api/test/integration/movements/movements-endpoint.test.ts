@@ -34,7 +34,7 @@ describe('HIS-01 historial de una cuenta propia', () => {
           amount: '1000.00',
           balanceAfter: '1000.00',
           concept: 'Fondeo de la Tesorería',
-          reference: '0',
+          reference: null,
           counterparty: null,
           transferId: expect.any(String),
           occurredAt: '2026-10-13T18:00:00.000Z',

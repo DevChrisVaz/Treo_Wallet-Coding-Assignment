@@ -72,6 +72,26 @@ export const DailyLimit = () => (
   </View>
 );
 
+// MOB-21: sin referencia, la revisión no lleva la fila "Referencia". Diseño objetivo, pendiente en la
+// vista de revisión (hoy muestra la fila vacía).
+export const TransferSummaryWithoutReference = () => (
+  <View style={frame}>
+    <ListSection>
+      {[
+        ['Desde', 'Principal · •••• 9719'],
+        ['Para', 'Luis · •••• 5678'],
+        ['Concepto', 'Renta'],
+      ].map(([name, text], index) => (
+        <View key={name} style={[row, index > 0 ? divider : null]}>
+          <Text style={label}>{name}</Text>
+          <View style={{ flex: 1 }} />
+          <Text style={value}>{text}</Text>
+        </View>
+      ))}
+    </ListSection>
+  </View>
+);
+
 // Resumen de la revisión de una transferencia: etiqueta a la izquierda y valor a la derecha.
 export const TransferSummary = () => (
   <View style={frame}>

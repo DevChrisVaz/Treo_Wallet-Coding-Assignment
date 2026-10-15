@@ -27,6 +27,7 @@ export {
 // Vistas reales de las pantallas (8.1): las historias de `Screen` las usan con los datos canónicos.
 export { HomeView } from '@/features/accounts/home-view';
 export { MovementsView } from '@/features/accounts/movements-view';
+export { ReceiveSheetContent } from '@/features/accounts/receive-sheet-view';
 export { LoginView } from '@/features/auth/login-view';
 export { RecipientView } from '@/features/transfer/recipient-view';
 export { TransferFlowView } from '@/features/transfer/transfer-flow-view';

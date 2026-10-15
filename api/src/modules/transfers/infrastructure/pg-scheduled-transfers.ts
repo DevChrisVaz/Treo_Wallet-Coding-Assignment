@@ -44,17 +44,17 @@ export class PgScheduledTransfers implements ScheduledCap, ScheduledQueue {
    * sin pasar `created_at` por JavaScript): una candidata que no se pudo ejecutar no se vuelve a
    * leer en la misma pasada.
    */
-  async due(day: string, limit: number, after: string | null): Promise<DueTransfer[]> {
+  async due(now: Date, limit: number, after: string | null): Promise<DueTransfer[]> {
     const rows: { id: string; user_id: string; kind: DueTransfer['kind'] }[] =
       await this.dataSource.query(
         `SELECT t.id, t.user_id, t.kind FROM transfers t
-          WHERE t.status = 'SCHEDULED' AND t.scheduled_for <= $1::date
+          WHERE t.status = 'SCHEDULED' AND t.scheduled_for <= $1
             AND ($3::uuid IS NULL
                  OR (t.scheduled_for, t.created_at, t.id)
                     > (SELECT p.scheduled_for, p.created_at, p.id FROM transfers p WHERE p.id = $3))
           ORDER BY t.scheduled_for, t.created_at, t.id
           LIMIT $2`,
-        [day, limit, after],
+        [now, limit, after],
       );
     return rows.map((row) => ({ id: row.id, userId: row.user_id, kind: row.kind }));
   }

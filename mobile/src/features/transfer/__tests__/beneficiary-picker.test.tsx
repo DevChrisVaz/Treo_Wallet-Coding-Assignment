@@ -87,3 +87,61 @@ describe('elegir beneficiario', () => {
     expect(await screen.findByText('No pudimos cargar tus beneficiarios')).toBeOnTheScreen();
   });
 });
+
+describe('buscar beneficiario (MOB-29)', () => {
+  async function open(items = [luis, mama]) {
+    const fake = createFakeApi().on('GET', '/beneficiaries', json(200, { items }));
+    await renderApp({ fake, routes, initialUrl: '/transfer' });
+    return userEvent.setup();
+  }
+
+  test('MOB-29 filtra por nombre o alias sin distinguir mayúsculas ni acentos', async () => {
+    const user = await open();
+    const search = await screen.findByLabelText('Buscar beneficiario');
+    expect(search).toHaveProp('placeholder', 'Buscar por nombre, alias o CLABE');
+
+    await user.type(search, 'MARIA');
+    expect(screen.getByRole('button', { name: /^Mamá/ })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Luis/ })).toBeNull();
+
+    await user.clear(search);
+    await user.type(search, 'lu');
+    expect(screen.getByRole('button', { name: /^Luis/ })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Mamá/ })).toBeNull();
+  });
+
+  test('MOB-29 una consulta de dígitos busca dentro de la CLABE', async () => {
+    const user = await open();
+    await user.type(await screen.findByLabelText('Buscar beneficiario'), '4321');
+    expect(screen.getByRole('button', { name: /^Mamá/ })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Luis/ })).toBeNull();
+  });
+
+  test('MOB-29 sin coincidencias muestra "Sin resultados" y "Limpiar búsqueda" restaura la lista', async () => {
+    const user = await open();
+    await user.type(await screen.findByLabelText('Buscar beneficiario'), 'zzz');
+
+    expect(screen.getByText('Sin resultados')).toBeOnTheScreen();
+    expect(screen.getByText('No hay beneficiarios que coincidan con «zzz».')).toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Limpiar búsqueda' }));
+
+    expect(screen.queryByText('Sin resultados')).toBeNull();
+    expect(screen.getByRole('button', { name: /^Luis/ })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: /^Mamá/ })).toBeOnTheScreen();
+    expect(screen.getByLabelText('Buscar beneficiario')).toHaveDisplayValue('');
+  });
+
+  test('MOB-29 el botón × borra la búsqueda', async () => {
+    const user = await open();
+    await user.type(await screen.findByLabelText('Buscar beneficiario'), 'lu');
+    await user.press(screen.getByRole('button', { name: 'Borrar búsqueda' }));
+    expect(screen.getByLabelText('Buscar beneficiario')).toHaveDisplayValue('');
+    expect(screen.getByRole('button', { name: /^Mamá/ })).toBeOnTheScreen();
+  });
+
+  test('MOB-29 sin beneficiarios no hay campo de búsqueda', async () => {
+    await open([]);
+    expect(await screen.findByText('Aún no tienes beneficiarios')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Buscar beneficiario')).toBeNull();
+  });
+});

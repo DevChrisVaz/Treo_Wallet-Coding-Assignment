@@ -28,7 +28,7 @@ beforeEach(async () => {
   });
 });
 
-async function schedule(amount: string, scheduledFor = '2026-10-15') {
+async function schedule(amount: string, scheduledFor = '2026-10-15T06:00:00.000Z') {
   const res = await postTransfer(t, ana, {
     fromAccountId: ana.principal.id,
     destination: { type: 'BENEFICIARY', beneficiaryId },
@@ -94,7 +94,7 @@ describe('TRF-34 comprobante de una programada', () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       status: 'SCHEDULED',
-      scheduledFor: '2026-10-15',
+      scheduledFor: '2026-10-15T06:00:00.000Z',
       cancelledAt: null,
       completedAt: null,
     });
@@ -110,7 +110,7 @@ describe('TRF-34 comprobante de una programada', () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       status: 'COMPLETED',
-      scheduledFor: '2026-10-15',
+      scheduledFor: '2026-10-15T06:00:00.000Z',
       completedAt: '2026-10-15T06:00:30.000Z',
       cancelledAt: null,
     });
@@ -125,7 +125,7 @@ describe('TRF-34 comprobante de una programada', () => {
     expect(res.body).toMatchObject({
       status: 'FAILED',
       failureReason: 'INSUFFICIENT_FUNDS',
-      scheduledFor: '2026-10-15',
+      scheduledFor: '2026-10-15T06:00:00.000Z',
       completedAt: null,
     });
   });
@@ -137,7 +137,7 @@ describe('TRF-34 comprobante de una programada', () => {
     const res = await getTransfer(ana, id);
     expect(res.body).toMatchObject({
       status: 'CANCELLED',
-      scheduledFor: '2026-10-15',
+      scheduledFor: '2026-10-15T06:00:00.000Z',
       cancelledAt: '2026-10-14T18:00:30.000Z',
     });
   });

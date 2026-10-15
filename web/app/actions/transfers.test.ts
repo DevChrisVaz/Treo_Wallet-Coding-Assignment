@@ -110,9 +110,9 @@ describe('createTransfer', () => {
 });
 
 describe('createTransfer · programar', () => {
-  const SCHEDULED_INPUT = { ...INPUT, amount: '1000.00', scheduledFor: '2026-10-20' };
+  const SCHEDULED_INPUT = { ...INPUT, amount: '1000.00', scheduledFor: '2026-10-20T20:30:00.000Z' };
   const scheduled = () =>
-    transfer({ status: 'SCHEDULED', amount: '1000.00', scheduledFor: '2026-10-20' });
+    transfer({ status: 'SCHEDULED', amount: '1000.00', scheduledFor: '2026-10-20T20:30:00.000Z' });
 
   afterEach(() => {
     vi.useRealTimers();
@@ -149,10 +149,13 @@ describe('createTransfer · programar', () => {
 
   it('WEB-33 WEB-07 una fecha que no existe responde VALIDATION_FAILED en /scheduledFor sin llamar a la API', async () => {
     const api = fakeApi();
-    const result = await createTransfer({ ...SCHEDULED_INPUT, scheduledFor: '2026-02-30' }, KEY);
+    const result = await createTransfer(
+      { ...SCHEDULED_INPUT, scheduledFor: '2026-02-30T20:30:00.000Z' },
+      KEY,
+    );
     expect(result).toMatchObject({ ok: false, problem: { code: 'VALIDATION_FAILED' } });
     expect(!result.ok && result.problem.errors).toEqual([
-      expect.objectContaining({ pointer: '/scheduledFor', code: 'INVALID_DATE' }),
+      expect.objectContaining({ pointer: '/scheduledFor', code: 'INVALID_FORMAT' }),
     ]);
     expect(api.calls).toHaveLength(0);
   });
@@ -179,7 +182,7 @@ describe('createTransfer · programar', () => {
       {
         pointer: '/scheduledFor',
         code: 'DATE_OUT_OF_RANGE',
-        message: 'Elige una fecha entre mañana y 90 días después de hoy',
+        message: 'Elige un momento entre 10 minutos y 90 días después de ahora',
       },
     ];
     fakeApi().on('POST', '/transfers', () =>
@@ -207,7 +210,7 @@ describe('confirmTransfer · programada', () => {
     const scheduled = transfer({
       status: 'SCHEDULED',
       amount: '15000.00',
-      scheduledFor: '2026-10-20',
+      scheduledFor: '2026-10-20T20:30:00.000Z',
     });
     fakeApi().on('POST', `/transfers/${TRANSFER_ID}/confirm`, () => jsonResponse(200, scheduled));
     expect(await confirmTransfer({ transferId: TRANSFER_ID, otp: '123456' })).toEqual({

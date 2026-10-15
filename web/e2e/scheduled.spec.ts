@@ -45,13 +45,14 @@ for (const width of [390, 1280] as const) {
     await page.getByLabel('Referencia').fill('1');
     await page.getByLabel('Programar').check();
     await page.getByLabel('Fecha de envío').fill('2026-10-20');
+    await page.getByLabel('Hora de envío').fill('14:30');
     await page.getByRole('button', { name: 'Continuar' }).click();
 
     await expect(
       page.getByRole('heading', { level: 1, name: 'Revisa tu transferencia' }),
     ).toBeVisible();
     await expect(
-      page.locator('main').getByText('Se enviará el 20 de octubre de 2026').first(),
+      page.locator('main').getByText('Se enviará el 20 de octubre de 2026, 14:30').first(),
     ).toBeVisible();
     await page.getByRole('button', { name: 'Enviar' }).click();
 
@@ -62,7 +63,7 @@ for (const width of [390, 1280] as const) {
     await expect(receipt.getByText('Programada', { exact: true })).toBeVisible();
     // Etiqueta y valor por separado: no dependen de que el texto de ambos quede pegado.
     await expect(receipt.getByText('Programada para', { exact: true })).toBeVisible();
-    await expect(receipt.getByText('20 de octubre de 2026', { exact: true })).toBeVisible();
+    await expect(receipt.getByText('20 de octubre de 2026, 14:30', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'tus transferencias programadas' })).toBeVisible();
   });
 }

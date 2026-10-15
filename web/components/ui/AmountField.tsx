@@ -1,5 +1,6 @@
 'use client';
 
+import { sanitizeAmountTyping } from '@devchrisvaz/wallet-contract';
 import { useState, type ChangeEvent, type ComponentPropsWithRef } from 'react';
 import { CONTROL_CLASSES, FieldFrame, useFieldIds, type FieldProps } from './field';
 
@@ -9,9 +10,57 @@ export type AmountFieldProps = FieldProps &
     variant?: 'default' | 'hero';
   };
 
+const SIGNIFICANT = /[\d.]/;
+
+/** Cuántos dígitos y puntos hay antes de `end`: la posición del cursor que no cambia al dar formato. */
+function significantBefore(text: string, end: number): number {
+  let count = 0;
+  for (let index = 0; index < end; index += 1) {
+    if (SIGNIFICANT.test(text.charAt(index))) count += 1;
+  }
+  return count;
+}
+
+/** Posición en `text` después de `count` dígitos o puntos. */
+function positionAfter(text: string, count: number): number {
+  if (count === 0) return 0;
+  let seen = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    if (SIGNIFICANT.test(text.charAt(index))) seen += 1;
+    if (seen === count) return index + 1;
+  }
+  return text.length;
+}
+
 /**
- * Monto en MXN como texto (WEB-21): prefijo `$`, teclado decimal y sin conversión a número. El
- * formulario limpia los separadores y lo valida con `amountInput` del contrato.
+ * Da formato al texto del campo mientras se escribe o se pega (WEB-21): solo dígitos y un punto, hasta 2
+ * decimales y comas de millar (`sanitizeAmountTyping` del contrato). El cursor se queda junto al mismo
+ * dígito aunque aparezcan o desaparezcan comas. Devuelve el texto que quedó en el campo.
+ */
+export function formatAmountInput(input: HTMLInputElement): string {
+  const raw = input.value;
+  const { display } = sanitizeAmountTyping(raw);
+  if (display === raw) return display;
+  const caret = input.selectionStart ?? raw.length;
+  const significant = significantBefore(raw, caret);
+  input.value = display;
+  // `significant` cuenta también lo que el saneamiento descartó (p. ej. un tercer decimal): se acota.
+  const position = positionAfter(
+    display,
+    Math.min(significant, significantBefore(display, display.length)),
+  );
+  try {
+    input.setSelectionRange(position, position);
+  } catch {
+    // Un campo sin selección posible (p. ej. fuera del documento): el cursor queda al final.
+  }
+  return display;
+}
+
+/**
+ * Monto en MXN como texto (WEB-21): prefijo `$`, teclado decimal y formato mientras se escribe
+ * (`12,345.67`; letras y símbolos no entran, tampoco al pegar). El formulario quita las comas antes de
+ * enviarlo y lo valida con `amountInput` del contrato.
  */
 export function AmountField({
   label,
@@ -62,7 +111,7 @@ export function AmountField({
               autoComplete="off"
               {...rest}
               onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                setTyped(event.target.value);
+                setTyped(formatAmountInput(event.target));
                 onChange?.(event);
               }}
               type="text"
@@ -89,6 +138,10 @@ export function AmountField({
         <input
           autoComplete="off"
           {...props}
+          onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            formatAmountInput(event.target);
+            props.onChange?.(event);
+          }}
           type="text"
           inputMode="decimal"
           id={ids.id}

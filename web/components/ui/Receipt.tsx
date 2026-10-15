@@ -4,7 +4,7 @@ import { useId, type ReactNode } from 'react';
 import { TRANSFER_STATUS } from '@/lib/conventions';
 import { formatDateTime } from '@/lib/format';
 import { maskClabe } from '@/lib/money';
-import { formatScheduledDate } from '@/lib/scheduled-date';
+import { formatScheduledInstant } from '@/lib/scheduled-date';
 import { Avatar } from './Avatar';
 import { StatusBadge } from './StatusBadge';
 
@@ -87,11 +87,12 @@ export function Receipt({ transfer, fromAccount }: ReceiptProps) {
         <Row term="Origen">{origin}</Row>
         <Row term="Destino">{destination}</Row>
         <Row term="Concepto">{transfer.concept}</Row>
-        <Row term="Referencia">{transfer.reference}</Row>
+        {/* La referencia es opcional (WEB-16): sin ella no se muestra la fila. */}
+        {transfer.reference ? <Row term="Referencia">{transfer.reference}</Row> : null}
         {transfer.scheduledFor ? (
           <Row term="Programada para">
             <time dateTime={transfer.scheduledFor}>
-              {formatScheduledDate(transfer.scheduledFor)}
+              {formatScheduledInstant(transfer.scheduledFor)}
             </time>
           </Row>
         ) : null}

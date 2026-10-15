@@ -1,15 +1,25 @@
-import { Skeleton, Text, View, Wordmark, theme } from 'wallet-mobile-ui';
+import { ListSection, Skeleton, View, theme } from 'wallet-mobile-ui';
 
-const frame = { width: 360, gap: theme.spacing[3], padding: theme.spacing[4] };
-
-const overline = { ...theme.typography.label, color: theme.colors.text.secondary };
-const title = { ...theme.typography.h1, color: theme.colors.text.primary };
+// Lienzo de la app (surface.canvas) a ancho de teléfono, con el margen de pantalla. Las líneas van
+// dentro de la sección de la lista que reemplazan; la tarjeta ocupa el lugar de una AccountCard y,
+// mientras Inicio carga, el del hero.
+const frame = {
+  width: 390,
+  gap: theme.spacing[5],
+  padding: theme.spacing[5],
+  backgroundColor: theme.colors.surface.canvas,
+};
+const stack = { gap: theme.spacing[3] };
 
 export const Line = () => (
   <View style={frame}>
-    <Skeleton variant="line" />
-    <Skeleton variant="line" />
-    <Skeleton variant="line" />
+    <ListSection>
+      <View style={stack}>
+        <Skeleton variant="line" />
+        <Skeleton variant="line" />
+        <Skeleton variant="line" />
+      </View>
+    </ListSection>
   </View>
 );
 
@@ -19,46 +29,43 @@ export const Card = () => (
   </View>
 );
 
-// Carga de "Tus cuentas": límite diario y dos tarjetas de cuenta.
-export const AccountsLoading = () => (
-  <View style={{ ...frame, gap: theme.spacing[5] }}>
-    <View style={{ gap: theme.spacing[2] }}>
-      <Wordmark variant="compact" />
-      <Text style={title}>Tus cuentas</Text>
-    </View>
-    <View style={{ gap: theme.spacing[4] }}>
-      <Skeleton variant="line" />
+// Inicio cargando: el hero, las dos tarjetas y los últimos movimientos.
+export const HomeLoading = () => (
+  <View style={frame}>
+    <Skeleton variant="card" />
+    <View style={stack}>
       <Skeleton variant="card" />
       <Skeleton variant="card" />
     </View>
+    <ListSection>
+      <View style={stack}>
+        <Skeleton />
+        <Skeleton />
+        <Skeleton />
+        <Skeleton />
+      </View>
+    </ListSection>
   </View>
 );
 
-// Carga de los últimos movimientos de una cuenta.
+// "Últimos movimientos" de Inicio mientras carga la cuenta elegida.
 export const MovementsLoading = () => (
-  <View style={{ ...frame, gap: theme.spacing[5] }}>
-    <View style={{ gap: theme.spacing[1] }}>
-      <Text style={overline}>Últimos movimientos</Text>
-      <Text style={title}>Principal</Text>
-    </View>
-    <View style={{ gap: theme.spacing[4] }}>
-      <Skeleton variant="line" />
-      <Skeleton variant="line" />
-      <Skeleton variant="line" />
-      <Skeleton variant="line" />
-      <Skeleton variant="line" />
-      <Skeleton variant="line" />
-    </View>
+  <View style={frame}>
+    <ListSection title="Últimos movimientos">
+      <View style={stack}>
+        <Skeleton />
+        <Skeleton />
+        <Skeleton />
+        <Skeleton />
+      </View>
+    </ListSection>
   </View>
 );
 
+// El paso del destinatario mientras cargan los beneficiarios.
 export const BeneficiariesLoading = () => (
-  <View style={{ ...frame, gap: theme.spacing[5] }}>
-    <View style={{ gap: theme.spacing[1] }}>
-      <Text style={overline}>Transferir</Text>
-      <Text style={title}>¿A quién le envías?</Text>
-    </View>
-    <View style={{ gap: theme.spacing[2] }}>
+  <View style={frame}>
+    <View style={stack}>
       <Skeleton variant="line" />
       <Skeleton variant="line" />
       <Skeleton variant="line" />

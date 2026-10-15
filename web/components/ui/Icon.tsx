@@ -7,13 +7,17 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleAlert,
+  Check,
+  ChevronsUpDown,
   CircleCheck,
+  Copy,
   House,
   Info,
   Landmark,
   LogOut,
   ReceiptText,
   Repeat2,
+  Search,
   Send,
   SlidersHorizontal,
   TriangleAlert,
@@ -48,8 +52,23 @@ export const ICONS = {
   account: UserRound,
 } as const satisfies Record<IconConcept, LucideIcon>;
 
+/**
+ * Glifos de la interfaz que aún no son un concepto del paquete de tokens (DSG-15): buscar,
+ * copiar, confirmar y el selector de dos chevrones del botón de perfil. Si se vuelven conceptos
+ * compartidos con la app móvil, pasan a `iconConcepts`.
+ */
+export const EXTRA_ICONS = {
+  search: Search,
+  copy: Copy,
+  check: Check,
+  selector: ChevronsUpDown,
+} as const satisfies Record<string, LucideIcon>;
+
+export type ExtraIconName = keyof typeof EXTRA_ICONS;
+export type IconName = IconConcept | ExtraIconName;
+
 export interface IconProps {
-  name: IconConcept;
+  name: IconName;
   size?: keyof typeof iconSize;
   /** Solo cuando el icono comunica algo sin texto al lado; si no, es decorativo. */
   label?: string;
@@ -58,7 +77,8 @@ export interface IconProps {
 
 /** Icono de línea del sistema (DSG-15): decorativo salvo que tenga etiqueta. */
 export function Icon({ name, size = 'md', label, className = '' }: IconProps) {
-  const Glyph = ICONS[name];
+  const Glyph =
+    name in EXTRA_ICONS ? EXTRA_ICONS[name as ExtraIconName] : ICONS[name as IconConcept];
   const px = iconSize[size];
   const classes = `shrink-0 ${className}`.trim();
   return label ? (
@@ -83,7 +103,7 @@ export function Icon({ name, size = 'md', label, className = '' }: IconProps) {
 }
 
 export interface IconButtonProps {
-  icon: IconConcept;
+  icon: IconName;
   /** Obligatoria: es el único nombre accesible del botón. */
   label: string;
   onClick?: () => void;

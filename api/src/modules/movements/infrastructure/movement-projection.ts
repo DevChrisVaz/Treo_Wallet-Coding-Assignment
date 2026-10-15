@@ -10,7 +10,7 @@ export interface MovementRow {
   occurred_at: string;
   transfer_id: string;
   concept: string;
-  reference: number;
+  reference: number | null;
   counterparty_name: string | null;
   counterparty_clabe_last4: string | null;
 }

@@ -78,6 +78,13 @@ describe('MovementRow', () => {
     expect(screen.getByTestId('movement-row')).not.toHaveStyle({ borderBottomWidth: 1 });
   });
 
+  test('MOB-06 sin referencia la línea lleva solo la fecha (nunca "Ref." ni "null")', async () => {
+    await render(<MovementRow movement={movement({ reference: '' })} />);
+    expect(screen.getByText('12 oct, 19:05')).toBeOnTheScreen();
+    expect(screen.getByLabelText('12 oct, 19:05')).toBeOnTheScreen();
+    expect(screen.queryByText(/Ref\./)).toBeNull();
+  });
+
   test('DSG-10 un depósito de la Tesorería (sin contraparte) muestra +$ en verde', async () => {
     await render(
       <MovementRow
@@ -221,6 +228,12 @@ describe('Receipt', () => {
     expect(screen.getByText('1234567')).toBeOnTheScreen();
     expect(screen.getByText('13 oct 2026, 10:42')).toBeOnTheScreen();
     expect(screen.getByText(transfer.id)).toBeOnTheScreen();
+  });
+
+  test('MOB-13 sin referencia el comprobante no muestra la fila', async () => {
+    await render(<Receipt transfer={{ ...transfer, reference: '' }} />);
+    expect(screen.queryByText('Referencia')).toBeNull();
+    expect(screen.queryByText('null')).toBeNull();
   });
 
   test('MOB-13 con la CLABE de origen, el origen lleva su terminación como en la revisión', async () => {

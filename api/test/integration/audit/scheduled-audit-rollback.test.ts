@@ -48,7 +48,7 @@ const toLuis = (amount: string) => ({
   amount,
   concept: 'Renta',
   reference: '1',
-  scheduledFor: '2026-10-20',
+  scheduledFor: '2026-10-20T15:00:00.000Z',
 });
 
 async function transferEvents(): Promise<string[]> {
