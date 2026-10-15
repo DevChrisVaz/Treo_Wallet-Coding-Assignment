@@ -133,6 +133,10 @@ La web SHALL mostrar todos los montos con el formato de moneda `es-MX` en MXN a 
 - **WHEN** el usuario escribe `100.005` como monto
 - **THEN** el campo conserva `100.00` y no admite el tercer decimal
 
+#### Scenario: Monto con separadores
+- **WHEN** el usuario escribe `1,250.50`
+- **THEN** la web envía el monto como `"1250.50"`
+
 #### Scenario: Letras y símbolos
 - **WHEN** el usuario escribe o pega `"12a,345.678 MXN"` en el monto
 - **THEN** el campo muestra `12,345.67` y la petición lleva `"12345.67"`
