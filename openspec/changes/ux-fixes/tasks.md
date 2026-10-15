@@ -9,6 +9,9 @@ Requiere `contract-v1-2` y `scheduled-transfers`. La tarea 1.1 va antes de que c
 - [x] 2.1 [contract] `PersonName`, `Password` y `Phone` en `openapi.yaml`; esquema de registro con correo normalizado, mayoría de edad en la Ciudad de México y coincidencia RFC y CURP en `/rfc`; vectores de paridad y pruebas por regla (CTR-11, CTR-12, CTR-13)
 - [x] 2.2 [api] Esquema del registro con las mismas reglas y el reloj inyectado; pruebas unitarias y de integración de cada rechazo y de los límites de edad (IDN-02)
 - [x] 2.3 [web] "Confirmar contraseña" solo de interfaz, validación al salir de cada campo, CURP, RFC y teléfono restringidos al escribir y errores del servidor por campo; pruebas de componentes (WEB-11)
+- [x] 2.4 [contract] `ALREADY_REGISTERED` en `FieldErrorCode` y descripción de `POST /auth/register` con el 422 por datos de otra cuenta (IDN-03)
+- [x] 2.5 [api] CURP, RFC o teléfono de otra cuenta en 422 `ALREADY_REGISTERED` por campo, también desde la constraint única, sin crear ni enviar correo; se retira el aviso "No pudimos completar tu registro"; pruebas de integración (IDN-01, IDN-03)
+- [x] 2.6 [web] Estado del registro con datos de otra cuenta en el lienzo y luego en la app; pruebas de componentes y e2e (WEB-11)
 
 ## 3. Monto
 

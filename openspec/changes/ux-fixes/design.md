@@ -110,6 +110,15 @@ El servicio de correo de desarrollo guarda su base en `/data/mailpit.db` sobre e
 ### D13. Versionado del contrato
 Los cambios del contrato se publican como 1.3.0. Por CTR-02, endurecer una validación existente (nombre, contraseña, teléfono) y cambiar el tipo de `scheduledFor` son cambios incompatibles que pedirían 2.0.0. Se publica como versión menor porque los cuatro consumidores viven en este repositorio, se instalan por `file:` y se actualizan juntos en este mismo change, y no hay un cliente externo que se rompa. Cuando los repositorios se separen y el contrato se publique, un cambio así sí pedirá versión mayor.
 
+### D14. CURP, RFC o teléfono de otra cuenta: error en el formulario
+Antes, un registro con email nuevo cuya CURP, RFC o teléfono ya eran de otro usuario respondía `202` como cualquier registro y enviaba al email el aviso "No pudimos completar tu registro". La persona veía la pantalla de verificación, esperaba un código que nunca llegaba y solo por correo se enteraba, sin saber qué dato corregir. Ahora la API responde `422 VALIDATION_FAILED` con `ALREADY_REGISTERED` (código nuevo de `FieldErrorCode`) en cada campo que choca, no crea nada ni envía correo, y la web lo muestra bajo el campo como cualquier otro error de validación. El aviso por correo desaparece.
+
+- **Orden:** el email se revisa primero, así que IDN-01 no cambia: un email verificado o sin verificar sigue respondiendo `202` y su correo, aunque la CURP también choque. Solo un email nuevo llega a la revisión de identidad.
+- **Carrera:** si dos registros pasan la revisión a la vez, la constraint única detiene al segundo y la API traduce la constraint (`uq_users_curp`, `uq_users_rfc`, `uq_users_phone`) al campo.
+- **Por qué no `409`:** el error es de un campo del formulario y la web ya pinta los `422` con `pointer` bajo cada campo; un `409` habría pedido otro camino en el cliente para el mismo resultado.
+
+**Alternativa descartada:** mantener la respuesta uniforme (IDN-03 original) para que nadie pueda saber si una CURP, un RFC o un teléfono ya están registrados. Protege esos datos, pero el formulario no puede avisar del error, que es justo lo que se pidió.
+
 ## Risks / Trade-offs
 
 - **Datos viejos que no cumplen las reglas nuevas.** Los usuarios ya registrados con un nombre de una palabra o una contraseña sin dígito siguen siendo válidos: las reglas solo aplican al registro. La mitigación es que ninguna otra ruta valida `PersonName` ni `Password`.
@@ -117,3 +126,4 @@ Los cambios del contrato se publican como 1.3.0. Por CTR-02, endurecer una valid
 - **Cambio de tipo en `scheduledFor`.** Un cliente que siga mandando `AAAA-MM-DD` recibe 422 `INVALID_FORMAT`. Sin clientes externos, el riesgo se limita a una instalación desactualizada de la web o la app.
 - **Paridad web y móvil.** Cada pantalla común (Recibir, búsqueda, campos) se compone primero en el lienzo de ambas apps y luego en el código; las notas de design-sync registran lo que ya se aplicó.
 - **Búsqueda en el cliente.** Con una lista muy grande el filtro sería lento; la lista está acotada hoy por los límites de altas (BEN-10) y se revisará si se pagina.
+- **Enumeración de datos de identidad (D14).** Con un email nuevo, cualquiera puede preguntar si una CURP, un RFC o un teléfono ya tienen cuenta. La mitigación es el límite de 10 registros por hora por IP de `POST /auth/register`. El email sigue sin poder enumerarse.
