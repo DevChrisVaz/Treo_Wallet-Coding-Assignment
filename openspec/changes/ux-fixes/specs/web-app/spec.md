@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: WEB-11 Registro y verificación de correo
-La web SHALL ofrecer un registro con email, contraseña, confirmación de la contraseña, nombre completo, CURP, RFC y teléfono, validados en el formulario con las reglas del contrato (CTR-13). Cada campo MUST validarse al salir de él, sin esperar al envío, y corregirse al teclear. La confirmación de la contraseña es un campo solo de la interfaz: MUST coincidir con la contraseña y MUST NOT enviarse a la API. Mientras se escribe, la CURP y el RFC MUST quedar en mayúsculas alfanuméricas con un máximo de 18 y 13 caracteres, y el teléfono en dígitos con un máximo de 10, también al pegar. El email MUST enviarse recortado y en minúsculas. Si la API acepta el registro (`202`), la web MUST mostrar siempre el mismo mensaje genérico y llevar al usuario a la verificación, donde captura el código de 6 dígitos y puede pedir un reenvío. Si la API responde `422` con errores de campo, incluido `ALREADY_REGISTERED` cuando la CURP, el RFC o el teléfono ya son de otra cuenta (IDN-03), la web MUST mostrar cada mensaje bajo su campo y quedarse en el formulario. Al verificar, la web SHALL iniciar la sesión con los tokens recibidos y mostrar el resumen de cuentas.
+La web SHALL ofrecer un registro con email, contraseña, confirmación de la contraseña, nombre completo, CURP, RFC y teléfono, validados en el formulario con las reglas del contrato (CTR-13). Cada campo MUST validarse al salir de él, sin esperar al envío, y corregirse al teclear. La confirmación de la contraseña es un campo solo de la interfaz: MUST coincidir con la contraseña y MUST NOT enviarse a la API. Mientras se escribe, la CURP y el RFC MUST quedar en mayúsculas alfanuméricas con un máximo de 18 y 13 caracteres, y el teléfono en dígitos con un máximo de 10, también al pegar. El email MUST enviarse recortado y en minúsculas. Tras enviarlo, la web MUST mostrar siempre el mismo mensaje genérico y llevar al usuario a la verificación, donde captura el código de 6 dígitos y puede pedir un reenvío. Al verificar, la web SHALL iniciar la sesión con los tokens recibidos y mostrar el resumen de cuentas.
 
 #### Scenario: Registro enviado
 - **WHEN** el usuario envía un registro válido
@@ -35,11 +35,6 @@ La web SHALL ofrecer un registro con email, contraseña, confirmación de la con
 #### Scenario: Error del servidor en un campo
 - **WHEN** la API responde 422 con un error en `/curp` o `/rfc`
 - **THEN** la web lo muestra bajo ese campo
-
-#### Scenario: Datos de otra cuenta
-- **WHEN** la API responde 422 con `ALREADY_REGISTERED` en `/curp` y en `/phone`
-- **THEN** la web muestra "Esta CURP ya está registrada en otra cuenta." bajo la CURP y "Este teléfono ya está registrado en otra cuenta." bajo el teléfono
-- **AND** el foco va a la CURP y la web no pasa a la verificación
 
 #### Scenario: Código incorrecto
 - **WHEN** el usuario envía un código incorrecto y la API responde `VERIFICATION_CODE_INVALID` con `attemptsRemaining` 2
