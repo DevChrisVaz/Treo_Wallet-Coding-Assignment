@@ -12,7 +12,11 @@ test('WEB-11 una CURP y un teléfono de otra cuenta se marcan en su campo y el r
   await page.getByLabel('Correo').fill('ana@example.com');
   await page.getByLabel('Contraseña', { exact: true }).fill('contraseña-segura1');
   await page.getByLabel('Confirmar contraseña').fill('contraseña-segura1');
-  await page.getByLabel('Nombre completo').fill('Beatriz Sepúlveda Romero');
+  await page.getByLabel('Nombre(s)').fill('Beatriz');
+  await page.getByLabel('Apellido paterno').fill('Sepúlveda');
+  await page.getByLabel('Apellido materno (opcional)').fill('Romero');
+  await page.getByLabel('Fecha de nacimiento').fill('1985-11-21');
+  await page.getByLabel('Entidad de nacimiento').selectOption('DF');
   await page.getByLabel('CURP').fill(TAKEN.curp);
   await page.getByLabel('RFC').fill(TAKEN.rfc);
   await page.getByLabel('Teléfono').fill(TAKEN.phone);
@@ -25,4 +29,22 @@ test('WEB-11 una CURP y un teléfono de otra cuenta se marcan en su campo y el r
   await expect(page).toHaveURL(/\/register$/);
   const registers = (await apiRequests(page)).filter((r) => r.path === '/auth/register');
   expect(registers).toHaveLength(1);
+});
+
+test('WEB-11 una fecha y una entidad distintas de la CURP se marcan en su campo y no se envía el registro', async ({
+  page,
+}) => {
+  await scenario(page, {});
+  await page.goto('/register');
+  await page.getByLabel('CURP').fill(TAKEN.curp);
+  await page.getByLabel('Fecha de nacimiento').fill('1985-11-22');
+  const state = page.getByLabel('Entidad de nacimiento');
+  await state.focus();
+  await state.selectOption('JC');
+  await state.blur();
+
+  await expect(page.getByText('La fecha no coincide con tu CURP')).toBeVisible();
+  await expect(page.getByText('La entidad no coincide con tu CURP')).toBeVisible();
+  const registers = (await apiRequests(page)).filter((r) => r.path === '/auth/register');
+  expect(registers).toHaveLength(0);
 });
