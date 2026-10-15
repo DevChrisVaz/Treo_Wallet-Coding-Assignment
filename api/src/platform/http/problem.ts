@@ -16,6 +16,7 @@ export const PROBLEM_CATALOG: Record<ProblemCode, ProblemEntry> = {
   INVALID_CREDENTIALS: { status: 401, title: 'Credenciales inválidas' },
   SESSION_REVOKED: { status: 401, title: 'Sesión revocada o vencida' },
   EMAIL_NOT_VERIFIED: { status: 403, title: 'Correo sin verificar' },
+  REGISTRATION_IN_REVIEW: { status: 403, title: 'Registro en revisión' },
   NOT_FOUND: { status: 404, title: 'Recurso no encontrado' },
   BENEFICIARY_CONFLICT: { status: 409, title: 'El beneficiario choca con uno existente' },
   TRANSFER_NOT_PENDING: { status: 409, title: 'La transferencia no está pendiente' },

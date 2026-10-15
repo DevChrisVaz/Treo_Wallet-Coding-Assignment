@@ -29,11 +29,15 @@ function userValues(overrides: Partial<Record<string, string | null>> = {}) {
   };
 }
 
-async function insertUser(values: ReturnType<typeof userValues>) {
+async function insertUser(
+  values: ReturnType<typeof userValues>,
+  { inReview = false }: { inReview?: boolean } = {},
+) {
   await app.query(
     `INSERT INTO users (id, email, password_hash, full_name, curp, rfc, phone,
-                        first_names, paternal_surname, maternal_surname, birth_date, birth_state)
-     VALUES ($1, $2, 'argon2-hash', $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+                        first_names, paternal_surname, maternal_surname, birth_date, birth_state,
+                        identity_conflict)
+     VALUES ($1, $2, 'argon2-hash', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
     [
       values.id,
       values.email,
@@ -46,6 +50,7 @@ async function insertUser(values: ReturnType<typeof userValues>) {
       values.maternal_surname,
       values.birth_date,
       values.birth_state,
+      inReview,
     ],
   );
 }
@@ -100,6 +105,29 @@ describe('IDN-03 unicidad de los datos de identidad en la base', () => {
     expect(await constraintOf(insertUser(userValues({ phone: first.phone })))).toBe(
       'uq_users_phone',
     );
+  });
+
+  it('IDN-03 un usuario en revisión puede repetir la CURP, el RFC y el teléfono de otro', async () => {
+    const first = userValues();
+    await insertUser(first);
+    await insertUser(userValues({ curp: first.curp, rfc: first.rfc, phone: first.phone }), {
+      inReview: true,
+    });
+  });
+
+  it('IDN-03 un usuario en revisión no libera los datos para otro usuario activo', async () => {
+    const first = userValues();
+    await insertUser(first);
+    await insertUser(userValues({ curp: first.curp }), { inReview: true });
+    expect(await constraintOf(insertUser(userValues({ curp: first.curp })))).toBe('uq_users_curp');
+  });
+
+  it('IDN-03 el email es único también para los usuarios en revisión', async () => {
+    const first = userValues();
+    await insertUser(first);
+    expect(
+      await constraintOf(insertUser(userValues({ email: first.email }), { inReview: true })),
+    ).toBe('uq_users_email');
   });
 
   it('IDN-02 exige un nombre completo de 1 a 100 caracteres', async () => {

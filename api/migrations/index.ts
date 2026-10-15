@@ -1,5 +1,6 @@
 import type { MigrationInterface } from 'typeorm';
 import { RegistrationBirthData1760900000000 } from './1760900000000-registration-birth-data.js';
+import { RegistrationReview1761000000000 } from './1761000000000-registration-review.js';
 import { AuditLog1760400000000 } from './1760400000000-audit-log.js';
 import { Users1760400001000 } from './1760400001000-users.js';
 import { Accounts1760400002000 } from './1760400002000-accounts.js';
@@ -37,4 +38,5 @@ export const migrations: (new () => MigrationInterface)[] = [
   OptionalTransferReference1760800000000,
   ScheduledForInstant1760800001000,
   RegistrationBirthData1760900000000,
+  RegistrationReview1761000000000,
 ];
