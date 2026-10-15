@@ -37,9 +37,9 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | BEN-10 | Límite de altas de beneficiarios | api-ledger | 2: api-ledger#5.4 api-ledger#5.6 | 2: c076f67 605ed26 | api 1 |
 | BEN-11 | Auditoría del alta de beneficiarios | api-ledger | 3: api-ledger#5.3 api-ledger#5.6 domain-test-coverage#4.2 | 3: b347718 c076f67 e3e5f28 | api 4 |
 | BEN-12 | Aviso del alta de un beneficiario | security-hardening | 1: security-hardening#3.5 | 8: 755b17c d8accf3 b2eb142 (+5) | api 7 |
-| CTR-01 | Contrato OpenAPI como fuente de verdad | contract-v1 | 2: contract-v1#1.2 contract-v1#6.1 | 2: b2f920a 25ea459 | — |
+| CTR-01 | Contrato OpenAPI como fuente de verdad | contract-v1 | 2: contract-v1#1.2 contract-v1#6.1 | 2: b2f920a 25ea459 | contract 3 |
 | CTR-02 | Versionado semántico del contrato | contract-v1 | 7: contract-v1#1.3 contract-v1#6.2 contract-v1-1#1.3 (+4) | 13: dc7670d 3df47c3 b211155 (+10) | contract 3 |
-| CTR-03 | Tipos generados desde el contrato | contract-v1 | 3: contract-v1#2.1 contract-v1#2.2 contract-v1#6.1 | 3: b2f920a cdb92c8 cd24bec | — |
+| CTR-03 | Tipos generados desde el contrato | contract-v1 | 3: contract-v1#2.1 contract-v1#2.2 contract-v1#6.1 | 3: b2f920a cdb92c8 cd24bec | contract 3 |
 | CTR-04 | Cliente HTTP tipado por rutas | contract-v1 | 1: contract-v1#2.3 | 1: 8e1a0da | contract 8 |
 | CTR-05 | Request ID en cada petición | contract-v1 | 1: contract-v1#2.4 | 1: 24b5d02 | contract 3 |
 | CTR-06 | Llave de idempotencia provista por el consumidor | contract-v1 | 1: contract-v1#2.5 | 1: eb75c81 | contract 5 |
@@ -53,7 +53,7 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | CTR-14 | Formato de montos en es-MX sin floats | contract-v1 | 2: contract-v1#4.1 contract-v1#4.2 | 2: 3f8a98b 00bafd9 | contract 2 |
 | CTR-15 | Paquete agnóstico de entorno | contract-v1, contract-v1-1 | 5: contract-v1#1.1 contract-v1#5.1 contract-v1#5.2 (+2) | 7: 6f0a8a7 18354b0 f486d8d (+4) | contract 6 |
 | CTR-16 | Distribución como artefacto, sin dependencias de código | contract-v1 | 3: contract-v1#5.1 contract-v1#5.3 contract-v1#6.2 | 4: f909af3 b859bf3 75f61c2 (+1) | contract 1 |
-| CTR-17 | Verificación continua del paquete | contract-v1 | 1: contract-v1#6.1 | 1: b2f920a | — |
+| CTR-17 | Verificación continua del paquete | contract-v1 | 1: contract-v1#6.1 | 1: b2f920a | contract 2 |
 | CTR-18 | Calendario de la Ciudad de México en el paquete | contract-v1-2, ux-fixes | 2: contract-v1-2#1.3 ux-fixes#10.1 | 6: 3220257 1972769 8721244 (+3) | contract 3 |
 | CTR-19 | Descarga de documentos binarios | contract-v1-2 | 1: contract-v1-2#1.1 | 2: f415c27 ad628da | contract 3 |
 | CTR-20 | Utilidades de captura y búsqueda de texto | ux-fixes | 3: ux-fixes#3.1 ux-fixes#5.1 ux-fixes#8.1 | 2: 8721244 b79fd1e | contract 10 |
@@ -155,8 +155,8 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | PLT-13 | Entorno local reproducible | api-foundation, ux-fixes | 6: api-foundation#1.1 api-foundation#1.4 api-foundation#3.12 (+3) | 10: b211155 7663863 b79fd1e (+7) | api 13 |
 | PLT-14 | Roles de base de datos de privilegio mínimo | api-foundation, tooling-fixes | 4: api-foundation#2.1 api-foundation#2.9 tooling-fixes#1.1 (+1) | 10: 755b17c 3abf76d 197606e (+7) | api 25 |
 | PLT-15 | Esquema gestionado solo por migraciones reversibles | api-foundation | 3: api-foundation#2.2 api-foundation#2.9 api-foundation#9.1 | 4: a8230bd 3c1128f 2a0ebd5 (+1) | api 17 |
-| PLT-16 | Entrega de correo transaccional | api-foundation, email-branding, security-hardening | 6: api-foundation#5.1 api-foundation#5.2 email-branding#1.1 (+3) | 17: 2464a4f 8874181 35fcdec (+14) | api 34 |
-| PLT-17 | Integración continua del proyecto | api-foundation | 2: api-foundation#9.1 api-foundation#9.2 | 3: 2bdbcc7 baa7583 a8230bd | — |
+| PLT-16 | Entrega de correo transaccional | api-foundation, email-branding, security-hardening | 6: api-foundation#5.1 api-foundation#5.2 email-branding#1.1 (+3) | 18: 4ff1da7 2464a4f 8874181 (+15) | api 34 |
+| PLT-17 | Integración continua del proyecto | api-foundation | 2: api-foundation#9.1 api-foundation#9.2 | 3: 2bdbcc7 baa7583 a8230bd | contract 1 |
 | PLT-18 | Reglas de negocio independientes del transporte HTTP | api-foundation | 2: api-foundation#1.2 api-foundation#8.2 | 3: 8a6ce7b 1ee03e0 6abd830 | api 6 |
 | PLT-19 | Límites de tasa configurables | security-hardening | 4: security-hardening#2.1 security-hardening#2.2 security-hardening#2.3 (+1) | 10: 755b17c d8accf3 b2eb142 (+7) | api 2 |
 | PLT-20 | Respuestas sin caché | security-hardening | 1: security-hardening#2.5 | 8: 755b17c d8accf3 b2eb142 (+5) | api 6 |
@@ -214,7 +214,7 @@ Generada con `scripts/trace.sh`: 235 requisitos. Las columnas de tareas y commit
 | WEB-14 | Historial de movimientos | web-app | 4: account-statements#2.3 redesign#6.4 web-app#6.2 (+1) | 7: b9aeea0 db1bffd 5719ece (+4) | web 15 |
 | WEB-15 | Beneficiarios | web-app | 2: web-app#7.1 web-app#7.2 | 4: 221a143 af02f36 05aa62c (+1) | web 9 |
 | WEB-16 | Flujo de transferencia | web-app, ux-fixes | 6: redesign#6.5 web-app#8.3 web-app#8.4 (+3) | 16: 64d86f3 1566084 4d5e011 (+13) | web 28 |
-| WEB-17 | Una sola transferencia por intento | web-app | 4: web-app#8.1 web-app#8.2 web-app#8.4 (+1) | 9: 274c2c4 e4e52a4 86ab381 (+6) | web 31 |
+| WEB-17 | Una sola transferencia por intento | web-app | 4: web-app#8.1 web-app#8.2 web-app#8.4 (+1) | 9: 274c2c4 e4e52a4 86ab381 (+6) | web 32 |
 | WEB-18 | Confirmación con OTP | web-app, ux-fixes | 3: web-app#8.5 web-app#8.7 ux-fixes#5.3 | 7: 64d86f3 e4e52a4 1e8561b (+4) | web 24 |
 | WEB-19 | Mensajes por código de error | web-app | 3: redesign#6.5 web-app#5.1 web-app#8.4 | 8: 1566084 4d5e011 1e8561b (+5) | web 8 |
 | WEB-20 | Estados de carga, vacío y error | web-app | 5: web-app#1.5 web-app#5.2 web-app#6.1 (+2) | 12: d1f5e8a 221a143 1e8561b (+9) | web 20 |
@@ -250,12 +250,9 @@ Ninguno.
 
 Ninguno.
 
-### Requisitos sin prueba cuyo título empiece con su ID (4)
+### Requisitos sin prueba cuyo título empiece con su ID (0)
 
-- `CTR-01` Contrato OpenAPI como fuente de verdad
-- `CTR-03` Tipos generados desde el contrato
-- `CTR-17` Verificación continua del paquete
-- `PLT-17` Integración continua del proyecto
+Ninguno.
 
 <!-- trace.sh:end -->
 
